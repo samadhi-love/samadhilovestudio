@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "r-YpM1WOHvPP5MaLytVn2"
+uri = "file://generated-artifacts/SAMADHI_LOVE_Studio_complete_project.zip"
+type = "unspecified"
+title = "SAMADHI LOVE Studio — Complete Project ZIP"
+description = "Current source code, assets, tests, workspace configuration and dependency lockfile. 768 files, 8.2 MB. Excludes secrets, private runtime data, dependencies and generated build files."
+logical_id = "09abdecb-7ccf-4bec-8a6c-0b45b2f5d5d7"
+content_hash = "sha256:a2a04cb75ab00e90314657f411f62a3da46cefca29b8bc3df31f3bd17b4a42e0"
+size = 8631559
+mtime_ms = 1794778038324
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/09abdecb-7ccf-4bec-8a6c-0b45b2f5d5d7/06d09222-1bd7-4ec9-9dba-14a7ef3e7228"
+storage_version_token = "1794778042626448"
+content_type = "application/octet-stream"
