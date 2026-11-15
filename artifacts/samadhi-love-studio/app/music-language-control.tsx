@@ -1,23 +1,24 @@
 "use client";
 import { musicLanguages, musicDialects, musicCapabilityRegistry, suggestLyricLanguage, type LanguageChoice } from "./music-language";
 
-export function MusicLanguageControl({ value, change, lyrics = "", disabled = false }: {
-  value: LanguageChoice; change: (next: LanguageChoice) => void; lyrics?: string; disabled?: boolean;
+export function MusicLanguageControl({ value, change, lyrics = "", disabled = false, compact = false }: {
+  value: LanguageChoice; change: (next: LanguageChoice) => void; lyrics?: string; disabled?: boolean; compact?: boolean;
 }) {
   const detected = suggestLyricLanguage(lyrics);
   const resolved = value.language === "auto" ? detected : value.language;
   const capability = resolved ? musicCapabilityRegistry.forLanguage(resolved) : undefined;
   return <fieldset disabled={disabled} className="optional-song-controls">
-    <legend>Singing language & dialect</legend>
+    <legend>{compact ? "Song language" : "Singing language & dialect"}</legend>
     <label className="field">Singing language
       <select value={value.language} onChange={e => {
         const language = e.target.value as LanguageChoice["language"];
         change({ language, dialect: ["auto", "ar", "mixed"].includes(language) ? value.dialect : "" });
       }}>
-        <option value="auto">Auto · suggest from my lyrics</option>
+        <option value="auto">{compact&&!lyrics.trim()?"Choose your song language…":"Auto · suggest from my lyrics"}</option>
         {Object.entries(musicLanguages).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
       </select>
     </label>
+    <details open={compact ? undefined : true}><summary>Dialect & language details</summary>
     <label className="field">Dialect (optional)
       <select value={value.dialect} disabled={!["auto", "ar", "mixed"].includes(value.language)} onChange={e => change({ ...value, dialect: e.target.value as LanguageChoice["dialect"] })}>
         <option value="">No dialect target</option>
@@ -36,6 +37,7 @@ export function MusicLanguageControl({ value, change, lyrics = "", disabled = fa
       <p>Mixed Arabic/Latin captions use full-line emphasis rather than potentially misplaced word highlights. Font availability varies by device; review the preview and exported video for missing glyphs and correct joining.</p>
       <p>Provider planning and singing may use credits. There is no free audition here and no automatic retry. Use an explicitly chosen short song in the detailed editor for a paid audition; review the quoted cost before proceeding.</p>
       <a href={musicCapabilityRegistry.sources[1]} target="_blank" rel="noreferrer">Official music controls</a>
+    </details>
     </details>
   </fieldset>;
 }

@@ -20,8 +20,14 @@ Creator setup should offer visible buttons instead of requiring terminal command
 
 **How to apply:** Prefer browser-based, step-by-step setup while preserving secure secret entry and clearly stating any manual step that remains.
 
-Style selection should start with a direct typed or pasted prompt, with genres, beats and regional styles offered four options at a time that creators can add.
+“Simplified as well as sophisticated” means smart, polished results from a short, understandable flow—not long menus for professional song makers. A song request should mean vocals and lyrics, not an instrumental sketch.
 
-**Why:** The user found the large genre and style lists too complicated and requested this simpler interaction.
+**Why:** The user repeated this requirement after receiving instrumental-only output and finding the creation menus too complicated.
 
-**How to apply:** Keep large catalogs optional rather than exposing them by default in the beginner song flow.
+**How to apply:** Default beginner creation to sung songs, never silently substitute sketches, and keep technical controls optional. Do not equate adding more selectors with sophistication.
+
+Follow Suno's documented creation structure rather than inventing new choices and tabs: Simple uses one song description; Custom separates lyrics, style and title.
+
+**Why:** The user explicitly instructed “search how suno works and follow instead of making ... choices and tabs.”
+
+**How to apply:** Use the familiar Simple/Custom distinction. Keep provider capabilities and costs honest; matching the interaction does not imply matching Suno's music model.
