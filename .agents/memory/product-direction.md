@@ -19,3 +19,9 @@ Creator setup should offer visible buttons instead of requiring terminal command
 **Why:** The user could not complete command-based vault setup and explicitly requested a simple generation/copy button.
 
 **How to apply:** Prefer browser-based, step-by-step setup while preserving secure secret entry and clearly stating any manual step that remains.
+
+Style selection should start with a direct typed or pasted prompt, with genres, beats and regional styles offered four options at a time that creators can add.
+
+**Why:** The user found the large genre and style lists too complicated and requested this simpler interaction.
+
+**How to apply:** Keep large catalogs optional rather than exposing them by default in the beginner song flow.

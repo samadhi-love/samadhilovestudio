@@ -16,3 +16,8 @@
 .genre-picker .genre-prompt>button { margin:4px 8px 4px 0; white-space:normal; }
 .genre-picker .genre-detected { opacity:1; }
 @media(max-width:640px) { .genre-picker.genre-picker-expanded .genre-style-window { padding:10px; } .genre-picker.genre-picker-expanded .genre-options { max-height:440px; } .genre-picker .genre-selected .genre-pill { min-height:42px; } .genre-picker .genre-picker-head>div { flex-basis:auto; } }
+.style-starter{min-width:0;margin:16px 0;padding:16px;border:1px solid var(--border,#c3b39455);border-radius:16px;background:linear-gradient(135deg,#c9a6670d,#a68bca0b);display:grid;gap:12px}
+.style-starter-field{display:grid;gap:6px;font-size:13px;font-weight:600;min-width:0}.style-starter-field textarea{width:100%;min-width:0;padding:10px;border:1px solid #b4a8bd66;border-radius:10px;background:var(--input-bg,#87808d0c);color:inherit;font:inherit;font-weight:400;resize:vertical}.style-starter-field small{font-weight:400;font-size:11px;opacity:.7}
+.style-starter-tabs{display:flex;flex-wrap:wrap;gap:8px}.style-starter-options{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.style-starter-options .genre-pill{min-height:44px;width:100%}
+.style-starter>.text-button{justify-self:start}.style-starter-picked{border-bottom:0;margin:0;padding:0}
+@media(max-width:640px){.style-starter{padding:12px}.style-starter-options{grid-template-columns:repeat(2,minmax(0,1fr))}}

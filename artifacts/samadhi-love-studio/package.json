@@ -10,6 +10,7 @@
     "test:library": "node scripts/test-song-library.mjs",
     "test:duration": "node scripts/test-track-duration.mjs",
     "test:genres": "node scripts/test-genres.mjs",
+    "test:styles": "node scripts/test-style-suggestions.mjs",
     "test:audiovisual": "node scripts/test-av-timeline.mjs",
     "verify:studio": "node scripts/verify-studio.mjs",
     "test:integrity": "node scripts/test-internal-integrity.mjs",
