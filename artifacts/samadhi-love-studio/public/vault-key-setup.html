@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Create your vault key · SAMADHI LOVE Studio</title>
+  <meta name="description" content="A private, browser-only helper for first-time Studio vault setup. No terminal commands required.">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f5f0; color: #242827; font: 17px/1.6 system-ui, sans-serif; }
+    main { max-width: 680px; margin: 5vh auto; padding: 28px; }
+    .brand { color: #4c665a; font-size: 12px; font-weight: 750; letter-spacing: .16em; }
+    h1 { font-size: clamp(30px, 6vw, 42px); line-height: 1.15; margin: 18px 0; letter-spacing: -.035em; }
+    h2 { font-size: 20px; margin: 0 0 10px; }
+    p { margin: 10px 0; }
+    .intro { color: #52605a; }
+    .warning { margin: 24px 0; padding: 18px; background: #fff4da; border: 1px solid #e8d6a5; border-radius: 12px; }
+    label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
+    input[type=checkbox] { flex: 0 0 auto; width: 22px; height: 22px; margin-top: 3px; accent-color: #285a46; }
+    section { margin-top: 20px; border: 1px solid #dce1db; border-radius: 16px; background: #fff; padding: 24px; }
+    button { display: block; border: 0; border-radius: 10px; background: #285a46; color: white; font: inherit; font-weight: 650; padding: 14px 20px; cursor: pointer; width: 100%; margin-top: 18px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #b77711; outline-offset: 4px; }
+    code { overflow-wrap: anywhere; font-size: 13px; }
+    .small { color: #59645e; font-size: 14px; }
+    #status { padding: 14px 0; font-weight: 650; min-height: 54px; }
+    a { color: #285a46; }
+    ol { padding-left: 24px; }
+    @media (max-width: 480px) { main { margin: 0 auto; padding: 24px 18px; } section { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">SAMADHI LOVE STUDIO · FIRST-TIME SETUP</p>
+    <h1>No commands.<br>Just copy and paste.</h1>
+    <p class="intro">This creates a new Studio vault key in your browser. It is free, and it is not your ElevenLabs API key.</p>
+    <div class="warning">
+      <strong>Only for your first vault key.</strong>
+      <p>If <code>STUDIO_ELEVENLABS_VAULT_KEY</code> already exists in Secrets or your Cloudflare settings, stop and keep the existing key. Replacing it can make saved account connections unreadable.</p>
+    </div>
+    <label><input id="first-time" type="checkbox"><span>I have not saved a Studio vault key before.</span></label>
+    <section aria-labelledby="name-heading">
+      <h2 id="name-heading">1. Copy the setting name</h2>
+      <p>In the Replit editor, open <strong>Tools → Secrets → New Secret</strong>.</p>
+      <p>Click below, then click the <strong>Key</strong> field in Secrets and press <strong>Ctrl+V</strong>.</p>
+      <button id="copy-name" type="button" disabled>Copy setting name</button>
+    </section>
+    <section aria-labelledby="key-heading">
+      <h2 id="key-heading">2. Create and copy your secret</h2>
+      <p>After pasting the setting name, come back here and click below.</p>
+      <button id="copy-key" type="button" disabled>Generate and copy vault key</button>
+      <p class="small">Then click the <strong>Value</strong> field in Secrets, press <strong>Ctrl+V</strong>, and click <strong>Add Secret</strong>. Do not paste it into chat.</p>
+    </section>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p class="small">Your key is never displayed or sent to a server by this page. It stays only in this tab’s memory and your clipboard. Keep this tab open until you have saved it. You can copy the same key again below and keep a backup in your password manager.</p>
+    <p class="small">If copying is blocked in the preview, <a href="./vault-key-setup.html" target="_blank" rel="noopener noreferrer">open this helper in a separate tab</a> before generating your key.</p>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+      const confirmation = document.getElementById("first-time");
+      const copyName = document.getElementById("copy-name");
+      const copyKey = document.getElementById("copy-key");
+      const status = document.getElementById("status");
+      let vaultKey = null;
+      let nameCopied = false;
+      let busy = false;
+
+      function updateButtons() {
+        copyName.disabled = busy || !confirmation.checked;
+        copyKey.disabled = busy || !confirmation.checked || !nameCopied;
+      }
+
+      // No network calls, storage writes, telemetry, or secret text in the UI.
+      // execCommand covers browsers where iframe clipboard permissions are denied.
+      async function copyPrivately(value) {
+        try {
+          if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            await navigator.clipboard.writeText(value);
+            return;
+          }
+        } catch {
+          // Never display a clipboard exception: a browser could include its input.
+        }
+        const field = document.createElement("textarea");
+        field.value = value;
+        field.setAttribute("readonly", "");
+        field.setAttribute("aria-hidden", "true");
+        field.style.cssText = "position:fixed;left:-9999px;top:0";
+        document.body.appendChild(field);
+        try {
+          field.select();
+          if (!document.execCommand("copy")) throw new Error("Clipboard unavailable");
+        } finally {
+          field.value = "";
+          field.remove();
+        }
+      }
+
+      confirmation.addEventListener("change", updateButtons);
+      copyName.addEventListener("click", async () => {
+        if (busy || !confirmation.checked) return;
+        busy = true;
+        updateButtons();
+        try {
+          await copyPrivately("STUDIO_ELEVENLABS_VAULT_KEY");
+          nameCopied = true;
+          status.textContent = "Setting name copied. Paste it into the Key field in Secrets. Then return here for step 2.";
+        } catch {
+          status.textContent = "Your browser blocked copying. Open this helper in a separate tab using the link below, then try again.";
+        } finally {
+          busy = false;
+          updateButtons();
+        }
+      });
+
+      copyKey.addEventListener("click", async () => {
+        if (busy || !confirmation.checked || !nameCopied) return;
+        busy = true;
+        updateButtons();
+        try {
+          if (!vaultKey) {
+            const bytes = crypto.getRandomValues(new Uint8Array(32));
+            vaultKey = Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
+            bytes.fill(0);
+          }
+          await copyPrivately(vaultKey);
+          copyKey.textContent = "Copy the same vault key again";
+          status.textContent = "Vault key copied. Paste it into the Value field in Secrets, click Add Secret, then tell the agent “saved”.";
+        } catch {
+          status.textContent = vaultKey
+            ? "Your key has not been copied. Try this button again to copy the same key. If blocked, use the separate-tab link below before saving any key."
+            : "Your browser could not create a secure key. Open this helper in a current version of Edge or Chrome and try again.";
+        } finally {
+          busy = false;
+          updateButtons();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

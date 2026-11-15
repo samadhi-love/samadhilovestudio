@@ -13,3 +13,9 @@ The goal is a unique, affordable app for young enthusiasts, especially beginners
 **Why:** The user explicitly described this target audience and workflow.
 
 **How to apply:** Keep easy creation accessible and advanced controls available without forcing beginners through them.
+
+Creator setup should offer visible buttons instead of requiring terminal commands.
+
+**Why:** The user could not complete command-based vault setup and explicitly requested a simple generation/copy button.
+
+**How to apply:** Prefer browser-based, step-by-step setup while preserving secure secret entry and clearly stating any manual step that remains.

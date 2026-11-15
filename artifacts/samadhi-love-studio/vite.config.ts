@@ -5,6 +5,8 @@ import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { configureToolEnvironment } from "./scripts/tool-environment.mjs";
 import { sites } from "./scripts/vite/sites-vite-plugin";
 import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
+import { studioWorkerSecrets } from "./scripts/worker-secrets.mjs";
+import path from "node:path";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -44,6 +46,10 @@ export default defineConfig(async ({ command }) => {
 
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import("@cloudflare/vite-plugin");
+  const { unstable_getVarsForDev } = await import("wrangler");
+  const workerSecrets = studioWorkerSecrets(command, command === "serve"
+    ? unstable_getVarsForDev(path.resolve("vite.config.ts"), undefined, {}, undefined, true)
+    : {});
 
   return {
     server: {
@@ -64,6 +70,7 @@ export default defineConfig(async ({ command }) => {
         inspectorPort: false,
         config: {
           ...localBindingConfig,
+          secrets: workerSecrets,
           ...(command === "serve"
             ? {
                 services: [

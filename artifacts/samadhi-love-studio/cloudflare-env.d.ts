@@ -3,6 +3,8 @@ declare namespace Cloudflare {
     DB?: D1Database;
     STUDIO_OWNER_EMAIL?: string;
     STUDIO_ELEVENLABS_VAULT_KEY?: string;
+    /** Managed secret alias accepted for first-time Studio vault setup. */
+    vault?: string;
     BUCKET?: R2Bucket;
   }
 }

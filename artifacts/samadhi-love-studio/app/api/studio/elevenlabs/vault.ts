@@ -17,7 +17,9 @@ export function validElevenLabsKey(value: unknown) {
 }
 
 function encryptionSecret() {
-  const secret = env.STUDIO_ELEVENLABS_VAULT_KEY;
+  // Preserve the canonical key whenever present, even if misconfigured.
+  // Never silently rotate to the setup alias when an existing key is invalid.
+  const secret = env.STUDIO_ELEVENLABS_VAULT_KEY ?? env.vault;
   return secret && /^[a-f0-9]{64}$/i.test(secret) ? secret : null;
 }
 
