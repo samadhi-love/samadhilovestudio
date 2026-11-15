@@ -1,0 +1,681 @@
+samadhi-love-studio/
+├── .openai/
+│   └── hosting.json
+├── app/
+│   ├── admin/
+│   │   ├── account-row.tsx
+│   │   └── page.tsx
+│   ├── api/
+│   │   ├── billing/
+│   │   │   ├── webhook/
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── community/
+│   │   │   └── route.ts
+│   │   ├── membership/
+│   │   │   └── route.ts
+│   │   ├── party/
+│   │   │   ├── media/
+│   │   │   │   └── route.ts
+│   │   │   ├── upload/
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── radio/
+│   │   │   ├── media/
+│   │   │   │   └── route.ts
+│   │   │   └── route.ts
+│   │   ├── song-share/
+│   │   │   └── route.ts
+│   │   └── studio/
+│   │       ├── admin/
+│   │       │   └── route.ts
+│   │       ├── audio/
+│   │       │   └── route.ts
+│   │       ├── create/
+│   │       │   └── route.ts
+│   │       ├── creator/
+│   │       │   └── route.ts
+│   │       ├── credits/
+│   │       │   └── route.ts
+│   │       ├── elevenlabs/
+│   │       │   ├── audio-upload.ts
+│   │       │   ├── provider.ts
+│   │       │   ├── route.ts
+│   │       │   └── vault.ts
+│   │       ├── listener/
+│   │       │   └── route.ts
+│   │       ├── lyric-assets/
+│   │       │   └── route.ts
+│   │       ├── lyric-project/
+│   │       │   └── route.ts
+│   │       ├── lyric-sync/
+│   │       │   └── route.ts
+│   │       ├── meditative/
+│   │       │   └── route.ts
+│   │       ├── mixer/
+│   │       │   └── route.ts
+│   │       ├── my-voice/
+│   │       │   └── route.ts
+│   │       ├── rights/
+│   │       │   └── route.ts
+│   │       ├── stems/
+│   │       │   └── route.ts
+│   │       ├── visual-generation/
+│   │       │   ├── provider.ts
+│   │       │   └── route.ts
+│   │       ├── vocal/
+│   │       │   └── route.ts
+│   │       ├── audio-response.ts
+│   │       ├── private-audio-sessions.ts
+│   │       ├── request-errors.ts
+│   │       ├── route.ts
+│   │       └── store.ts
+│   ├── billing/
+│   │   ├── config-data.ts
+│   │   ├── config.ts
+│   │   ├── legal.ts
+│   │   └── service.ts
+│   ├── community/
+│   │   ├── artist-dashboard/
+│   │   │   ├── page.tsx
+│   │   │   └── studio.tsx
+│   │   ├── moderation/
+│   │   │   ├── page.tsx
+│   │   │   └── queue.tsx
+│   │   ├── client.ts
+│   │   ├── community.tsx
+│   │   ├── data.ts
+│   │   ├── engagement.ts
+│   │   ├── manage.ts
+│   │   ├── page.tsx
+│   │   ├── player.tsx
+│   │   ├── public-listener.ts
+│   │   ├── ranking.ts
+│   │   └── store.ts
+│   ├── creator/
+│   │   ├── page.tsx
+│   │   └── register.tsx
+│   ├── credits/
+│   │   ├── account-ledger.ts
+│   │   ├── client.ts
+│   │   ├── credit-panel.tsx
+│   │   ├── credits.css
+│   │   ├── data.ts
+│   │   ├── page.tsx
+│   │   └── production.ts
+│   ├── live-radio/
+│   │   ├── data.ts
+│   │   └── store.ts
+│   ├── login/
+│   │   └── page.tsx
+│   ├── members/
+│   │   ├── member-dashboard.tsx
+│   │   ├── membership.css
+│   │   └── page.tsx
+│   ├── membership-notice/
+│   │   └── page.tsx
+│   ├── owner/
+│   │   └── page.tsx
+│   ├── party/
+│   │   ├── data.ts
+│   │   ├── file-builder.tsx
+│   │   ├── file-data.ts
+│   │   ├── page.tsx
+│   │   ├── party.css
+│   │   ├── runtime.ts
+│   │   ├── server.ts
+│   │   ├── spotlight.tsx
+│   │   ├── studio.tsx
+│   │   └── voice-recorder.tsx
+│   ├── plans/
+│   │   ├── page.tsx
+│   │   └── plan-cards.tsx
+│   ├── radio/
+│   │   └── page.tsx
+│   ├── share/
+│   │   ├── page.tsx
+│   │   └── shared-song.tsx
+│   ├── subscriber/
+│   │   └── page.tsx
+│   ├── vocal/
+│   │   ├── capture.tsx
+│   │   ├── effects-panel.tsx
+│   │   ├── effects.ts
+│   │   ├── mp3.ts
+│   │   ├── render.ts
+│   │   ├── session.ts
+│   │   ├── storage.ts
+│   │   ├── timeline.tsx
+│   │   ├── tuning-panel.tsx
+│   │   └── vocal-studio.tsx
+│   ├── accent-references.tsx
+│   ├── active-visual-source.ts
+│   ├── ad-photo-story.ts
+│   ├── advertising-footage.ts
+│   ├── advertising-video-controls.tsx
+│   ├── animated-brand-logo.ts
+│   ├── audio-actions.tsx
+│   ├── audio-assembly.ts
+│   ├── audio-controls.css
+│   ├── audio-convert.ts
+│   ├── audio-export-pcm.ts
+│   ├── audio-format-download.tsx
+│   ├── audio-measurements-panel.tsx
+│   ├── audio-measurements.ts
+│   ├── audio-opening-trim.ts
+│   ├── audio-player.tsx
+│   ├── audio-readiness.ts
+│   ├── audio-resource.ts
+│   ├── av-midi.ts
+│   ├── av-signals.ts
+│   ├── av-timeline-data.ts
+│   ├── av-timeline.css
+│   ├── av-timeline.tsx
+│   ├── av-transport.ts
+│   ├── beat-analysis-client.ts
+│   ├── beat-analysis.ts
+│   ├── beat-grid-controls.tsx
+│   ├── beat-worker.ts
+│   ├── brand-logo-designer.tsx
+│   ├── brand-logo.ts
+│   ├── caption-ready-lyrics.ts
+│   ├── chatgpt-auth.ts
+│   ├── clean-content.ts
+│   ├── clean-lyrics-checker.tsx
+│   ├── cosmic-channel.css
+│   ├── cosmic-channel.tsx
+│   ├── create-studio.tsx
+│   ├── creation-guide.ts
+│   ├── creative-play.css
+│   ├── creative-play.ts
+│   ├── creative-video-handoff.ts
+│   ├── creator-accounts.ts
+│   ├── creator-music-options.tsx
+│   ├── creator-video-presets.ts
+│   ├── creator-video-tools.tsx
+│   ├── creator-workspace.css
+│   ├── dialog-focus.ts
+│   ├── draft-recovery.tsx
+│   ├── elevenlabs-key.tsx
+│   ├── elevenlabs-settings-data.ts
+│   ├── genre-assist.ts
+│   ├── genre-assistant.tsx
+│   ├── genre-picker.css
+│   ├── genre-picker.tsx
+│   ├── globals.css
+│   ├── help-tip.tsx
+│   ├── instrumental-midi.ts
+│   ├── instrumental.ts
+│   ├── international-music-tent.tsx
+│   ├── layout.tsx
+│   ├── listener-settings.tsx
+│   ├── logo-nature-scenes.ts
+│   ├── lyric-alignment.ts
+│   ├── lyric-ambient-motion.ts
+│   ├── lyric-audio-identity.ts
+│   ├── lyric-background-picker.tsx
+│   ├── lyric-caption-picker.tsx
+│   ├── lyric-caption-render.ts
+│   ├── lyric-caption-templates.css
+│   ├── lyric-caption-templates.ts
+│   ├── lyric-notation-preview.tsx
+│   ├── lyric-notation.ts
+│   ├── lyric-overlay-designs.ts
+│   ├── lyric-pro-create.tsx
+│   ├── lyric-pro-data.ts
+│   ├── lyric-pro-export.ts
+│   ├── lyric-pro-media.ts
+│   ├── lyric-pro-render.ts
+│   ├── lyric-pro-timeline.tsx
+│   ├── lyric-readiness.ts
+│   ├── lyric-release-kit.ts
+│   ├── lyric-signature-picker.tsx
+│   ├── lyric-signature.ts
+│   ├── lyric-style-cues.ts
+│   ├── lyric-video-data.ts
+│   ├── lyric-video-pro.css
+│   ├── lyric-video-pro.tsx
+│   ├── lyric-video-render.ts
+│   ├── lyric-video-studio.tsx
+│   ├── lyric-visual-layers.ts
+│   ├── lyric-visual-template.ts
+│   ├── meditative-audio.ts
+│   ├── meditative-data.ts
+│   ├── meditative-transport.ts
+│   ├── meditative-vibes.css
+│   ├── meditative-vibes.tsx
+│   ├── microphone-input.tsx
+│   ├── mixer-session.ts
+│   ├── mixer-storage.ts
+│   ├── mobile-project-bar.tsx
+│   ├── mobile-studio.css
+│   ├── multitrack-audio.ts
+│   ├── multitrack.tsx
+│   ├── music-catalog.ts
+│   ├── music-creation-tools.tsx
+│   ├── music-dna.ts
+│   ├── music-genres.ts
+│   ├── music-library.tsx
+│   ├── music-workflow.tsx
+│   ├── music-workspace-data.ts
+│   ├── musical-ad-builder.tsx
+│   ├── musical-ad.ts
+│   ├── my-voice-data.ts
+│   ├── my-voice-picker.tsx
+│   ├── nature-logo-preview.tsx
+│   ├── new-song-form.tsx
+│   ├── owned-audio-client.ts
+│   ├── page.tsx
+│   ├── playlist-data.ts
+│   ├── portal.tsx
+│   ├── production-exports.tsx
+│   ├── project-assets.ts
+│   ├── project-production.tsx
+│   ├── quick-create.tsx
+│   ├── radio-scenes.css
+│   ├── radio-scenes.tsx
+│   ├── radio.tsx
+│   ├── recording-desk.tsx
+│   ├── recording-dsp.ts
+│   ├── release-package.tsx
+│   ├── release-tools.tsx
+│   ├── rights-data.ts
+│   ├── rights-review.tsx
+│   ├── saved-lyric-videos.tsx
+│   ├── saved-song-prompts.ts
+│   ├── shared-radio.tsx
+│   ├── short-export.ts
+│   ├── song-blueprint.ts
+│   ├── song-card.css
+│   ├── song-card.tsx
+│   ├── song-cover-designer.tsx
+│   ├── song-cover.ts
+│   ├── song-deletion.ts
+│   ├── song-library.ts
+│   ├── song-opening-control.tsx
+│   ├── song-opening.ts
+│   ├── song-presets.css
+│   ├── song-presets.ts
+│   ├── song-retention-worker.ts
+│   ├── song-save-merge.ts
+│   ├── song-section-data.ts
+│   ├── song-section-directions.ts
+│   ├── song-section-editor.tsx
+│   ├── song-sections-midi.ts
+│   ├── song-share-controls.tsx
+│   ├── song-sharing.ts
+│   ├── song-visibility.ts
+│   ├── song-waveform-range.tsx
+│   ├── song-waveform.ts
+│   ├── songwriting.ts
+│   ├── stem-archive.ts
+│   ├── stem-importer.tsx
+│   ├── stem-reactive-controls.tsx
+│   ├── stem-reactive.ts
+│   ├── streaming-audio-mix.ts
+│   ├── studio-access.ts
+│   ├── studio-data.ts
+│   ├── studio-error-boundary.tsx
+│   ├── studio-navigation.tsx
+│   ├── studio-theme.css
+│   ├── studio-validation.ts
+│   ├── studio.tsx
+│   ├── style-dna-controls.tsx
+│   ├── style-dna.ts
+│   ├── subscriber-room.tsx
+│   ├── track-duration.ts
+│   ├── track-length-control.tsx
+│   ├── vibe-to-visual.ts
+│   ├── video-export-history.ts
+│   ├── video-format-options.ts
+│   ├── video-format-picker.tsx
+│   ├── video-publishing.tsx
+│   ├── visual-generation-controls.tsx
+│   ├── visual-generation-data.ts
+│   ├── vocal-matching.ts
+│   └── workspace-palette.css
+├── components/
+│   ├── ui/
+│   │   ├── accordion.tsx
+│   │   ├── alert-dialog.tsx
+│   │   ├── alert.tsx
+│   │   ├── aspect-ratio.tsx
+│   │   ├── attachment.tsx
+│   │   ├── avatar.tsx
+│   │   ├── badge.tsx
+│   │   ├── breadcrumb.tsx
+│   │   ├── bubble.tsx
+│   │   ├── button-group.tsx
+│   │   ├── button.tsx
+│   │   ├── calendar.tsx
+│   │   ├── card.tsx
+│   │   ├── carousel.tsx
+│   │   ├── chart.tsx
+│   │   ├── checkbox.tsx
+│   │   ├── collapsible.tsx
+│   │   ├── combobox.tsx
+│   │   ├── command.tsx
+│   │   ├── context-menu.tsx
+│   │   ├── dialog.tsx
+│   │   ├── direction.tsx
+│   │   ├── drawer.tsx
+│   │   ├── dropdown-menu.tsx
+│   │   ├── empty.tsx
+│   │   ├── field.tsx
+│   │   ├── form.tsx
+│   │   ├── hover-card.tsx
+│   │   ├── input-group.tsx
+│   │   ├── input-otp.tsx
+│   │   ├── input.tsx
+│   │   ├── item.tsx
+│   │   ├── kbd.tsx
+│   │   ├── label.tsx
+│   │   ├── marker.tsx
+│   │   ├── menubar.tsx
+│   │   ├── message-scroller.tsx
+│   │   ├── message.tsx
+│   │   ├── native-select.tsx
+│   │   ├── navigation-menu.tsx
+│   │   ├── pagination.tsx
+│   │   ├── popover.tsx
+│   │   ├── progress.tsx
+│   │   ├── radio-group.tsx
+│   │   ├── resizable.tsx
+│   │   ├── scroll-area.tsx
+│   │   ├── select.tsx
+│   │   ├── separator.tsx
+│   │   ├── sheet.tsx
+│   │   ├── sidebar.tsx
+│   │   ├── skeleton.tsx
+│   │   ├── slider.tsx
+│   │   ├── sonner.tsx
+│   │   ├── spinner.tsx
+│   │   ├── switch.tsx
+│   │   ├── table.tsx
+│   │   ├── tabs.tsx
+│   │   ├── textarea.tsx
+│   │   ├── toggle-group.tsx
+│   │   ├── toggle.tsx
+│   │   └── tooltip.tsx
+│   └── connector-error.tsx
+├── db/
+│   ├── index.ts
+│   └── schema.ts
+├── docs/
+│   ├── AI_VISUAL_GENERATION.md
+│   ├── ANIMATED_NATURE_LOGOS.md
+│   ├── AUDIO_DOWNLOAD_FORMATS.md
+│   ├── AUDIO_VISUAL_STUDIO.md
+│   ├── AUDIT_RELIABILITY_REPAIRS.md
+│   ├── BEGINNER_STUDIO_QA.json
+│   ├── BEGINNER_STUDIO_REVIEW.md
+│   ├── BRAND_AND_MUSICAL_ADS.md
+│   ├── CREATION_AND_PUBLIC_HOME.md
+│   ├── CREATION_TIMING.md
+│   ├── CREATIVE_PLAY_FLOW.md
+│   ├── CREATOR_RESTRUCTURE.md
+│   ├── CREATOR_RESTRUCTURE_QA.json
+│   ├── CREDITS_AND_PRODUCTION_LIMITS.md
+│   ├── DATABASE_FUNCTIONAL_REVIEW.md
+│   ├── EASY_LYRIC_VIDEOS_AND_FORMATS.md
+│   ├── GENRE_PICKER.md
+│   ├── INTERNAL_RELIABILITY.md
+│   ├── LYRIC_VIDEO_PRO.md
+│   ├── LYRIC_VIDEO_PRO_QA.json
+│   ├── LYRIC_VIDEO_TEMPLATES.md
+│   ├── MEDITATIVE_VIBES.md
+│   ├── MEMBERSHIP_AND_SUBSCRIPTIONS.md
+│   ├── MOBILE_STUDIO_AND_STAGE.md
+│   ├── MUSICAL_VIDEO_REVIEW_AND_UPGRADE.md
+│   ├── MY_SONGS.md
+│   ├── PARTY_FILES_AND_SECTION_EDITING.md
+│   ├── PRIVATE-LIBRARIES-AND-PUBLIC-RELEASES.md
+│   ├── PRODUCTION_REFINEMENTS.md
+│   ├── PROJECT_WORKFLOW.md
+│   ├── PROMPT_BASED_SONG_LENGTH.md
+│   ├── RELEASE_STATUS.md
+│   ├── SHARED_RADIO.md
+│   ├── SIGNATURE_VIDEO_WORKFLOW.md
+│   ├── SONG_DELETION.md
+│   ├── SONG_PRESETS_AND_OPENING.md
+│   ├── STUDIO_CONSOLIDATION.md
+│   ├── STUDIO_CONSOLIDATION_QA.json
+│   ├── STYLE_DNA_AND_STEM_VISUALS.md
+│   ├── STYLE_WINDOW_AND_AUDIO_EDIT.md
+│   └── VOICE_AND_RIGHTS.md
+├── drizzle/
+│   ├── meta/
+│   │   ├── 0000_snapshot.json
+│   │   ├── 0001_snapshot.json
+│   │   ├── 0002_snapshot.json
+│   │   ├── 0003_snapshot.json
+│   │   ├── 0004_snapshot.json
+│   │   ├── 0005_snapshot.json
+│   │   ├── 0006_snapshot.json
+│   │   ├── 0007_snapshot.json
+│   │   └── _journal.json
+│   ├── 0000_heavy_khan.sql
+│   ├── 0001_polite_leader.sql
+│   ├── 0002_colossal_ego.sql
+│   ├── 0003_military_tiger_shark.sql
+│   ├── 0004_gifted_plazm.sql
+│   ├── 0005_noisy_bloodstrike.sql
+│   ├── 0006_fearless_centennial.sql
+│   └── 0007_song_deletion_jobs.sql
+├── examples/
+│   └── d1/
+│       ├── app/
+│       │   └── api/
+│       │       └── notes/
+│       │           └── route.ts
+│       └── db/
+│           └── schema.ts
+├── hooks/
+│   └── use-mobile.ts
+├── lib/
+│   ├── connector-context.ts
+│   ├── connector-contract.mts
+│   ├── connector-errors.mts
+│   ├── connector-preview.d.ts
+│   ├── connectors.ts
+│   └── utils.ts
+├── public/
+│   ├── audio-licenses/
+│   │   ├── LAME-COPYING.txt
+│   │   └── MPL-2.0.txt
+│   ├── fonts/
+│   │   ├── lyric/
+│   │   │   ├── barlowcondensed-OFL.txt
+│   │   │   ├── caveat-OFL.txt
+│   │   │   ├── condensed.ttf
+│   │   │   ├── cormorantgaramond-OFL.txt
+│   │   │   ├── gothic.ttf
+│   │   │   ├── hand.ttf
+│   │   │   ├── nunito-OFL.txt
+│   │   │   ├── rounded.ttf
+│   │   │   ├── serif-italic.ttf
+│   │   │   ├── serif.ttf
+│   │   │   └── unifrakturcook-OFL.txt
+│   │   └── welcome/
+│   │       ├── OFL.txt
+│   │       └── yatra-one.ttf
+│   ├── lyric-art/
+│   │   ├── designs/
+│   │   │   ├── flower-of-life.svg
+│   │   │   ├── lotus.svg
+│   │   │   ├── mandala.svg
+│   │   │   ├── temple.svg
+│   │   │   ├── tree-of-light.svg
+│   │   │   └── wings.svg
+│   │   ├── world/
+│   │   │   ├── aurora-earthbeat.webp
+│   │   │   ├── celestial-silk-road.webp
+│   │   │   └── lotus-rhythm.webp
+│   │   ├── archangel.webp
+│   │   ├── buddha.webp
+│   │   ├── jesus.webp
+│   │   ├── kriya.webp
+│   │   ├── mary.webp
+│   │   └── masters.webp
+│   ├── radio-scenes/
+│   │   ├── cedar-forest.webp
+│   │   ├── golden-coast.webp
+│   │   └── mountain-sunrise.webp
+│   ├── studio-scenes/
+│   │   ├── designs/
+│   │   │   ├── aurora-lake.svg
+│   │   │   ├── desert-moon.svg
+│   │   │   ├── lunar-horizon.svg
+│   │   │   └── star-portal.svg
+│   │   ├── aurora.webp
+│   │   ├── eclipse.webp
+│   │   ├── nebula.webp
+│   │   └── sidebar-silk.png
+│   ├── audio-licenses.html
+│   ├── discover-constellations.svg
+│   ├── favicon.svg
+│   ├── orbit.svg
+│   ├── party-offline.html
+│   ├── party-offline.js
+│   ├── party-runtime.js
+│   ├── party-sw.js
+│   ├── sacred-geometry.svg
+│   └── studio-sound-check.mp3
+├── scripts/
+│   ├── connector-preview/
+│   │   ├── connector-preview-session.mjs
+│   │   ├── host-binding.mjs
+│   │   ├── protocol.mjs
+│   │   └── worker.mjs
+│   ├── vite/
+│   │   ├── connector-preview-plugin.mjs
+│   │   ├── sites-vite-plugin.LICENSE
+│   │   └── sites-vite-plugin.ts
+│   ├── build-verified.sh
+│   ├── check-song-audio-cuts.mjs
+│   ├── check-streaming-mix.mjs
+│   ├── execution-profile.mjs
+│   ├── install-ci.mjs
+│   ├── install-ci.sh
+│   ├── install-pnpm.sh
+│   ├── npm-install.mjs
+│   ├── pnpm-install.mjs
+│   ├── run-framework.mjs
+│   ├── sites-env.mjs
+│   ├── sites-env.sh
+│   ├── test-ad-export.mjs
+│   ├── test-ad-photo-story.mjs
+│   ├── test-animated-logo-export.mjs
+│   ├── test-audio-downloads.mjs
+│   ├── test-audit-repairs.mjs
+│   ├── test-av-timeline.mjs
+│   ├── test-brand-ad-workspace.mjs
+│   ├── test-catalog-classification.mjs
+│   ├── test-creative-play.mjs
+│   ├── test-creator-workspace.mjs
+│   ├── test-credit-controls.mjs
+│   ├── test-credits.mjs
+│   ├── test-genres.mjs
+│   ├── test-internal-integrity.mjs
+│   ├── test-lyric-notation.mjs
+│   ├── test-lyric-video-pro.mjs
+│   ├── test-meditative.mjs
+│   ├── test-membership-billing.mjs
+│   ├── test-membership-controls.mjs
+│   ├── test-mobile-studio.mjs
+│   ├── test-party-files.mjs
+│   ├── test-party.mjs
+│   ├── test-production-refinements.mjs
+│   ├── test-project-workflow.mjs
+│   ├── test-public-home.mjs
+│   ├── test-radio.mjs
+│   ├── test-song-audio-edit.mjs
+│   ├── test-song-deletion.mjs
+│   ├── test-song-library.mjs
+│   ├── test-song-opening.mjs
+│   ├── test-song-presets.mjs
+│   ├── test-style-dna.mjs
+│   ├── test-track-duration.mjs
+│   ├── test-vibe-release.mjs
+│   ├── test-visual-generation-api.mjs
+│   ├── test-visual-generation.mjs
+│   ├── test-voice-rights.mjs
+│   ├── tool-environment.mjs
+│   ├── verify-audio-conversion.mjs
+│   ├── verify-community-integrity.mjs
+│   ├── verify-internal-integrity-api.mjs
+│   ├── verify-lyric-pro-api.mjs
+│   ├── verify-meditative-api.mjs
+│   ├── verify-project-workflow-api.mjs
+│   ├── verify-radio-api.mjs
+│   ├── verify-song-deletion-api.mjs
+│   ├── verify-studio.mjs
+│   ├── verify-voice-rights-api.mjs
+│   └── verify-workflow-checkpoints.mjs
+├── tests/
+│   ├── ad-photo-story.test.tsx
+│   ├── animated-logo.test.tsx
+│   ├── audio-download-controls.test.tsx
+│   ├── audio-download.test.ts
+│   ├── audio-readiness.test.ts
+│   ├── audit-repairs.test.tsx
+│   ├── auto-lyric-controls.test.tsx
+│   ├── av-timeline-controls.test.tsx
+│   ├── av-timeline.test.ts
+│   ├── brand-ad-workspace.test.tsx
+│   ├── catalog-classification.test.tsx
+│   ├── creative-play.test.tsx
+│   ├── creator-workspace.test.tsx
+│   ├── credits-controls.test.tsx
+│   ├── draft-recovery.test.tsx
+│   ├── genre-picker.test.tsx
+│   ├── internal-controls.test.tsx
+│   ├── internal-integrity.test.ts
+│   ├── lyric-notation.test.ts
+│   ├── lyric-signature-controls.test.tsx
+│   ├── lyric-signature.test.ts
+│   ├── lyric-video-landing.test.tsx
+│   ├── lyric-video-pro.test.ts
+│   ├── lyric-visual-template.test.ts
+│   ├── meditative-controls.test.tsx
+│   ├── meditative.test.ts
+│   ├── membership-controls.test.tsx
+│   ├── mobile-studio.test.tsx
+│   ├── party-files.test.tsx
+│   ├── party.test.ts
+│   ├── pasted-lyrics-controls.test.tsx
+│   ├── production-refinements-controls.test.tsx
+│   ├── production-refinements.test.ts
+│   ├── project-workflow.test.ts
+│   ├── radio-controls.test.tsx
+│   ├── radio.test.ts
+│   ├── saved-video-discovery.test.tsx
+│   ├── song-audio-edit.test.tsx
+│   ├── song-library.test.tsx
+│   ├── song-opening.test.tsx
+│   ├── song-presets.test.tsx
+│   ├── style-dna.test.tsx
+│   ├── track-duration.test.tsx
+│   ├── vibe-release.test.tsx
+│   ├── video-format-controls.test.tsx
+│   ├── visual-generation.test.tsx
+│   ├── voice-rights-controls.test.tsx
+│   └── voice-rights.test.ts
+├── vendor/
+│   ├── shadcn-tailwind-4.13.0.LICENSE.md
+│   └── shadcn-tailwind-4.13.0.css
+├── worker/
+│   └── index.ts
+├── .gitignore
+├── .npmrc
+├── README.md
+├── cloudflare-env.d.ts
+├── components.json
+├── drizzle.config.ts
+├── eslint.config.mjs
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── tsconfig.json
+└── vite.config.ts

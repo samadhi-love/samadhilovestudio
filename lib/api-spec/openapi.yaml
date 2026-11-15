@@ -11,6 +11,23 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /replit-auth/session:
+    get:
+      operationId: getStudioSession
+      summary: Return the verified signed-in studio identity
+      responses:
+        "200":
+          description: Verified identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioSession"
+        "401":
+          description: Not signed in
+        "403":
+          description: Email verification required
+        "503":
+          description: Identity service unavailable
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +43,18 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    StudioSession:
+      type: object
+      required: [userId, email, displayName, fullName]
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: string
+        fullName:
+          type: [string, "null"]
     HealthStatus:
       type: object
       properties:

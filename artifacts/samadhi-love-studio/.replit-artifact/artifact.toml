@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "SAMADHI LOVE Studio"
+description = "The existing SAMADHI LOVE Studio app, imported intact for beginner-friendly song creation and easy or advanced visual and lyric videos."
+version = "1.0.0"
+id = "artifacts/samadhi-love-studio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19551
+
+[services.development]
+run = "pnpm --filter @workspace/samadhi-love-studio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/samadhi-love-studio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/samadhi-love-studio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19551"
+BASE_PATH = "/"

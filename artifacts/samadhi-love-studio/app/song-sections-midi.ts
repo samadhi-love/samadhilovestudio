@@ -1,0 +1,5 @@
+import type {Song} from "./studio-data";
+const bytes=(n:number,size:number)=>Array.from({length:size},(_,i)=>n>>((size-i-1)*8)&255);
+const variable=(value:number)=>{let n=Math.max(0,Math.floor(value)),out=[n&127];while(n>>=7)out.unshift((n&127)|128);return out;};
+/** Tempo/section markers only. Never labels a finished recording as inferred MIDI notes. */
+export function sectionCueMidi(song:Song,bpm:number){if(!Number.isFinite(bpm)||bpm<40||bpm>240)throw new Error("Choose a tempo from 40 to 240 BPM.");const track=[0,255,81,3,...bytes(Math.round(60000000/bpm),3)],sections=[{time:0,name:song.name},...(song.lyricVideo?.pro?.sections??[])].slice(0,61).sort((a,b)=>a.time-b.time);let prior=0;for(const section of sections){const at=Math.round(section.time*bpm*480/60),name=[...new TextEncoder().encode(section.name.slice(0,100))];track.push(...variable(at-prior),255,6,...variable(name.length),...name);prior=at;}track.push(0,255,47,0);return new Blob([new Uint8Array([77,84,104,100,0,0,0,6,0,0,0,1,1,224,77,84,114,107,...bytes(track.length,4),...track])],{type:"audio/midi"});}

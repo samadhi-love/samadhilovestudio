@@ -1,0 +1,8 @@
+import { build } from "esbuild";
+import { mkdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+const root=fileURLToPath(new URL("../",import.meta.url)),work=path.join(root,"work","av-timeline-tests");mkdirSync(work,{recursive:true});
+await build({stdin:{contents:'import "./tests/av-timeline.test.ts";import "./tests/av-timeline-controls.test.tsx";',resolveDir:root,loader:"tsx"},bundle:true,jsx:"automatic",platform:"node",format:"esm",packages:"external",outfile:path.join(work,"tests.mjs")});
+const result=spawnSync(process.execPath,["--test",path.join(work,"tests.mjs")],{stdio:"inherit"});process.exitCode=result.status??1;

@@ -1,0 +1,16 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+import {AudioPlayer} from "./audio-player";
+import {readStemArchive,type ExtractedStem} from "./stem-archive";
+export function StemImporter({archive,disabled,slots,importStems}:{archive?:Blob;disabled:boolean;slots:number;importStems:(files:ExtractedStem[])=>Promise<void>}){
+ const [stems,setStems]=useState<(ExtractedStem&{url:string})[]>([]),[chosen,setChosen]=useState<string[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState(""),[status,setStatus]=useState("");const task=useRef<AbortController|null>(null),urls=useRef<string[]>([]);
+ useEffect(()=>()=>{task.current?.abort();urls.current.forEach(URL.revokeObjectURL);},[]);
+ async function load(blob:Blob){if(disabled||busy)return;const controller=new AbortController();task.current=controller;setBusy(true);setError("");try{const files=await readStemArchive(blob,controller.signal);urls.current.forEach(URL.revokeObjectURL);const available=files.map((file,i)=>({...file,name:file.name||`Stem ${i+1}`,url:URL.createObjectURL(file.blob)}));urls.current=available.map(f=>f.url);setStems(available);setChosen(available.slice(0,slots).map(f=>f.url));setStatus("Audition and choose parts. Import adds separate tracks without replacing current work.");}catch(e){if(!controller.signal.aborted)setError(e instanceof Error?e.message:"Stem ZIP could not open.");}finally{task.current=null;setBusy(false);}}
+ const seen=useRef<Blob|undefined>(undefined);useEffect(()=>{if(archive&&archive!==seen.current&&!disabled&&!busy){seen.current=archive;void load(archive);}},[archive,disabled,busy]);
+ return <section className="stem-importer" aria-label="Import separated stems"><h3>Separated stems · audition and import</h3><p className="muted">Open a provider ZIP or your own stem ZIP. Choose up to {slots} available mixer tracks. Large archives can be imported as individual audio files instead.</p>
+ <input type="file" accept=".zip,application/zip" disabled={disabled||busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(file)void load(file);}}/>
+ {stems.map(stem=><div key={stem.url} className="stem-import-row"><label className="checkline"><input type="checkbox" disabled={disabled||busy} checked={chosen.includes(stem.url)} onChange={e=>setChosen(current=>e.target.checked?[...current,stem.url]:current.filter(v=>v!==stem.url))}/>{stem.name}</label><AudioPlayer src={stem.url} label={stem.name+" stem audition"}/></div>)}
+ {!!stems.length&&<button type="button" className="secondary" disabled={disabled||busy||!chosen.length||chosen.length>slots} onClick={async()=>{setBusy(true);setError("");try{await importStems(stems.filter(f=>chosen.includes(f.url)));setStatus("Selected stems added. Save the editable mixer session to keep originals and settings in your account.");setChosen([]);}catch(e){setError(e instanceof Error?e.message:"Stem import failed; current tracks remain intact.");}finally{setBusy(false);}}}>Import {chosen.length} selected stems</button>}
+ {busy&&<p role="status">Preparing stems…</p>}{task.current&&<button type="button" className="text-button" onClick={()=>task.current?.abort()}>Cancel opening ZIP</button>}{status&&<p role="status">{status}</p>}{error&&<p role="alert" className="notice">{error}</p>}
+ </section>;
+}

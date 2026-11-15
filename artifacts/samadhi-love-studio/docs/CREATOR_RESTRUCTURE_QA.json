@@ -1,0 +1,128 @@
+{
+  "at": "2026-11-13T03:31:40.687Z",
+  "passed": true,
+  "results": [
+    {
+      "name": "Unified creator, world fusion and social-video presets",
+      "passed": true,
+      "seconds": 0.8
+    },
+    {
+      "name": "TypeScript",
+      "passed": true,
+      "seconds": 11.7
+    },
+    {
+      "name": "Member registration and verified subscription billing",
+      "passed": true,
+      "seconds": 0.3
+    },
+    {
+      "name": "Member plans and registration controls",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Credits, usage, account isolation and production limits",
+      "passed": true,
+      "seconds": 0.2
+    },
+    {
+      "name": "Credit confirmation and account controls",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Start-a-song presets and genre choices",
+      "passed": true,
+      "seconds": 0.9
+    },
+    {
+      "name": "Genre selection and generation handoff",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Audio downloads, readiness and non-destructive opening repair",
+      "passed": true,
+      "seconds": 1.8
+    },
+    {
+      "name": "Song opening and playback recovery",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Automatic song duration and creation controls",
+      "passed": true,
+      "seconds": 1.1
+    },
+    {
+      "name": "Song actions, Archive, sorting and automatic saves",
+      "passed": true,
+      "seconds": 0.8
+    },
+    {
+      "name": "Project workflow and checkpoints",
+      "passed": true,
+      "seconds": 1.9
+    },
+    {
+      "name": "Private sessions, voice recordings and rights",
+      "passed": true,
+      "seconds": 1.2
+    },
+    {
+      "name": "Community publishing, moderation and Party ownership",
+      "passed": true,
+      "seconds": 0.2
+    },
+    {
+      "name": "Stems, beats and production controls",
+      "passed": true,
+      "seconds": 0.9
+    },
+    {
+      "name": "Shared audio visual timeline and MIDI",
+      "passed": true,
+      "seconds": 0.8
+    },
+    {
+      "name": "Radio scheduling and permissions",
+      "passed": true,
+      "seconds": 0.7
+    },
+    {
+      "name": "Lyric Video and templates",
+      "passed": true,
+      "seconds": 0.7
+    },
+    {
+      "name": "Lyric Video isolated APIs",
+      "passed": true,
+      "seconds": 0.2
+    },
+    {
+      "name": "Malformed inputs, audio versions and recovery",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Party Mix",
+      "passed": true,
+      "seconds": 0.1
+    },
+    {
+      "name": "Production build",
+      "passed": true,
+      "seconds": 8.8
+    }
+  ],
+  "scope": "Local source, simulated DOM/audio and isolated API/storage/provider fixtures. No live user records, credentials, provider credits or station state changed.",
+  "notVerified": [
+    "real browsers and physical devices",
+    "live paid-provider processing",
+    "production user-data migration",
+    "continuous external radio broadcasting"
+  ]
+}

@@ -1,0 +1,27 @@
+# Song, Video & Shorts creator
+
+Extends the existing SAMADHI LOVE Studio project `appgprj_6af2936d32488191a41ff8ccab32ed79`, based on published version 74 (`24e7d2e`). Supersedes the navigation recommendations in BEGINNER_STUDIO_REVIEW.md. No database migration, account change, provider replacement, or Radio processing change.
+
+## Implemented
+
+The simple main menu is Create, My Music and Explore. Radio and recording tools remain accessible beneath it. Create now groups song generation, lyric videos, shorts and release preparation in the same workspace, with Song → Video & shorts → Publish & share actions. All 22 existing destination IDs remain mapped exactly once. Pro tools restores the full menu; less common creative tools stay under More creative tools.
+
+Quick Create includes 12 editable world-fusion starters, the existing full genre browser and custom blends, 48 selectable featured instruments in six families (up to six selected), language/dialect choices, vocal arrangement and mood. Users can choose automatic lyrics or supply exact words. Recipe selection preserves an existing description. These controls produce the existing authorized provider request; no new synthesis, cloning or instrument-separation service has been invented. Directions guide the provider's arrangement; they do not guarantee recorded acoustic instruments, dialect authenticity or a phase-aligned multitrack session. Built-in instrumental sketches retain their existing four-palette limitations. Overlong combined directions fail clearly rather than silently dropping choices.
+
+Newly generated results offer Make lyric video, Make social short and Publish & share. The same actions are available beside saved songs. Mixing, alternate generations and master/version tools are retained under More song tools in simple view. Existing archive, private-library, likes, folder, playlist, listening-link, rights confirmation and publish controls are unchanged.
+
+The video creator offers 24 coordinated looks across Cosmic, Sacred, World Fusion, Dance, Cinematic and Minimal collections, using existing backgrounds and the existing 14 animated caption styles. Search and collection filters reduce browsing. The 36 grouped background designs, uploaded images/templates, lettering controls, signature looks, audio reaction and branding remain available through customization disclosures. Complete looks replace background overrides; Undo restores the prior project design. Approved lyrics, source audio identity, timing, singer and language assignments are preserved.
+
+TikTok, Reels, YouTube Shorts, full YouTube video and square-feed cards set aspect ratio, excerpt range, and generic safe-area guides. Short length is editable at 15/30/60 seconds. The suggested start uses the first chorus/hook marker when available, otherwise the first caption; this is not an AI-selected best moment or a claim that estimated markers are exact. Current playhead is an alternative. The preview seeks to the selected source excerpt without autoplay. The existing browser video exporter handles audio/caption shifts and genuine MP4/WebM output. Intro/outro cards add to total output duration. Full-song and alternative aspect-ratio settings reuse the existing project. The legacy near-end clip shortcut now clamps one common start/end origin, preserving the requested clip duration within the recording.
+
+The export area includes editable social-post text, existing file downloads/device sharing/upload-page links, and the existing song publishing dashboard. Selecting a platform does not post content. Community song publishing and social video posting remain distinct; there is no new automatic social-posting integration or public video feed. Saved media links remain subject to Studio access.
+
+## Tested
+
+The local regression suite contains 23 groups, including new coverage for preset validity, immutable approved multilingual lyrics and source identity, first/middle/end clip ranges, shifted word timestamps, filtered look selection, editable social lengths, selected destinations, actual generation callback payloads, vocal/language/instrument choices and result actions. Existing suites verify private libraries, credits, membership, publishing permissions, project saving/recovery, recording rights, video data/APIs, shared timelines and Radio permissions. Production build passes.
+
+Tests use simulated DOM/audio, isolated storage and provider fixtures. They do not spend provider credits or modify live accounts. Real browser playback, native H.264/AAC encoding, long-song rendering, iPhone layout and physical-device sharing have not been verified in this pass. The Sites browser helper is unavailable; no substitute browser installation or preview server was started.
+
+## Publication blocker
+
+The native Sites credential tool now returns provider `cloudflare_artifact` with `auth_mode: codex_auth`, no Git token, and a new repository endpoint. The existing repository cannot authenticate with that response; ordinary Git access to the supplied endpoint returns HTTP 400. The former source helper is unavailable in this environment. The latest Site read still reports live version 74. Changes are committed locally and packaged, but must not be described as deployed until the supported source connection can push the exact commit and Sites accepts/deploys that source version. The existing production Site, audience, configuration, data and integrations are preserved.

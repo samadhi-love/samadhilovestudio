@@ -1,0 +1,92 @@
+import { build } from "esbuild";
+import { mkdirSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import path from "node:path";
+import assert from "node:assert/strict";
+const root=fileURLToPath(new URL("../",import.meta.url)),scratch=path.join(root,"work","voice-rights-api-tests");mkdirSync(scratch,{recursive:true});
+const files=new Map();let revision=0,assertions=0,providerCalls=0;
+const bytes=async value=>typeof value==="string"?new TextEncoder().encode(value):value instanceof ReadableStream?new Uint8Array(await new Response(value).arrayBuffer()):new Uint8Array(value);
+const bucket={
+  async put(key,value,options={}){const old=files.get(key),condition=options.onlyIf;if(condition?.etagMatches&&condition.etagMatches!==old?.etag)return null;if(condition?.etagDoesNotMatch==="*"&&old)return null;const data=await bytes(value);const obj={data,etag:"r"+(++revision),uploaded:new Date(),customMetadata:options.customMetadata??{},httpMetadata:options.httpMetadata??{}};files.set(key,obj);return{etag:obj.etag};},
+  async get(key){const v=files.get(key);return v?{...v,body:new Blob([v.data]).stream(),size:v.data.length,json:async()=>JSON.parse(new TextDecoder().decode(v.data))}:null;},
+  async head(key){const v=files.get(key);return v?{...v,size:v.data.length}:null;},
+  async list(options){const all=[...files].filter(([key])=>key.startsWith(options.prefix)).map(([key,v])=>({...v,key}));return{objects:all,truncated:false};}
+};
+globalThis.__voice={id:"owner",env:{BUCKET:bucket},songs:[{id:"song",name:"My voice",audioId:"new-audio",audioFormat:"wav",audioHistory:[{audioId:"old-audio",audioFormat:"mp3"}]}],separated:[]};
+globalThis.FixedLengthStream=class{constructor(){const t=new TransformStream();this.readable=t.readable;this.writable=t.writable;}};
+const mocks={env:"export const env=globalThis.__voice.env;",access:"export async function privateWorkspace(){return globalThis.__voice.id?{id:globalThis.__voice.id,role:'owner'}:null;}",store:"export const privateHeaders={'Cache-Control':'private, no-store'};export async function readStudio(){return {data:{songs:globalThis.__voice.songs}};}export const audioKey=(owner,id)=>`audio/${owner}/${id}`;",vault:"export async function resolveElevenLabsKey(){return 'fixture-key';}",provider:"export async function elevenLabsFailureMessage(){return 'provider unavailable';}",upload:"export async function sendProviderAudio(audio,format){globalThis.__voice.separated.push({format,bytes:await new Response(audio.body).text()});return new Response(new Uint8Array([80,75]),{headers:{'Content-Type':'application/zip'}});}",creator:"export async function reserveCreatorGeneration(){return true;}"};
+const plugin={name:"private-api-fixtures",setup(b){b.onResolve({filter:/cloudflare:workers|studio-access$|\/store$|elevenlabs\/vault$|elevenlabs\/provider$|elevenlabs\/audio-upload$|creator-accounts$/},a=>({path:a.path==="cloudflare:workers"?"env":a.path.endsWith("studio-access")?"access":a.path.endsWith("/store")?"store":a.path.endsWith("/vault")?"vault":a.path.endsWith("/provider")?"provider":a.path.endsWith("/audio-upload")?"upload":"creator",namespace:"fixture"}));b.onLoad({filter:/.*/,namespace:"fixture"},a=>({contents:mocks[a.path],loader:"js"}));}};
+for(const name of ["mixer","vocal","rights","stems","my-voice"])await build({entryPoints:[path.join(root,`app/api/studio/${name}/route.ts`)],bundle:true,format:"esm",platform:"node",outfile:path.join(scratch,name+".mjs"),plugins:[plugin]});
+await build({stdin:{contents:'export * from "./app/mixer-session";export * from "./app/vocal/session";export * from "./app/rights-data";export * from "./app/av-timeline-data";',resolveDir:root},bundle:true,format:"esm",platform:"node",outfile:path.join(scratch,"data.mjs")});
+const mixer=await import(pathToFileURL(path.join(scratch,"mixer.mjs"))),vocal=await import(pathToFileURL(path.join(scratch,"vocal.mjs"))),rights=await import(pathToFileURL(path.join(scratch,"rights.mjs"))),stems=await import(pathToFileURL(path.join(scratch,"stems.mjs")));
+const myVoice=await import(pathToFileURL(path.join(scratch,"my-voice.mjs")));
+const {emptySession,recognitionExcerpt,newAVSettings}=await import(pathToFileURL(path.join(scratch,"data.mjs")));
+const verify=(condition,message)=>{assert.ok(condition,message);assertions++;};
+const req=(url,method="GET",body,headers={})=>new Request("https://studio.test"+url,{method,headers:{...(method!=="GET"?{Origin:"https://studio.test"}:{}),...headers},...(body!==undefined?{body}:{}),...(body instanceof ReadableStream?{duplex:"half"}:{})});
+const url="/api/studio/rights?song=song&audio=new-audio";
+let result=await rights.GET(req(url));verify(result.status===200,"rights GET");verify((await result.json()).available===false,"unconfigured service stays inactive");
+globalThis.__voice.id=null;verify((await rights.GET(req(url))).status===401,"anonymous rights denied");verify((await mixer.GET(req("/api/studio/mixer"))).status===401,"anonymous mixer denied");globalThis.__voice.id="foreign";globalThis.__voice.songs=[];verify((await rights.GET(req(url))).status===404,"foreign recording denied");globalThis.__voice.id="owner";globalThis.__voice.songs=[{id:"song",name:"Original",audioFormat:"wav",audioId:"new-audio",audioHistory:[{audioId:"old-audio",audioFormat:"mp3"}]}];
+verify((await rights.PUT(req(url,"PUT","{}",{Origin:"https://evil.test"}))).status===403,"cross-origin notes denied");
+verify((await rights.PUT(req(url,"PUT",JSON.stringify({recording:"original",composition:"original",voices:"self",notes:"n".repeat(4001)})))).status===400,"oversized notes denied");
+const review={recording:"original",composition:"licensed",voices:"self",notes:"Backing permission reference",reviewedAt:"forged-date",copyrightCleared:true};
+result=await rights.PUT(req(url,"PUT",JSON.stringify(review)));verify(result.status===200,"manual review saved without paid provider");let saved=(await result.json()).review;verify(saved.reviewedAt!=="forged-date"&&!saved.copyrightCleared,"server timestamp and allowlist");
+const audio={duration:10,sampleRate:22050,numberOfChannels:1,getChannelData:()=>new Float32Array(220500).fill(.1)},wav=recognitionExcerpt(audio,0).bytes;
+const scan=(at=0,body=wav,extra={})=>rights.POST(req(url,"POST",body,{"Content-Type":"audio/wav","X-Recognition-Consent":"yes","X-Excerpt-Start":String(at),...extra}));
+verify((await scan()).status===503,"missing key rejects paid recognition");
+await bucket.put("audio/owner/new-audio","original");await bucket.put("audio/owner/old-audio","historical");globalThis.__voice.env.AUDD_API_TOKEN="fixture-token-not-real";
+const oldFetch=globalThis.fetch;let responseBody={status:"success",result:null},httpStatus=200;
+globalThis.fetch=async(url,options)=>{verify(url==="https://api.audd.io/","fixed provider endpoint");verify(options.body.get("api_token")==="fixture-token-not-real","server token only");verify(options.body.get("file").size===wav.length,"only bounded excerpt transmitted");providerCalls++;return Response.json(responseBody,{status:httpStatus});};
+verify((await scan(0,wav,{"X-Recognition-Consent":"no"})).status===400,"explicit audio consent required");verify(providerCalls===0,"no transmission without consent");verify((await scan(0,new Uint8Array(540000))).status===413,"oversized body rejected");verify((await scan(0,new Uint8Array(44))).status===400,"invalid WAV rejected");
+result=await scan();verify(result.status===200,"recognition succeeds with fixture");saved=(await result.json()).check;verify(saved.status==="no-match"&&saved.audioId==="new-audio"&&saved.duration===10,"no match remains a scoped recording result");
+const countBefore=providerCalls;result=await scan();verify((await result.json()).cached===true&&providerCalls===countBefore,"identical excerpt reuses saved result without new paid call");
+responseBody={status:"success",result:{title:"Existing release",artist:"Artist",song_link:"javascript:alert(1)"}};result=await scan(10);saved=(await result.json()).check;verify(saved.status==="match"&&!saved.link,"match saved and unsafe link removed");
+responseBody={status:"success",result:{artist:"incomplete"}};verify((await scan(20)).status===502,"malformed response never becomes no-match");httpStatus=503;verify((await scan(30)).status===502,"provider outage explicit");httpStatus=200;responseBody={status:"success",result:null};
+for(let i=4;i<12;i++)verify((await scan(40+i)).status===200,"budgeted recognition attempt");verify((await scan(100)).status===429,"daily budget stops further paid calls");
+globalThis.fetch=oldFetch;
+const sid=crypto.randomUUID(),tid=crypto.randomUUID(),track={id:tid,name:"Voice",duration:10,start:0,end:10,at:0,level:1,pan:0,lowCut:15,presence:0,reverb:0,echo:0,compression:false,mute:false,solo:false};
+let mix={version:1,id:sid,name:"My production",projectSongId:"song",tracks:[track]},mixUrl="/api/studio/mixer?session="+sid;
+verify((await mixer.PUT(req(mixUrl,"PUT",JSON.stringify(mix)))).status===409,"metadata waits for original upload");
+verify((await mixer.PUT(req(mixUrl+"&source="+tid,"PUT",new Uint8Array([1,2,3]),{"X-Audio-Size":"3"}))).status===200,"original uploaded");
+await mixer.PUT(req(mixUrl+"&source="+tid,"PUT",new Uint8Array([9,9,9]),{"X-Audio-Size":"3"}));verify(files.get(`multitrack-mixer/v1/owner/recordings/${sid}/${tid}`).data[0]===1,"original immutable on retry");
+result=await mixer.PUT(req(mixUrl,"PUT",JSON.stringify(mix)));verify(result.status===200,"editable mixer saved");const rev=(await result.json()).revision;
+result=await mixer.GET(req(mixUrl));saved=(await result.json()).session;verify(saved.tracks[0].id===tid&&saved.projectSongId==="song","settings and project reopen");
+verify((await mixer.PUT(req(mixUrl,"PUT",JSON.stringify({...mix,name:"Updated"}),{"If-Match":rev}))).status===200,"revision update accepted");verify((await mixer.PUT(req(mixUrl,"PUT",JSON.stringify({...mix,name:"Stale"}),{"If-Match":rev}))).status===409,"stale tab cannot overwrite");
+verify((await vocal.GET(req("/api/studio/vocal?session="+sid+"&source="+tid))).status===404,"mixer and vocal namespaces isolated");
+globalThis.__voice.id="foreign";verify((await mixer.GET(req(mixUrl))).status===404,"cross-account session denied");globalThis.__voice.id="owner";
+const vs=emptySession();result=await vocal.PUT(req("/api/studio/vocal?session="+vs.id,"PUT",JSON.stringify(vs)));verify(result.status===200,"legacy vocal session still saves");
+result=await stems.POST(req("/api/studio/stems","POST",JSON.stringify({songId:"song",audioId:"old-audio",mode:"two_stems_v1",confirmed:true})));verify(result.status===200,"historical separation permitted");verify(globalThis.__voice.separated[0].format==="mp3"&&globalThis.__voice.separated[0].bytes==="historical","separation uses selected version and its format");verify((await stems.POST(req("/api/studio/stems","POST",JSON.stringify({songId:"song",audioId:"unknown",mode:"two_stems_v1",confirmed:true})))).status===409,"unknown source not sent");
+const voiceSession=emptySession(),sourceId=crypto.randomUUID();voiceSession.sources=[{id:sourceId,name:"Lead vocal",duration:10}];
+const voiceInput={sessionId:voiceSession.id,sourceId,name:"My original singing",mime:"audio/wav",permission:true};
+verify((await myVoice.POST(req("/api/studio/my-voice","POST",JSON.stringify({...voiceInput,permission:false})))).status===400,"voice performer permission required");
+verify((await myVoice.POST(req("/api/studio/my-voice","POST",JSON.stringify(voiceInput)))).status===409,"voice copy waits for account session");
+await bucket.put(`vocal-studio/v1/owner/sessions/${voiceSession.id}`,JSON.stringify(voiceSession));
+await bucket.put(`vocal-studio/v1/owner/recordings/${voiceSession.id}/${sourceId}`,wav);
+verify((await myVoice.POST(req("/api/studio/my-voice","POST",JSON.stringify(voiceInput),{Origin:"https://evil.test"}))).status===403,"cross origin voice copy denied");
+result=await myVoice.POST(req("/api/studio/my-voice","POST",JSON.stringify(voiceInput)));verify(result.status===200,"independent original voice copy saved");const voice=(await result.json()).voice;
+result=await myVoice.GET(req("/api/studio/my-voice"));verify((await result.json()).voices.some(v=>v.id===voice.id&&v.name===voiceInput.name),"saved voice listed for reuse");
+files.delete(`vocal-studio/v1/owner/recordings/${voiceSession.id}/${sourceId}`);
+result=await myVoice.GET(req("/api/studio/my-voice?id="+voice.id));verify(result.status===200,"voice copy survives source session changes");verify((await result.arrayBuffer()).byteLength===wav.length,"original voice bytes preserved");
+globalThis.__voice.id="foreign";verify((await myVoice.GET(req("/api/studio/my-voice?id="+voice.id))).status===404,"voice cannot cross accounts");verify((await myVoice.GET(req("/api/studio/my-voice"))).status===200,"foreign account receives own empty collection");
+globalThis.__voice.id=null;verify((await myVoice.GET(req("/api/studio/my-voice"))).status===401,"anonymous voice collection denied");globalThis.__voice.id="owner";
+const existingPut=bucket.put;
+try {
+ bucket.put=async(_key,value)=>{await bytes(value);return null;};
+ const concurrentSource=crypto.randomUUID();
+ result=await mixer.PUT(req(mixUrl+"&source="+concurrentSource,"PUT",new Uint8Array([7,8,9]),{"X-Audio-Size":"3"}));
+ verify(result.status===409,"a rejected immutable source write is never reported as a successful upload");
+ verify(!files.has(`multitrack-mixer/v1/owner/recordings/${sid}/${concurrentSource}`),"failed conditional upload leaves existing originals intact");
+} finally {bucket.put=existingPut;}
+// Audiovisual data uses the same private session and immutable originals.
+const av=newAVSettings();av.anchor=tid;av.mediaSong="song";av.mappings=[{id:"drum-light",source:tid,feature:"attack",target:"light",amount:.6}];av.feedback=[{id:"note",time:1,text:"Lift the chorus",resolved:false}];av.splits=[{name:"Artist",percent:100}];
+const latest=await(await mixer.GET(req(mixUrl))).json();
+result=await mixer.PUT(req(mixUrl,"PUT",JSON.stringify({...latest.session,audiovisual:av}),{"If-Match":latest.revision}));
+verify(result.ok,"visual mappings and production metadata save with the existing mixer session");
+const avSaved=await(await mixer.GET(req(mixUrl))).json();
+verify(avSaved.session.audiovisual.mappings[0].source===tid&&avSaved.session.audiovisual.feedback[0].time===1,"visual timeline and timestamped notes reopen");
+verify(files.get(`multitrack-mixer/v1/owner/recordings/${sid}/${tid}`).data[0]===1,"saving visuals does not replace original audio");
+result=await mixer.PUT(req(mixUrl,"PUT",JSON.stringify({...avSaved.session,audiovisual:{...av,mediaSong:"foreign-project"}}),{"If-Match":avSaved.revision}));
+verify(result.status===400,"visual media cannot reference another account's project");
+result=await mixer.PUT(req(mixUrl,"PUT",JSON.stringify({...avSaved.session,audiovisual:{...av,splits:[{name:"Artist",percent:150}]}}),{"If-Match":avSaved.revision}));
+verify(result.status===400,"invalid split planning metadata is rejected without changing the session");
+globalThis.__voice.id="foreign";verify((await mixer.GET(req(mixUrl))).status===404,"visual session metadata remains private across accounts");globalThis.__voice.id="owner";
+console.log(JSON.stringify({checks:assertions,status:"passed",scope:"isolated storage, authentication, sessions, recognition and historical separation; no live provider calls"}));

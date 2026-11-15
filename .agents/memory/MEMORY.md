@@ -1,0 +1,1 @@
+- [Preserve the existing studio](product-direction.md) — Continue SAMADHI LOVE Studio; beginner-friendly songs and easy/advanced lyric videos, not a replacement app.

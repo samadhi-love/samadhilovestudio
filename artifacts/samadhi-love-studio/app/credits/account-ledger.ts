@@ -1,0 +1,105 @@
+import { billingReady } from "../billing/config";
+import { env } from "cloudflare:workers";
+import { plans, creditPrice, type CreditAccount, type CreditsData, type Funding, type Operation, type Plan, type UsageJob } from "./data";
+export class CreditError extends Error { constructor(message: string, public status = 409) { super(message); } }
+export function creditQuery(sql: string, ...params: (string | number | null)[]) {
+  if (!env.DB) throw new CreditError("Usage storage is unavailable. Processing has not started.", 503);
+  return env.DB.prepare(sql).bind(...params);
+}
+export function managedAvailable() { return env.STUDIO_CREDITS_ENABLED === "1" && env.STUDIO_MANAGED_PRODUCTION_APPROVED === "1" && !!env.STUDIO_MANAGED_ELEVENLABS_KEY; }
+export async function ensureCreditAccount(owner: string) {
+  await creditQuery("insert into credit_accounts (owner) values (?) on conflict do nothing", owner).run();
+  return (await creditQuery("select * from credit_accounts where owner = ?", owner).first<CreditAccount>())!;
+}
+const dayStart = () => Math.floor(Date.now() / 86400000) * 86400000;
+export async function creditsData(owner: string, isOwner = false): Promise<CreditsData> {
+  const account = await ensureCreditAccount(owner);
+  const [jobs, ledger, totals] = await Promise.all([
+    creditQuery("select id, operation, funding, credits, seconds, status, created_at, updated_at from production_jobs where owner = ? order by created_at desc, id desc limit 60", owner).all<UsageJob>(),
+    creditQuery("select * from credit_ledger where owner = ? order by created_at desc, id desc limit 80", owner).all<CreditsData["ledger"][number]>(),
+    creditQuery(`select coalesce(sum(case when status='held' then credits else 0 end),0) as held,
+      sum(case when status='held' then 1 else 0 end) as active,
+      sum(case when created_at >= ? then 1 else 0 end) as today,
+      coalesce(sum(case when status='complete' and created_at >= ? then credits else 0 end),0) as used
+      from production_jobs where owner = ?`, dayStart(), account.period_start, owner).first<{ held: number; active: number; today: number; used: number }>(),
+  ]);
+  const { last_change: _internal, ...publicAccount } = account;
+  return { account: publicAccount, plans, managedAvailable: managedAvailable(), billingActive: billingReady(), owner: isOwner,
+    limits: { concurrent: plans[account.plan].concurrent, daily: plans[account.plan].daily, musicSeconds: plans[account.plan].musicSeconds, uploadMB: 96 },
+    held: totals?.held ?? 0, active: totals?.active ?? 0, today: totals?.today ?? 0, used: totals?.used ?? 0,
+    expired: account.period_end <= Date.now(), jobs: jobs.results, ledger: ledger.results };
+}
+export async function setFunding(owner: string, funding: Funding) {
+  const account = await ensureCreditAccount(owner);
+  if (funding === "studio" && (!managedAvailable() || !["beta", "active"].includes(account.status) || account.period_end <= Date.now()))
+    throw new CreditError("Studio-funded production is not active for this account. Your personal connection remains available.", 403);
+  await creditQuery("update credit_accounts set funding = ?,last_change=? where owner = ?", funding, crypto.randomUUID(), owner).run();
+}
+export async function assignBeta(owner: string, plan: Plan, actor: string, requestId: string) {
+  const prior = await ensureCreditAccount(owner);
+  if (await creditQuery("select id from credit_ledger where id = ?", "beta:" + requestId).first()) return;
+  if (prior.status === "active") throw new CreditError("Paid allowances are managed through verified billing. Beta grants cannot replace them.");
+  const now = Date.now(), end = now + 30 * 86400000, amount = plans[plan].credits;
+  const [changed] = await env.DB!.batch([
+    creditQuery(`update credit_accounts set plan=?,status=?,balance=?,period_start=?,period_end=?,last_change=?
+      where owner=? and last_change=? and not exists(select 1 from production_jobs where owner=? and status='held')
+      and not exists(select 1 from credit_ledger where id=?)`, plan, plan === "free" ? "free" : "beta", amount, now, end, requestId, owner, prior.last_change, owner, "beta:" + requestId),
+    creditQuery(`insert into credit_ledger (id,owner,amount,kind,note,created_at)
+      select ?,owner,?,'beta','Owner-authorized 30-day beta allowance; no payment collected',? from credit_accounts where owner=? and last_change=?
+      on conflict do nothing`, "beta:" + requestId, amount - prior.balance, now, owner, requestId),
+    creditQuery(`insert into credit_ledger (id,owner,amount,kind,note,created_at)
+      select ?,?,0,'admin',?,? where exists(select 1 from credit_accounts where owner=? and last_change=?) on conflict do nothing`,
+      "audit:" + requestId, actor, "Beta plan assigned to account " + owner + ": " + plan, now, owner, requestId),
+  ]);
+  if (!changed.meta.changes) throw new CreditError("Finish or resolve this account’s running jobs before replacing its allowance.");
+}
+export async function reserveJob(owner: string, operation: Operation, seconds: number, id: string, accepted: number | null) {
+  const account = await ensureCreditAccount(owner), plan = plans[account.plan];
+  const funding: Funding = operation === "voice" ? "own" : account.funding;
+  const charge = funding === "studio" ? creditPrice(operation, seconds) : 0;
+  if (funding === "studio") {
+    if (await creditQuery("select owner from billing_accounts where owner=? and blocked=1", owner).first()) throw new CreditError("This billing account requires owner review before funded production.", 403);
+    if (!managedAvailable()) throw new CreditError("Studio-funded generation is awaiting provider approval and configuration.", 503);
+    if (!["beta", "active"].includes(account.status) || account.period_end <= Date.now()) throw new CreditError("Your production allowance has ended. Your saved music remains available.", 402);
+    if (accepted !== charge) throw new CreditError(`Confirm the ${charge}-credit estimate before starting. Open Credits & Usage to review your allowance.`, 402);
+    if (account.balance < charge) throw new CreditError(`This job needs ${charge} credits; ${account.balance} are available.`, 402);
+  }
+  const now = Date.now(), month = new Date(); month.setUTCDate(1); month.setUTCHours(0, 0, 0, 0);
+  const configuredCap = Number(env.STUDIO_MANAGED_MONTHLY_CREDIT_CAP ?? 10000);
+  const cap = Number.isFinite(configuredCap) ? Math.max(0, Math.min(10000000, configuredCap)) : 10000;
+  const configuredConcurrency = Number(env.STUDIO_MANAGED_CONCURRENCY_CAP ?? 2);
+  const globalConcurrency = Number.isFinite(configuredConcurrency) ? Math.max(0, Math.min(100, Math.floor(configuredConcurrency))) : 2;
+  const daily = funding === "studio" ? plan.daily : 1000000; // Existing personal-provider daily checks remain authoritative.
+  const result = await env.DB!.batch([
+    creditQuery(`update credit_accounts set balance=balance-?,last_change=? where owner=? and funding=?
+      and balance>=? and (plan=? and status=? and period_end=?)
+      and not exists(select 1 from production_jobs where id=?)
+      and (select count(*) from production_jobs where owner=? and status='held') < ?
+      and (select count(*) from production_jobs where owner=? and created_at>=?) < ?
+      and (?='own' or (select count(*) from production_jobs where funding='studio' and status='held') < ?)
+      and (?='own' or (select coalesce(sum(credits),0) from production_jobs where funding='studio' and created_at>=?)+?<=?)`,
+      charge, id, owner, account.funding, charge, account.plan, account.status, account.period_end, id, owner, plan.concurrent, owner, dayStart(), daily, funding, globalConcurrency, funding, month.getTime(), charge, cap),
+    creditQuery(`insert into production_jobs (id,owner,operation,funding,credits,seconds,status,created_at,updated_at,period_end)
+      select ?,owner,?,?,?,?, 'held',?,?,period_end from credit_accounts where owner=? and last_change=? on conflict do nothing`,
+      id, operation, funding, charge, seconds, now, now, owner, id),
+    creditQuery(`insert into credit_ledger (id,owner,amount,kind,note,created_at)
+      select ?,owner,-credits,'reserve',operation,? from production_jobs where id=? on conflict do nothing`, id + ":reserve", now, id),
+  ]);
+  if (!result[0].meta.changes) {
+    if (await creditQuery("select id from production_jobs where id=?", id).first()) throw new CreditError("This request already started. Check Usage before creating another version.");
+    throw new CreditError("A production limit was reached or your allowance changed. Check running jobs, daily limits, and your credit balance.", 429);
+  }
+  return { id, funding, credits: charge };
+}
+export async function settleJob(owner: string, id: string, refund: boolean) {
+  const now = Date.now();
+  await env.DB!.batch([
+    creditQuery(`update credit_accounts set balance=balance+coalesce((select case when j.period_end=credit_accounts.period_end then j.credits else 0 end
+      from production_jobs j where j.id=? and j.owner=? and j.status='held'),0),last_change=? where owner=? and ?=1 and exists(select 1 from production_jobs where id=? and owner=? and status='held')`, id, owner, crypto.randomUUID(), owner, refund ? 1 : 0, id, owner),
+    creditQuery(`insert into credit_ledger (id,owner,amount,kind,note,created_at)
+      select ?,j.owner,case when ?=1 and j.period_end=a.period_end then j.credits else 0 end,?,j.operation,?
+      from production_jobs j join credit_accounts a on a.owner=j.owner where j.id=? and j.owner=? and j.status='held' on conflict do nothing`,
+      id + ":settle", refund ? 1 : 0, refund ? "refund" : "complete", now, id, owner),
+    creditQuery("update production_jobs set status=?,updated_at=? where id=? and owner=? and status='held'", refund ? "refunded" : "complete", now, id, owner),
+  ]);
+}

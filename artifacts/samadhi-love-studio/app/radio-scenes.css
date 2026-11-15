@@ -1,0 +1,41 @@
+.radio-screen{position:relative;isolation:isolate;overflow:hidden;min-height:250px;color:#fff8ed;text-shadow:0 2px 12px #000a}
+.radio-screen>:not(.radio-scene){position:relative;z-index:1}
+.radio-scene{position:absolute!important;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:#08112b}
+.radio-scene-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.025);animation:radio-landscape-drift 38s ease-in-out infinite alternate;transform-origin:65% 45%}
+.radio-scene-image[hidden],.radio-scene-card img[hidden]{display:none}
+.radio-scene i{display:block;position:absolute;pointer-events:none}
+.scene-cosmic{background:linear-gradient(130deg,#050e21,#223453)}
+.scene-ocean{background:linear-gradient(130deg,#0c2639,#275264)}
+.scene-sunrise{background:linear-gradient(130deg,#18252e,#63513d)}
+.scene-forest{background:linear-gradient(130deg,#0d201a,#2b4031)}
+.scene-atmosphere{inset:0;background:radial-gradient(ellipse at 85% 10%,#ffe4ac12,transparent 70%);mix-blend-mode:screen;opacity:.7;animation:radio-daylight-breathe 17s ease-in-out infinite alternate}
+.scene-shade{inset:0;background:linear-gradient(90deg,#030b17b8 0%,#030b1766 48%,#030b171a 100%),linear-gradient(0deg,#040b1759,transparent 65%)}
+.radio-scene[data-animate="false"] *{animation-play-state:paused!important}
+.radio-scene-settings{min-width:0}
+.radio-scene-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0;font-size:.85rem}
+.radio-scene-controls label{display:flex;gap:7px;align-items:center}
+.radio-scene-controls select{max-width:100%;min-height:40px}
+.radio-scene-controls small{opacity:.8;font-size:11px}
+.radio-scene-gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.radio-scene-card{position:relative;isolation:isolate;overflow:hidden;min-width:0;min-height:86px;padding:0;border:1px solid #c6b59a55;border-radius:9px;background:#112025;color:#fff8ed;text-align:left;cursor:pointer;transition:border-color .18s,box-shadow .18s}
+.radio-scene-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.radio-scene-card:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#030b17e6,transparent 100%);z-index:0}
+.radio-scene-card>span{position:relative;z-index:1;display:block;margin-top:35px;padding:10px 9px;font-size:11px;font-weight:600;line-height:1.4;text-shadow:0 1px 5px #000}
+.radio-scene-card>b{position:absolute;right:7px;top:6px;z-index:1;border-radius:50%;background:#e4d0a1;color:#1a211b;width:19px;height:19px;display:grid;place-items:center;font-size:12px}
+.radio-scene-card:hover{border-color:#dfc78e}
+.radio-scene-card[aria-pressed=true]{border-color:#dfc78e;box-shadow:0 0 0 2px #dfc78e55}
+.radio-scene-card:focus-visible{outline:2px solid #dfc78e;outline-offset:3px}
+@keyframes radio-landscape-drift{from{transform:scale(1.025) translate3d(0,0,0)}to{transform:scale(1.09) translate3d(-.7%,-.35%,0)}}
+@keyframes radio-daylight-breathe{from{opacity:.4}to{opacity:.85}}
+@media(max-width:600px){.radio-scene-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.radio-scene-card{min-height:90px}.radio-scene-card>span{font-size:12px}.radio-screen .radio-kicker{font-size:9px;letter-spacing:.08em}}
+.shared-radio{display:grid;gap:18px;min-width:0}
+.shared-radio-screen{min-height:250px}
+.shared-radio audio{max-width:100%}
+.shared-radio .radio-controls{flex-wrap:wrap}
+.shared-radio .radio-play{font-size:1rem;min-width:110px;padding:10px 16px}
+.shared-radio ol,.shared-radio ul{padding-left:22px;line-height:1.7}
+.radio-review{padding:16px 0;border-top:1px solid #bd9ee138;margin-top:14px}
+.radio-review details{margin:10px 0;overflow-wrap:anywhere}
+.radio-review audio{display:block;width:min(100%,420px);margin:12px 0}
+@media(prefers-reduced-motion:reduce){.radio-scene *{animation:none!important}.radio-meter i{animation:none!important}}
+@media(max-width:600px){.radio-scene-controls{align-items:flex-start;gap:10px}.radio-scene-controls label:first-child{width:100%}.radio-scene-controls select{flex:1}.radio-screen,.shared-radio-screen{min-height:210px}.shared-radio .radio-brand{flex-wrap:wrap}.radio-review{padding:12px 0}}

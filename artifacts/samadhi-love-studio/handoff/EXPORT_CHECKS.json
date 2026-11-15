@@ -1,0 +1,21 @@
+{
+  "sourceCommit": "be15dc8f65ea57e613341a4976a3624011abf071",
+  "originalTrackedFiles": 600,
+  "originalSourceHashesVerified": true,
+  "fullVerificationGroups": 38,
+  "fullVerificationPassed": true,
+  "cleanInstall": "passed using matching cache",
+  "localMigrations": "eight applied to fresh local D1; second invocation did not replay",
+  "included": "original tracked source, assets, SQL, tests, lockfile, documentation and handoff helpers",
+  "excluded": [
+    "Git history/config/credentials",
+    "node_modules and dependency caches",
+    "dist/build output",
+    "runtime environment files and secret values",
+    "local database/emulator state",
+    "production DB rows and private R2 objects",
+    "logs and temporary tool state"
+  ],
+  "targetedSecretScan": "No private-key blocks or live Stripe keys; credentialed example URL in tests/visual-generation.test.tsx is an intentional nonfunctional security-rejection fixture. No runtime credentials were read or exported. A targeted pattern scan is not a comprehensive security audit.",
+  "applicationSourceOrDeploymentModified": false
+}

@@ -1,0 +1,80 @@
+.cosmic-frame{position:fixed;inset:0;z-index:80;pointer-events:none;overflow:hidden;color:#d9c394}
+.cosmic-frame>svg{position:absolute;inset:0;overflow:visible;fill:none}
+.cosmic-track{stroke:#b9a2ef48;stroke-width:2;filter:drop-shadow(0 0 4px #ad85ef)}
+.cosmic-current{stroke:#fff0ba;stroke-width:2;stroke-linecap:round;stroke-dasharray:8 7 1 84;animation:cosmic-orbit 22s linear infinite;filter:drop-shadow(0 0 4px #ffe0a8)}
+.cosmic-current-halo{stroke:#b896ff;stroke-width:7;opacity:.6;filter:blur(4px)}
+@keyframes cosmic-orbit{to{stroke-dashoffset:-100}}
+.cosmic-corner{position:absolute;width:86px;height:86px;opacity:.5;filter:drop-shadow(0 0 6px #d6b3fa55);animation:cosmic-breathe 9s ease-in-out infinite alternate}
+.cosmic-nw{left:10px;top:10px}.cosmic-ne{right:10px;top:10px}.cosmic-sw{left:10px;bottom:10px}.cosmic-se{right:10px;bottom:10px}
+@keyframes cosmic-breathe{to{opacity:.25;transform:rotate(30deg)}}
+.divine-spark{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:20px;margin:0 0 24px;padding:20px 24px;border:1px solid #a991cc66;border-radius:14px;background:radial-gradient(ellipse at center,#49314c66,transparent 75%),#0c1724;box-shadow:inset 0 0 20px #b59be20c,0 0 18px #947cba10;text-align:center;overflow:hidden}
+.divine-spark>img{width:84px;height:84px;flex:none;opacity:.65;animation:sacred-turn 100s linear infinite}
+.divine-way{font-family:Georgia,serif;font-size:clamp(16px,1.6vw,22px);line-height:1.55;color:#f1e4ce;text-wrap:balance}
+.divine-way strong{font-weight:400;color:#ffe2aa;white-space:normal}
+.divine-mantra{margin-top:12px!important;color:#c9d9f0;font-size:10px;letter-spacing:.18em;line-height:1.9;text-wrap:balance}
+@keyframes sacred-turn{to{transform:rotate(360deg)}}
+/* Light channels connect the working areas and carry the same current. */
+.shell .section-head{position:relative;padding-bottom:14px;margin-bottom:13px;background:url('/sacred-geometry.svg') center bottom / 34px 34px no-repeat}
+.shell .section-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#ab92c577 25%,#ffe2a9 50%,#85e4e577 75%,transparent);background-size:200% 100%;animation:channel-flow 12s linear infinite;pointer-events:none}
+@keyframes channel-flow{to{background-position:200% 0}}
+.shell .sidebar{background-image:url('/sacred-geometry.svg');background-repeat:no-repeat;background-position:center bottom 140px;background-size:190px}
+.shell .panel{background-image:linear-gradient(#101c28f0,#101c28f0),url('/sacred-geometry.svg');background-position:center,right -42px bottom -42px;background-size:auto,175px;background-repeat:no-repeat;border-color:#8e83b34d}
+.shell .hero,.shell .create-banner{box-shadow:inset 0 0 0 1px #dfc89a33,0 0 28px #a899cd15}
+@media(max-width:700px){.cosmic-corner{width:48px;height:48px;opacity:.3}.divine-spark{padding:18px 16px;gap:0}.divine-spark>img{position:absolute;width:130px;height:130px;opacity:.1;z-index:-1}.divine-spark>img:first-child{left:-25px}.divine-spark>img:last-child{right:-25px}.divine-mantra{font-size:9px;letter-spacing:.12em}}
+@media(prefers-reduced-motion:reduce){.cosmic-current,.cosmic-corner,.divine-spark>img,.shell .section-head::after{animation:none}}
+
+/* 0.30 CSS inch = 28.8 CSS pixels; reserve the frame around every page. */
+:root{--sacred-frame:.30in}
+body{padding:var(--sacred-frame)}
+.cosmic-frame{color:#fff2ca}
+.frame-rail{position:absolute;display:flex;align-items:center;justify-content:space-evenly;gap:5px;background:linear-gradient(110deg,#562255,#193c69 25%,#18584f 48%,#6c461d 72%,#602664);box-shadow:inset 0 0 0 1px #ffe1a891,inset 0 0 12px #e8baff45}
+.frame-top,.frame-bottom{left:0;right:0;min-height:var(--sacred-frame);padding:3px var(--sacred-frame);font:600 clamp(7px,.87vw,12px)/1.15 Georgia,serif;text-align:center}
+.frame-top{top:0}.frame-bottom{bottom:0}
+.frame-left,.frame-right{top:var(--sacred-frame);bottom:var(--sacred-frame);width:var(--sacred-frame);flex-direction:column;padding:8px 2px;background:linear-gradient(#562255,#193c69,#18584f,#6c461d,#602664)}
+.frame-left{left:0}.frame-right{right:0}
+.sacred-symbol{width:25px;height:25px;flex-shrink:0;filter:drop-shadow(0 0 3px #ffd79488)}
+.frame-top .sacred-symbol,.frame-bottom .sacred-symbol{width:20px;height:20px}
+.mantra-piece{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.glitter-words{color:#fff0c8;background-image:radial-gradient(circle,#fff 0 1px,transparent 1.5px),radial-gradient(circle,#fff8dc 0 1px,transparent 1.6px),linear-gradient(110deg,#ffd79b 12%,#fff 20%,#dbb5ff 32%,#fff0ad 47%,#fff 51%,#8ce6ec 65%,#ffbfdf 82%,#ffe3a6);background-size:7px 9px,11px 13px,240% 100%;background-position:0 0,4px 6px,0 0;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 3px #ffd99855);animation:word-glitter 5s linear infinite}
+@keyframes word-glitter{to{background-position:14px 9px,-7px 19px,240% 0}}
+.divine-inside{width:100%}.divine-mantra{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;font-size:clamp(11px,1vw,14px);letter-spacing:.08em;margin:0!important}.geometry-divider{display:flex;justify-content:center;gap:14px;margin:16px 0;color:#e6c391}.geometry-divider .sacred-symbol{width:36px;height:36px}.divine-way{margin:0}.divine-way strong{font-weight:600}
+.shell .sidebar{top:var(--sacred-frame);height:calc(100dvh - 2 * var(--sacred-frame))}
+@media(max-width:700px){.frame-top{flex-wrap:wrap;gap:0 6px}.frame-top .mantra-piece{gap:3px}.frame-top .sacred-symbol{width:10px;height:10px}.frame-bottom{gap:4px;font-size:8px}.frame-bottom .sacred-symbol{width:14px;height:14px}.divine-spark{padding:18px 12px}.divine-mantra{letter-spacing:.04em;gap:8px}.shell .sidebar{height:auto;top:auto}}
+@media(prefers-reduced-motion:reduce){.glitter-words{animation:none}}
+@media(forced-colors:active){.glitter-words{background:none;-webkit-text-fill-color:CanvasText;color:CanvasText}}
+
+/* Separate horizontal lyrics and vertical geometry; no corner turns. */
+.frame-rail{overflow:hidden}
+.frame-top,.frame-bottom{left:var(--sacred-frame);right:var(--sacred-frame);height:var(--sacred-frame);min-height:0;padding:0;display:block;white-space:nowrap;font:600 12px/1 Georgia,serif}
+.frame-left,.frame-right{padding:0}
+.frame-lyric-track{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.frame-lyric-group{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 7px;padding:2px 4px;max-width:100%;font-size:clamp(5px,.72vw,11px);line-height:1.15;white-space:normal;text-align:center}
+.frame-lyric-group .mantra-piece{flex:none;gap:3px}
+.frame-lyric-group .sacred-symbol{width:clamp(6px,.85vw,13px);height:clamp(6px,.85vw,13px)}
+.frame-lyric-group .glitter-words{animation:none}
+.frame-geometry-track{position:absolute;inset:0 0 auto;height:200%;display:flex;flex-direction:column;animation:frame-geometry 35s linear infinite}
+.frame-geometry-group{height:50%;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:space-around}
+.frame-geometry-group .sacred-symbol{width:22px;height:22px}
+.frame-right .frame-geometry-track{animation-direction:reverse}
+@keyframes frame-geometry{to{transform:translateY(-50%)}}
+@media(prefers-reduced-motion:reduce){.frame-lyric-track,.frame-geometry-track{animation:none}}
+
+/* A compact cosmic welcome, with locally hosted Devanagari-inspired Latin lettering. */
+@font-face{font-family:"Yatra One";src:url("/fonts/welcome/yatra-one.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap}
+.welcome-samadhi{display:flex;flex-direction:column;gap:0;margin-bottom:18px;padding:12px 20px;background:radial-gradient(ellipse at 18% 110%,#134b6677,transparent 55%),radial-gradient(ellipse at 85% -25%,#592d6866,transparent 55%),#060e20;border-color:#dcb97877}
+.welcome-cosmos{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background-image:radial-gradient(circle at 11% 19%,#fff5d9 0 1px,transparent 1.8px),radial-gradient(circle at 38% 73%,#99e4ff 0 .7px,transparent 1.5px),radial-gradient(circle at 73% 31%,#eed4ff 0 .8px,transparent 1.6px),radial-gradient(circle at 89% 82%,#fff 0 .6px,transparent 1.4px);background-size:131px 89px,179px 113px,223px 137px,97px 67px}
+.welcome-earth{position:absolute;width:120px;height:120px;right:-9px;bottom:-32px;opacity:.8;filter:drop-shadow(0 0 12px #2496d944)}
+.welcome-ringed-planet{position:absolute;left:3%;top:14px;width:45px;height:45px;border-radius:50%;background:radial-gradient(circle at 30% 25%,#f2c7a2,#b981a1 40%,#3b294e 74%,#11152d);box-shadow:0 0 20px #c7a6eb33;transform:rotate(-25deg);opacity:.75}
+.welcome-ringed-planet::after{content:"";position:absolute;inset:13px -20px;border:4px solid #d5bdd177;border-top-color:#dac3da44;border-radius:50%;box-shadow:0 0 3px #eacbf155}
+.welcome-samadhi .about-samadhi-copy{position:relative;z-index:1;width:100%;max-width:900px}
+.welcome-samadhi h2{margin:0 0 6px;font:400 clamp(19px,1.9vw,27px)/1.2 "Yatra One",Georgia,serif;letter-spacing:.035em;text-wrap:balance}
+.welcome-message{display:flex;align-items:center;justify-content:center;gap:clamp(10px,1.6vw,20px)}
+.welcome-message .sacred-symbol{width:36px;height:36px;color:#edc66b;filter:drop-shadow(0 0 7px #edc66b66)}
+.welcome-message p{max-width:620px;margin:0;font:400 clamp(13px,1.15vw,16px)/1.55 "Yatra One",Georgia,serif;letter-spacing:.065em;color:#fff0d3;text-wrap:balance;text-shadow:0 1px 6px #020919,0 0 14px #020919}
+.welcome-samadhi .welcome-soul{margin:6px 0 0;font:italic 500 clamp(13px,1.15vw,16px)/1.35 Georgia,serif;color:#edc66b;letter-spacing:.045em;text-wrap:balance;text-shadow:0 0 12px #dca83b33}
+.welcome-soul span{color:#bce8e5;font-style:normal}
+.welcome-note-field{position:absolute;inset:6px;z-index:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:1fr 1fr;align-items:start;justify-items:center;pointer-events:none;font:clamp(20px,2.5vw,32px)/1 Georgia,serif;color:#d6b5eb;opacity:.18}
+.welcome-note-field span:nth-child(even){color:#ffe0a8}.welcome-note-field span:nth-child(3n){color:#a9e5e4}.welcome-note-field span:nth-child(n+8){align-self:end}
+@media(max-width:700px){.welcome-samadhi{padding:10px 12px}.welcome-message{gap:8px}.welcome-message .sacred-symbol{width:26px;height:26px}.welcome-note-field{font-size:20px}.welcome-earth{width:86px;height:86px;right:-15px;bottom:-22px;opacity:.55}.welcome-ringed-planet{width:30px;height:30px;left:10px;top:7px;opacity:.45}.welcome-ringed-planet::after{inset:9px -12px;border-width:3px}}
+@media(max-width:360px){.welcome-message .sacred-symbol{width:21px;height:21px}.welcome-message p{letter-spacing:.025em}}
+@media(forced-colors:active){.welcome-message .sacred-symbol{filter:none}.welcome-samadhi{border-color:CanvasText}.welcome-cosmos{display:none}}

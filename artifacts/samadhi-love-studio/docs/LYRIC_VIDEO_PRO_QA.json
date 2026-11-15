@@ -1,0 +1,72 @@
+{
+  "unit_tests": 8,
+  "api_checks": 49,
+  "live_provider_tested": false,
+  "live_user_data_changed_by_tests": false,
+  "browsers_tested": [],
+  "physical_devices_tested": [],
+  "full_song": {
+    "duration": 183.5,
+    "frames": 5505,
+    "width": 1920,
+    "height": 1080,
+    "frameRate": "30/1",
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "source": "original synthetic 180-second music fixture",
+    "text": "English, Arabic/English, Turkish, Russian, repeated lines, fast lines, two singers and instrumental gaps",
+    "pipeline": "shared app canvas renderer + FFmpeg QA mux harness; browser WebCodecs/MediaRecorder not tested"
+  },
+  "synchronization": {
+    "markers": [
+      {
+        "expected": 2.5,
+        "detected": 2.499,
+        "drift_ms": -1.0
+      },
+      {
+        "expected": 92.5,
+        "detected": 92.49913,
+        "drift_ms": -0.87
+      },
+      {
+        "expected": 179.5,
+        "detected": 179.49904,
+        "drift_ms": -0.96
+      }
+    ],
+    "result": "passed",
+    "note": "Synthetic musical onset markers, not a claim of live sung-word alignment accuracy."
+  },
+  "excerpts": [
+    {
+      "format": "vertical",
+      "width": 1080,
+      "height": 1920,
+      "duration": 9.5,
+      "source_range": [
+        2.5,
+        8.5
+      ],
+      "intro": 1.5,
+      "outro": 2,
+      "video_codec": "h264",
+      "audio_codec": "aac"
+    },
+    {
+      "format": "square",
+      "width": 1080,
+      "height": 1080,
+      "duration": 9.5,
+      "source_range": [
+        2.5,
+        8.5
+      ],
+      "intro": 1.5,
+      "outro": 2,
+      "video_codec": "h264",
+      "audio_codec": "aac"
+    }
+  ],
+  "verification_limit": "Native shared-renderer + FFmpeg harness; browser workflow, WebCodecs/MediaRecorder, live paid provider actions, and device sharing require further verification."
+}

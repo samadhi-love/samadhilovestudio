@@ -1,0 +1,24 @@
+@font-face{font-family:"Studio Serif";src:url('/fonts/lyric/serif.ttf') format('truetype');font-weight:300 700;font-display:swap}
+@font-face{font-family:"Studio Serif";src:url('/fonts/lyric/serif-italic.ttf') format('truetype');font-weight:300 700;font-style:italic;font-display:swap}
+@font-face{font-family:"Studio Hand";src:url('/fonts/lyric/hand.ttf') format('truetype');font-weight:400 700;font-display:swap}
+@font-face{font-family:"Studio Gothic";src:url('/fonts/lyric/gothic.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:"Studio Condensed";src:url('/fonts/lyric/condensed.ttf') format('truetype');font-weight:700;font-display:swap}
+@font-face{font-family:"Studio Rounded";src:url('/fonts/lyric/rounded.ttf') format('truetype');font-weight:200 1000;font-display:swap}
+.caption-template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:10px;max-height:510px;overflow-y:auto;padding:3px}
+.caption-template-card{display:flex;flex-direction:column;gap:6px;text-align:start;padding:12px;border:1px solid #496074;border-radius:12px;background:#132330;color:#fff;min-width:0}
+.caption-template-card[aria-pressed=true]{border-color:#f0c3a6;box-shadow:0 0 0 2px #f0c3a633;background:#243b49}
+.caption-template-card:focus-visible{outline:3px solid #a6fff3;outline-offset:2px}
+.caption-template-sample{display:grid;place-items:center;min-height:62px;border-radius:8px;background:radial-gradient(ellipse at top,#36485a,#080e1c);font-size:26px;line-height:1.3;padding:8px;overflow:hidden}
+.caption-template-card small{font-size:12px;line-height:1.4;color:#c2ced7}
+.caption-template-rules{border-inline-start:3px solid #e7b99d;padding:6px 12px;background:#182d3b;border-radius:5px}
+.caption-template-rules p{margin:5px 0;font-size:13px;line-height:1.5}
+.caption-template-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.caption-template-tools select{max-width:100%}
+.caption-emphasis{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:7px;padding:6px 0 10px;align-items:center;font-size:12px}
+.caption-emphasis label{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.caption-emphasis select{width:auto!important;max-width:100%;min-height:32px!important;padding:4px!important}
+.caption-word-chips{display:flex;flex-wrap:wrap;gap:5px;width:100%}
+.caption-word-chips button{min-height:32px;padding:3px 9px;border:1px solid #476275;border-radius:20px;background:#152b38;color:#d9e7eb;font:inherit}
+.caption-word-chips button[aria-pressed=true]{background:#f0c3a6;color:#172634;border-color:#f0c3a6}
+.caption-template-title{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center}
+@media(max-width:600px){.caption-template-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:420px}.caption-template-card{padding:9px}.caption-template-sample{font-size:23px}}

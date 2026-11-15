@@ -1,0 +1,209 @@
+{
+  "at": "2026-11-14T23:39:44.825Z",
+  "passed": true,
+  "results": [
+    {
+      "name": "Vibe matching, stem motion and caption release kits",
+      "passed": true,
+      "seconds": 0.9
+    },
+    {
+      "name": "AI visual generation, durable job recovery and private media",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Style DNA, bounded song maps and genuine stem analysis",
+      "passed": true,
+      "seconds": 0.8
+    },
+    {
+      "name": "Unified creator, world fusion and social-video presets",
+      "passed": true,
+      "seconds": 1.2
+    },
+    {
+      "name": "Brand logos, musical advertisements and product footage",
+      "passed": true,
+      "seconds": 2.1
+    },
+    {
+      "name": "Party files, real 30-minute audio and non-destructive section editing",
+      "passed": true,
+      "seconds": 22.9
+    },
+    {
+      "name": "Song deletion, 14-day recovery and durable cleanup",
+      "passed": true,
+      "seconds": 0.3
+    },
+    {
+      "name": "Song deletion API ownership and deadline validation",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Frequency tools and removal of guided meditations",
+      "passed": true,
+      "seconds": 1.5
+    },
+    {
+      "name": "Public homepage and separate private Studio",
+      "passed": true,
+      "seconds": 0.1
+    },
+    {
+      "name": "TypeScript",
+      "passed": true,
+      "seconds": 13.1
+    },
+    {
+      "name": "Member registration and verified subscription billing",
+      "passed": true,
+      "seconds": 0.3
+    },
+    {
+      "name": "Member plans and registration controls",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Credits, usage, account isolation and production limits",
+      "passed": true,
+      "seconds": 0.3
+    },
+    {
+      "name": "Credit confirmation and account controls",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Start-a-song presets and genre choices",
+      "passed": true,
+      "seconds": 1.2
+    },
+    {
+      "name": "Genre selection and generation handoff",
+      "passed": true,
+      "seconds": 1.9
+    },
+    {
+      "name": "Audio downloads, readiness and non-destructive opening repair",
+      "passed": true,
+      "seconds": 2.1
+    },
+    {
+      "name": "Song opening and playback recovery",
+      "passed": true,
+      "seconds": 0.6
+    },
+    {
+      "name": "Automatic song duration and creation controls",
+      "passed": true,
+      "seconds": 1.1
+    },
+    {
+      "name": "Song actions, Delete, sorting and automatic saves",
+      "passed": true,
+      "seconds": 1.1
+    },
+    {
+      "name": "Project workflow and checkpoints",
+      "passed": true,
+      "seconds": 2.4
+    },
+    {
+      "name": "Private sessions, voice recordings and rights",
+      "passed": true,
+      "seconds": 1.5
+    },
+    {
+      "name": "Community publishing, moderation and Party ownership",
+      "passed": true,
+      "seconds": 0.3
+    },
+    {
+      "name": "Stems, beats and production controls",
+      "passed": true,
+      "seconds": 1.1
+    },
+    {
+      "name": "Shared audio visual timeline and MIDI",
+      "passed": true,
+      "seconds": 0.8
+    },
+    {
+      "name": "Radio scheduling and permissions",
+      "passed": true,
+      "seconds": 0.7
+    },
+    {
+      "name": "Lyric Video and templates",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Lyric Video isolated APIs",
+      "passed": true,
+      "seconds": 0.4
+    },
+    {
+      "name": "Malformed inputs, audio versions and recovery",
+      "passed": true,
+      "seconds": 1.3
+    },
+    {
+      "name": "Party Mix",
+      "passed": true,
+      "seconds": 0.2
+    },
+    {
+      "name": "Lyric notation and directions",
+      "passed": true,
+      "seconds": 0.2
+    },
+    {
+      "name": "Photo-story advertisements",
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "Non-destructive waveform crop and cut",
+      "passed": true,
+      "seconds": 1.4
+    },
+    {
+      "name": "Audit regression repairs",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Mobile quick navigation and project selection",
+      "passed": true,
+      "seconds": 0.9
+    },
+    {
+      "name": "Start Play Share creator journey",
+      "passed": true,
+      "seconds": 1
+    },
+    {
+      "name": "Production build",
+      "passed": true,
+      "seconds": 9.9
+    }
+  ],
+  "scope": "Local source, simulated DOM/audio, isolated API/storage/provider fixtures and a genuine 30-minute MP3 mixer/encoder run verified with FFprobe/FFmpeg using synthetic authorized audio. No live user records, credentials, provider credits or station state changed.",
+  "notVerified": [
+    "real browsers and physical devices",
+    "live paid-provider processing and generated musical quality",
+    "live paid-provider image/video access, charges and visual quality",
+    "production account save/reopen/export",
+    "production user-data migration",
+    "continuous external radio broadcasting",
+    "native uploaded-video decoding, PNG rasterization, H.264/AAC encoding and exported playback",
+    "native microphone hardware, mobile Party Files performance and multi-hour renders",
+    "physical-device logo, ad-video and sharing flows",
+    "production Worker cron activation and actual scheduled cleanup"
+  ]
+}

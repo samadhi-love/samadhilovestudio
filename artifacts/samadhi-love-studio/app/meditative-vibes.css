@@ -1,0 +1,26 @@
+.meditative-workspace .page-title { margin-bottom: 16px; }
+.meditative-emblem { color: #ffdf9e; font-size: 25px; white-space: nowrap; }
+.meditative-layout { display: grid; grid-template-columns: minmax(270px, .85fr) minmax(0, 1.15fr); gap: 18px; margin-top: 20px; align-items: start; }
+.meditative-catalog, .meditative-builder { padding: 20px; min-width: 0; }
+.meditative-workspace label { display: grid; gap: 6px; font-size: 12px; color: var(--soft); min-width: 0; }
+.meditative-workspace input:not([type="range"]), .meditative-workspace select, .meditative-workspace textarea { width: 100%; min-width: 0; }
+.meditative-workspace h2 { margin: 0 0 14px; }
+.meditative-workspace h3 { margin: 4px 0 8px; }
+.meditative-workspace p { line-height: 1.65; }
+.meditative-workspace .notice { line-height: 1.7; }
+.meditative-filters { flex-wrap: wrap; margin-top: 14px; }
+.meditative-filters [aria-pressed="true"] { background: #b8e5bd; color: #20362e; }
+.meditative-presets { display: grid; gap: 12px; margin-top: 14px; max-height: 920px; overflow: auto; padding: 3px; }
+.meditative-preset, .meditative-layer { border: 1px solid #a4c6ae66; padding: 15px; border-radius: 12px; background: linear-gradient(130deg, #a8e3b40d, #efbc7b0c); }
+.meditative-preset small { color: #f7dfad; }
+.meditative-preset p { font-size: 12px; color: var(--muted); }
+.meditative-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.meditative-layers { display: grid; gap: 12px; margin: 18px 0; }
+.meditative-workspace fieldset { padding: 0; border: 0; margin: 0; min-width: 0; }
+.meditative-notes { margin-top: 22px; }
+.meditative-actions { flex-wrap: wrap; margin-top: 14px; }
+.meditative-saved { border-top: 1px solid var(--border); padding-top: 20px; margin-top: 22px; }
+.meditative-saved li { margin: 10px 0; overflow-wrap: anywhere; }
+.meditative-workspace progress { accent-color: #b8e5bd; max-width: 100%; margin-right: 12px; }
+@media (max-width: 1100px) { .meditative-layout { grid-template-columns: 1fr; } .meditative-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 540px; } }
+@media (max-width: 640px) { .meditative-catalog, .meditative-builder { padding: 14px; } .meditative-presets, .meditative-fields { grid-template-columns: 1fr; } .meditative-emblem { display: none; } .meditative-workspace .actions { flex-wrap: wrap; } }

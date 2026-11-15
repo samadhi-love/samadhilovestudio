@@ -1,0 +1,22 @@
+input.volume-slider[type="range"]{appearance:none;-webkit-appearance:none;width:160px;max-width:100%;min-width:110px;height:36px;margin:0;padding:0;border:0;background:transparent;cursor:grab;flex:0 1 160px;border-radius:18px}
+input.volume-slider[type="range"]:active{cursor:grabbing}
+input.volume-slider[type="range"]::-webkit-slider-runnable-track{height:6px;background:#a2988b88;border:1px solid #ae9a7355;border-radius:6px}
+input.volume-slider[type="range"]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin-top:-9px;border:2px solid #fff5dc;border-radius:50%;background:var(--signal,#d7b777);box-shadow:0 2px 6px #0005}
+input.volume-slider[type="range"]::-moz-range-track{height:5px;background:#a2988b88;border:1px solid #ae9a7355;border-radius:6px}
+input.volume-slider[type="range"]::-moz-range-thumb{width:18px;height:18px;border:2px solid #fff5dc;border-radius:50%;background:var(--signal,#d7b777);box-shadow:0 2px 6px #0005}
+input.volume-slider[type="range"]:focus-visible{outline:2px solid var(--signal,#d7b777);outline-offset:3px}
+input.volume-slider[type="range"]:disabled{opacity:.5;cursor:default}
+.player-volume{max-width:17rem}
+.quick-auto-time{display:grid;gap:5px;margin:12px 0;padding:12px 14px;border:1px solid #b69a5d44;border-radius:10px;background:#b69a5d0d}
+.quick-auto-time strong{font-size:13px}.quick-auto-time span{font-size:12px;line-height:1.6;opacity:.8}
+@media(pointer:coarse){input.volume-slider[type="range"]{height:44px}}
+.audio-format-download { margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.audio-format-download summary { cursor: pointer; padding: 4px 0; font-weight: 600; }
+.audio-format-download .actions { flex-wrap: wrap; align-items: end; }
+.audio-format-download label { display: grid; gap: 6px; max-width: 100%; font-size: 12px; }
+.audio-format-download select { max-width: 100%; }
+.audio-format-download progress { max-width: 100%; accent-color: #b8e5bd; }
+.meditative-export-format { margin-top: 16px; }
+.audio-readiness-report { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: #b8e5bd0a; }
+.audio-readiness-report h4 { margin: 0 0 10px; }
+.audio-readiness-report li { margin: 8px 0; line-height: 1.6; }

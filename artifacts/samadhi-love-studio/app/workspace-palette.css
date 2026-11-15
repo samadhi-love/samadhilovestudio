@@ -1,0 +1,96 @@
+/* Main workspace palette only: the silk sidebar and media artwork keep their identity. */
+.shell > main {
+  --ink: #f5f7ef;
+  --muted: #d1dbd4;
+  --soft: #e1e8df;
+  --panel: #414d53;
+  --panel-hover: #4c5b60;
+  --border: #788c87;
+  --well: #2c383e;
+  --peach: #b8e5bd;
+  --room-border: #b8e5bd70;
+  --room-tint: #b8e5bd16;
+  color: var(--ink);
+  background-color: #39454c;
+  background-image:
+    radial-gradient(ellipse at 8% 5%, #99d7ac26, transparent 42%),
+    radial-gradient(ellipse at 98% 32%, #efae7420, transparent 39%),
+    radial-gradient(ellipse at 60% 95%, #f5e5a51c, transparent 46%),
+    repeating-linear-gradient(125deg, transparent 0 100px, #e9f2ef08 102px, transparent 105px 211px),
+    linear-gradient(135deg, #465159, #344047 58%, #424b50);
+}
+.shell > main .topbar {
+  background: linear-gradient(110deg, #574568, #3e3455 65%, #49405e);
+  border-color: #d5bd8f;
+}
+.shell > main .topbar .breadcrumb { color: #e5d9f2; }
+.shell > main .topbar .breadcrumb strong { color: #fff0c9; }
+.shell > main .panel,
+.shell > main .form-panel,
+.shell > main .song-row:nth-child(n) {
+  border-color: #879b9180;
+  background: linear-gradient(125deg, #b8e5bd0d, transparent 48%, #f5d49a0b), #414d53;
+  box-shadow: inset 0 1px 0 #e7edcf24, 0 7px 22px #101e2420;
+}
+.shell > main .focus {
+  border-color: #edc48c99;
+  background: linear-gradient(135deg, #71644a55, #405550 58%, #414d53);
+}
+.shell > main .secondary {
+  color: #f5f7ef;
+  background: #45565c;
+  border-color: #96ada2;
+}
+.shell > main .secondary:hover { background: #53666a; }
+.shell > main .chip {
+  color: #eef4e4;
+  background: #3c504f;
+  border-color: #92ac96;
+}
+.shell > main .primary {
+  background: #b8e5bd;
+  border-color: #ccecc4;
+  color: #20362e;
+  box-shadow: 0 2px 12px #b8e5bd16;
+}
+.shell > main .primary:hover { background: #d0edc8; }
+.shell > main .avatar {
+  background: #64705b;
+  color: #fff1bf;
+}
+.shell > main .page-title,
+.shell > main .create-banner,
+.shell > main .editor-top {
+  border-color: #c6d5a67a;
+  background-image: linear-gradient(90deg, #35474ef5, #35474edb 36%, #35474e24), var(--scene);
+  box-shadow: inset 0 1px 0 #f5e5a533;
+}
+.shell > main .tabs { border-color: #a9bca36b; }
+.shell > main .tabs .active {
+  color: #fff0b4;
+  border-color: #efbd79;
+}
+/* Keep Pro's optional light theme and all rendered canvas/video colors intact. */
+.shell > main .lyric-video-pro[data-skin="cosmic"] {
+  --ink: #f5f7ef;
+  --muted: #d1dbd4;
+  --soft: #e1e8df;
+  --well: #2c383e;
+  color: #f5f7ef;
+  background-color: #35434b;
+  background-image: radial-gradient(ellipse at 10% 0, #b8e5bd20, transparent 50%), linear-gradient(135deg, #46515ae8, #35434bf5);
+  border-color: #94ac9c;
+}
+.shell > main .lyric-video-pro[data-skin="cosmic"] .lvp-panel,
+.shell > main .lyric-video-pro[data-skin="cosmic"] .lvp-create,
+.shell > main .lyric-video-pro[data-skin="cosmic"] .lvp-visual-library {
+  background: linear-gradient(140deg, #48565c, #39484e);
+  border-color: #94ac9c80;
+}
+.shell > main .lyric-video-pro[data-skin="cosmic"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.shell > main .lyric-video-pro[data-skin="cosmic"] textarea,
+.shell > main .lyric-video-pro[data-skin="cosmic"] select {
+  background: #2c383e;
+  color: #f5f7ef;
+  border-color: #96ada2;
+}

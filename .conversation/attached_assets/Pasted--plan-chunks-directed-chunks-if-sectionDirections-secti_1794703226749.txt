@@ -1,0 +1,82 @@
+      plan = { chunks: directed.chunks };
+    }
+    if (sectionDirections && sectionDirections.length * 3000 > durationMs)
+      return problem("Choose at least three seconds per section.", 422);
+    if (access.role === "creator" && !managedProviderKey(request) && !await reserveCreatorGeneration(id))
+      return problem("This creator account reached its daily generation attempt limit. The limit resets at midnight UTC.", 429);
+    if (suppliedLyrics.trim()) {
+      draft.notes.lyrics = suppliedLyrics;
+    } else if (!instrumental) {
+      const arrangementGuide = arrangement
+        ? "\nFollow this section order and keep the indicated performers and delivery. Directions in braces are production cues. Keep spoken and whispered passages distinct from sung lyrics.\n" + (readLyricStyles?arrangement:applyChunkStyleCues([{text:arrangement}],false)[0].text)
+        : "";
+      const sectionGuide = sectionDirections ? "\nUse every one of these exact headings in order. Write each section in its assigned language or dialect.\n" +
+        sectionDirections.map(section => "[" + section.name + "] " + section.genre + " with " + section.instruments + ". " + section.voice).join("\n") : "";
+      const response = await call("music/plan", {
+        prompt: "Write an original song with sung lyrics. " + direction.slice(0, arrangement ? 1800 : undefined) + arrangementGuide + sectionGuide,
+        music_length_ms: durationMs, model_id: model,
+      });
+      if (!response.ok) return problem(await elevenLabsFailureMessage(response, "music"), 502);
+      const generated = await response.json() as { chunks?: { text?: string; duration_ms?: number }[] };
+      if (!Array.isArray(generated.chunks) || !generated.chunks.length)
+        return problem("The music service returned an empty arrangement.", 502);
+      if (generated.chunks.length > 30 || generated.chunks.length * 3000 > durationMs)
+        return problem("The generated arrangement needs more time. Choose a longer track length or try again.", 422);
+      const directed = carryArrangementCues(generated.chunks, arrangement,readLyricStyles,sectionDirections?.map(s=>s.name));
+      draft.notes.lyrics = directed.map(chunk => chunk.text ?? "").join("\n\n");
+      if (!performanceWeight(draft.notes.lyrics)) return problem("The provider returned section directions without sung words. Try again or supply your own lyrics. No audio generation was started.",502);
+      if (hasExplicitWords(draft.notes.lyrics, ...generated.chunks.flatMap(chunk => {
+        const styles = (chunk as { positive_styles?: unknown }).positive_styles;
+        return Array.isArray(styles) ? styles : [];
+      }))) return problem("The generated lyrics triggered the clean-content rules. Try a different prompt.", 422);
+      const styled = applyDirections(directed);
+      if (styled.missing.length)
+        return problem("The music provider omitted these sections: " + styled.missing.join(", ") + ". Try again or supply your own sectioned lyrics.", 422);
+      const chunks = [...styled.chunks];
+      while (chunks.length * 120000 < durationMs) chunks.push({ text: "[Instrumental outro]", duration_ms: 120000, positive_styles: [] });
+      const lengths = chunkDurations(chunks.map(chunk => chunk.duration_ms && chunk.duration_ms > 0 ? chunk.duration_ms : 1), durationMs);
+      plan = { ...generated, chunks: chunks.map((chunk, index) => ({ ...chunk, duration_ms: lengths[index] })) };
+    }
+
+    const finalChunks = (plan as { chunks?: { text?: string; positive_styles?: unknown }[] } | null)?.chunks;
+    if (Array.isArray(finalChunks)) plan = { ...plan, chunks: applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name)) };
+    if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
+    draft.generation = { ...(request.headers.get("X-Production-Id")&&/^[a-f0-9-]{36}$/i.test(request.headers.get("X-Production-Id")!)?{requestId:request.headers.get("X-Production-Id")!}:{}),provider: "ElevenLabs", model, audioId: draft.id, status:"generating", approvedLyrics: draft.notes.lyrics, compositionPlan: plan,
+      createdAt: new Date().toISOString(), captionReady, timingSource: "not-provided" };
+    // Preserve every approved writing/arrangement draft before the audio request.
+    {
+      const writing = await saveCreation(id,starter,studio=>({...studio,songs:[{...draft,audioFormat:undefined},...studio.songs]}));
+      if (!writing) return problem("The approved writing draft could not save. Generation was not started.",409);
+      pendingCreationId = draft.id;
+    }
+    const response = await call("music?output_format=mp3_44100_128", instrumental
+      ? { model_id: model, prompt: [songOpenings[openingMode].direction, prompt].join("\n"), music_length_ms: durationMs, force_instrumental: true }
+      : { model_id: model, composition_plan: plan });
+    if (!response.ok) return preservedProblem(await elevenLabsFailureMessage(response, "music"), 502);
+    if (!response.headers.get("content-type")?.includes("audio"))
+      return preservedProblem("ElevenLabs did not return an audio file.", 502);
+    const audio = await response.arrayBuffer();
+    if (!audio.byteLength || audio.byteLength > 12 * 1024 * 1024)
+      return preservedProblem("The music service returned an invalid audio file.", 502);
+
+    draft.generation = { ...draft.generation!, status:"complete" };
+    draft.creationDraft=false;
+    draft.updatedAt=new Date().toISOString();
+
+    const object = audioKey(id, draft.id);
+    await bucket.put(object, audio, { httpMetadata: { contentType: "audio/mpeg" } });
+    const saved = await saveCreation(id, starter, studio => {
+      const source = draft.projectId && studio.songs.find(s => s.id === draft.projectId && !s.deletedAt);
+      const completed = studio.songs.find(s => s.id === draft.id);
+      const audioSong = completed ? { ...completed, audioFormat: draft.audioFormat, generation: draft.generation,creationDraft:false,updatedAt:draft.updatedAt } : draft;
+      return { ...studio, songs: source ? attachRenderedMix(studio.songs, source, audioSong) : completed ? studio.songs.map(s => s.id === draft.id ? audioSong : s) : [draft, ...studio.songs] };
+    });
+    if (saved) return Response.json({ ...saved, songId: draft.id }, options);
+    await bucket.delete(object).catch(() => {});
+    return problem("The recording was generated but could not be saved. Check studio storage before trying again.", 409);
+  } catch {
+    return preservedProblem("Creation could not finish. Check your drafts and ElevenLabs account before retrying.", 502);
+  }
+}
+
+export const POST = withProductionUsage(recoverableRoute(createMusic, "Creation could not finish. Check saved drafts before retrying; existing recordings are preserved."));
