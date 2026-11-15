@@ -1,4 +1,6 @@
 "use client";
+import { MusicLanguageControl } from "./music-language-control";
+import { defaultLanguageChoice, resolveLanguage, type LanguageChoice } from "./music-language";
 import {SongOpeningControl} from "./song-opening-control";
 import type {SongOpening} from "./song-opening";
 import {productionFetch} from "./credits/client";
@@ -27,6 +29,7 @@ export function CaptionReadyCreate({
   drafts: Song[];
 }) {
   const [openingMode,setOpeningMode]=useState<SongOpening>("auto");
+  const [languageChoice,setLanguageChoice]=useState<LanguageChoice>(defaultLanguageChoice);
   const [idea, setIdea] = useState(""),
     [title, setTitle] = useState(""),
     [lyrics, setLyrics] = useState(""),
@@ -34,8 +37,6 @@ export function CaptionReadyCreate({
       "Warm, clear solo lead; restrained reverb; leave a breath between lines.",
     ),
     [arrangement, setArrangement] = useState("solo"),
-    [language, setLanguage] = useState("English"),
-    [dialect, setDialect] = useState(""),
     [autoLength,setAutoLength]=useState(true),
     [manualTime,setManualTime]=useState("3:00"),
     [templateSeconds,setTemplateSeconds]=useState<number>(),
@@ -47,6 +48,7 @@ export function CaptionReadyCreate({
   async function draft() {
     if(autoLength&&timing.overLimit){setError("Request a song up to ten minutes, or assemble a longer mix in Party Files.");return;}
     if(seconds===null){setError("Choose a song length from 0:03 to 10:00.");return;}
+    try { resolveLanguage(languageChoice, ""); } catch (e) { setError((e as Error).message); return; }
     setBusy(true);
     setError("");
     try {
@@ -55,8 +57,9 @@ export function CaptionReadyCreate({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "lyric-plan",
+          ...languageChoice,
           prompt:
-            `${idea}\n${arrangement}. Language: ${language}. ${dialect}. ${direction}`.slice(
+            `${idea}\n${arrangement}. ${direction}`.slice(
               0,
               1600,
             ),
@@ -78,19 +81,21 @@ export function CaptionReadyCreate({
   async function create() {
     if(autoLength&&timing.overLimit){setError("Request a song up to ten minutes, or assemble a longer mix in Party Files.");return;}
     if(seconds===null){setError("Choose a song length from 0:03 to 10:00.");return;}
+    try { resolveLanguage(languageChoice, lyrics); } catch (e) { setError((e as Error).message); return; }
     setBusy(true);
     setError("");
     try {
       const song = await generate({
         action: "song",
+        ...languageChoice,
         title: title.trim() || "Caption-ready song",
         prompt:
-          `${idea}\n${arrangement}; language/dialect: ${language}. ${dialect}. Clear vocal delivery, breathing space, restrained reverb and balanced instruments.`.slice(
+          `${idea}\n${arrangement}. Clear vocal delivery, breathing space, restrained reverb and balanced instruments.`.slice(
             0,
             1600,
           ),
         lyrics,
-        voice: `${arrangement}. ${language}. ${dialect}. ${direction}`.slice(
+        voice: `${arrangement}. ${direction}`.slice(
           0,
           1000,
         ),
@@ -139,6 +144,7 @@ export function CaptionReadyCreate({
               setTitle(song.name);
               setIdea((song.notes.prompt || song.summary).slice(0, 1000));
               setLyrics(song.generation?.approvedLyrics || song.notes.lyrics);
+              setLanguageChoice(song.generation?.languageProfile ?? defaultLanguageChoice);
               setTemplateSeconds(song.creationSeconds??song.instrumental?.seconds);
               setDirection(
                 song.notes.vocals ||
@@ -178,34 +184,7 @@ export function CaptionReadyCreate({
               <option value="multilingual">Multilingual sections</option>
             </select>
           </label>
-          <label>
-            Language
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-            >
-              {[
-                "English",
-                "Lebanese Arabic",
-                "Egyptian Arabic",
-                "Khaleeji Arabic",
-                "Turkish",
-                "Russian",
-                "Mixed languages",
-              ].map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Dialect / section language notes
-            <input
-              value={dialect}
-              maxLength={300}
-              onChange={(e) => setDialect(e.target.value)}
-              placeholder="e.g. Verse 1: Lebanese Arabic; chorus: English"
-            />
-          </label>
+          <MusicLanguageControl value={languageChoice} change={setLanguageChoice} lyrics={lyrics} disabled={busy}/>
         </div>
         <label>
           Describe the music
@@ -239,10 +218,11 @@ export function CaptionReadyCreate({
         <label>
           Approved lyrics &amp; section headings
           <textarea
+            dir="auto"
+            style={{unicodeBidi:"plaintext"}}
             value={lyrics}
             rows={10}
             maxLength={5000}
-            dir="auto"
             onChange={(e) => {
               setLyrics(e.target.value);
               setApproved(false);
@@ -250,6 +230,10 @@ export function CaptionReadyCreate({
             placeholder="Enter your lyrics or use Draft lyrics above. Keep headings such as [Verse 1] and [Chorus]."
           />
         </label>
+        <button type="button" className="secondary small" disabled={busy} onClick={() => { setAutoLength(false); setManualTime("0:15"); }}>
+          Set 15-second paid audition
+        </button>
+        <p className="lvp-note">This only sets the length. Drafting and generating can cost credits; review the quote and start generation yourself. No free audition or automatic retry.</p>
         <label className="lvp-check">
           <input
             type="checkbox"

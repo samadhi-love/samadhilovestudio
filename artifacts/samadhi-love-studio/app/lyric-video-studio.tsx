@@ -1,4 +1,5 @@
 "use client";
+import { languageForAudio } from "./music-language";
 import {registerVideoExport} from "./video-export-history";
 import {VideoFormatPicker} from "./video-format-picker";
 import {productionFetch} from "./credits/client";
@@ -122,7 +123,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
   const sameText = text === cues.map(cue => cue.text).join("\n") ||
     lyricLines(text).join("\n") === cues.map(cue => cue.text).join("\n");
   const clean = !hasExplicitWords(text);
-  const project: LyricProject = { cues, theme, motion, format, font, color, effect, captionTemplate, intensity, bpm, captionLayout, ...(song?.lyricVideo?.pro ? { pro: song.lyricVideo.pro } : {}) };
+  const project: LyricProject = { cues, theme, motion, format, font, color, effect, captionTemplate, intensity, bpm, captionLayout, languageProfile: song ? languageForAudio(song) ?? song.lyricVideo?.languageProfile : undefined, ...(song?.lyricVideo?.pro ? { pro: song.lyricVideo.pro } : {}) };
   const recovery = useDraftRecovery(`classic-video:${song?.id ?? "none"}:${song?.audioId ?? "original"}`, { project, text, clipLength, clipStart, postCaption }, value => {
     if (!isLyricProject(value.project)) throw new Error("The recovered timing needs review.");
     const p = value.project; setCues(p.cues); setText(value.text); setTheme(p.theme); setMotion(p.motion); setFormat(p.format); setFont(p.font ?? "classic"); setColor(p.color ?? "pearl"); setEffect(p.effect ?? "fade"); setCaptionTemplate(p.captionTemplate); setIntensity(p.intensity ?? "full"); setBpm(p.bpm ?? 100); setCaptionLayout(p.captionLayout ?? "auto"); setClipLength(value.clipLength); setClipStart(value.clipStart); setPostCaption(value.postCaption);

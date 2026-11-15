@@ -1,4 +1,6 @@
 "use client";
+import { MusicLanguageControl } from "./music-language-control";
+import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
 import {feelingIdeas,playEnergies,playMoods,playLooks,defaultPlayChoices,validPlayChoices,playDirection,type PlayChoices,type PlayVisualRequest} from "./creative-play";
 import {AudioFormatDownload} from "./audio-format-download";
 import {StyleDNAControls} from "./style-dna-controls";
@@ -38,7 +40,7 @@ const example = "An uplifting Arabian Euro House song about finding our way home
 
 export function QuickCreate({ connected, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
   connected: boolean; saving: boolean; drafts: Song[]; settings: () => void; guided: () => void; openDrafts: () => void;
-  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd }) => Promise<string | undefined>;
+  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"] }) => Promise<string | undefined>;
   saveSketch: (file: File, title: string, prompt: string, arrangement: string, settings: Instrumental,saveId?:string) => Promise<string | undefined>;
   working?:(value:boolean)=>void;
   makeVideo?:(song:Song,short?:boolean,visual?:PlayVisualRequest)=>void|Promise<void>;
@@ -59,6 +61,7 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
   const [songTitle,setSongTitle]=useState(""),[voiceEdit,setVoiceEdit]=useState<string|null>(null),[promptNotice,setPromptNotice]=useState(""),[promptBusy,setPromptBusy]=useState(false);
   const [vocalOptions,setVocalOptions]=useState<CreatorVocalOptions>(defaultCreatorVocals);
   const [ownLyrics,setOwnLyrics]=useState(false),[lyrics,setLyrics]=useState("");
+  const [languageChoice,setLanguageChoice]=useState<LanguageChoice>(defaultLanguageChoice);
   const [openingMode,setOpeningMode]=useState<SongOpening>("auto");
   const [choice, setChoice] = useState<"vocals" | "instrumental" | "sketch">(
     connected ? "vocals" : "sketch",
@@ -74,7 +77,8 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
-  const recovery=useDraftRecovery("quick-create",{playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+  const recovery=useDraftRecovery("quick-create",{languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+    if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}if(typeof value.resultId==="string")setResultId(value.resultId);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
     setSongTitle(value.songTitle??"");setVoiceEdit(value.voiceEdit??null);setCustomMode(value.customMode===true);setVocalOptions({...defaultCreatorVocals,...value.vocalOptions});setOwnLyrics(value.ownLyrics===true);setLyrics(typeof value.lyrics==="string"?value.lyrics:"");
@@ -120,6 +124,10 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
     if (ownLyrics && !instrumental && parseLyricNotation(lyrics).errors.length) { setError(parseLyricNotation(lyrics).errors[0]); return; }
     if (ownLyrics && !instrumental && !performanceWeight(lyrics)) {setError("Add words to sing, or choose Write lyrics for me. Section labels alone are not finished lyrics.");return;}
     if (hasExplicitWords(idea, genre, instruments, code,ownLyrics?lyrics:"")) { setError(cleanWordsMessage); return; }
+    if (!instrumental && !localSketch) {
+      try { resolveLanguage(languageChoice, ownLyrics ? lyrics : ""); }
+      catch (error) { setError((error as Error).message); return; }
+    }
     setError(""); setPending(true);
     try {
       const prompt = [genre.trim() ? `Genre: ${genre.trim()}.` : "", (idea.trim()||(playful&&ownLyrics?"Create an original emotionally uplifting song around my exact supplied lyrics, with clear singing and a memorable chorus.":"")), ...(playful?[playDirection(playChoices)]:[]), `Tempo: ${targetBpm} BPM. Instruments: ${instruments.trim()}.`].filter(Boolean).join("\n");
@@ -134,7 +142,7 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
         const blob = await renderInstrumental(take);
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
-        const made=await generateSong({ title, prompt, arrangement: code, duration, openingMode,lyrics:ownLyrics&&!instrumental?lyrics:"",voice:instrumental?"":vocalDirection,instruments,genres:genre,autoTitle:!songTitle.trim(),instrumental,...(adMode?{musicalAd:adBrief}:{}) });
+        const made=await generateSong({ title, prompt, arrangement: code, duration, openingMode,lyrics:ownLyrics&&!instrumental?lyrics:"",voice:instrumental?"":vocalDirection,instruments,genres:genre,autoTitle:!songTitle.trim(),instrumental,...languageChoice,...(adMode?{musicalAd:adBrief}:{}) });
         if(made)setResultId(made);else setError("This take was not confirmed. Your previous songs are safe. Check My Songs before retrying.");
       }
     } catch (error) {
@@ -180,7 +188,8 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
         <WorldMusicOptions expanded={customMode} instruments={instrumentsEdit?.split(",").map(s=>s.trim()).filter(Boolean)??[]} changeInstruments={next=>setInstrumentsEdit(next.length?next.join(", "):null)} options={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);}} disabled={busy} recipe={r=>{setAutoGenre(false);setGenreEdit(r.genres.join(", "));setInstrumentsEdit(r.sounds.join(", "));if(!idea.trim())setIdea(r.idea);}}/>
         </details>
         {!instrumental&&<p className="muted" aria-label="Suggested vocal direction" hidden={!customMode}><strong>Suggested singing delivery:</strong> {voiceEdit||matchedVocal}</p>}
-        {!instrumental&&<details className="optional-song-controls play-lyrics" open={customMode||ownLyrics||undefined}><summary>Lyrics · write for me or use my own</summary><div className="actions"><button type="button" className={`chip ${!ownLyrics?"active":""}`} aria-pressed={!ownLyrics} onClick={()=>setOwnLyrics(false)}>Write lyrics for me</button><button type="button" className={`chip ${ownLyrics?"active":""}`} aria-pressed={ownLyrics} onClick={()=>setOwnLyrics(true)}>Use my lyrics</button></div>{ownLyrics&&<label className="field">Words to sing<textarea value={lyrics} rows={7} maxLength={5000} placeholder="Your lyrics, in your own words and language…" onChange={e=>setLyrics(e.target.value)}/></label>}<p className="muted">Caption-ready vocal production is the default: clear lead phrasing, breathing space and restrained reverb. Your supplied or generated lyrics stay linked to the recording for automatic caption alignment. Review the performance for changed words.</p></details>}
+        {!instrumental&&<details className="optional-song-controls play-lyrics" open={customMode||ownLyrics||undefined}><summary>Lyrics · write for me or use my own</summary><div className="actions"><button type="button" className={`chip ${!ownLyrics?"active":""}`} aria-pressed={!ownLyrics} onClick={()=>setOwnLyrics(false)}>Write lyrics for me</button><button type="button" className={`chip ${ownLyrics?"active":""}`} aria-pressed={ownLyrics} onClick={()=>setOwnLyrics(true)}>Use my lyrics</button></div>{ownLyrics&&<label className="field">Words to sing<textarea dir="auto" style={{unicodeBidi:"plaintext"}} value={lyrics} rows={7} maxLength={5000} placeholder="Your lyrics, in your own words and language…" onChange={e=>setLyrics(e.target.value)}/></label>}<p className="muted">Caption-ready vocal production is the default: clear lead phrasing, breathing space and restrained reverb. Your supplied or generated lyrics stay linked to the recording for automatic caption alignment. Review the performance for changed words.</p></details>}
+        {!instrumental&&<MusicLanguageControl value={languageChoice} change={setLanguageChoice} lyrics={ownLyrics?lyrics:""} disabled={busy}/>}
         <details className="optional-song-controls" open={customMode||undefined}><summary>More song options</summary>
         {!instrumental && <SongOpeningControl value={openingMode} change={setOpeningMode} disabled={busy}/>}
         <GenreAssistant fusion={fusion} auto={autoGenre} setAuto={v=>{setAutoGenre(v);if(v)setGenreEdit(null);}} history={useHistory} setHistory={setUseHistory} name={fusionName} setName={setFusionName} variation={()=>setFusionVariation(v=>v+1)} apply={next=>{setAutoGenre(false);setGenreEdit(next.join(", "));}} disabled={busy} showCues={expanded}/>

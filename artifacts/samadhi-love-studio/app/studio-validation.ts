@@ -1,4 +1,5 @@
 import {isBrandLogo} from "./brand-logo";
+import {isLanguageProfile} from "./music-language";
 import {isSectionEditPlan} from "./song-section-data";
 import {isMusicalAd} from "./musical-ad";
 import { fields, isAudioFormat, type Studio } from "./studio-data";
@@ -40,6 +41,7 @@ export function isStudio(value: unknown): value is Studio {
       optional(s.partySource,(value:unknown)=>["upload","recording","mix"].includes(value as string)) &&
       optional(s.sectionEdit,isSectionEditPlan) &&
       optional(s.logoDesign,isBrandLogo) && optional(s.musicalAd,isMusicalAd) &&
+      (s.generation?.languageProfile === undefined || isLanguageProfile(s.generation.languageProfile)) &&
       [s.explicit, s.creationDraft, s.favorite].every(v => optional(v, boolean)) &&
       optional(s.deletedAt, text) && optional(s.deleteAfter,d=>typeof d==="string"&&d.length<=40&&Number.isFinite(Date.parse(d))) && optional(s.audioFormat, audio) &&
       [s.createdAt,s.updatedAt].every(v=>optional(v,(d:unknown)=>typeof d==="string"&&d.length<=40&&Number.isFinite(Date.parse(d)))) &&

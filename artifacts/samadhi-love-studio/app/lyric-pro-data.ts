@@ -2,6 +2,7 @@ import {validReactiveStem,type ReactiveStem} from "./stem-reactive";
 import {isAdPhotoStory} from "./ad-photo-story";
 import { parseLyricNotation, productionHeader } from "./lyric-notation";
 import {isAdFootage} from "./advertising-footage";
+import { isLanguageProfile, languageForAudio, type LanguageProfile } from "./music-language";
 import type {
   LyricCue,
   LyricProject,
@@ -47,6 +48,7 @@ export type ProSettings = {
   beatGrid?: { source: string; bpm: number; offset: number; beats: number[]; method: "onset-grid/v1"; reviewed: boolean };
   duration: number;
   approvedLyrics: string;
+  languageProfile?: LanguageProfile;
   language: ProLanguage;
   detectedLanguage?: string;
   languageProbability?: number;
@@ -133,6 +135,7 @@ export function newProSettings(song: Song, duration: number): ProSettings {
         ? song.generation.approvedLyrics
         : song.notes.lyrics,
     language: "auto",
+    ...(languageForAudio(song) ? { languageProfile: languageForAudio(song) } : {}),
     range: { start: 0, end: duration },
     look: { ...defaultProLook,...(song.musicalAd?{position:.6,safe:true}:{}) },
     captionMode: "karaoke",
@@ -186,6 +189,7 @@ function validateProSettings(value: unknown): value is ProSettings {
     finite(p.duration, 0, 600.1) &&
     (p.beatGrid === undefined || (!!p.beatGrid && smallString(p.beatGrid.source,400) && finite(p.beatGrid.bpm,40,240) && finite(p.beatGrid.offset,0,p.duration) && p.beatGrid.method === "onset-grid/v1" && typeof p.beatGrid.reviewed === "boolean" && Array.isArray(p.beatGrid.beats) && p.beatGrid.beats.length <= 2400 && p.beatGrid.beats.every((t,i,beats)=>finite(t,0,p.duration) && (i===0||t>beats[i-1])))) &&
     smallString(p.approvedLyrics, 5000) &&
+    (p.languageProfile === undefined || isLanguageProfile(p.languageProfile)) &&
     Object.hasOwn(proLanguages, p.language) &&
     (p.detectedLanguage === undefined || smallString(p.detectedLanguage, 30)) &&
     (p.languageProbability === undefined ||

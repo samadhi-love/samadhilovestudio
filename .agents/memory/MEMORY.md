@@ -1,2 +1,3 @@
 - [Preserve the existing studio](product-direction.md) — Continue SAMADHI LOVE Studio; beginner-friendly songs and easy/advanced lyric videos, not a replacement app.
 - [Browser test DOM injection](browser-test-injection.md) — Investigate injected select wrappers before treating browser-only hydration warnings as app defects.
+- [Language evidence](language-evidence.md) — Music input acceptance and text fixtures do not verify singing; Lebanese authenticity needs native-speaker listening review.

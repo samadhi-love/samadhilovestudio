@@ -31,7 +31,8 @@ async function setup(){
   const button=(name:string)=>[...document.querySelectorAll("button")].find(b=>b.textContent?.replace("✓","").trim()===name)!;
   async function input(element:HTMLInputElement|HTMLTextAreaElement,value:string){await act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element),"value")!.set!.call(element,value);element.dispatchEvent(new dom.window.Event("input",{bubbles:true}));});}
   async function family(name:string){const el=document.querySelectorAll('select')[0];await act(async()=>{el.value=name;el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
-  return {dom,root,button,input,family,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
+  async function language(){const el=[...document.querySelectorAll("select")].find(s=>s.parentElement?.textContent?.startsWith("Singing language"))!;await act(async()=>{el.value="en";el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
+  return {dom,root,button,input,family,language,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
 }
 
 test("genre switches, categories, search and custom chips preserve a bounded style blend",async()=>{
@@ -66,6 +67,7 @@ test("Quick Create sends clicked genre blends into the actual generation request
   try{
     await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{sent=input;return undefined;}} saveSketch={async()=>undefined}/>));
     await h.input(document.querySelector("textarea")!,"Finding our way home through love");
+    await h.language();
     await act(async()=>h.button("Pop").click());await act(async()=>(document.querySelector('[role="switch"]') as HTMLButtonElement).click());await h.family("African Styles");await act(async()=>h.button("Amapiano").click());
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(sent!.prompt,/^Genre: Pop, Amapiano\./);assert(sent!.title.length<=100);
@@ -82,6 +84,7 @@ test("Guided Studio keeps the selected genres ahead of provider prompt truncatio
     await act(async()=>h.root.render(<CreateStudio seed={{idea:"A joyful song about love "+"with a memorable hook ".repeat(45)}} voiceDesignAllowed={false} elevenLabs={elevenLabs} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{sent=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));
     await act(async()=>[...document.querySelectorAll("button")].find(b=>b.querySelector("strong")?.textContent==="Beginner")!.click());
     await act(async()=>h.button("Country").click());await act(async()=>h.button("Jazz").click());
+    await h.language();
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(String(sent!.prompt),/^Musical styles: Country, Jazz\./);assert(String(sent!.prompt).length<=1600);
   }finally{await h.close();}
@@ -122,6 +125,7 @@ test("Studio chooses sends a named fusion without forwarding private prompt hist
   try{
     await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[saved]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{sent=input;return undefined;}} saveSketch={async()=>undefined}/>));
     await h.input(document.querySelector("textarea")!,"Make something uplifting");
+    await h.language();
     const auto=[...document.querySelectorAll('input[type="checkbox"]')].find(i=>i.parentElement?.textContent?.includes("Studio chooses")) as HTMLInputElement;
     await act(async()=>auto.click());
     assert(document.querySelector('.genre-selected')!.textContent!.includes("Fusion"));
@@ -141,6 +145,7 @@ test("Guided lyric code can be disabled without changing the approved source",as
     assert(document.querySelector(".genre-lyric-cues")!.textContent!.includes("Afro House"));
     const toggle=[...document.querySelectorAll('input[type="checkbox"]')].find(i=>i.parentElement?.textContent?.includes("Read genre directions")) as HTMLInputElement;
     await act(async()=>toggle.click());
+    await h.language();
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.equal(sent!.readLyricStyles,false);assert.equal(sent!.lyrics,lyrics);
   }finally{await h.close();}
@@ -159,6 +164,7 @@ test("expanded style window holds eight visible selections and releases a slot w
 test("pasted music direction detects eight styles and reaches Quick Create intact with or without chips",async()=>{
  const h=await setup();let sent:any;const text='Blend Jazz, Lebanese Dabke, Deep House, Trance, R&B, Afrobeats, Ambient and Gospel. Warm oud, natural singing and a spacious middle section. Without rap.';
  try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{sent=input;return undefined;}} saveSketch={async()=>undefined}/>));await h.input(document.querySelector('.genre-prompt textarea')!,text);assert.equal((document.querySelector('textarea') as HTMLTextAreaElement).value,text);
+ await h.language();
  await act(async()=>h.button('Use detected styles').click());assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,8);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(genreTags(sent.genres).length,8);assert.ok(sent.prompt.includes(text));
  await act(async()=>h.button('Use prompt without genre chips').click());assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,0);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.ok(sent.prompt.startsWith(text));assert.equal(sent.genres,'');assert.ok(!sent.prompt.startsWith('Genre:'));
  }finally{await h.close();}
@@ -166,7 +172,7 @@ test("pasted music direction detects eight styles and reaches Quick Create intac
 
 test("Guided Create forwards all eight selected styles in both prompt and saved-genre metadata",async()=>{
  const h=await setup();let sent:any;const names=['Pop','Jazz','Trance','R&B','Hip-hop','Country','Afrobeats','Ambient'];
- try{await act(async()=>h.root.render(<CreateStudio seed={{idea:'A joyful original song about finding home'}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{sent=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));await act(async()=>[...document.querySelectorAll('button')].find(b=>b.querySelector('strong')?.textContent==='Beginner')!.click());for(const name of names)await act(async()=>h.button(name).click());await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.deepEqual(genreTags(sent.genres),names);for(const name of names)assert.ok(sent.prompt.includes(name));
+ try{await act(async()=>h.root.render(<CreateStudio seed={{idea:'A joyful original song about finding home'}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{sent=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));await act(async()=>[...document.querySelectorAll('button')].find(b=>b.querySelector('strong')?.textContent==='Beginner')!.click());await h.language();for(const name of names)await act(async()=>h.button(name).click());await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.deepEqual(genreTags(sent.genres),names);for(const name of names)assert.ok(sent.prompt.includes(name));
  }finally{await h.close();}
 });
 
@@ -178,6 +184,6 @@ test("oversized combined directions stay editable and are rejected before genera
 
 test("saved song genres survive reopening the creation editor",async()=>{
  const h=await setup();let sent:any;const styles=['Country','Jazz','World Fusion'];
- try{await act(async()=>h.root.render(<CreateStudio seed={{idea:'An original journey home',genres:styles}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{sent=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));await act(async()=>[...document.querySelectorAll('button')].find(b=>b.querySelector('strong')?.textContent==='Beginner')!.click());assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,3);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.deepEqual(genreTags(sent.genres),styles);
+ try{await act(async()=>h.root.render(<CreateStudio seed={{idea:'An original journey home',genres:styles}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{sent=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));await act(async()=>[...document.querySelectorAll('button')].find(b=>b.querySelector('strong')?.textContent==='Beginner')!.click());await h.language();assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,3);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.deepEqual(genreTags(sent.genres),styles);
  }finally{await h.close();}
 });

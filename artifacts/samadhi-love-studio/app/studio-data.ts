@@ -1,4 +1,5 @@
 import type { SectionDirection } from "./song-section-directions";
+import type { LanguageProfile } from "./music-language";
 import type { Discovery } from "./music-workspace-data";
 import type { Instrumental } from "./creation-guide";
 import type { PlaylistId } from "./playlist-data";
@@ -41,7 +42,7 @@ export type Song = {
   audioHistory?: { audioId: string; audioFormat: AudioFormat; date: string; name: string; sectionEdit?:import("./song-section-data").SectionEditPlan }[];
   explicit?: boolean;
   lyricVideo?: LyricProject;
-  generation?: { requestId?:string; provider: string; model: string; audioId?: string; status?: "generating" | "complete" | "incomplete"; approvedLyrics: string; compositionPlan: unknown; createdAt: string; captionReady: boolean; timingSource: string };
+  generation?: { requestId?:string; provider: string; model: string; audioId?: string; status?: "generating" | "complete" | "incomplete"; approvedLyrics: string; compositionPlan: unknown; createdAt: string; captionReady: boolean; timingSource: string; languageProfile?: LanguageProfile };
   creationDraft?: boolean;
   instrumental?: Instrumental;
   creationKind?: "instrumental";

@@ -1,4 +1,5 @@
 "use client";
+import { MusicLanguageSummary } from "./music-language-summary";
 import {StemReactiveControls} from "./stem-reactive-controls";
 import {releaseKit} from "./lyric-release-kit";
 import {registerVideoExport} from "./video-export-history";
@@ -2422,12 +2423,14 @@ export function LyricVideoPro(props: Props) {
                               Saved or pasted lyrics for this recording
                             </summary>
                             <label htmlFor="lyric-reference-text">Paste the words actually sung in your recording</label>
+                            <MusicLanguageSummary profile={p.languageProfile}/>
                             <textarea
                               id="lyric-reference-text"
                               aria-label="Saved or pasted lyrics"
                               rows={10}
                               maxLength={5000}
                               dir="auto"
+                              style={{unicodeBidi:"plaintext"}}
                               value={p.approvedLyrics}
                               disabled={busy}
                               onChange={(e) =>

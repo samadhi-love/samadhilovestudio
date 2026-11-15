@@ -1,4 +1,5 @@
 import { performanceLines } from "./lyric-notation";
+import { isLanguageProfile } from "./music-language";
 import { isProSettings, type ProSettings } from "./lyric-pro-data";
 import { captionTypefaces, getCaptionTemplate, type CaptionEmphasis, type CaptionTemplateId } from "./lyric-caption-templates";
 import { overlayDesigns, type OverlayStyle } from "./lyric-overlay-designs";
@@ -54,6 +55,7 @@ export const captionFonts = Object.fromEntries(Object.entries(captionTypefaces).
 export const captionColors = { pearl: "#fff7ea", gold: "#ffdda1", turquoise: "#a6fff3", lilac: "#e9d6ff" } as const;
 export const captionEffects = { fade: "Fade in", rise: "Gentle rise", still: "Still text" } as const;
 export type LyricProject = {
+  languageProfile?: import("./music-language").LanguageProfile;
   visualLayers?: { backgroundMotion: number; overlayAmount: number; overlayStyle: OverlayStyle; overlayMotion: boolean; beatOffset: number };
   cues: LyricCue[]; theme: VideoTheme; motion: VideoMotion; format: VideoFormat;
   font?: keyof typeof captionFonts; color?: keyof typeof captionColors; effect?: keyof typeof captionEffects;
@@ -131,6 +133,7 @@ function validateLyricProject(value: unknown): value is LyricProject {
       !Object.hasOwn(overlayDesigns, l.overlayStyle) || typeof l.overlayMotion !== "boolean" ||
       !Number.isFinite(l.beatOffset) || l.beatOffset < 0 || l.beatOffset > 600) return false;
   }
+  if (project.languageProfile !== undefined && !isLanguageProfile(project.languageProfile)) return false;
   if (project.pro !== undefined && !isProSettings(project.pro)) return false;
   return project.cues.every((cue, index) => cue && typeof cue.text === "string" && cue.text.trim().length > 0 &&
     cue.text.length <= 180 && Number.isFinite(cue.time) && cue.time >= 0 &&

@@ -1,4 +1,6 @@
 "use client";
+import { MusicLanguageControl } from "./music-language-control";
+import { defaultLanguageChoice, isLanguageChoice, resolveLanguage, type LanguageChoice } from "./music-language";
 import {LyricNotationPreview} from "./lyric-notation-preview";
 import {parseLyricNotation} from "./lyric-notation";
 import {SongOpeningControl} from "./song-opening-control";
@@ -91,6 +93,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
   const [genres, setGenres] = useState<string[]>(uniqueGenreNames(seed?.genres ?? []));
   const [autoGenre,setAutoGenre]=useState(false),[useHistory,setUseHistory]=useState(true),[fusionName,setFusionName]=useState(""),[fusionVariation,setFusionVariation]=useState(0),[readLyricStyles,setReadLyricStyles]=useState(true);
   const [lyrics, setLyrics] = useState(seed?.lyrics ?? "");
+  const [languageChoice,setLanguageChoice] = useState<LanguageChoice>(defaultLanguageChoice);
   const [voice, setVoice] = useState(seed?.vocal ?? "");
   const seedDuration = sourceSettings?.seconds ?? seed?.seconds;
   const [autoLength, setAutoLength] = useState(!isTrackDuration(seedDuration));
@@ -135,7 +138,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
     };
   }, []);
 
-  const recovery = useDraftRecovery(`create:${seed?.title ?? "new"}:${seed?.idea ?? ""}`, { projectId, openingMode, level, step, mode, sectionDirections, choice, instrumentEngine, presetOverride, motifSeed, lyricsMode, title, idea, genres, autoGenre, useHistory, fusionName, fusionVariation, readLyricStyles, lyrics, voice, autoLength, manualTime, tempo, mood, tonic, scale, shape, motif, direction, voiceName, description, previews: localPreviews.map(({ url, ...preview }) => preview) }, value => { setProjectId(value.projectId); setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto"); setLevel(value.level); setStep(value.step); setMode(value.mode); setSectionDirections(value.sectionDirections); setChoice(value.choice); setLyricsMode(value.lyricsMode); setTitle(value.title); setIdea(value.idea); setGenres(Array.isArray(value.genres) ? value.genres : []); setAutoGenre(value.autoGenre===true); setUseHistory(value.useHistory!==false); setFusionName(typeof value.fusionName==="string"?value.fusionName:""); setFusionVariation(Number.isSafeInteger(value.fusionVariation)?Math.max(0,value.fusionVariation):0); setReadLyricStyles(value.readLyricStyles!==false); setLyrics(value.lyrics); setVoice(value.voice); setAutoLength(value.autoLength); setManualTime(value.manualTime); setTempo(value.tempo); setMood(value.mood); setTonic(value.tonic); setScale(value.scale); setShape(value.shape); setMotif(value.motif); setDirection(value.direction); setVoiceName(value.voiceName); setDescription(value.description); setInstrumentEngine(value.instrumentEngine); setPreset(value.presetOverride); setMotifSeed(value.motifSeed); setLocalPreviews(value.previews.map(preview => { const url = URL.createObjectURL(preview.blob); previewUrls.current.add(url); return { ...preview, saveId:preview.saveId??crypto.randomUUID(), url }; })); }, !!(idea.trim() || genres.length || autoGenre || lyrics.trim() || title.trim() || description.trim() || localPreviews.length));
+  const recovery = useDraftRecovery(`create:${seed?.title ?? "new"}:${seed?.idea ?? ""}`, { languageChoice, projectId, openingMode, level, step, mode, sectionDirections, choice, instrumentEngine, presetOverride, motifSeed, lyricsMode, title, idea, genres, autoGenre, useHistory, fusionName, fusionVariation, readLyricStyles, lyrics, voice, autoLength, manualTime, tempo, mood, tonic, scale, shape, motif, direction, voiceName, description, previews: localPreviews.map(({ url, ...preview }) => preview) }, value => { if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice); setProjectId(value.projectId); setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto"); setLevel(value.level); setStep(value.step); setMode(value.mode); setSectionDirections(value.sectionDirections); setChoice(value.choice); setLyricsMode(value.lyricsMode); setTitle(value.title); setIdea(value.idea); setGenres(Array.isArray(value.genres) ? value.genres : []); setAutoGenre(value.autoGenre===true); setUseHistory(value.useHistory!==false); setFusionName(typeof value.fusionName==="string"?value.fusionName:""); setFusionVariation(Number.isSafeInteger(value.fusionVariation)?Math.max(0,value.fusionVariation):0); setReadLyricStyles(value.readLyricStyles!==false); setLyrics(value.lyrics); setVoice(value.voice); setAutoLength(value.autoLength); setManualTime(value.manualTime); setTempo(value.tempo); setMood(value.mood); setTonic(value.tonic); setScale(value.scale); setShape(value.shape); setMotif(value.motif); setDirection(value.direction); setVoiceName(value.voiceName); setDescription(value.description); setInstrumentEngine(value.instrumentEngine); setPreset(value.presetOverride); setMotifSeed(value.motifSeed); setLocalPreviews(value.previews.map(preview => { const url = URL.createObjectURL(preview.blob); previewUrls.current.add(url); return { ...preview, saveId:preview.saveId??crypto.randomUUID(), url }; })); }, !!(idea.trim() || genres.length || autoGenre || lyrics.trim() || title.trim() || description.trim() || localPreviews.length));
   const pro = level === "pro";
   const type = choice ?? (elevenLabs.connected ? "vocals" : "instrumental");
   const isLocal = type === "instrumental" && engine === "studio";
@@ -230,7 +233,8 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
       }
       if (!elevenLabs.connected) { setError("Open Settings to enable sung songs and connected generation."); return; }
       if (type === "vocals" && lyricsMode === "own" && !performanceWeight(lyrics)) { setError("Add words to sing, or choose Write lyrics for me. Section headings alone are not finished lyrics."); return; }
-      if (await send({ action: "song", ...(projectId && { projectId }), title: resultTitle, prompt, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
+      if (type === "vocals") resolveLanguage(languageChoice, currentLyrics);
+      if (await send({ action: "song", ...languageChoice, ...(projectId && { projectId }), title: resultTitle, prompt, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
         duration: length, openingMode, ...(lyricsMode==="auto" && !performanceWeight(lyrics) && lyrics.trim() && {arrangement:lyrics.slice(0,2000)}), instrumental: type === "instrumental", readLyricStyles,
         ...(type === "vocals" && sectionDirections && { sectionDirections: JSON.stringify(sectionDirections) }) }, "Song saved privately to My Songs")) goToResult();
     } catch (error) {
@@ -269,6 +273,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
     setMotif(settings?.motif ?? "original"); setMotifSeed(settings?.seed);
     setIdea((song.sectionDirections ? song.notes.prompt : song.notes.prompt.split("\n")[0]).slice(0, 1000));
     setLyrics(song.notes.lyrics); setLyricsMode(performanceWeight(song.notes.lyrics) ? "own" : "auto");
+    setLanguageChoice(song.generation?.languageProfile ?? defaultLanguageChoice);
     setVoice(song.notes.vocals); setChoice(settings || song.creationKind === "instrumental" ? "instrumental" : "vocals");
     setInstrumentEngine(song.creationKind === "instrumental" && !settings ? "connected" : "studio"); setPreset(settings?.preset ?? null); setTempo(settings ? String(settings.bpm) : "");
     setTonic(settings?.tonic ?? 9); setScale(settings ? (settings.minor ? "minor" : "major") : "preset"); setShape(settings?.arrangement ?? "build");
@@ -370,8 +375,9 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
                 }}>Draft starter lyrics</button></HelpControl>}
               </div>
               {lyricsMode === "auto" && lyrics.trim() && !performanceWeight(lyrics) && <p className="muted">Your template supplies the song structure. Studio will write words to fit it.</p>}
-              {lyricsMode === "own" && <><HelpField label="Your lyrics" tip="Paste the words you want performed. Label sections such as [Verse 1] and [Chorus] to guide the arrangement."><textarea rows={7} maxLength={5000} value={lyrics} onChange={event => setLyrics(event.target.value)} placeholder="[Verse 1]"/></HelpField>
+              {lyricsMode === "own" && <><HelpField label="Your lyrics" tip="Paste the words you want performed. Label sections such as [Verse 1] and [Chorus] to guide the arrangement."><textarea dir="auto" style={{unicodeBidi:"plaintext"}} rows={7} maxLength={5000} value={lyrics} onChange={event => setLyrics(event.target.value)} placeholder="[Verse 1]"/></HelpField>
                 <p className="muted creation-note">{lyrics.length.toLocaleString()} / 5,000 characters</p><CleanLyricsChecker lyrics={lyrics} change={setLyrics}/><LyricNotationPreview text={lyrics}/></>}
+              <MusicLanguageControl value={languageChoice} change={setLanguageChoice} lyrics={currentLyrics} disabled={busy}/>
               {advanced && <HelpField label={<>Vocal direction <span className="muted">(optional)</span></>} subject="Vocal direction" tip="Describe who sings, speaks, or whispers and where each voice enters. For a duet, say who leads each section."><input value={voice} maxLength={1000} onChange={event => setVoice(event.target.value)} placeholder="Deep male call and soaring female response"/></HelpField>}
               {advanced && !!voices.length && <div className="chips voice-chips">{voices.map(profile => <button type="button" key={profile.id} className="chip" onClick={() => setVoice(profile.description)}>{profile.name}</button>)}</div>}
             </>}

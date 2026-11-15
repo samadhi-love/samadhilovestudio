@@ -6,6 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "test:languages": "node scripts/test-music-languages.mjs",
     "test:library": "node scripts/test-song-library.mjs",
     "test:duration": "node scripts/test-track-duration.mjs",
     "test:genres": "node scripts/test-genres.mjs",

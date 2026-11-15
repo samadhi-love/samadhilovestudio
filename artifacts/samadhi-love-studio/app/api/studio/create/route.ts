@@ -1,4 +1,5 @@
 import {isMusicalAd} from "../../../musical-ad";
+import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, type LanguageProfile } from "../../../music-language";
 import {titlesFromLyrics} from "../../../song-cover";
 import {genreTags} from "../../../music-genres";
 import { performanceWeight, songOpenings, type SongOpening } from "../../../song-opening";
@@ -104,6 +105,15 @@ async function createMusic(request: Request) {
   const text = (name: string) => typeof input?.[name] === "string" ? input[name] as string : "";
   if (hasExplicitWords(text("title"), text("description"), text("prompt"), text("lyrics"), text("voice"), text("arrangement"),text("instruments"),text("genres"),input?.musicalAd?JSON.stringify(input.musicalAd):""))
     return problem(cleanWordsMessage, 422);
+  let languageProfile: LanguageProfile | undefined;
+  if (input?.action === "lyric-plan" || input?.action === "song" && input?.instrumental !== true) {
+    try {
+      languageProfile = resolveLanguage({
+        language: input.language ?? defaultLanguageChoice.language,
+        dialect: input.dialect ?? "",
+      }, text("lyrics"));
+    } catch (error) { return problem((error as Error).message, 400); }
+  }
   let key: string | null;
   try { key = managedProviderKey(request) ?? await resolveElevenLabsKey(id); }
   catch { return problem("Could not read the saved ElevenLabs key. Update it in Settings → AI Music Providers.", 503); }
@@ -157,12 +167,14 @@ async function createMusic(request: Request) {
       const prompt = text("prompt").trim(), duration = Number(input.duration);
       if (!prompt || prompt.length > 1600 || !isTrackDuration(duration)) return problem("Describe the song and choose a length from 3 to 600 seconds.",400);
       if (access.role === "creator" && !managedProviderKey(request) && !await reserveCreatorGeneration(id)) return problem("This account reached its daily provider attempt limit.",429);
-      const response=await call("music/plan",{model_id:model,prompt:"Create original clean lyrics with explicit section headings. Keep sung phrasing clear, leave breath spaces, and follow the requested language or dialect exactly. "+songOpenings[openingMode].direction+" "+prompt,music_length_ms:duration*1000});
+      const response=await call("music/plan",{model_id:model,prompt:singingDirection(languageProfile!)+"\nCreate original clean lyrics with explicit section headings. Keep sung phrasing clear, leave breath spaces, and follow the requested language or dialect exactly. "+songOpenings[openingMode].direction+" "+prompt,music_length_ms:duration*1000});
       if(!response.ok)return problem(await elevenLabsFailureMessage(response,"music"),502);
       const plan=await response.json() as {chunks?:{text?:string}[]};
       const lyrics=Array.isArray(plan.chunks)?plan.chunks.map(c=>c.text??"").join("\n\n"):"";
       if(!performanceWeight(lyrics)||lyrics.length>5000||hasExplicitWords(lyrics))return problem("The provider did not return a usable lyric draft. Try again or enter your own lyrics.",422);
-      return Response.json({lyrics},options);
+      const scriptIssue = generatedScriptIssue(languageProfile!, lyrics);
+      if (scriptIssue) return problem(scriptIssue, 422);
+      return Response.json({lyrics,languageProfile},options);
     }
 
     const bucket = env.BUCKET;
@@ -212,7 +224,7 @@ async function createMusic(request: Request) {
     draft.notes.vocals = voice;
     draft.notes.instruments=instruments;
     if(genres)draft.tags=genreTags(genres);
-    const direction = [prompt, instruments&&"Featured instruments: "+instruments, songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", voice && "Vocal direction: " + voice, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
+    const direction = [languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+instruments, songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", voice && "Vocal direction: " + voice, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
     const durationMs = duration * 1000;
 
     const bpm = /\b\d{2,3}\s*BPM\b/i.exec(prompt)?.[0] ?? "";
@@ -253,6 +265,8 @@ async function createMusic(request: Request) {
         return problem("The generated arrangement needs more time. Choose a longer track length or try again.", 422);
       const directed = carryArrangementCues(generated.chunks, arrangement,readLyricStyles,sectionDirections?.map(s=>s.name));
       draft.notes.lyrics = directed.map(chunk => chunk.text ?? "").join("\n\n");
+      const scriptIssue = generatedScriptIssue(languageProfile!, draft.notes.lyrics);
+      if (scriptIssue) return problem(scriptIssue, 422);
       if (!performanceWeight(draft.notes.lyrics)) return problem("The provider returned section directions without sung words. Try again or supply your own lyrics. No audio generation was started.",502);
       if (hasExplicitWords(draft.notes.lyrics, ...generated.chunks.flatMap(chunk => {
         const styles = (chunk as { positive_styles?: unknown }).positive_styles;
@@ -268,10 +282,13 @@ async function createMusic(request: Request) {
     }
 
     const finalChunks = (plan as { chunks?: { text?: string; positive_styles?: unknown }[] } | null)?.chunks;
-    if (Array.isArray(finalChunks)) plan = { ...plan, chunks: applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name)) };
+    if (Array.isArray(finalChunks)) {
+      const styled = applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name));
+      plan = { ...plan, chunks: languageProfile ? languageStyles(styled, languageProfile) : styled };
+    }
     if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
     draft.generation = { ...(request.headers.get("X-Production-Id")&&/^[a-f0-9-]{36}$/i.test(request.headers.get("X-Production-Id")!)?{requestId:request.headers.get("X-Production-Id")!}:{}),provider: "ElevenLabs", model, audioId: draft.id, status:"generating", approvedLyrics: draft.notes.lyrics, compositionPlan: plan,
-      createdAt: new Date().toISOString(), captionReady, timingSource: "not-provided" };
+      createdAt: new Date().toISOString(), captionReady, timingSource: "not-provided", languageProfile };
     // Preserve every approved writing/arrangement draft before the audio request.
     {
       const writing = await saveCreation(id,starter,studio=>({...studio,songs:[{...draft,audioFormat:undefined},...studio.songs]}));
@@ -308,4 +325,16 @@ async function createMusic(request: Request) {
   }
 }
 
-export const POST = withProductionUsage(recoverableRoute(createMusic, "Creation could not finish. Check saved drafts before retrying; existing recordings are preserved."));
+const paidCreation = withProductionUsage(recoverableRoute(createMusic, "Creation could not finish. Check saved drafts before retrying; existing recordings are preserved."));
+// Reject unavailable/ambiguous language BEFORE the existing credit-reservation wrapper.
+// Keep that wrapper and its authentication, quota and refund behavior unchanged.
+export const POST = recoverableRoute(async (request: Request) => {
+  let input;
+  try { input = JSON.parse(await readBoundedText(request.clone() as unknown as Request, 80_000)); }
+  catch { return problem("Invalid creation request.", 400); }
+  if (input?.action === "lyric-plan" || input?.action === "song" && input?.instrumental !== true) {
+    try { resolveLanguage({language: input.language ?? "auto", dialect: input.dialect ?? ""}, typeof input.lyrics === "string" ? input.lyrics : ""); }
+    catch (error) { return problem((error as Error).message, 400); }
+  }
+  return paidCreation(request);
+}, "Creation could not finish. Existing recordings are preserved.");

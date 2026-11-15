@@ -1,4 +1,6 @@
 "use client";
+import { MusicLanguageSummary } from "./music-language-summary";
+import { languageForAudio } from "./music-language";
 import {deletionNotice,deletionDeadline,canRestoreSong} from "./song-deletion";
 import {createContext,useContext,useId,useState,type ReactNode} from "react";
 import {Trash2,ChevronDown,Heart,Music2} from "lucide-react";
@@ -40,6 +42,7 @@ export function SongCard({song,onReuse}:{song:Song;onReuse?:(song:Song)=>void}){
        <button type="button" className="secondary small" aria-expanded={open} aria-controls={`${id}-actions`} onClick={()=>{hub?hub.setExpanded(open?"":song.id):setLocalOpen(!open);setStatus("");}}>Song actions <ChevronDown size={15}/></button>
      </div>
    </div>
+   <MusicLanguageSummary profile={languageForAudio(song)}/>
    {preview&&ready&&!archived&&<AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/>}
    {open&&<div className="song-card-panel" id={`${id}-actions`}>
      {archived?<div><p>{deletionNotice}</p>{deletionDeadline(song)!==null&&<p>{canRestoreSong(song)?"Restore before":"Recovery ended"}: {new Date(deletionDeadline(song)!).toLocaleString()}</p>}<button type="button" className="primary small" disabled={busy||!hub||!canRestoreSong(song)} onClick={()=>void hub?.save({...song,deletedAt:undefined,deleteAfter:undefined},"Restored to My Songs")}>Restore to My Songs</button><p className="muted">A restored release remains unlisted until you explicitly publish it again.</p></div>:<>
