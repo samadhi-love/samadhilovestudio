@@ -5,7 +5,7 @@ import { HelpControl, HelpField } from "./help-tip";
 import type { ElevenLabsSettings } from "./elevenlabs-settings-data";
 
 const endpoint = "/api/studio/elevenlabs";
-const keysUrl = "https://elevenlabs.io/app/settings/api-keys";
+const keysUrl = "https://elevenlabs.io/app/api/api-keys";
 const initialStatus: ElevenLabsSettings = {
   available: false, saved: false, defaultProvider: false, connection: "disconnected", musicAccess: "unknown",
 };

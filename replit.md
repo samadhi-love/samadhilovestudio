@@ -10,6 +10,8 @@ Continue the user's existing music-creation app, with beginner-friendly songs an
 - `pnpm --filter @workspace/api-server run typecheck` — check the identity service
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/samadhi-love-studio run test:elevenlabs` — offline SDK transport and sign-in regressions
+- `pnpm --filter @workspace/samadhi-love-studio run test:credits` — offline credit reservation/refund checks
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/samadhi-love-studio exec wrangler d1 migrations apply DB --local --config replit-local.wrangler.json` — initialize the studio's **local development** D1 store
 - Required identity secrets are provisioned through managed Clerk. Never copy secret values into source, logs, or chat.
@@ -52,6 +54,7 @@ Focus on affordability and beginners, with easy and advanced controls in the sam
 - The source archive included no account records, saved provider keys, or original hosted private media. Do not claim those were transferred.
 - ElevenLabs generation and billing must not be claimed connected based only on source code or an account-status check. No live paid generation has been verified.
 - Server-funded production and paid billing remain disabled pending provider setup and operator approval.
+- The official ElevenLabs SDK is wired into existing music requests with automatic retries disabled. CLI authentication uses the project secret; creator generation still requires that creator's encrypted vault key. Never silently fall back to the global CLI key for visitors.
 
 ## Pointers
 

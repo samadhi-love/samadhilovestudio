@@ -24,7 +24,8 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
       "x-forwarded-proto": "https",
     },
     cache: "no-store",
-    redirect: "error",
+    // Workers only supports follow/manual. Never follow a redirect with cookies.
+    redirect: "manual",
     signal: AbortSignal.timeout(10000),
   });
   if (response.status === 401 || response.status === 403) return null;
