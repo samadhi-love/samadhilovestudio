@@ -60,7 +60,9 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
   const [vocalOptions,setVocalOptions]=useState<CreatorVocalOptions>(defaultCreatorVocals);
   const [ownLyrics,setOwnLyrics]=useState(false),[lyrics,setLyrics]=useState("");
   const [openingMode,setOpeningMode]=useState<SongOpening>("auto");
-  const [choice, setChoice] = useState<"vocals" | "instrumental" | null>(null);
+  const [choice, setChoice] = useState<"vocals" | "instrumental" | "sketch">(
+    connected ? "vocals" : "sketch",
+  );
   const [genreEdit, setGenreEdit] = useState<string | null>(null);
   const [autoGenre,setAutoGenre]=useState(false),[useHistory,setUseHistory]=useState(true),[fusionName,setFusionName]=useState(""),[fusionVariation,setFusionVariation]=useState(0);
   const [instrumentsEdit, setInstrumentsEdit] = useState<string | null>(null);
@@ -76,13 +78,14 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}if(typeof value.resultId==="string")setResultId(value.resultId);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
     setSongTitle(value.songTitle??"");setVoiceEdit(value.voiceEdit??null);setCustomMode(value.customMode===true);setVocalOptions({...defaultCreatorVocals,...value.vocalOptions});setOwnLyrics(value.ownLyrics===true);setLyrics(typeof value.lyrics==="string"?value.lyrics:"");
-    if(validSongMap(value.songMap))setSongMap(value.songMap);setMapEnabled(value.mapEnabled===true);setIdea(value.idea);setChoice(value.choice);setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto");setGenreEdit(value.genreEdit);setInstrumentsEdit(value.instrumentsEdit);setCodeEdit(value.codeEdit);setAutoGenre(value.autoGenre);setUseHistory(value.useHistory);setFusionName(value.fusionName);setFusionVariation(value.fusionVariation);
+    if(validSongMap(value.songMap))setSongMap(value.songMap);setMapEnabled(value.mapEnabled===true);setIdea(value.idea);setChoice(value.choice==="vocals"||value.choice==="instrumental"||value.choice==="sketch"?value.choice:"sketch");setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto");setGenreEdit(value.genreEdit);setInstrumentsEdit(value.instrumentsEdit);setCodeEdit(value.codeEdit);setAutoGenre(value.autoGenre);setUseHistory(value.useHistory);setFusionName(value.fusionName);setFusionVariation(value.fusionVariation);
     if(value.pendingTake){if(!(value.pendingTake.blob instanceof Blob))throw new Error("The device recording is unavailable. Check My Songs before retrying.");setPendingTake({...value.pendingTake,url:URL.createObjectURL(value.pendingTake.blob)});}
   },!!photo||ownLyrics&&!!lyrics.trim()||mapEnabled||!!idea.trim()||!!pendingTake||adMode&&!!(adBrief.brand||adBrief.benefit||adBrief.cta));
   const playful=simpleExperience&&!customMode&&!adMode;
-  const type = choice ?? "vocals";
-  const instrumental = type === "instrumental";
-  const localSketch=instrumental&&!connected;
+  // Keep sketch mode local even if a provider connects while editing.
+  const type = choice;
+  const instrumental = type !== "vocals";
+  const localSketch=type==="sketch"||(instrumental&&!connected);
   const fusion=suggestGenreFusion(idea,codeEdit??"",drafts,useHistory,fusionVariation);
   const chosenGenre=genreEdit??(autoGenre?fusionGenres(fusion,fusionName).join(", "):null);
   const blueprint = songBlueprint([chosenGenre, idea].filter(Boolean).join(", "), instrumental);
@@ -148,6 +151,16 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
     <div className="actions" role="group" aria-label="What to create"><button type="button" className={`chip ${!adMode?"active":""}`} aria-pressed={!adMode} disabled={busy} onClick={()=>setAdMode(false)}>Song</button><button type="button" className={`chip ${adMode?"active":""}`} aria-pressed={adMode} disabled={busy} onClick={()=>setAdMode(true)}>Musical ad</button>{openLogo&&<button type="button" className="secondary small" disabled={busy} onClick={openLogo}>Logo Creator</button>}</div>
     {adMode&&<MusicalAdBuilder value={adBrief} change={setAdBrief} disabled={busy} prepare={()=>{setIdea(musicalAdPrompt(adBrief));setSongTitle((adBrief.brand+" · Musical ad").slice(0,100));setGenreEdit(adStyles[adBrief.style].genre);setChoice("vocals");setCodeEdit(musicalAdSections(adBrief));setOwnLyrics(false);setLyrics("");setOpeningMode("direct");setCustomMode(true);setPromptNotice("Ad brief prepared. Review or add your own lyrics, then Create song. Add product footage and your logo in Video & Shorts.");}}/>}
     <div className="actions creator-mode-tabs" role="group" aria-label="Song creation mode"><button type="button" className={`chip ${!customMode?"active":""}`} aria-pressed={!customMode} disabled={busy} onClick={()=>setCustomMode(false)}>{simpleExperience?"Easy":"Simple"}</button><button type="button" className={`chip ${customMode?"active":""}`} aria-pressed={customMode} disabled={busy} onClick={()=>setCustomMode(true)}>{simpleExperience?"More choices":"Custom"}</button><span className="muted">One editor. Your choices stay with the song.</span></div>
+    {!connected&&<aside className="notice" aria-label="Create without a music connection">
+      <strong>You can create without connecting a music service.</strong>
+      <p>Make an instrumental sketch with the built-in sounds, or use your own recording for a visual or lyric video. Built-in sketches are not AI-generated songs, have limited instrument palettes, and use no music-provider credits.</p>
+      <div className="actions">
+        {!instrumental&&<button type="button" className="secondary small" disabled={busy} onClick={()=>{setChoice("sketch");setError("");}}>Make a built-in sketch</button>}
+        {recordVoice&&<button type="button" className="secondary small" disabled={busy} onClick={recordVoice}>Record my voice</button>}
+        {uploadOwn&&<button type="button" className="secondary small" disabled={busy} onClick={uploadOwn}>Use my recording</button>}
+      </div>
+      {!instrumental&&<p role="status">Your lyrics stay here, but AI singing needs a connected music service. Switch to a sketch or use a recording to continue without one.</p>}
+    </aside>}
     <form ref={createForm} hidden={playful&&playStage!=="start"} onSubmit={create}>
       <fieldset disabled={busy}>
         <div className="play-extra">
@@ -155,9 +168,9 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
         {lyrics.trim()&&<div className="actions"><span className="muted">Title ideas from your lyrics:</span>{titlesFromLyrics(lyrics).map(title=><button type="button" className="chip" key={title} onClick={()=>setSongTitle(title)}>{title}</button>)}</div>}
         {savedPrompts.filter(t=>!readStyleDNA(t)).length>0&&<label className="field">My saved prompts<select value="" onChange={event=>{const preset=savedPrompts.find(p=>p.id===event.target.value);if(!preset)return;if((idea.trim()||lyrics.trim())&&!confirm("Load this saved prompt in place of your current unsaved writing?"))return;setAutoGenre(false);setIdea(preset.notes.prompt.split("\n\nOpening:")[0]);setLyrics(preset.notes.lyrics);setOwnLyrics(performanceWeight(preset.notes.lyrics)>0);setGenreEdit(preset.tags.length?preset.tags.join(", "):null);setInstrumentsEdit(preset.notes.instruments||null);setVoiceEdit(preset.notes.vocals||null);setSongTitle(preset.name);setAdMode(!!preset.notes.promotion&&!!readSavedAd(preset.notes.promotion));const ad=readSavedAd(preset.notes.promotion);if(ad)setAdBrief(ad);setCodeEdit(ad?musicalAdSections(ad):null);setCustomMode(true);setPromptNotice("Saved lyrics and musical directions loaded. Create makes a new song.");}}><option value="">Choose a private saved prompt…</option>{savedPrompts.filter(t=>!readStyleDNA(t)).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
         </div>
-        {playful&&<><div className="feeling-ideas" aria-label="Ideas to play with">{feelingIdeas.map(item=><button type="button" className="chip" key={item.name} onClick={()=>{setIdea(item.text);setChoice(item.name==="Find my calm"?"instrumental":"vocals");setError("");}}>{item.name}</button>)}</div><div className="actions creative-own-material"><button type="button" className="secondary small" onClick={()=>{setOwnLyrics(true);setChoice("vocals");}}>Use my words</button>{recordVoice&&<button type="button" className="secondary small" onClick={recordVoice}>Record my voice</button>}{uploadOwn&&<button type="button" className="secondary small" onClick={uploadOwn}>Use my recording</button>}</div></>}
-        <HelpField label={playful?"What are you feeling?":"Song description"} tip="Describe what you want to hear. A theme, a genre, and a vocal detail are enough to start."><textarea rows={4} required={!playful||!ownLyrics||!performanceWeight(lyrics)} maxLength={1200} value={idea}
-          placeholder="A joyful Dabke dance song with oud, warm sung vocals, and a bright chorus…"
+        {playful&&<><div className="feeling-ideas" aria-label="Ideas to play with">{feelingIdeas.map(item=><button type="button" className="chip" key={item.name} onClick={()=>{setIdea(item.text);setChoice(!connected?"sketch":item.name==="Find my calm"?"instrumental":"vocals");setError("");}}>{item.name}</button>)}</div><div className="actions creative-own-material"><button type="button" className="secondary small" onClick={()=>{setOwnLyrics(true);setChoice("vocals");}}>Use my words</button>{connected&&recordVoice&&<button type="button" className="secondary small" onClick={recordVoice}>Record my voice</button>}{connected&&uploadOwn&&<button type="button" className="secondary small" onClick={uploadOwn}>Use my recording</button>}</div></>}
+        <HelpField label={localSketch?"Describe your instrumental sketch":playful?"What are you feeling?":"Song description"} tip={localSketch?"Choose a mood, style and tempo. Studio matches them to its four built-in sound palettes; it does not generate singing or arbitrary instruments.":"Describe what you want to hear. A theme, a genre, and a vocal detail are enough to start."}><textarea rows={4} required={!playful||!ownLyrics||!performanceWeight(lyrics)} maxLength={1200} value={idea}
+          placeholder={localSketch?"A calm instrumental sketch with gentle melody and a slow, steady rhythm…":"A joyful Dabke dance song with oud, warm sung vocals, and a bright chorus…"}
           onChange={event => { setIdea(event.target.value); setError(""); }}/></HelpField>
         {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
         <div className="play-extra">{!adMode&&<StyleDNAControls map={songMap} change={setSongMap} enabled={mapEnabled} toggle={setMapEnabled} genres={genreTags(genre)} instruments={instruments} vocals={instrumental?"":vocalDirection} saved={savedPrompts} disabled={busy} apply={d=>{setAutoGenre(false);setGenreEdit(d.genres.join(", "));setInstrumentsEdit(d.instruments);setVoiceEdit(d.vocals);setSongMap({bpm:d.bpm,sections:d.sections});setMapEnabled(true);}} save={savePrompt?async(name,d)=>{setPromptBusy(true);try{return !!await savePrompt({name,tags:d.genres,lyrics:"",idea:"",instruments:d.instruments,vocals:d.vocals,styleDNA:d});}finally{setPromptBusy(false);}}:undefined}/>}
@@ -175,7 +188,8 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
         {localSketch && chosenGenre && <p className="muted">Built-in sketches use the closest of four instrument palettes. Connected songs receive the full genre blend.</p>}
         <div className="actions quick-options">
           <HelpControl subject="Song with vocals" tip="Generate a track with a singing or speaking voice through the connected music service."><button type="button" className={`chip ${!instrumental ? "active" : ""}`} aria-pressed={!instrumental} onClick={() => setChoice("vocals")}>{playful?"AI singing":"Song with vocals"}</button></HelpControl>
-          <HelpControl subject={connected?"Instrumental":"Instrumental sketch"} tip={connected?"Generate a complete instrumental through the connected music service using your description, genres, and instruments.":"Make a sketch with Studio’s four built-in instrument palettes, without a music service."}><button type="button" className={`chip ${instrumental ? "active" : ""}`} aria-pressed={instrumental} onClick={() => setChoice("instrumental")}>{connected?"Instrumental":"Instrumental sketch"}</button></HelpControl>
+          <HelpControl subject={connected?"Instrumental":"Instrumental sketch"} tip={connected?"Generate a complete instrumental through the connected music service using your description, genres, and instruments.":"Make a sketch with Studio’s four built-in instrument palettes, without a music service."}><button type="button" className={`chip ${(connected?type==="instrumental":localSketch) ? "active" : ""}`} aria-pressed={connected?type==="instrumental":localSketch} onClick={() => setChoice(connected?"instrumental":"sketch")}>{connected?"Instrumental":"Instrumental sketch"}</button></HelpControl>
+          {connected&&<button type="button" className={`chip ${localSketch?"active":""}`} aria-pressed={localSketch} onClick={()=>setChoice("sketch")}>Built-in sketch · no provider credits</button>}
           {!idea.trim() && <HelpControl subject="Try an example" tip="Fill the description with a sample you can change before creating a track."><button type="button" className="text-button" onClick={() => setIdea(example)}>Try an example</button></HelpControl>}
         </div>
         {customMode&&idea.trim() && <div className="quick-blueprint">
@@ -206,7 +220,7 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
         {promptNotice&&<p role="status">{promptNotice}</p>}
         <div className="actions quick-submit">
           <HelpControl subject="Create track" tip={localSketch?"Render a sketch with Studio’s built-in instruments.":"Generate music from your description through the connected service. Vocal songs and instrumentals may use plan credits."}><button type="submit" className="primary" disabled={(!idea.trim()&&!(playful&&ownLyrics&&!instrumental&&performanceWeight(lyrics)>0)) || hasExplicitWords(idea, genre, instruments, code,ownLyrics?lyrics:"") || (!instrumental && !connected)}><Music2 size={17}/>
-            {pending ? "Creating your track…" : playful?"Make mine":localSketch?"Create sketch":adMode?"Create musical ad":instrumental ? "Create instrumental" : "Create song"}</button></HelpControl>
+            {pending ? localSketch?"Rendering your sketch…":"Creating your track…" : localSketch?"Create sketch":playful?"Make mine":adMode?"Create musical ad":instrumental ? "Create instrumental" : "Create song"}</button></HelpControl>
         </div>
         <p className="muted quick-note">{localSketch
           ? `A ${formatTrackTime(timing.seconds)} instrumental from Studio’s built-in palettes. Arrangement code saves with the draft.`

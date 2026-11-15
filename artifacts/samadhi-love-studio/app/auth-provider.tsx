@@ -34,8 +34,8 @@ const clerkAppearance = {
     borderRadius: "8px",
   },
   elements: {
-    rootBox: { width: "100%", display: "flex", justifyContent: "center" },
-    cardBox: { background: "#211925", border: "1px solid #623e58", borderRadius: "16px", width: "440px", maxWidth: "100%", overflow: "hidden", boxShadow: "0 20px 70px #08050a" },
+    rootBox: { width: "100%", maxWidth: "440px", minWidth: 0, display: "flex", justifyContent: "center" },
+    cardBox: { background: "#211925", border: "1px solid #623e58", borderRadius: "16px", width: "100%", maxWidth: "440px", minWidth: 0, overflow: "hidden", boxShadow: "0 20px 70px #08050a" },
     card: { background: "transparent", boxShadow: "none", border: 0, borderRadius: 0 },
     footer: { background: "transparent", boxShadow: "none", border: 0, borderRadius: 0 },
     headerTitle: { fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 400, fontSize: "28px", letterSpacing: "-.03em", color: "#fbf2ee" },
@@ -71,7 +71,7 @@ export function StudioAuthProvider({ children }: { children: ReactNode }) {
       signUpFallbackRedirectUrl="/creator"
       afterSignOutUrl="/"
       localization={{
-        signIn: { start: { title: "Welcome back to the Studio", subtitle: "Your songs, recordings and lyric videos are waiting." } },
+        signIn: { start: { title: "Welcome back", subtitle: "Sign in for your songs and lyric videos." } },
         signUp: { start: { title: "Create your Studio account", subtitle: "Free to start. Write, record and release from one place." } },
       }}
     >
