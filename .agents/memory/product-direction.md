@@ -37,3 +37,9 @@ Finish the build before evaluating provider costs. The user intends to follow pr
 **Why:** The user explicitly stated that immediate profit is unnecessary and breaking even is acceptable while attracting an audience.
 
 **How to apply:** Do not treat maximum near-term profit as the goal or enable pricing changes automatically. Evaluate sustainable introductory pricing after the build, and confirm required permissions before public provider-backed use.
+
+Prioritize strong captions, lyric alignment and production in one place, without making creators move between apps and repeatedly upload their work.
+
+**Why:** The user explicitly identified this integrated workflow as a strong reason to use the product.
+
+**How to apply:** Carry the saved audio, lyrics, timing and visual choices through editing and export. Prioritize alignment quality and correction tools over adding disconnected features.
