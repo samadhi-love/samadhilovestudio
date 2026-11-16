@@ -14,6 +14,12 @@ The goal is a unique, affordable app for young enthusiasts, especially beginners
 
 **How to apply:** Keep easy creation accessible and advanced controls available without forcing beginners through them.
 
+Prioritize aspiring creators rather than professionals: quality and ease of use should let beginners enjoy creating, not deal with creation issues.
+
+**Why:** The user emphasized “we do not need pros” and wants beginners to feel happy with what they are doing.
+
+**How to apply:** Judge the core journey by whether a beginner can finish a satisfying song and video without technical troubleshooting. Keep advanced tools optional.
+
 Creator setup should offer visible buttons instead of requiring terminal commands.
 
 **Why:** The user could not complete command-based vault setup and explicitly requested a simple generation/copy button.
