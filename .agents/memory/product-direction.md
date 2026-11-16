@@ -31,3 +31,9 @@ Follow Suno's documented creation structure rather than inventing new choices an
 **Why:** The user explicitly instructed “search how suno works and follow instead of making ... choices and tabs.”
 
 **How to apply:** Use the familiar Simple/Custom distinction. Keep provider capabilities and costs honest; matching the interaction does not imply matching Suno's music model.
+
+Finish the build before evaluating provider costs. The user intends to follow provider rules, accepts breaking even initially, and wants low introductory pricing to build an audience before considering increases.
+
+**Why:** The user explicitly stated that immediate profit is unnecessary and breaking even is acceptable while attracting an audience.
+
+**How to apply:** Do not treat maximum near-term profit as the goal or enable pricing changes automatically. Evaluate sustainable introductory pricing after the build, and confirm required permissions before public provider-backed use.
