@@ -43,3 +43,9 @@ Prioritize strong captions, lyric alignment and production in one place, without
 **Why:** The user explicitly identified this integrated workflow as a strong reason to use the product.
 
 **How to apply:** Carry the saved audio, lyrics, timing and visual choices through editing and export. Prioritize alignment quality and correction tools over adding disconnected features.
+
+For songs created in the studio, aim for accurate automatic lyric alignment without routine manual editing. Offer varied singing performances suited to the requested genre, not an unrelated vocal delivery.
+
+**Why:** The user emphasized accurate voice timing and specifically objected to a country-style singer being used for rap or hip-hop.
+
+**How to apply:** Evaluate timing against the finished sung audio and test genre-appropriate vocal delivery. Treat manual timing as an exception path, and do not represent spoken-voice catalogs as selectable singing voices.
