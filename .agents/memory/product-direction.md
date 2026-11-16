@@ -20,6 +20,12 @@ Prioritize aspiring creators rather than professionals: quality and ease of use 
 
 **How to apply:** Judge the core journey by whether a beginner can finish a satisfying song and video without technical troubleshooting. Keep advanced tools optional.
 
+Do not add more tabs. Keep the main focus on song creation and visual/lyric-video creation.
+
+**Why:** The user corrected the discussion of additional tabs and reiterated the two main product priorities.
+
+**How to apply:** Keep Party Mix and radio secondary. The user is considering “coming soon” or a special subscription for those capabilities; neither option is yet a final implementation decision.
+
 Creator setup should offer visible buttons instead of requiring terminal commands.
 
 **Why:** The user could not complete command-based vault setup and explicitly requested a simple generation/copy button.
