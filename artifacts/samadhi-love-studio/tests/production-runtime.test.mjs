@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { runtimeConfig, initializeRuntime, verifyStorage } from "../scripts/storage/runtime.mjs";
+import { runtimeConfig, storageConfig, initializeRuntime, verifyStorage } from "../scripts/storage/runtime.mjs";
 import { D1Http } from "../scripts/storage/d1.mjs";
 import { R2PrivateBucket, encodeMetadata, decodeMetadata, MAX_UPLOAD } from "../scripts/storage/r2.mjs";
 import { env } from "../scripts/storage/node-bindings.mjs";
@@ -14,6 +14,20 @@ const source = { PORT: "19559", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture-d1",
   STUDIO_R2_ACCESS_KEY_ID: "fixture-s3", STUDIO_R2_SECRET_ACCESS_KEY: "fixture-secret",
   STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32), STUDIO_OWNER_EMAIL: "owner@example.test" };
 const resources = runtimeConfig(source);
+test("unpublished storage setup needs neither a public origin nor a hosting port",()=>{
+  for(const origin of [undefined,"","pending","not-a-url"]){
+    const config=storageConfig({...source,PORT:undefined,STUDIO_PUBLIC_ORIGIN:origin});
+    assert.equal(config.databaseId,source.CLOUDFLARE_D1_DATABASE_ID);
+    assert.equal(config.publicOrigin,undefined);
+  }
+  assert.throws(()=>runtimeConfig({...source,STUDIO_PUBLIC_ORIGIN:undefined}),/STUDIO_PUBLIC_ORIGIN/);
+});
+test("development sign-in stays on the local verified-session path without a production origin",async()=>{
+  const auth=await readFile(new URL("../app/chatgpt-auth.ts",import.meta.url),"utf8");
+  const vite=await readFile(new URL("../vite.config.ts",import.meta.url),"utf8");
+  assert.match(auth,/if \(process\.env\.NODE_ENV !== "development"\) \{\s*const configured = new URL\(env\.STUDIO_PUBLIC_ORIGIN/);
+  assert.doesNotMatch(vite,/runtimeConfig\s*\(/);
+});
 const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
 const tables = [...schema.matchAll(/sqliteTable\("([^"]+)"/g)].map(m => ({ name: m[1] }));
 tables.push({name:"studio_catalog_songs"});
@@ -63,14 +77,15 @@ test("D1 binds multilingual and hostile-looking text without SQL interpolation",
   const value = "مرحبا'); DROP TABLE studios;--";
   const row = await db.prepare("SELECT content, revision FROM studios WHERE owner = ?").bind(value).first();
   assert.equal(row.content, "مرحبا");
-  assert.deepEqual(JSON.parse(calls[0].options.body), [{ sql: "SELECT content, revision FROM studios WHERE owner = ?", params: [value] }]);
+  assert.deepEqual(JSON.parse(calls[0].options.body), { sql: "SELECT content, revision FROM studios WHERE owner = ?", params: [value] });
   assert.equal(calls[0].options.redirect, "error");
 });
 test("D1 multi-statement batch makes exactly one request and preserves order", async () => {
   let count = 0;
   const db = new D1Http({ ...resources, token: "fixture", transport: async (_url, options) => {
     count++;
-    assert.equal(JSON.parse(options.body).length, 2);
+    assert.equal(Array.isArray(JSON.parse(options.body)),false,"Cloudflare rejects bare request arrays");
+    assert.equal(JSON.parse(options.body).batch.length, 2);
     return Response.json({ success: true, result: [
       { success: true, meta: { changes: 1 } }, { success: true, results: [{ value: 3 }] },
     ] });

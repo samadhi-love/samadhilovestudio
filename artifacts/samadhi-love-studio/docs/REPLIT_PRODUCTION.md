@@ -21,9 +21,12 @@ Production resource identifiers are now read from Secrets by
 `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_D1_DATABASE_NAME`,
 `STUDIO_R2_BUCKET_NAME`. They must identify the existing resources; there is no
 fallback that guesses a live database/bucket. Never expose private files using
-`r2.dev`. `STUDIO_PUBLIC_ORIGIN` must retain the existing trusted HTTPS origin for
-verified Clerk session checks and request-origin handling. Setting this value
-does not alter domain/DNS configuration.
+`r2.dev`. This app has not been published: `STUDIO_PUBLIC_ORIGIN` is intentionally
+pending. Development and storage configuration/diagnostics do not require it.
+Immediately after first publish, obtain the actual published address and remind
+the owner to set its HTTPS origin. Production startup/sign-in still validates
+this setting strictly; do not invent an address or use a development origin.
+Setting this value does not alter domain/DNS configuration.
 
 Startup requires credentials and a valid existing 64-hex-character vault key,
 verifies every application table name with a parameterized read-only D1 query,
@@ -43,7 +46,7 @@ environment. Do not replace an existing working credential just to rename it.
 | `CLOUDFLARE_D1_DATABASE_ID` | The existing D1 database's UUID from its details page. |
 | `CLOUDFLARE_D1_DATABASE_NAME` | The exact existing D1 database name. |
 | `STUDIO_R2_BUCKET_NAME` | The exact existing private R2 bucket name; do not create a public replacement. |
-| `STUDIO_PUBLIC_ORIGIN` | The same trusted production HTTPS origin previously configured. Do not change the domain/DNS as part of this setup. |
+| `STUDIO_PUBLIC_ORIGIN` | Pending until first publish. Then use the actual published HTTPS origin, without a path. Not needed for development or storage setup. |
 | `STUDIO_CLOUDFLARE_D1_API_TOKEN` | Cloudflare profile → API Tokens → Create Token → custom token configuration. Permission: **Account → D1 → Edit**, limited to the account containing the named existing database. Copy the token value, not its token ID. |
 | `STUDIO_R2_ACCESS_KEY_ID` | Cloudflare account → R2 Object Storage → Manage R2 API Tokens → create a bucket-scoped **Object Read & Write** S3 credential for `samadhi-love-studio-media`. Use its **Access Key ID**, not its API token value. |
 | `STUDIO_R2_SECRET_ACCESS_KEY` | The **Secret Access Key** from that same R2 credential pair. This is a separate secret field. Keep the bucket private. |
@@ -81,6 +84,12 @@ activated by a publish in this work. Existing preview data is not automatically
 copied into the live database.
 
 ### Step 2 per-song copy
+
+Cloud connectivity was checked read-only after resource settings were supplied:
+D1 and private R2 were reachable, but the selected D1 contained 0 legacy accounts
+and 0 songs and did not yet have the normalized foundation tables/view. Confirm
+this target before any live schema application. The D1 transport uses the
+documented single-query object / batch envelope, never a bare array.
 
 The local preview was copied and verified separately (3 accounts, 7 songs).
 Production has **not** been copied. The production Node path uses per-song rows

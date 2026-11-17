@@ -10,12 +10,16 @@ export class D1Http {
     return new Statement(this, sql);
   }
   async query(statements) {
+    if(!statements.length)return [];
+    const queries=statements.map(s=>({sql:s.sql,params:s.params}));
     let response;
     try {
       response = await this.transport(this.url, {
         method: "POST", redirect: "error", signal: AbortSignal.timeout(45_000),
         headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(statements.map(s => ({ sql: s.sql, params: s.params }))),
+        // D1 REST accepts a query object or {batch:[...]}, not a bare array.
+        // Keep a batch in one request; never replay ambiguous writes.
+        body: JSON.stringify(queries.length===1?queries[0]:{batch:queries}),
       });
     } catch {
       throw new Error("D1 request was not confirmed. Do not automatically repeat a write.");

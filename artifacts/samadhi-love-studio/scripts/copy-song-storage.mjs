@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { D1Http } from "./storage/d1.mjs";
-import { runtimeConfig } from "./storage/runtime.mjs";
+import { storageConfig } from "./storage/runtime.mjs";
 import { copySongRows } from "./storage/song-rows.mjs";
 import { sqliteD1 } from "./storage/sqlite-fixture.mjs";
 
@@ -16,7 +16,7 @@ if(local>=0){
 }else{
   if(!args.includes("--live")||process.env.STUDIO_APPROVE_SONG_COPY!=="yes")
     throw new Error("No database changed. Choose --local <SQLite path>, or explicitly approve --live using STUDIO_APPROVE_SONG_COPY=yes.");
-  const config=runtimeConfig({...process.env,PORT:process.env.PORT??"3000"});
+  const config=storageConfig();
   if(process.env.STUDIO_CONFIRM_COPY_DATABASE_ID!==config.databaseId)
     throw new Error("STUDIO_CONFIRM_COPY_DATABASE_ID must match the configured D1 database. No database changed.");
   db=new D1Http(config);

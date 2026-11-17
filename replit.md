@@ -14,10 +14,20 @@ are read-only backups and R2 checkpoints were not touched. Community catalog and
 moderation use current song rows for migrated accounts, not frozen backup data.
 Retention remains disabled and refuses migrated data to protect those backups.
 
-The production resource values still need the owner's secure entry:
+The owner supplied these resource settings:
 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`,
-`CLOUDFLARE_D1_DATABASE_NAME`, `STUDIO_R2_BUCKET_NAME`, and
-`STUDIO_PUBLIC_ORIGIN`. Existing credential names and the existing `vault` value
+`CLOUDFLARE_D1_DATABASE_NAME`, and `STUDIO_R2_BUCKET_NAME`.
+**The app is not published. `STUDIO_PUBLIC_ORIGIN` is intentionally pending and
+must not block development or storage setup checks. Immediately after the first
+publish, obtain the actual published URL and remind the owner to add its HTTPS
+origin. Never invent an origin or use the development URL.**
+Production startup/sign-in keeps strict origin validation. Storage diagnostics
+and the explicitly approved copy command do not require an origin or host port.
+Read-only cloud checks now pass for D1 and private R2 after correcting the D1
+request envelope. The selected cloud database has **0 legacy accounts / 0 songs**
+and lacks the new Step 2 tables/view. Confirm that empty target before applying
+schema. Preview's 3 accounts/7 songs have not been uploaded.
+Existing credential names and the existing `vault` value
 are preserved. Missing production configuration is named explicitly at startup.
 **No live schema application, production data copy, production read/write
 switch or publish has been performed.** Do not describe local comparison as live
@@ -29,8 +39,9 @@ Full report, exact verification totals and leftover recommendations:
 Final offline result: **44/44 verification groups, 25/25 test commands, and the
 full workspace typecheck/build passed**. These totals overlap. No paid provider
 or signed-in device testing was performed. Code/local verification through 2D is
-finished; production copy/cutover remains blocked by the resource Secrets and
-owner confirmation of the target database and sibling-app use.
+finished; production copy/cutover still requires owner confirmation of the target
+database and sibling-app use. The origin is pending first publish, not a blocker
+for development or database setup.
 
 ## Owner test checklist — before launch
 

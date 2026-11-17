@@ -9,3 +9,4 @@
 - [Melody reference privacy](melody-reference-privacy.md) — Keep hummed recordings private and reference-only unless melody-conditioned support and explicit consent are verified.
 - [Foundation feature freeze](foundation-freeze.md) — Finish Step 2 only; preserve Stage 3 and flag feature requests until owner approval.
 - [Per-song cutover safety](per-song-cutover.md) — Legacy backups freeze after copy; confirm sibling-app writers before live cutover and never equate local checks with production.
+- [First-publish origin](first-publish-origin.md) — App is unpublished; origin stays pending for dev/storage setup. Remind owner to add the actual origin immediately after first publish.

@@ -5,8 +5,11 @@
 No new features or visual changes until the owner approves Step 2. Stage 3 stays
 unchanged. Local per-song saving is active after an exact copy of 3 accounts and
 7 songs; original bundles are read-only and R2 checkpoints were untouched.
-Production resource Secrets, live schema/copy verification and live cutover are
-not complete. Shared storage/provider boundaries and durable job helpers are in
+The four Cloudflare resource settings have been supplied. The app is unpublished,
+so `STUDIO_PUBLIC_ORIGIN` is pending and not required for development/storage
+setup. **Immediately after first publish, remind the owner to add the actual
+published HTTPS origin.** Live schema/copy verification and live cutover are not
+complete. Shared storage/provider boundaries and durable job helpers are in
 place; no background processing has been enabled. See
 `STEP2_FOUNDATION_REPORT.md` for scope, verification totals, limits and leftovers.
 Final offline result: 44/44 verification groups and 25/25 test commands passed;

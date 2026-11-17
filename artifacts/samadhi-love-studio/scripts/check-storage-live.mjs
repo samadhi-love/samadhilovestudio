@@ -1,7 +1,7 @@
 // Opt-in only. Never invoked by offline verification or application startup.
 import assert from "node:assert/strict";
 import { randomUUID, webcrypto } from "node:crypto";
-import { runtimeConfig, verifyStorage } from "./storage/runtime.mjs";
+import { storageConfig, verifyStorage } from "./storage/runtime.mjs";
 import { D1Http } from "./storage/d1.mjs";
 import { R2PrivateBucket } from "./storage/r2.mjs";
 
@@ -10,7 +10,7 @@ if (process.env.STUDIO_RUN_LIVE_STORAGE_CHECKS !== "yes" || !modes.some(v => ["-
   console.info("SKIPPED. Owner must explicitly set STUDIO_RUN_LIVE_STORAGE_CHECKS=yes and choose --d1, --r2 or --vault. No live requests made.");
 } else {
   try {
-    const config = runtimeConfig({ ...process.env, PORT: process.env.PORT ?? "3000" });
+    const config = storageConfig();
     const DB = new D1Http(config), BUCKET = new R2PrivateBucket(config);
     if (modes.includes("--d1")) {
       await verifyStorage(DB, BUCKET);

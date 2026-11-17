@@ -15,16 +15,20 @@ existing values must be supplied in Replit Secrets:
 | Existing D1 database UUID | `CLOUDFLARE_D1_DATABASE_ID` |
 | Existing D1 database name | `CLOUDFLARE_D1_DATABASE_NAME` |
 | Existing private R2 bucket name | `STUDIO_R2_BUCKET_NAME` |
-| Existing trusted production origin | `STUDIO_PUBLIC_ORIGIN` |
+| Actual production origin after first publish | `STUDIO_PUBLIC_ORIGIN` |
 
-The fifth setting preserves the same trusted origin; it does not change DNS or
-the domain. Startup names missing/invalid settings. The existing D1/R2 credential
+The app is not published. The fifth setting is pending until the first publish;
+it is not a prerequisite for development or storage setup. Immediately after
+first publish, remind the owner to add the actual published HTTPS origin.
+Production startup retains strict origin validation. No DNS/domain is changed.
+Startup names missing/invalid settings. The existing D1/R2 credential
 names are retained. `vault` remains the effective encryption secret; its value
 was not read, replaced or rotated. Local-emulation placeholder IDs and fixture
 bucket names intentionally remain isolated from production.
 
-**Unfinished:** the new secret values have not yet been entered by the owner.
-Production startup must refuse to guess them.
+**Updated:** the four Cloudflare resource settings have been entered. The origin
+is intentionally pending, not a missing database credential. Storage setup now
+uses its own configuration without origin/PORT requirements.
 
 ## 2B — Independent song saving
 
@@ -75,6 +79,38 @@ switch; it does not try to repair or overwrite user data.
 
 **Not done:** production schema application, production copy/comparison, or a
 production read/write switch. No publish or live migration was performed.
+
+### Follow-up: unpublished origin and read-only cloud checks
+
+The owner confirmed this app has never been published. `STUDIO_PUBLIC_ORIGIN`
+therefore remains pending, rather than being a required database-setup input.
+Storage diagnostics and the explicit copy tool now use `storageConfig`, which
+does not require a hosting port or production origin. Production startup keeps
+strict validation; development retains its local verified-session path.
+
+Read-only checks with the supplied resource settings found a D1 adapter request
+format defect (HTTP 400 / code 7400). The adapter now follows Cloudflare's
+documented object format for a single query and `{batch:[...]}` for a batch,
+without automatic write retries. A real read-only two-query batch and single
+query subsequently passed. Reference:
+https://developers.cloudflare.com/api/resources/d1/subresources/database/methods/query
+
+- D1 connection: passed read-only.
+- Private R2 access: passed read-only; no object created or deleted.
+- Configured cloud database legacy accounts: **0**.
+- Configured cloud database legacy songs: **0**.
+- The six new foundation tables and current-song catalog view are not yet there.
+- No schema or user data was changed. No local songs were uploaded.
+
+The earlier 3-account/7-song comparison applies only to local emulation. Confirm
+that this empty cloud database is the intended target before any live setup.
+Immediately after first publish, remind the owner to add the actual published
+HTTPS origin; do not invent a domain or use the preview address.
+
+Follow-up verification after these changes: **44/44 verification groups,
+25/25 test commands, and 19/19 runtime tests passed** (overlapping totals).
+The standard runner included app typecheck/build. The development workflow was
+restarted and its landing page rendered without a valid production origin.
 
 Before a live copy, confirm the intended D1 ID and stop use of older code against
 that same database. Once verified, old clients—including a sibling app using the
@@ -177,10 +213,10 @@ owner confirmation.
 
 ## Exact owner action still needed
 
-1. Securely supply the five resource settings listed in 2A, identifying the
-   **existing** Cloudflare account, D1 database, private R2 bucket and trusted
-   production origin. Existing D1/R2 credentials, owner email and `vault` are
-   already present; no replacement vault key is needed.
+1. The four resource settings were supplied. Existing D1/R2 credentials, owner
+   email and `vault` are present; no replacement vault key is needed. Leave the
+   public origin pending for now and add the actual origin right after first
+   publish. Development and storage setup must not wait for that address.
 2. Confirm whether the sibling app still writes to the same live D1 database.
    Stop legacy writers before an approved live copy.
 3. Approve/confirm the specific live-copy operation and intended database before

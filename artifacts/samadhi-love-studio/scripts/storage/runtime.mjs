@@ -4,13 +4,20 @@ import { R2PrivateBucket } from "./r2.mjs";
 import { readFile } from "node:fs/promises";
 import { TransformStream } from "node:stream/web";
 
-export function runtimeConfig(source = process.env) {
+// Storage setup is independent of hosting. In particular, an unpublished app
+// has no production origin yet; diagnostics/migrations must not invent one.
+export function storageConfig(source = process.env) {
   const resources = resourceConfig(source);
   const names = ["STUDIO_CLOUDFLARE_D1_API_TOKEN", "STUDIO_R2_ACCESS_KEY_ID", "STUDIO_R2_SECRET_ACCESS_KEY"];
   for (const name of names) if (!source[name]?.trim()) throw new Error(`Add ${name} in Replit Secrets before starting production.`);
   // Keep the established encryption identity. Never generate or rotate here.
   const vault = source.STUDIO_ELEVENLABS_VAULT_KEY ?? source.vault;
   if (!/^[a-f0-9]{64}$/i.test(vault ?? "")) throw new Error("STUDIO_ELEVENLABS_VAULT_KEY must be the existing stable 64-hex-character encryption key.");
+  return {...resources,token:source.STUDIO_CLOUDFLARE_D1_API_TOKEN,
+    accessKeyId:source.STUDIO_R2_ACCESS_KEY_ID,secretAccessKey:source.STUDIO_R2_SECRET_ACCESS_KEY,vault};
+}
+export function runtimeConfig(source = process.env) {
+  const storage=storageConfig(source);
   const port = Number(source.PORT);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be a valid allocated port.");
   const publicOrigin = source.STUDIO_PUBLIC_ORIGIN;
@@ -18,9 +25,7 @@ export function runtimeConfig(source = process.env) {
   try { origin = new URL(publicOrigin); } catch { throw new Error("STUDIO_PUBLIC_ORIGIN must be a valid HTTPS origin."); }
   if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash)
     throw new Error("STUDIO_PUBLIC_ORIGIN must be a valid HTTPS origin.");
-  return { ...resources, token: source.STUDIO_CLOUDFLARE_D1_API_TOKEN,
-    accessKeyId: source.STUDIO_R2_ACCESS_KEY_ID, secretAccessKey: source.STUDIO_R2_SECRET_ACCESS_KEY,
-    vault, port, publicOrigin: origin.origin };
+  return {...storage,port,publicOrigin:origin.origin};
 }
 export async function verifyStorage(DB, BUCKET) {
   const schema = await readFile(new URL("../../db/schema.ts", import.meta.url), "utf8");
