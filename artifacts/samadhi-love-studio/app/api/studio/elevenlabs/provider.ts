@@ -118,6 +118,20 @@ function readMusicPlan(body: unknown) {
   return body.chunks.some(chunk => chunk && typeof chunk.duration_ms === "number" && chunk.duration_ms > 0) ? true : undefined;
 }
 
+/** Owner setup only: a read-only account check, with no composition or audio. */
+export async function testElevenLabsAccount(key: string) {
+  const account = await probe(key, "account", "user/subscription", 12_000, readSubscription);
+  return {
+    connection: account.ok ? "connected" as const : "error" as const,
+    musicAccess: account.ok && account.value.tier === "free" ? "unavailable" as const : "unknown" as const,
+    checkedAt: new Date().toISOString(),
+    accountMessage: account.ok ? "ElevenLabs accepted the saved project key for your owner account." : account.failure.message,
+    musicMessage: "No music was generated during setup. Music generation access has not yet been verified.",
+    usage: account.ok ? account.value.usage : undefined,
+    error: account.ok ? undefined : account.failure.message,
+  };
+}
+
 export async function testElevenLabs(key: string): Promise<Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "musicMessage" | "accountMessage" | "usage" | "error">> {
   const [account, music] = await Promise.all([
     probe(key, "account", "user/subscription", 12_000, readSubscription),

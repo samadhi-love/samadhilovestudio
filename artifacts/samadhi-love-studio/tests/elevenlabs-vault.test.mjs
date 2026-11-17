@@ -19,8 +19,8 @@ function loadVault(secrets = {}) {
     async get(key) { return records.get(key) ?? null; },
     async put(key, bytes, options) {
       const previous = records.get(key);
-      if ((options.onlyIf.etagDoesNotMatch === "*" && previous) ||
-          (options.onlyIf.etagMatches && previous?.etag !== options.onlyIf.etagMatches)) return null;
+      if ((options.onlyIf?.etagDoesNotMatch === "*" && previous) ||
+          (options.onlyIf?.etagMatches && previous?.etag !== options.onlyIf.etagMatches)) return null;
       const record = {
         etag: `fixture-etag-${++version}`, size: bytes.length,
         customMetadata: options.customMetadata,
@@ -60,6 +60,29 @@ test("builds never include local or process secret values", () => {
   assert.deepEqual(studioWorkerSecrets("build", {
     STUDIO_ELEVENLABS_VAULT_KEY: { value: fixtureVault },
   }, { vault: fixtureOtherVault }), { required: [] });
+});
+
+test("owner setup forwards only named bindings and only with an explicit owner", () => {
+  const source = { STUDIO_OWNER_EMAIL: "owner@example.test", ELEVENLABS_API_KEY: fixtureProviderKey, vault: fixtureVault };
+  const config = studioWorkerSecrets("serve", {}, source);
+  assert.deepEqual(config.required, ["vault", "STUDIO_OWNER_EMAIL", "ELEVENLABS_API_KEY"]);
+  assert.equal(JSON.stringify(config).includes(fixtureProviderKey), false);
+  assert.equal(JSON.stringify(config).includes("owner@example.test"), false);
+  assert.deepEqual(studioWorkerSecrets("build", {}, source), { required: [] });
+});
+
+test("owner disconnect leaves a non-secret marker and manual reconnect can replace it", async () => {
+  const vault = loadVault({ vault: fixtureVault });
+  await vault.saveElevenLabsKey("owner", fixtureProviderKey, check, false);
+  await vault.removeElevenLabsKey("owner", true);
+  const { status, etag } = await vault.keyStatus("owner");
+  assert.equal(status.saved, false);
+  assert.equal(status.connection, "disconnected");
+  assert.ok(etag);
+  assert.equal(await vault.resolveElevenLabsKey("owner"), null);
+  assert.equal([...vault.records.values()][0].size, 0);
+  assert.equal(await vault.saveElevenLabsKey("owner", fixtureProviderKey, check, false, etag), true);
+  assert.equal(await vault.resolveElevenLabsKey("owner"), fixtureProviderKey);
 });
 
 test("the setup alias supports encrypted save, reconnect, reload, and disconnect per creator", async () => {

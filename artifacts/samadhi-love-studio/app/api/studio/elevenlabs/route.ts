@@ -3,6 +3,7 @@ import { privateWorkspace } from "../../../studio-access";
 import { privateHeaders } from "../store";
 import { testElevenLabs } from "./provider";
 import { keyStatus, removeElevenLabsKey, resolveElevenLabsKey, saveElevenLabsKey, validElevenLabsKey } from "./vault";
+import { OwnerConnectionError, prepareOwnerConnection } from "./owner-connection";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
@@ -12,9 +13,11 @@ function problem(error: string, status: number) {
 }
 
 export async function GET() {
-  const id = (await privateWorkspace())?.id;
-  if (!id) return problem("Sign in to your creator workspace.", 401);
+  const access = await privateWorkspace();
+  if (!access) return problem("Sign in to your creator workspace.", 401);
+  const id = access.id;
   try {
+    await prepareOwnerConnection(access);
     if (managedAvailable()) {
       const account = await ensureCreditAccount(id);
       if (account.funding === "studio" && ["beta", "active"].includes(account.status) && account.period_end > Date.now())
@@ -23,19 +26,30 @@ export async function GET() {
     }
     return Response.json((await keyStatus(id)).status, options);
   }
-  catch { return problem("Studio could not access its encrypted key store. Reload and try again.", 503); }
+  catch (error) {
+    if (error instanceof OwnerConnectionError) {
+      // Keep manual reconnect usable when automatic owner setup is rejected
+      // (for example, a restricted project key without User read permission).
+      try {
+        const { status } = await keyStatus(id);
+        return Response.json({ ...status, connection: "error", accountMessage: error.message, error: error.message }, options);
+      } catch { /* Report only the safe storage error below. */ }
+    }
+    return problem("Studio could not access its encrypted key store. Reload and try again.", 503);
+  }
 }
 
 async function manageConnection(request: Request) {
-  const id = (await privateWorkspace())?.id;
-  if (!id) return problem("Sign in to your creator workspace.", 401);
+  const access = await privateWorkspace();
+  if (!access) return problem("Sign in to your creator workspace.", 401);
+  const id = access.id;
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return problem("Open the studio directly to manage your key.", 403);
 
   try {
     const { status, etag } = await keyStatus(id);
     if (request.method === "DELETE") {
-      if (!await removeElevenLabsKey(id)) return problem("The secure credential store is unavailable.", 503);
+      if (!await removeElevenLabsKey(id, access.role === "owner")) return problem("The secure credential store is unavailable.", 503);
       return Response.json((await keyStatus(id)).status, options);
     }
     if (!status.available) return problem("The secure credential store is unavailable. Try again later.", 503);

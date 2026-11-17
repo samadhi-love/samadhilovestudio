@@ -35,13 +35,14 @@ function parameters(ownerId: string, iv: Uint8Array<ArrayBuffer>) {
 export async function keyStatus(ownerId: string) {
   const bucket = env.BUCKET;
   const record = bucket ? await bucket.head(storageKey(ownerId)) : null;
+  const disconnected = record?.customMetadata?.disconnected === "1";
   const metadata = record?.customMetadata;
   const available = !!(bucket && encryptionSecret());
   const status: ElevenLabsSettings = {
     available,
-    saved: !!record,
+    saved: !!record && !disconnected,
     defaultProvider: metadata?.defaultProvider === "elevenlabs",
-    connection: record ? metadata?.connection === "connected" ? "connected"
+    connection: record && !disconnected ? metadata?.connection === "connected" ? "connected"
       : metadata?.connection === "error" ? "error" : "unchecked" : "disconnected",
     musicAccess: metadata?.musicAccess === "available" || metadata?.musicAccess === "unavailable"
       ? metadata.musicAccess : "unknown",
@@ -82,10 +83,14 @@ export async function saveElevenLabsKey(ownerId: string, value: string, check: C
   return !!result;
 }
 
-export async function removeElevenLabsKey(ownerId: string) {
+export async function removeElevenLabsKey(ownerId: string, rememberDisconnect = false) {
   const bucket = env.BUCKET;
   if (!bucket) return false;
-  await bucket.delete(storageKey(ownerId));
+  if (rememberDisconnect) {
+    // A non-secret marker prevents first-load owner setup from reconnecting a
+    // deliberately disconnected project key. A manual reconnect can replace it.
+    await bucket.put(storageKey(ownerId), new Uint8Array(), { customMetadata: { disconnected: "1" } });
+  } else await bucket.delete(storageKey(ownerId));
   return true;
 }
 
@@ -95,6 +100,7 @@ export async function resolveElevenLabsKey(ownerId: string) {
   if (!bucket || !secret) return null;
   const record = await bucket.get(storageKey(ownerId));
   if (!record) return null;
+  if (record.customMetadata?.disconnected === "1") return null;
   if (record.size <= ivLength + tagLength || record.size > ivLength + tagLength + maxKeyLength)
     throw new Error("Invalid stored ElevenLabs key.");
   const bytes = new Uint8Array(await record.arrayBuffer());

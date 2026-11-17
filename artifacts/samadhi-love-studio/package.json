@@ -31,7 +31,7 @@
     "test:meditative": "node scripts/test-meditative.mjs",
     "test:audio-downloads": "node scripts/test-audio-downloads.mjs",
     "test:credits": "node scripts/test-credits.mjs",
-    "test:elevenlabs": "node --test tests/elevenlabs-music-sdk.test.mjs tests/studio-auth.test.mjs tests/elevenlabs-vault.test.mjs tests/vault-key-setup.test.mjs",
+    "test:elevenlabs": "node --test tests/elevenlabs-music-sdk.test.mjs tests/studio-auth.test.mjs tests/elevenlabs-vault.test.mjs tests/vault-key-setup.test.mjs tests/owner-provider-setup.test.mjs",
     "test:membership": "node scripts/test-membership-billing.mjs && node scripts/test-membership-controls.mjs",
     "test:presets": "node scripts/test-song-presets.mjs",
     "test:audio-edit": "node scripts/test-song-audio-edit.mjs",

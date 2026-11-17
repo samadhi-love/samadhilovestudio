@@ -2,3 +2,4 @@
 - [Browser test DOM injection](browser-test-injection.md) — Investigate injected select wrappers before treating browser-only hydration warnings as app defects.
 - [Language evidence](language-evidence.md) — Music input acceptance and text fixtures do not verify singing; Lebanese authenticity needs native-speaker listening review.
 - [Vault key continuity](vault-key-continuity.md) — Standardizing secret names must preserve the existing encryption key, not generate a replacement.
+- [Provider key ownership](provider-key-ownership.md) — Project-key setup was approved for the verified owner only, not public creator funding or automatic paid tests.

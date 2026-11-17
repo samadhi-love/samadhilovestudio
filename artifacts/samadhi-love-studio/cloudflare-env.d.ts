@@ -2,6 +2,7 @@ declare namespace Cloudflare {
   interface Env {
     DB?: D1Database;
     STUDIO_OWNER_EMAIL?: string;
+    ELEVENLABS_API_KEY?: string;
     STUDIO_ELEVENLABS_VAULT_KEY?: string;
     /** Managed secret alias accepted for first-time Studio vault setup. */
     vault?: string;

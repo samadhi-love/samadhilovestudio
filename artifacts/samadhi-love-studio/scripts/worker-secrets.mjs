@@ -8,5 +8,11 @@ export function studioWorkerSecrets(command, localBindings = {}, source = proces
   for (const name of ["STUDIO_ELEVENLABS_VAULT_KEY", "vault"]) {
     if (source[name] !== undefined) names.add(name);
   }
+  // The project credential is available only to the explicitly configured owner
+  // setup path. Visitors still require their own encrypted provider connection.
+  if (source.STUDIO_OWNER_EMAIL?.trim()) {
+    names.add("STUDIO_OWNER_EMAIL");
+    if (source.ELEVENLABS_API_KEY !== undefined) names.add("ELEVENLABS_API_KEY");
+  }
   return { required: [...names] };
 }
