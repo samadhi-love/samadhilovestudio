@@ -1,13 +1,13 @@
 "use client";
 import { MusicLanguageControl } from "./music-language-control";
-import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
+import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, musicLanguages, musicDialects, type LanguageChoice } from "./music-language";
 import {playLooks,defaultPlayChoices,validPlayChoices,type PlayChoices,type PlayVisualRequest} from "./creative-play";
 import {AudioFormatDownload} from "./audio-format-download";
 import {StyleDNAControls} from "./style-dna-controls";
 import {defaultSongMap,validSongMap,mapSeconds,mapArrangement,readStyleDNA,type SongMap} from "./style-dna";
 import {MusicalAdBuilder} from "./musical-ad-builder";
 import {adStyles,emptyMusicalAd,isMusicalAd,recoverMusicalAd,musicalAdPrompt,musicalAdSections,type MusicalAd} from "./musical-ad";
-import {matchVocalToSong} from "./vocal-matching";
+import {matchVocalToSong,promptPerformer,singingArrangements} from "./vocal-matching";
 import {titlesFromLyrics} from "./song-cover";
 import {WorldMusicOptions,creatorVocalDirection,defaultCreatorVocals,type CreatorVocalOptions} from "./creator-music-options";
 import {performanceWeight} from "./song-opening";
@@ -100,7 +100,21 @@ export function QuickCreate({ connected, connectionError, connectionChecking=fal
   const mapOn=customMode&&mapEnabled&&!adActive;
   const code = simple?"":mapOn&&validSongMap(songMap)?mapArrangement(songMap):codeEdit ?? "";
   const targetBpm=mapOn?songMap.bpm:blueprint.bpm;
-  const vocalDirection=simple||instrumental?"":(voiceEdit??creatorVocalDirection(vocalOptions));
+  const inferredPerformer=promptPerformer(idea);
+  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?inferredPerformer:vocalOptions.delivery;
+  const vocalDirection=instrumental?"":((customMode?voiceEdit:null)??[
+    creatorVocalDirection({...(simple?defaultCreatorVocals:vocalOptions),delivery:chosenPerformer??defaultCreatorVocals.delivery}),
+    matchVocalToSong(idea,genre,instruments),
+  ].join(" "));
+  let understoodLanguage="", intentIssue="";
+  if(!instrumental&&!localSketch) {
+    try {
+      const profile=resolveLanguage(languageChoice,useOwnLyrics?lyrics:"",idea);
+      understoodLanguage=profile.dialect?musicDialects[profile.dialect]:musicLanguages[profile.resolved];
+    } catch (e) { intentIssue=e instanceof Error?e.message:"Choose the singing language."; }
+    if(inferredPerformer&&vocalOptions.delivery!==defaultCreatorVocals.delivery&&inferredPerformer!==vocalOptions.delivery)
+      intentIssue="Your singing arrangement conflicts with the description. Change the arrangement or description before creating.";
+  }
   const songTiming=autoTrackTime({vocals:!instrumental,lyrics:useOwnLyrics?lyrics:"",bpm:blueprint.bpm,cinematic:false,prompt:idea,sectionCount:code.match(/^\s*\[[^\]\r\n]+\]\s*$/gm)?.length});
   const baseTiming=adActive?{seconds:adBrief.seconds,reason:"Based on your musical advertisement length."}:mapOn&&validSongMap(songMap)&&!songTiming.explicit?{seconds:mapSeconds(songMap),reason:"Based on your song map targets."}:songTiming;
   const timing=playful&&!songTiming.explicit?{...baseTiming,seconds:Math.min(90,Math.max(45,baseTiming.seconds)),reason:"A short first creation; change the length in Custom."}:baseTiming;
@@ -134,7 +148,7 @@ export function QuickCreate({ connected, connectionError, connectionChecking=fal
     if (useOwnLyrics && !performanceWeight(lyrics)) {setError("Add words to sing, or clear the lyrics box so they are written for you. Section labels alone are not finished lyrics.");return;}
     if (hasExplicitWords(idea, genre, instruments, code,useOwnLyrics?lyrics:"")) { setError(cleanWordsMessage); return; }
     if (!instrumental && !localSketch) {
-      try { resolveLanguage(languageChoice, useOwnLyrics ? lyrics : ""); }
+      try { resolveLanguage(languageChoice, useOwnLyrics ? lyrics : "",idea); if(intentIssue)throw new Error(intentIssue); }
       catch (error) { setError((error as Error).message); return; }
     }
     setError(""); setPending(true);
@@ -203,8 +217,14 @@ export function QuickCreate({ connected, connectionError, connectionChecking=fal
         <div className="qc-row">
           {choice==="sketch"&&customMode?<span className="qc-mode" data-mode="sketch" data-testid="status-create-mode"><strong>{mode.label}</strong><button type="button" className="secondary small" data-testid="button-switch-to-song" onClick={()=>setChoice("vocals")}>Switch to song</button></span>:
           <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> Instrumental</label>}
-          {!instrumental&&<MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} disabled={busy}/>}
+          {!instrumental&&<MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
+          {!instrumental&&!localSketch&&<label className="field">Singing arrangement
+            <select data-testid="select-singing-arrangement" value={vocalOptions.delivery} onChange={e=>{setVoiceEdit(null);setVocalOptions({...vocalOptions,delivery:e.target.value});setError("");}}>
+              {singingArrangements.map(value=><option key={value} value={value}>{value==="Studio chooses"?"Follow my description":value}</option>)}
+            </select>
+          </label>}
         </div>
+        {!instrumental&&!localSketch&&<p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`Understood: ${understoodLanguage} · ${chosenPerformer??"Performer follows your description"}.`}{!intentIssue&&" Singing directions guide the music model; they are not a fixed singer identity or a pronunciation guarantee."}</p>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>

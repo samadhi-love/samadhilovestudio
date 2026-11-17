@@ -7,6 +7,7 @@ import ts from "typescript";
 import React, { act, useState } from "react";
 import { JSDOM } from "jsdom";
 import * as languages from "../app/music-language";
+import * as vocals from "../app/vocal-matching";
 import { MusicLanguageControl } from "../app/music-language-control";
 import * as songData from "../app/studio-data";
 import * as notation from "../app/lyric-style-cues";
@@ -31,7 +32,7 @@ const fixtures = [
 ] as const;
 
 test("Auto is conservative; short, shared or empty input needs an explicit choice", () => {
-  for (const text of ["", "حب", "love", "amor", "bonjour", "तेरे साथ मेरा दिल गाए", "la la la la la la la"])
+  for (const text of ["", "حب", "love", "amor", "bonjour", "तेरे साथ मेरा दिल गाए", "la la la la la la la", "در شب روشن تو را دوست دارم", "تم میرے دل کی روشنی ہو ہمیشہ"])
     assert.throws(() => languages.resolveLanguage({ language: "auto", dialect: "" }, text), /uncertain/);
   for (const f of fixtures.filter(f => f.language !== "hi")) {
     assert.equal(languages.resolveLanguage({ language: "auto", dialect: f.dialect }, f.text).resolved, f.language);
@@ -79,6 +80,45 @@ test("Lebanese direction is colloquial, separate from approved text and from voi
   assert.deepEqual(chunks[0].positive_styles, Array(50).fill("piano"));
 });
 
+test("explicit description instructions resolve language and dialect without guessing from instruments", () => {
+ const auto={language:"auto",dialect:""} as const;
+ for(const [prompt,language,dialect] of [
+  ["Sing in Lebanese Arabic, a warm female lead","ar","ar-LB"],
+  ["Sing in Lebanese with an oud","ar","ar-LB"],
+  ["غني باللبناني عن الأمل","ar","ar-LB"],
+  ["Write Spanish lyrics with a female singer","es",""],
+  ["Sing in English and Arabic","mixed",""],
+  ["French vocals over Spanish guitar","fr",""],
+  ["Sing in English, not Arabic","en",""],
+  ["Write lyrics in Farsi","fa",""],
+ ] as const){
+  const profile=languages.resolveLanguage(auto,"",prompt);
+  assert.equal(profile.resolved,language,prompt);
+  assert.equal(profile.dialect,dialect,prompt);
+  assert.equal(profile.source,"prompt");
+  assert(languages.isLanguageProfile(profile));
+ }
+ for(const prompt of ["An English description of hope","Spanish guitar with an Arabic oud","Lebanese dabke groove","A song about the English countryside"])
+  assert.throws(()=>languages.resolveLanguage(auto,"",prompt),/Auto is uncertain/,prompt);
+ assert.throws(()=>languages.resolveLanguage({language:"en",dialect:""},"","Sing in Arabic"),/description requests Arabic/);
+ assert.throws(()=>languages.resolveLanguage({language:"ar",dialect:"ar-LB"},"","Sing in Egyptian Arabic"),/dialect conflicts/);
+ assert.equal(languages.resolveLanguage({language:"ar",dialect:"ar-LB"},"","Sing in Arabic").dialect,"ar-LB");
+});
+
+test("performer recognition distinguishes voices, stories and excluded performers",()=>{
+ for(const [prompt,expected] of [
+  ["Warm female lead singing R&B","Solo female lead"],["A deep male rapper","Solo male lead"],
+  ["Male rap verses and female sung hook","Duet"],["A gospel choir","Choir / group vocals"],
+  ["Call and response over drums","Call and response"],["Female vocals, no male voice","Solo female lead"],
+  ["A song about a woman finding her courage",undefined],["A song about Manhattan",undefined],
+ ] as const)assert.equal(vocals.promptPerformer(prompt),expected,prompt);
+ const chunks=[{text:"[Verse]\nMy own words",positive_styles:Array(50).fill("piano")}];
+ const result=vocals.vocalStyles(chunks,"Solo female lead, rich and husky");
+ assert.equal(result[0].text,chunks[0].text);
+ assert.match(result[0].positive_styles![0],/Solo female lead/);
+ assert.equal(chunks[0].positive_styles[0],"piano");
+});
+
 /** Real route + real language, notation and validation helpers, but no network or billing.
  * Any provider call here returns a deterministic fixture, never a paid generation.
  */
@@ -88,6 +128,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
   const calls: { path: string; payload: any }[] = [];
   const modules: Record<string, unknown> = {
     "../../../music-language": languages,
+    "../../../vocal-matching": vocals,
     "../../../musical-ad": { isMusicalAd: () => true },
     "../../../song-cover": { titlesFromLyrics: () => [] },
     "../../../music-genres": { genreTags: () => [] },
@@ -183,6 +224,21 @@ test("automatic original lyrics use selected Lebanese directions in both plan an
   assert.match(h.calls[0].payload.prompt, /Lebanese Levantine/);
   assert.match(h.calls[1].payload.composition_plan.chunks[0].positive_styles[0], /Lebanese Levantine/);
 });
+test("prompt-derived language and performer directions survive into the actual offline music request",async()=>{
+ const h=routeHarness();
+ const response=await h.post({action:"song",prompt:"Sing in Lebanese Arabic with a warm female lead",title:"Fixture",duration:15,language:"auto",dialect:"",voice:"Vocal arrangement: Solo female lead."});
+ assert.equal(response.status,200,await response.clone().text());
+ assert.equal(h.calls.length,2);
+ const audio=h.calls[1].payload;
+ assert(audio.composition_plan.chunks.every((chunk:any)=>chunk.positive_styles.some((style:string)=>style.includes("Solo female lead"))));
+ assert(audio.composition_plan.chunks.every((chunk:any)=>chunk.positive_styles.some((style:string)=>style.includes("Lebanese"))));
+ assert(!("voice_id" in audio));
+ assert.equal(h.stored().songs[0].generation!.languageProfile!.source,"prompt");
+ const blocked=routeHarness();
+ assert.equal((await blocked.post({action:"song",prompt:"Sing in Arabic",title:"Fixture",duration:15,language:"en"})).status,400);
+ assert.equal(blocked.paidEntries(),0);
+ assert.equal(blocked.calls.length,0);
+});
 test("instrumentals bypass singing-language checks; lyric planning honors selection", async () => {
   const h = routeHarness();
   assert.equal((await h.post({ action: "song", instrumental: true, prompt: "An original piano instrumental", title: "Fixture", duration: 15 })).status, 200);
@@ -246,7 +302,7 @@ test("accessible selectors offer Auto, allow overrides, clear incompatible diale
     const selects = [...document.querySelectorAll("select")];
     assert.equal(selects[0].value, "auto");
     assert(selects.every(select => select.closest("label")));
-    assert.match(document.body.textContent!, /Tentative suggestion: Arabic/);
+    assert.doesNotMatch(document.body.textContent!, /Tentative suggestion: Arabic/);
     async function choose(index: number, value: string) {
       await act(async () => { selects[index].value = value; selects[index].dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
     }

@@ -47,6 +47,31 @@ test("a rejected song submission displays its exact error and keeps the written 
   assert(!document.body.textContent!.includes("This take was not confirmed."));
  }finally{await h.close();}
 });
+test("Simple recognizes the requested language and singer, exposes alternatives and blocks contradictions",async()=>{
+ const h=await setup();const submitted:any[]=[];
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{submitted.push(input);return "fixture-song";}} saveSketch={async()=>undefined}/>));
+  const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
+  await h.input(prompt,"A warm acoustic song; sing in Spanish with a female lead.");
+  const summary=()=>document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!;
+  assert.match(summary(),/Spanish/);assert.match(summary(),/Solo female lead/);
+  const submit=async()=>act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  await submit();
+  assert.equal(submitted.length,1);
+  assert.match(submitted[0].voice,/Solo female lead/);
+  assert.equal(submitted[0].language,"auto");
+  assert.equal(submitted[0].prompt,prompt.value);
+  const voices=document.querySelector('[data-testid="select-singing-arrangement"]') as unknown as HTMLSelectElement;
+  assert.equal(voices.options.length,6);
+  await h.select(voices,"Solo male lead");
+  assert.match(summary(),/conflicts with the description/);
+  await submit();assert.equal(submitted.length,1);
+  await h.input(prompt,"A warm acoustic song; sing in Spanish with a deep male lead.");
+  await submit();assert.equal(submitted.length,2);
+  assert.match(submitted[1].voice,/Solo male lead/);
+  assert.equal(prompt.value,"A warm acoustic song; sing in Spanish with a deep male lead.");
+ }finally{await h.close();}
+});
 test("look collections filter and social cards apply editable clip length and platform without changing source timing",async()=>{
  const h=await setup();let latest=project(),platform='';function Screen(){const[value,setValue]=useState(project());return <><CreatorLookBrowser project={value} change={p=>{latest=p;setValue(p);}}/><SocialVideoTools project={value} change={p=>{latest=p;setValue(p);}} time={355} choosePlatform={p=>{platform=p;}}/></>;}
  try{await act(async()=>h.root.render(<Screen/>));assert.equal(document.querySelectorAll('.creator-look-cards button').length,26);await h.select(document.querySelector('.creator-browser-filters select') as unknown as HTMLSelectElement,'World Fusion');assert.equal(document.querySelectorAll('.creator-look-cards button').length,4);await act(async()=>document.querySelector<HTMLButtonElement>('.creator-look-cards button')!.click());assert.equal(latest.theme,'desert');
@@ -55,14 +80,34 @@ test("look collections filter and social cards apply editable clip length and pl
 });
 test("world starters and simple vocal/lyric controls reach the real generation callback and result actions",async()=>{
  const h=await setup();let payload:any,videoSong='',short=false,publish='';assert.equal(worldFusionRecipes.length,12);assert.equal(Object.values(creatorInstruments).flat().length,48);
- try{const saved={...song,id:'created'};const render=()=>h.root.render(<QuickCreate connected saving={false} drafts={[saved]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{payload=input;return saved.id;}} saveSketch={async()=>undefined} makeVideo={(s,isShort)=>{videoSong=s.id;short=!!isShort;}} publish={s=>{publish=s.id;}}/>);await act(async()=>render());await act(async()=>h.button('Dabke × House').click());const options=document.querySelector('.creator-vocal-fields')!;await h.select(options.querySelectorAll('select')[0],'Lebanese Arabic');await h.select(options.querySelectorAll('select')[1],'Duet');await act(async()=>h.button('Use my lyrics').click());const text=[...document.querySelectorAll('textarea')].find(t=>t.parentElement?.textContent?.startsWith('Words to sing'))!;await h.input(text,'[Chorus]\nنور وحب Love and light');await act(async()=>h.button('Custom').click());assert.equal(text.value,'[Chorus]\nنور وحب Love and light');assert((document.querySelector('.creator-world-options details') as HTMLDetailsElement).open);await act(async()=>h.button('Simple').click());assert.equal(text.value,'[Chorus]\nنور وحب Love and light');await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.match(payload.prompt,/Lebanese Dabke, Melodic House/);assert.match(payload.prompt,/Oud, Darbuka, Piano/);assert.match(payload.voice,/Lebanese Arabic/);assert.match(payload.voice,/Duet/);assert.equal(payload.lyrics,'[Chorus]\nنور وحب Love and light');await act(async()=>h.button('Make social short').click());assert.equal(videoSong,'created');assert(short);await act(async()=>h.button('Publish & share').click());assert.equal(publish,'created');
+  try{
+   const saved={...song,id:'created'};
+   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[saved]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{payload=input;return saved.id;}} saveSketch={async()=>undefined} makeVideo={(s,isShort)=>{videoSong=s.id;short=!!isShort;}} publish={s=>{publish=s.id;}}/>));
+   await act(async()=>h.button('Custom').click());
+   await act(async()=>h.button('Dabke × House').click());
+   const language=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==="mixed"))!;
+   await h.select(language,"mixed");
+   const dialect=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==="ar-LB"))!;
+   await h.select(dialect,"ar-LB");
+   await h.select(document.querySelector('[data-testid="select-singing-arrangement"]') as unknown as HTMLSelectElement,"Duet");
+   const words='[Chorus]\nنور وحب Love and light';
+   await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!,words);
+   await act(async()=>h.button('Simple').click());
+   assert(document.querySelector('[data-testid="text-custom-kept"]'));
+   await act(async()=>h.button('Custom').click());
+   assert.equal(document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!.value,words);
+   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+   assert.match(payload.prompt,/Lebanese Dabke, Melodic House/);assert.match(payload.prompt,/Oud, Darbuka, Piano/);
+   assert.match(payload.voice,/Duet/);assert.equal(payload.language,"mixed");assert.equal(payload.dialect,"ar-LB");assert.equal(payload.lyrics,words);
+   await act(async()=>h.button('Make social short').click());assert.equal(videoSong,'created');assert(short);
+   await act(async()=>h.button('Publish & share').click());assert.equal(publish,'created');
  }finally{await h.close();}
 });
 
 test("saved prompts retain lyrics and instrument directions and can be loaded and saved in the same creator",async()=>{
  const {makeSavedSongPrompt,savedPromptFromSong}=await import('../app/saved-song-prompts');const source={...song,tags:['Jazz'],notes:{...song.notes,lyrics:'[Chorus]\nنور الحب\nنور الحب',prompt:'A gentle world jazz song',instruments:'Oud, Piano',vocals:'Warm Lebanese Arabic duet'}};
  const preset=makeSavedSongPrompt(savedPromptFromSong(source),'prompt-private'),before=structuredClone(preset);const h=await setup();let saved:any;
- try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} savedPrompts={[preset]} savePrompt={async input=>{saved=input;return preset;}}/>));const select=[...document.querySelectorAll('select')].find(s=>s.parentElement?.textContent?.startsWith('My saved prompts'))!;await h.select(select,preset.id);assert.equal(document.querySelector('textarea')!.value,source.notes.prompt);assert(document.body.textContent!.includes('نور الحب'));await act(async()=>h.button('Save prompt').click());assert.equal(saved.lyrics,source.notes.lyrics);assert.equal(saved.instruments,'Oud, Piano');assert.equal(saved.vocals,'Warm Lebanese Arabic duet');assert.deepEqual(saved.tags,['Jazz']);assert.deepEqual(preset,before);}finally{await h.close();}
+  try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} savedPrompts={[preset]} savePrompt={async input=>{saved=input;return preset;}}/>));await act(async()=>h.button('Custom').click());const select=document.querySelector('[data-testid="select-saved-prompt"]') as unknown as HTMLSelectElement;await h.select(select,preset.id);assert.equal(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!.value,source.notes.prompt);assert(document.body.textContent!.includes('نور الحب'));await act(async()=>h.button('Save prompt').click());assert.equal(saved.lyrics,source.notes.lyrics);assert.equal(saved.instruments,'Oud, Piano');assert.equal(saved.vocals,'Warm Lebanese Arabic duet');assert.deepEqual(saved.tags,['Jazz']);assert.deepEqual(preset,before);}finally{await h.close();}
 });
 test("title suggestions preserve original lyrics, cover designs support Unicode and vocal matching follows musical direction",async()=>{
  const {titlesFromLyrics,coverStyleForTitle,drawSongCover,coverStyles}=await import('../app/song-cover');const {matchVocalToSong}=await import('../app/vocal-matching');const lyrics='[Verse]\nWalking home\n[Chorus]\nنور الحب\nنور الحب';assert.equal(titlesFromLyrics(lyrics)[0],'نور الحب');assert.equal(coverStyleForTitle('Cosmic Moon'),'cosmic');assert.equal(Object.keys(coverStyles).length,8);const texts:string[]=[];const ctx:any={canvas:{width:1600,height:1600},createLinearGradient:()=>({addColorStop(){}}),fillRect(){},beginPath(){},arc(){},stroke(){},fill(){},measureText:(s:string)=>({width:s.length*45}),fillText:(s:string)=>texts.push(s)};drawSongCover(ctx,'نور الحب','Artist','gold');assert.equal(ctx.direction,'rtl');assert(texts.includes('نور الحب'));assert.match(matchVocalToSong('An intimate song','R&B','Piano'),/soulful/);assert.match(matchVocalToSong('A dance anthem','Trance','Synths'),/dance groove/);assert.match(matchVocalToSong('A Lebanese story','Dabke','Oud'),/world-music blend/);
@@ -70,8 +115,8 @@ test("title suggestions preserve original lyrics, cover designs support Unicode 
 test("connected instrumentals use the real generation handoff while new disconnected sessions require an explicit sketch choice",async()=>{
  const h=await setup();let payload:any,sketches=0;
  const props={saving:false,drafts:[],settings(){},guided(){},openDrafts(){},generateSong:async(input:any)=>{payload=input;return undefined;},saveSketch:async()=>{sketches++;return undefined;}};
- try{await act(async()=>h.root.render(<QuickCreate {...props} connected/>));await act(async()=>h.button('Dabke × House').click());await act(async()=>h.button('Instrumental').click());await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(payload.instrumental,true);assert.equal(payload.voice,'');assert.equal(payload.lyrics,'');assert.match(payload.instruments,/Oud/);assert.equal(sketches,0);
- await act(async()=>h.root.render(<QuickCreate {...props} key="disconnected" connected={false}/>));assert.equal(h.button('Song with vocals').getAttribute('aria-pressed'),'true');assert.equal(h.button('Create song').disabled,true);assert(h.button('Instrumental sketch'));
+  try{await act(async()=>h.root.render(<QuickCreate {...props} connected/>));await act(async()=>h.button('Custom').click());await act(async()=>h.button('Dabke × House').click());await act(async()=>document.querySelector<HTMLInputElement>('[data-testid="checkbox-instrumental"]')!.click());await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(payload.instrumental,true);assert.equal(payload.voice,'');assert.equal(payload.lyrics,'');assert.match(payload.instruments,/Oud/);assert.equal(sketches,0);
+  await act(async()=>h.root.render(<QuickCreate {...props} key="disconnected" connected={false}/>));assert.equal(document.querySelector<HTMLInputElement>('[data-testid="checkbox-instrumental"]')!.checked,false);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.match(document.querySelector('[data-testid="text-create-error"]')!.textContent!,/connected music account/);assert.equal(sketches,0);
  }finally{await h.close();}
 });
 

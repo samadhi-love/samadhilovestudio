@@ -1,5 +1,6 @@
 import {isMusicalAd} from "../../../musical-ad";
 import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, type LanguageProfile } from "../../../music-language";
+import { vocalStyles } from "../../../vocal-matching";
 import {titlesFromLyrics} from "../../../song-cover";
 import {genreTags} from "../../../music-genres";
 import { performanceWeight, songOpenings, type SongOpening } from "../../../song-opening";
@@ -111,7 +112,7 @@ async function createMusic(request: Request) {
       languageProfile = resolveLanguage({
         language: input.language ?? defaultLanguageChoice.language,
         dialect: input.dialect ?? "",
-      }, text("lyrics"));
+      }, text("lyrics"), text("prompt"));
     } catch (error) { return problem((error as Error).message, 400); }
   }
   let key: string | null;
@@ -283,7 +284,8 @@ async function createMusic(request: Request) {
 
     const finalChunks = (plan as { chunks?: { text?: string; positive_styles?: unknown }[] } | null)?.chunks;
     if (Array.isArray(finalChunks)) {
-      const styled = applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name));
+      const coded = applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name));
+      const styled = sectionDirections ? coded : vocalStyles(coded, voice);
       plan = { ...plan, chunks: languageProfile ? languageStyles(styled, languageProfile) : styled };
     }
     if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
@@ -333,7 +335,7 @@ export const POST = recoverableRoute(async (request: Request) => {
   try { input = JSON.parse(await readBoundedText(request.clone() as unknown as Request, 80_000)); }
   catch { return problem("Invalid creation request.", 400); }
   if (input?.action === "lyric-plan" || input?.action === "song" && input?.instrumental !== true) {
-    try { resolveLanguage({language: input.language ?? "auto", dialect: input.dialect ?? ""}, typeof input.lyrics === "string" ? input.lyrics : ""); }
+    try { resolveLanguage({language: input.language ?? "auto", dialect: input.dialect ?? ""}, typeof input.lyrics === "string" ? input.lyrics : "", typeof input.prompt === "string" ? input.prompt : ""); }
     catch (error) { return problem((error as Error).message, 400); }
   }
   return paidCreation(request);

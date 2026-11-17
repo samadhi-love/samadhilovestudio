@@ -1,9 +1,14 @@
+import { promptLanguage } from "./prompt-language";
 /** Music capabilities, not the provider's unrelated speech-language or voice catalog. */
 export const musicLanguages = {
   en: "English", ar: "Arabic", es: "Spanish", fr: "French", hi: "Hindi",
   ja: "Japanese", de: "German", it: "Italian", pt: "Portuguese", tr: "Turkish",
   ru: "Russian", ko: "Korean", zh: "Chinese", uk: "Ukrainian", pl: "Polish",
   nl: "Dutch", id: "Indonesian", sw: "Swahili", he: "Hebrew",
+  fa: "Persian / Farsi", ur: "Urdu", bn: "Bengali", pa: "Punjabi",
+  ta: "Tamil", te: "Telugu", vi: "Vietnamese", th: "Thai", el: "Greek",
+  ro: "Romanian", sv: "Swedish", fi: "Finnish", no: "Norwegian",
+  da: "Danish", cs: "Czech", hu: "Hungarian", tl: "Filipino / Tagalog",
   mixed: "Mixed languages", other: "Other / not listed",
 } as const;
 export type MusicLanguage = keyof typeof musicLanguages;
@@ -11,10 +16,12 @@ export const musicDialects = {
   "ar-LB": "Lebanese Arabic · لبناني",
   "ar-EG": "Egyptian Arabic",
   "ar-x-gulf": "Khaleeji / Gulf Arabic",
+  "ar-SY": "Syrian Arabic", "ar-IQ": "Iraqi Arabic",
+  "ar-MA": "Moroccan Arabic / Darija", "ar-PS": "Palestinian Arabic",
 } as const;
 export type LanguageChoice = { language: "auto" | MusicLanguage; dialect: "" | keyof typeof musicDialects };
 export const defaultLanguageChoice: LanguageChoice = { language: "auto", dialect: "" };
-export type LanguageProfile = LanguageChoice & { resolved: MusicLanguage; source: "selected" | "script-suggestion" };
+export type LanguageProfile = LanguageChoice & { resolved: MusicLanguage; source: "selected" | "script-suggestion" | "prompt" };
 export type CapabilityStatus = "tested" | "experimental/unverified" | "unavailable";
 const experimental: CapabilityStatus = "experimental/unverified";
 export const musicCapabilityRegistry = {
@@ -44,7 +51,7 @@ export function isLanguageChoice(value: unknown): value is LanguageChoice {
 export function isLanguageProfile(value: unknown): value is LanguageProfile {
   const p = value as LanguageProfile;
   return isLanguageChoice(value) && Object.hasOwn(musicLanguages, p.resolved) &&
-    ["selected", "script-suggestion"].includes(p.source) &&
+    ["selected", "script-suggestion", "prompt"].includes(p.source) &&
     (p.language === "auto" || p.language === p.resolved) &&
     (!p.dialect || ["ar", "mixed"].includes(p.resolved));
 }
@@ -64,8 +71,9 @@ export function suggestLyricLanguage(lyrics: string): MusicLanguage | undefined 
   const found = scripts.filter(([, n]) => n >= 8);
   const latin = count(/\p{Script=Latin}/gu);
   if (found.length > 1 || found.length && latin >= 8) return "mixed";
-  // Devanagari is shared by multiple languages. Ask rather than calling all of it Hindi.
-  if (found.length === 1 && found[0][0] !== "hi") return found[0][0];
+  // Arabic script is also used by Persian and Urdu; Devanagari is shared too.
+  // A script alone cannot distinguish these languages.
+  if (found.length === 1 && found[0][0] !== "hi" && found[0][0] !== "ar") return found[0][0];
   const words = new Set(text.toLocaleLowerCase().match(/\p{L}+/gu) ?? []);
   const scores = ([
     ["en", ["the", "and", "with", "your", "our", "through", "heart", "love"]],
@@ -77,15 +85,20 @@ export function suggestLyricLanguage(lyrics: string): MusicLanguage | undefined 
   if (scores[0].score >= 3 && scores[0].score - scores[1].score >= 2) return scores[0].language;
   return;
 }
-export function resolveLanguage(choice: LanguageChoice, lyrics: string): LanguageProfile {
+export function resolveLanguage(choice: LanguageChoice, lyrics: string, prompt = ""): LanguageProfile {
   if (!isLanguageChoice(choice)) throw new Error("Choose a listed singing language and an optional compatible dialect.");
-  const resolved = choice.language === "auto" ? suggestLyricLanguage(lyrics) : choice.language;
-  if (!resolved) throw new Error("Auto is uncertain. Choose the singing language, or Mixed languages. Your words will not be translated.");
+  const requested = promptLanguage(prompt);
+  if (requested && choice.language !== "auto" && choice.language !== "mixed" && choice.language !== requested.language)
+    throw new Error(`Your language setting is ${musicLanguages[choice.language]}, but the description requests ${musicLanguages[requested.language as MusicLanguage]}. Change the setting or description before creating.`);
+  if (requested?.dialect && choice.dialect && requested.dialect !== choice.dialect)
+    throw new Error("Your selected dialect conflicts with the description. Change the dialect or description before creating.");
+  const resolved = choice.language === "auto" ? requested?.language ?? suggestLyricLanguage(lyrics) ?? (choice.dialect ? "ar" : undefined) : choice.language;
+  if (!resolved || resolved === "auto") throw new Error('Auto is uncertain. Choose the singing language, or say “sing in Spanish” (or your preferred language) in the description. Your words will not be translated.');
   if (choice.dialect && !["ar", "mixed"].includes(resolved))
     throw new Error("An Arabic dialect needs Arabic or Mixed languages. Change the language or clear the dialect.");
   if (musicCapabilityRegistry.forLanguage(resolved).sungAudio === "unavailable")
     throw new Error("This singing language is unavailable in Studio’s current capability registry. No music request was sent. Choose a listed language; Studio will not switch providers.");
-  return { ...choice, resolved, source: choice.language === "auto" ? "script-suggestion" : "selected" };
+  return { ...choice, dialect: choice.dialect || requested?.dialect || "", resolved, source: choice.language === "auto" ? requested ? "prompt" : "script-suggestion" : "selected" };
 }
 /** Directions belong in plan styles, never substituted into displayed approved words. */
 export function singingDirection(profile: LanguageProfile): string {
@@ -108,6 +121,9 @@ export function generatedScriptIssue(profile: LanguageProfile, lyrics: string): 
     ja: /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u,
     ko: /\p{Script=Hangul}/u, zh: /\p{Script=Han}/u,
     ru: /\p{Script=Cyrillic}/u, uk: /\p{Script=Cyrillic}/u, he: /\p{Script=Hebrew}/u,
+    fa: /\p{Script=Arabic}/u, ur: /\p{Script=Arabic}/u, bn: /\p{Script=Bengali}/u,
+    ta: /\p{Script=Tamil}/u, te: /\p{Script=Telugu}/u,
+    th: /\p{Script=Thai}/u, el: /\p{Script=Greek}/u,
   };
   const pattern = expected[profile.resolved];
   const words = lyrics.replace(/\[[^\]\n]*\]|\{[^}\n]*\}/g, "");

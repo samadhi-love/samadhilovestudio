@@ -1,11 +1,12 @@
 "use client";
-import { musicLanguages, musicDialects, musicCapabilityRegistry, suggestLyricLanguage, type LanguageChoice } from "./music-language";
+import { musicLanguages, musicDialects, musicCapabilityRegistry, suggestLyricLanguage, resolveLanguage, type LanguageChoice } from "./music-language";
 
-export function MusicLanguageControl({ value, change, lyrics = "", disabled = false, compact = false }: {
-  value: LanguageChoice; change: (next: LanguageChoice) => void; lyrics?: string; disabled?: boolean; compact?: boolean;
+export function MusicLanguageControl({ value, change, lyrics = "", prompt = "", disabled = false, compact = false }: {
+  value: LanguageChoice; change: (next: LanguageChoice) => void; lyrics?: string; prompt?: string; disabled?: boolean; compact?: boolean;
 }) {
   const detected = suggestLyricLanguage(lyrics);
-  const resolved = value.language === "auto" ? detected : value.language;
+  let resolved: keyof typeof musicLanguages | undefined;
+  try { resolved=resolveLanguage(value,lyrics,prompt).resolved; } catch { /* The form displays unresolved/conflicting instructions before submission. */ }
   const capability = resolved ? musicCapabilityRegistry.forLanguage(resolved) : undefined;
   return <fieldset disabled={disabled} className="optional-song-controls">
     <legend>{compact ? "Song language" : "Singing language & dialect"}</legend>
@@ -14,7 +15,7 @@ export function MusicLanguageControl({ value, change, lyrics = "", disabled = fa
         const language = e.target.value as LanguageChoice["language"];
         change({ language, dialect: ["auto", "ar", "mixed"].includes(language) ? value.dialect : "" });
       }}>
-        <option value="auto">{compact&&!lyrics.trim()?"Choose your song language…":"Auto · suggest from my lyrics"}</option>
+        <option value="auto">{prompt.trim()?"Auto · follow description / lyrics":compact&&!lyrics.trim()?"Choose your song language…":"Auto · suggest from my lyrics"}</option>
         {Object.entries(musicLanguages).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
       </select>
     </label>
