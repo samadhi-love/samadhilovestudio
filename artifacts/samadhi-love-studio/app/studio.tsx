@@ -697,14 +697,14 @@ function SongEditor({ song, tab, setTab, saving, folders, save, copy, back, temp
       <div className="section-head"><h2>Recording</h2><HelpControl subject="Attach or replace audio" tip="Attach an audio file to this song, or replace the file already attached."><button className="secondary small" disabled={saving} onClick={attach}><Upload size={15}/>{song.audioFormat ? "Replace audio" : "Attach audio"}</button></HelpControl></div>
       {isExplicitSong(song) && <p className="notice">Playback and sharing are blocked. Clean the title, lyrics, or captions and replace a previously flagged recording with clean audio.</p>}
       {song.audioFormat && !isExplicitSong(song) ? <>
-        <AudioPlayer key={song.audioId ?? song.id} label={`Listen to ${song.name}`} src={songAudioUrl(song.id, song.audioId)}/>
+        <AudioPlayer key={`recording:${song.audioId ?? song.id}`} label={`Listen to ${song.name}`} src={songAudioUrl(song.id, song.audioId)}/>
         <AudioActions song={song}/>
         <div className="actions">
           {!song.creationDraft && <a className="primary small" href={artistDashboardHref(song.id)}>Publish or share in Community</a>}
           {isInstrumental(song.instrumental) && <button type="button" className="secondary small" onClick={remix}>Remix in Motif Forge</button>}
         </div>
         {isInstrumental(song.instrumental) ? <InstrumentalExports settings={song.instrumental} title={song.name} disabled={saving}/>
-          : <SeparatedStems key={song.audioId ?? song.id} songId={song.id} audioId={song.audioId} title={song.name} connected={stemsConnected} openMixer={mixStems}/>}
+          : <SeparatedStems key={`stems:${song.audioId ?? song.id}`} songId={song.id} audioId={song.audioId} title={song.name} connected={stemsConnected} openMixer={mixStems}/>}
         <HelpControl subject="Open in Vocal Studio" tip="Bring this recording into the vocal workspace and add it as a clip."><button type="button" className="secondary small" onClick={vocalStudio}><Mic size={15}/> Record my voice & mix</button></HelpControl>
         {!isExplicitSong(song) && <HelpControl subject="Make lyric video" tip="Open this recording in the lyric video editor to add timed lyrics and visuals."><button className="secondary small" onClick={lyricVideo}><Film size={15}/> Make lyric video</button></HelpControl>}
       </> : !song.audioFormat && <p className="muted">Attach a clean recording to play it here and add it to Radio.</p>}

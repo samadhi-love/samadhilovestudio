@@ -5,3 +5,4 @@
 - [Provider key ownership](provider-key-ownership.md) — Project-key setup was approved for the verified owner only, not public creator funding or automatic paid tests.
 - [Runtime boundaries and active jobs](runtime-boundary-testing.md) — Test foreign request wrappers; check active provider generations before restarting the preview.
 - [Mantra recording scope](mantra-recording-direction.md) — Local voice repetition and echo belong in the existing recorder; preserve original phrases and defer automatic phrase detection.
+- [Security scanner inputs](security-scanner-inputs.md) — Publish dependency scans inspect retained alternate lockfiles, not only the dependency tree used to build.

@@ -10,25 +10,14 @@ export class OwnerConnectionError extends Error {}
  * No project key is returned to the browser or used on behalf of other accounts.
  */
 export async function prepareOwnerConnection(access: { role: string; id: string }) {
-  console.info("Studio owner connection setup", {
-    owner: access.role === "owner",
-    ownerConfigured: !!env.STUDIO_OWNER_EMAIL?.trim(),
-    projectKeyConfigured: !!env.ELEVENLABS_API_KEY,
-  });
   if (access.role !== "owner" || !env.STUDIO_OWNER_EMAIL?.trim()) return;
   const key = env.ELEVENLABS_API_KEY;
   if (!key) return;
   const { status, etag } = await keyStatus(access.id);
-  console.info("Studio owner credential store", {
-    available: status.available, saved: status.saved, existingRecord: !!etag,
-  });
   if (etag) return;
   if (!status.available) throw new OwnerConnectionError("Owner connection setup needs the existing secure credential store.");
   if (!validElevenLabsKey(key)) throw new OwnerConnectionError("The saved project key is not a valid ElevenLabs key format.");
   const check = await testElevenLabsAccount(key);
-  console.info("Studio owner account check", {
-    connection: check.connection, result: check.accountMessage,
-  });
   if (check.connection !== "connected") throw new OwnerConnectionError(check.error ?? "ElevenLabs did not accept the saved project key.");
   const saved = await saveElevenLabsKey(access.id, key, check, false);
   if (!saved && !(await keyStatus(access.id)).etag)

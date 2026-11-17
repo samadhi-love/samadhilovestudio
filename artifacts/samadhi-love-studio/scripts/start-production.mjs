@@ -1,24 +1,15 @@
-import { createGateway, gatewayConfig } from "./production-gateway.mjs";
+import { initializeRuntime } from "./storage/runtime.mjs";
 
 try {
-  const config = gatewayConfig();
-  const server = createGateway(config);
-  server.requestTimeout = 310_000;
-  server.listen(config.port, "0.0.0.0", () => {
-    console.log(`Studio production gateway listening on port ${config.port}.`);
-  });
-  server.on("error", () => {
-    console.error("Studio production gateway could not start. Check the allocated port and hosting configuration.");
-    process.exitCode = 1;
-  });
-  for (const signal of ["SIGTERM", "SIGINT"]) {
-    process.once(signal, () => {
-      server.close(() => process.exit(0));
-      setTimeout(() => process.exit(1), 10_000).unref();
-    });
-  }
+  const { config } = await initializeRuntime();
+  process.env.NODE_ENV = "production";
+  // Configure trust before Vinext's proxy module is imported. Otherwise HTTPS
+  // browser Origins appear as HTTP behind Replit's TLS proxy and saves fail CSRF.
+  // Only this configured host is trusted, never an arbitrary forwarded host.
+  process.env.VINEXT_TRUSTED_HOSTS = new URL(config.publicOrigin).host;
+  const { startProdServer } = await import("vinext/server/prod-server");
+  await startProdServer({ port: config.port, host: "0.0.0.0" });
 } catch (error) {
-  // Configuration errors contain setting names, never values.
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : "Studio startup checks failed.");
   process.exitCode = 1;
 }

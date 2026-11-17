@@ -28,7 +28,7 @@ async function saveAsset(request: Request) {
     return problem("Open Studio directly to save media.", 403);
   const songId = request.headers.get("X-Song-Id"),
     kind = request.headers.get("X-Asset-Kind") ?? "",
-    type = request.headers.get("Content-Type") ?? "";
+    type = (request.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
   const size = Number(request.headers.get("X-Asset-Size"));
   if (
     !validId(songId) ||

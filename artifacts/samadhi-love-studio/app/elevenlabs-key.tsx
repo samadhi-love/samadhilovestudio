@@ -27,7 +27,7 @@ export function useElevenLabsKey() {
       const result = await response.json().catch(() => null) as ElevenLabsSettings | null;
       if (!response.ok || !result) throw new Error(result?.error ?? "Could not reach connection settings. Try again.");
       setStatus(current => ({ ...result, ...(method === "PATCH" && { usage: current.usage }) }));
-      return method === "POST" ? result.connection === "connected" && result.musicAccess === "available" :
+      return method === "POST" ? result.connection === "connected" :
         result.connection === "connected" || method === "DELETE" || method === "GET";
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not update the connection.");
@@ -64,7 +64,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
   const [reconnecting, setReconnecting] = useState(false);
   const [message, setMessage] = useState("");
   const setupHeading = useRef<HTMLHeadingElement>(null);
-  const testedMusic = status.connection === "connected" && status.musicAccess === "available";
+  const testedMusic = status.connection === "connected" && status.musicAccess !== "unavailable";
   const connectionLabel = { connected: "Connected", disconnected: "Disconnected", error: "Error", unchecked: "Saved key · test required" }[status.connection];
 
   if (status.managed) return <section className="provider-settings"><h3>Studio-funded production</h3><p>Your current funding choice uses SAMADHI credits. No personal ElevenLabs account is required for supported production jobs. Each charge is confirmed before processing.</p><a className="secondary" href="/credits">Credits, usage &amp; funding choices</a><p className="muted">Voice design remains on the owner’s personal provider connection. To manage your personal key, switch funding in Credits &amp; Usage first.</p></section>;
@@ -98,22 +98,29 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
     </fieldset>
   </form>;
 
-  const testButton = <HelpControl subject="Test Connection" tip="Verify the saved key, check Music API access without generating audio, and refresh available credits.">
+  const testButton = <HelpControl subject="Test Connection" tip="Read account information only. Feature permissions that ElevenLabs does not expose are reported as not verified. No paid processing.">
     <button type="button" className="secondary" disabled={busy || !status.saved || !status.available} onClick={async () => {
       setMessage("");
-      if (await update("POST")) setMessage("ElevenLabs Music connection verified.");
+      if (await update("POST")) setMessage("Account connection checked. Review the feature results below. Nothing was generated or charged.");
     }}>{operation === "POST" ? "Testing connection…" : "Test Connection"}</button>
   </HelpControl>;
 
   return <section className="provider-settings" aria-labelledby="elevenlabs-settings-heading" aria-busy={busy}>
     <p className="eyebrow">SETTINGS / AI MUSIC PROVIDERS</p>
-    <h3 id="elevenlabs-settings-heading">ElevenLabs</h3>
+    <h3 id="elevenlabs-settings-heading">Connect ElevenLabs</h3>
     <p className="muted">Connect your ElevenLabs account to generate songs, design voices, and sync captions using your plan.</p>
     <dl className="provider-status">
       <div><dt>Connection Status</dt><dd>{operation === "GET" ? "Checking…" : error && !status.saved ? "Error" : connectionLabel}</dd></div>
-      <div><dt>Music Generation Access</dt><dd>{status.musicAccess === "available" ? "Available · Music plan check passed" : status.musicAccess === "unavailable" ? "Access denied" : "Unverified"}</dd></div>
+      <div><dt>Music Generation Access</dt><dd>{status.musicAccess === "available" ? "Available" : status.musicAccess === "unavailable" ? "Unavailable" : "Not verified by the free check"}</dd></div>
       <div><dt>Default music provider</dt><dd>{status.defaultProvider ? "ElevenLabs" : "Studio instruments for instrumental tracks"}</dd></div>
     </dl>
+    {status.capabilities && <ul aria-label="Feature availability">
+      {([["music", "Music generation"], ["alignment", "Lyrics timing/captions"], ["stems", "Stem separation"]] as const).map(([id, label]) => {
+        const check = status.capabilities![id];
+        return <li key={id}><strong>{label}: {check.state === "available" ? "✓ Available" : check.state === "unavailable" ? "✗ Unavailable" : "— Not verified"}</strong><p>{check.reason}</p></li>;
+      })}
+    </ul>}
+    <p className="muted">This check is read-only and free of generation charges. “Not verified” is not a failure: ElevenLabs does not return all feature permissions in its free account response. Review your restricted key’s permissions there. A paid feature runs only when you choose to create it.</p>
     {status.checkedAt && <p className="muted">Last tested {new Date(status.checkedAt).toLocaleString()}</p>}
     {(status.accountMessage || status.musicMessage) && <ul aria-label="Connection diagnostics">
       {status.accountMessage && <li><strong>Account check</strong> · {status.accountMessage}</li>}
@@ -146,7 +153,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
       {status.usage ? <p>{status.usage.tier && <>Plan <strong>{status.usage.tier}</strong> · </>}
         <strong>{status.usage.used.toLocaleString()}</strong> used of <strong>{status.usage.limit.toLocaleString()}</strong> · <strong>{Math.max(0, status.usage.limit - status.usage.used).toLocaleString()}</strong> remaining in the billing allowance.</p>
         : <p className="muted">Run Test Connection to see the current billing allowance. The key needs User read permission for ElevenLabs to return usage.</p>}
-      <p className="muted">Test Connection requests a short composition plan and renders no audio. A successful track confirms the compose endpoint works for your key and plan. The balance shown is for the account’s billing allowance.</p>
+      <p className="muted">Test Connection reads account information only. It never requests a composition plan, generates audio, aligns lyrics or separates stems. Account allowance is not a feature-access guarantee.</p>
     </div>
 
     <div className="guide-tip provider-wizard">
@@ -157,7 +164,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
           <h4 ref={setupHeading} tabIndex={-1}>{steps[step]}</h4>
           {step === 0 && <p>Sign in to ElevenLabs. In <strong>Developers → API Keys</strong>, create a restricted key named SAMADHI LOVE Studio. Enable <strong>Music</strong> and <strong>User read</strong> for credits. Copy the key while it is visible. <a href={keysUrl} target="_blank" rel="noreferrer">Open ElevenLabs API Keys ↗</a></p>}
           {step === 1 && <><p>Paste the key here to connect and store it securely in your private workspace.</p>{keyForm}</>}
-          {step === 2 && <><p>Run the check below and continue when Music Generation Access says Available. This checks the Music API by requesting a short composition plan without rendering a track.</p>
+          {step === 2 && <><p>Run the free account check below, then review all three feature results. Some permissions may say Not verified because ElevenLabs does not expose them in a read-only account response. No composition, alignment or stem processing runs during this check.</p>
             <div className="actions">{testButton}</div></>}
           {step === 3 && <p>Open Create and choose an experience level if prompted. Enter a title, describe the song, add lyrics if you have them, and choose a length. Click <strong>Generate track</strong> when ready. ElevenLabs may use credits. Your track will appear in Creation Drafts.</p>}
           <div className="actions">

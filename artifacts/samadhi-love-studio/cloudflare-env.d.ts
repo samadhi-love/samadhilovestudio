@@ -8,7 +8,6 @@ declare namespace Cloudflare {
     vault?: string;
     BUCKET?: R2Bucket;
     STUDIO_PUBLIC_ORIGIN?: string;
-    STUDIO_WORKER_PROXY_KEY?: string;
   }
 }
 

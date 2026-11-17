@@ -3,7 +3,6 @@ import { privateWorkspace } from "../../../studio-access";
 import { privateHeaders } from "../store";
 import { testElevenLabs } from "./provider";
 import { keyStatus, removeElevenLabsKey, resolveElevenLabsKey, saveElevenLabsKey, validElevenLabsKey } from "./vault";
-import { OwnerConnectionError, prepareOwnerConnection } from "./owner-connection";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
@@ -17,7 +16,6 @@ export async function GET() {
   if (!access) return problem("Sign in to your creator workspace.", 401);
   const id = access.id;
   try {
-    await prepareOwnerConnection(access);
     if (managedAvailable()) {
       const account = await ensureCreditAccount(id);
       if (account.funding === "studio" && ["beta", "active"].includes(account.status) && account.period_end > Date.now())
@@ -27,14 +25,6 @@ export async function GET() {
     return Response.json((await keyStatus(id)).status, options);
   }
   catch (error) {
-    if (error instanceof OwnerConnectionError) {
-      // Keep manual reconnect usable when automatic owner setup is rejected
-      // (for example, a restricted project key without User read permission).
-      try {
-        const { status } = await keyStatus(id);
-        return Response.json({ ...status, connection: "error", accountMessage: error.message, error: error.message }, options);
-      } catch { /* Report only the safe storage error below. */ }
-    }
     return problem("Studio could not access its encrypted key store. Reload and try again.", 503);
   }
 }
@@ -66,7 +56,7 @@ async function manageConnection(request: Request) {
       if (check.connection !== "connected") return problem([
         "The new key was not saved.", "Subscription check: " + check.accountMessage, "Music check: " + check.musicMessage,
       ].join(" "), 422);
-      const defaultProvider = status.defaultProvider && check.musicAccess === "available";
+      const defaultProvider = status.defaultProvider && check.musicAccess !== "unavailable";
       if (!await saveElevenLabsKey(id, key, check, defaultProvider, etag))
         return problem("Connection settings changed in another tab. Reload and try again.", 409);
       return Response.json({ ...status, saved: true, defaultProvider, ...check }, options);
@@ -78,7 +68,7 @@ async function manageConnection(request: Request) {
     if (!key) return problem("Studio has no usable saved key. Connect your ElevenLabs account or use Reconnect to replace the key.", 400);
     const checking = request.method === "POST";
     const check = checking ? await testElevenLabs(key) : status;
-    if (!checking && (status.connection !== "connected" || status.musicAccess !== "available"))
+    if (!checking && (status.connection !== "connected" || status.musicAccess === "unavailable"))
       return problem("Pass Test Connection before setting ElevenLabs as the default.", 422);
     if (!await saveElevenLabsKey(id, key, check, checking ? status.defaultProvider : true, etag))
       return problem("Connection settings changed in another tab. Reload and try again.", 409);

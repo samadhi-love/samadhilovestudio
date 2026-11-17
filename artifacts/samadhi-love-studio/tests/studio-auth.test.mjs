@@ -135,3 +135,73 @@ for (const publicOrigin of [undefined, "http://public.example.test", "https://pu
     assert.equal(bridge.calls.length, 0);
   });
 }
+
+function ownerFixture({ user = { userId: "owner-id", email: "owner@example.test" }, email = "owner@example.test", existing, storage = true } = {}) {
+  let record = existing;
+  let writes = 0;
+  const bucket = {
+    async get() { return record ? { json: async () => record } : null; },
+    async put(key, value, options) {
+      assert.equal(key, "private/setup/owner-claim-v1.json");
+      assert.equal(options.onlyIf.etagDoesNotMatch, "*");
+      if (record) return null;
+      writes++; record = JSON.parse(value); return { etag: "fixture" };
+    },
+  };
+  const env = { STUDIO_OWNER_EMAIL: email, BUCKET: storage ? bucket : undefined };
+  function compile(file, imports) {
+    const { outputText } = ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    });
+    const exports = {};
+    vm.runInNewContext(outputText, { exports, URL, Response, Date, require(name) {
+      assert.ok(name in imports, `Unexpected import: ${name}`); return imports[name];
+    } });
+    return exports;
+  }
+  const access = compile("../app/studio-access.ts", {
+    "cloudflare:workers": { env },
+    "./creator-accounts": { creatorAccount: async () => null, creatorBetaEnabled: () => true },
+    "./chatgpt-auth": { getChatGPTUser: async () => user },
+  });
+  const endpoint = compile("../app/api/studio/claim-owner/route.ts", {
+    "cloudflare:workers": { env }, "../../../studio-access": access,
+  });
+  return { ...access, ...endpoint, writes: () => writes };
+}
+test("matching verified email requires an explicit owner claim; first signup is not administrator", async () => {
+  const f = ownerFixture();
+  assert.equal((await f.studioAccess()).role, "subscriber");
+  assert.equal((await f.ownerSetup()).claimed, false);
+  const result = await f.POST(new Request("https://studio.test/api/studio/claim-owner", {
+    method: "POST", headers: { Origin: "https://studio.test" },
+  }));
+  assert.equal(result.status, 200);
+  assert.equal((await f.studioAccess()).role, "owner");
+  assert.equal(f.writes(), 1);
+  await f.POST(new Request("https://studio.test/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://studio.test" } }));
+  assert.equal(f.writes(), 1, "reclaim is idempotent and cannot overwrite");
+});
+test("unsigned, nonmatching and unconfigured users cannot claim owner", async () => {
+  for (const options of [{ user: null }, { user: { userId: "other", email: "other@example.test" } }, { email: "" }]) {
+    const f = ownerFixture(options);
+    assert.equal(await f.ownerSetup(), null);
+    const result = await f.POST(new Request("https://studio.test/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://studio.test" } }));
+    assert.equal(result.status, 403);
+    assert.equal(f.writes(), 0);
+  }
+});
+test("owner claim rejects cross-origin requests and never replaces a different owner", async () => {
+  const f = ownerFixture();
+  assert.equal((await f.POST(new Request("https://studio.test/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://attacker.test" } }))).status, 403);
+  assert.equal(f.writes(), 0);
+  const occupied = ownerFixture({ existing: { userId: "original-account" } });
+  assert.equal((await occupied.studioAccess()).role, "subscriber");
+  assert.equal((await occupied.ownerSetup()).blocked, true);
+  assert.equal((await occupied.POST(new Request("https://studio.test/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://studio.test" } }))).status, 403);
+  assert.equal(occupied.writes(), 0);
+});
+test("owner claim fails explicitly without private storage", async () => {
+  const f = ownerFixture({ storage: false });
+  assert.equal((await f.POST(new Request("https://studio.test/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://studio.test" } }))).status, 503);
+});

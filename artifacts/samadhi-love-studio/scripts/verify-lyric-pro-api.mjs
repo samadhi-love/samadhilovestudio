@@ -602,6 +602,15 @@ let footageResponse=await project.PUT(footageRequest());checked(footageResponse.
 await bucket.put("lyric-assets/owner/song-1/product-video",new Uint8Array([1,2]),{customMetadata:{song:"song-1",kind:"sourceVideo"},httpMetadata:{contentType:"video/mp4"}});
 footageResponse=await project.PUT(footageRequest());checked(footageResponse.status===200,"owned product footage and CTA save with the same timed lyric project");
 checked(state.studio.songs.find(s=>s.id==="song-1").lyricVideo.pro.backgroundVideo.asset==="product-video","product-video settings survive save and reopen");
+// MediaRecorder codec parameters must not reject a valid saved video container.
+const codecSave = await assets.POST(request("/api/studio/lyric-assets", "POST", "codec-fixture", {
+  "Content-Type": "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+  "X-Song-Id": "song-1", "X-Asset-Kind": "video", "X-Asset-Size": "13",
+}));
+checked(codecSave.status === 200, "codec-qualified MediaRecorder MP4 saves successfully");
+const codecAsset = await codecSave.json();
+const codecInfo = await bucket.head(`lyric-assets/owner/song-1/${codecAsset.id}`);
+checked(codecInfo.httpMetadata.contentType === "video/mp4", "saved video stores the canonical MP4 container type");
 // Studio vocals default to caption-ready production, and sync can retrieve the exact saved words.
 let clearResponse=await create.POST(request("/api/studio/create","POST",{action:"song",title:"Clear vocal default",prompt:"A warm original song",lyrics:"[Verse]\nClear words from our song",duration:30}));
 checked(clearResponse.ok&&state.studio.songs[0].generation.captionReady===true,"caption-ready vocal production is the real generation default");

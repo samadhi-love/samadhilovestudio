@@ -1,6 +1,7 @@
 import { chatGPTSignInPath, chatGPTSignOutPath } from "../chatgpt-auth";
 import { creatorAccount, creatorBetaEnabled } from "../creator-accounts";
-import { studioAccess } from "../studio-access";
+import { studioAccess, ownerSetup } from "../studio-access";
+import { redirect } from "next/navigation";
 import Studio from "../studio";
 import { RegisterCreator } from "./register";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CreatorPage() {
   const access = await studioAccess();
+  if (access.role === "subscriber" && await ownerSetup()) redirect("/owner");
   const open = creatorBetaEnabled();
   const account = open && access.role === "subscriber" ? await creatorAccount(access.id) : null;
   if (open && account && !account.suspended) return <Studio creatorName={account.displayName} signOut={chatGPTSignOutPath("/creator")}/>;

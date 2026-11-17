@@ -113,11 +113,6 @@ function readSubscription(body: unknown) {
   return tier || usage ? { tier, usage } : undefined;
 }
 
-function readMusicPlan(body: unknown) {
-  if (!body || typeof body !== "object" || !("chunks" in body) || !Array.isArray(body.chunks)) return undefined;
-  return body.chunks.some(chunk => chunk && typeof chunk.duration_ms === "number" && chunk.duration_ms > 0) ? true : undefined;
-}
-
 /** Owner setup only: a read-only account check, with no composition or audio. */
 export async function testElevenLabsAccount(key: string) {
   const account = await probe(key, "account", "user/subscription", 12_000, readSubscription);
@@ -132,32 +127,29 @@ export async function testElevenLabsAccount(key: string) {
   };
 }
 
-export async function testElevenLabs(key: string): Promise<Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "musicMessage" | "accountMessage" | "usage" | "error">> {
-  const [account, music] = await Promise.all([
-    probe(key, "account", "user/subscription", 12_000, readSubscription),
-    probe(key, "music", "music/plan", 45_000, readMusicPlan, {
-      prompt: "A short, uplifting instrumental piano sketch.",
-      music_length_ms: 10000,
-      model_id: musicModel,
-    }),
-  ]);
-  const connected = account.ok || music.ok;
+export async function testElevenLabs(key: string): Promise<Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "musicMessage" | "accountMessage" | "usage" | "error" | "capabilities">> {
+  // GET only. A composition plan is processing too, not a free permission probe.
+  const account = await probe(key, "account", "user/subscription", 12_000, readSubscription);
+  const connected = account.ok;
   const free = account.ok && account.value.tier === "free";
-  const musicBlocked = free || (!music.ok && ["key", "permission", "ip", "plan", "credits", "denied", "model"].includes(music.failure.kind));
-
-  // Log only locally defined result categories and numeric statuses for troubleshooting.
-  const outcome = <T>(result: Probe<T>) => result.ok ? { result: "verified" } :
-    { result: result.failure.kind, http: result.failure.status };
-  console.info("ElevenLabs connection check", { account: outcome(account), music: outcome(music), plan: free ? "free" : undefined });
-
+  const unavailable = !account.ok && ["key", "ip"].includes(account.failure.kind);
+  const state = unavailable ? "unavailable" as const : "unknown" as const;
+  const reason = account.ok
+    ? "The free account check does not expose this key’s feature permissions. Check the named permission in ElevenLabs; no paid request was made."
+    : account.failure.message;
   return {
     connection: connected ? "connected" : "error",
-    musicAccess: music.ok && !free ? "available" : musicBlocked ? "unavailable" : "unknown",
+    musicAccess: free || unavailable ? "unavailable" : "unknown",
     checkedAt: new Date().toISOString(),
     accountMessage: account.ok ? "ElevenLabs accepted the key for the subscription check." : account.failure.message,
     musicMessage: free ? "ElevenLabs reports a Free plan. Use a key from a paid workspace with Music API access." :
-      music.ok ? "ElevenLabs returned a Music v2.5 composition plan." : music.failure.message,
+      reason,
+    capabilities: {
+      music: { state: free ? "unavailable" : state, reason: free ? "This workspace reports the Free plan. Music API use requires an eligible paid plan and Music permission." : reason + " Enable Music access." },
+      alignment: { state, reason: reason + " Enable Forced Alignment access for lyrics timing." },
+      stems: { state, reason: reason + " Enable Music access for stem separation." },
+    },
     usage: account.ok ? account.value.usage : undefined,
-    error: connected ? undefined : "Neither ElevenLabs check verified the key. See the account and Music results below.",
+    error: connected ? undefined : "The read-only account check could not verify the key. Check User read permission; do not generate music to test the connection.",
   };
 }

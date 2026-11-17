@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import type { ElevenLabsSettings } from "../../../elevenlabs-settings-data";
 
-type Check = Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "accountMessage" | "musicMessage" | "error">;
+type Check = Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "accountMessage" | "musicMessage" | "error" | "capabilities">;
 
 const encoder = new TextEncoder();
 const maxKeyLength = 200;
@@ -51,6 +51,9 @@ export async function keyStatus(ownerId: string) {
     musicMessage: metadata?.musicMessage,
     error: metadata?.error,
   };
+  if (metadata?.capabilities) {
+    try { status.capabilities = JSON.parse(metadata.capabilities); } catch { /* Older connection metadata has no capability report. */ }
+  }
   if (record && !available) {
     status.connection = "error";
     status.musicAccess = "unknown";
@@ -78,6 +81,7 @@ export async function saveElevenLabsKey(ownerId: string, value: string, check: C
       ...(check.accountMessage && { accountMessage: check.accountMessage }),
       ...(check.musicMessage && { musicMessage: check.musicMessage }),
       ...(check.error && { error: check.error }),
+      ...(check.capabilities && { capabilities: JSON.stringify(check.capabilities) }),
     },
   });
   return !!result;

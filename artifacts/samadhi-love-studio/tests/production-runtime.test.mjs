@@ -1,162 +1,175 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { once } from "node:events";
 import { test } from "node:test";
-import ts from "typescript";
-import { createGateway, gatewayConfig } from "../scripts/production-gateway.mjs";
-import { cloudflareProductionBindings } from "../scripts/cloudflare-production-bindings.mjs";
+import { readFile, readdir, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resources } from "../scripts/storage/resources.mjs";
+import { runtimeConfig, initializeRuntime, verifyStorage } from "../scripts/storage/runtime.mjs";
+import { D1Http } from "../scripts/storage/d1.mjs";
+import { R2PrivateBucket, encodeMetadata, decodeMetadata, MAX_UPLOAD } from "../scripts/storage/r2.mjs";
+import { env } from "../scripts/storage/node-bindings.mjs";
 
-const fixtureKey = "fixture-only-not-a-real-secret-123456789";
-const source = {
-  PORT: "19559", STUDIO_WORKER_ORIGIN: "https://worker.example.workers.dev",
-  STUDIO_PUBLIC_ORIGIN: "https://studio.example.test", STUDIO_WORKER_PROXY_KEY: fixtureKey,
-};
-const { outputText } = ts.transpileModule(readFileSync(new URL("../worker/production-request.ts", import.meta.url), "utf8"), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-});
-const { productionRequest } = await import("data:text/javascript;base64," + Buffer.from(outputText).toString("base64"));
-const workerEnv = { STUDIO_PUBLIC_ORIGIN: source.STUDIO_PUBLIC_ORIGIN, STUDIO_WORKER_PROXY_KEY: fixtureKey };
-
-async function serve(t, transport) {
-  const server = createGateway(gatewayConfig(source), transport);
-  server.listen(0, "127.0.0.1");
-  await once(server, "listening");
-  t.after(async () => {
-    server.closeAllConnections();
-    await new Promise(resolve => server.close(resolve));
-  });
-  return `http://127.0.0.1:${server.address().port}`;
+const source = { PORT: "19559", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture-d1",
+  STUDIO_R2_ACCESS_KEY_ID: "fixture-s3", STUDIO_R2_SECRET_ACCESS_KEY: "fixture-secret",
+  STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32), STUDIO_OWNER_EMAIL: "owner@example.test" };
+const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
+const tables = [...schema.matchAll(/sqliteTable\("([^"]+)"/g)].map(m => ({ name: m[1] }));
+function adapters() {
+  const calls = [];
+  const DB = { prepare(sql) {
+    assert.match(sql, /^SELECT name FROM sqlite_master/);
+    return { bind(...params) { assert.deepEqual(params, ["table"]); return { async all() { calls.push("schema"); return { results: tables }; } }; } };
+  } };
+  return { DB, BUCKET: { async checkAccess() { calls.push("head-bucket"); } }, calls };
 }
-
-test("production gateway validates required configuration and never permits HTTP or a forwarding loop", () => {
-  assert.equal(gatewayConfig(source).port, 19559);
-  for (const patch of [
-    { STUDIO_WORKER_ORIGIN: undefined }, { STUDIO_WORKER_ORIGIN: "http://localhost:1234" },
-    { STUDIO_WORKER_ORIGIN: "https://user:pass@worker.example" },
-    { STUDIO_WORKER_ORIGIN: "https://worker.example/path" },
-    { STUDIO_WORKER_ORIGIN: source.STUDIO_PUBLIC_ORIGIN },
-    { STUDIO_WORKER_PROXY_KEY: undefined }, { STUDIO_WORKER_PROXY_KEY: "short" }, { PORT: "NaN" },
-  ]) assert.throws(() => gatewayConfig({ ...source, ...patch }));
+test("production requires every credential and validates vault format and allocated port", () => {
+  assert.equal(runtimeConfig(source).databaseId, resources.databaseId);
+  for (const name of ["STUDIO_CLOUDFLARE_D1_API_TOKEN", "STUDIO_R2_ACCESS_KEY_ID", "STUDIO_R2_SECRET_ACCESS_KEY", "STUDIO_ELEVENLABS_VAULT_KEY"])
+    assert.throws(() => runtimeConfig({ ...source, [name]: "" }), /Secrets|encryption key/);
+  for (const port of ["NaN", "", "0", "65536", "5.5"]) assert.throws(() => runtimeConfig({ ...source, PORT: port }), /PORT/);
+  for (const origin of ["http://untrusted.test", "https://user:password@studio.test", "https://studio.test/path", "not-a-url"])
+    assert.throws(() => runtimeConfig({ ...source, STUDIO_PUBLIC_ORIGIN: origin }), /HTTPS origin/);
 });
-
-test("Worker rejects unconfigured, unauthenticated and forged requests before application handling", async () => {
-  const request = new Request(source.STUDIO_WORKER_ORIGIN + "/");
-  assert.equal((await productionRequest(request, {})).status, 503);
-  assert.equal((await productionRequest(request, workerEnv)).status, 403);
-  const forged = new Request(request, { headers: { "x-studio-gateway-key": "wrong", "x-forwarded-host": "attacker.test" } });
-  assert.equal((await productionRequest(forged, workerEnv)).status, 403);
+test("canonical vault name never silently rotates an existing alias", () => {
+  assert.equal(runtimeConfig({ ...source, STUDIO_ELEVENLABS_VAULT_KEY: undefined, vault: "cd".repeat(32) }).vault, "cd".repeat(32));
+  assert.throws(() => runtimeConfig({ ...source, STUDIO_ELEVENLABS_VAULT_KEY: "wrong", vault: "cd".repeat(32) }));
 });
-
-test("Worker restores only the configured public origin and preserves body, cookies and original Origin", async () => {
-  const request = new Request(source.STUDIO_WORKER_ORIGIN + "/api/studio/create?test=1", {
-    method: "POST",
-    headers: {
-      "x-studio-gateway-key": fixtureKey, "x-forwarded-host": "attacker.test",
-      Origin: source.STUDIO_PUBLIC_ORIGIN, Cookie: "__session=fixture",
-    },
-    body: '{"action":"fixture-no-provider-call"}',
-  });
-  const prepared = await productionRequest(request, workerEnv);
-  assert.ok(prepared instanceof Request);
-  assert.equal(prepared.url, source.STUDIO_PUBLIC_ORIGIN + "/api/studio/create?test=1");
-  assert.equal(prepared.headers.get("x-forwarded-host"), "studio.example.test");
-  assert.equal(prepared.headers.get("x-studio-gateway-key"), null);
-  assert.equal(prepared.headers.get("origin"), source.STUDIO_PUBLIC_ORIGIN);
-  assert.equal(prepared.headers.get("cookie"), "__session=fixture");
-  assert.match(await prepared.text(), /fixture-no-provider-call/);
+test("startup uses read-only schema and bucket checks, never schema writes or services", async () => {
+  const a = adapters();
+  const result = await initializeRuntime(source, a);
+  assert.deepEqual(a.calls, ["schema", "head-bucket"]);
+  assert.equal(env.DB, a.DB);
+  assert.equal(result.env.STUDIO_CREDITS_ENABLED, undefined);
+  assert.equal(result.env.ELEVENLABS_API_KEY, undefined);
+  assert.equal(result.env.STUDIO_BILLING_LAUNCH_APPROVED, undefined);
 });
-
-test("production HTTP gateway streams requests and returns dynamic route status without exposing its key", async t => {
-  let calls = 0;
-  const origin = await serve(t, async (url, options) => {
-    calls++;
-    assert.equal(new URL(url).origin, source.STUDIO_WORKER_ORIGIN);
-    assert.equal(options.redirect, "manual");
-    assert.equal(options.headers.get("x-studio-gateway-key"), fixtureKey);
-    assert.equal(options.headers.get("x-forwarded-host"), null);
-    assert.equal(options.headers.get("cookie"), "__session=fixture");
-    const prepared = await productionRequest(new Request(url, options), workerEnv);
-    assert.equal(prepared.url, source.STUDIO_PUBLIC_ORIGIN + "/api/studio?x=1");
-    assert.equal(await prepared.text(), '{"lyrics":"مرحبا / Hello"}');
-    return new Response('{"error":"fixture signed out"}', {
-      status: 401,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store", "x-studio-gateway-key": fixtureKey },
-    });
-  });
-  const response = await fetch(origin + "/api/studio?x=1", {
-    method: "POST",
-    headers: { Cookie: "__session=fixture", "x-forwarded-host": "attacker.test", "x-studio-gateway-key": "forged" },
-    body: '{"lyrics":"مرحبا / Hello"}',
-  });
-  assert.equal(response.status, 401);
-  assert.equal(response.headers.get("x-studio-gateway-key"), null);
-  assert.equal(response.headers.get("cache-control"), "no-store");
-  assert.match(await response.text(), /fixture signed out/);
-  assert.equal(calls, 1);
+test("missing schema fails startup without creating tables or checking media", async () => {
+  let bucket = false;
+  await assert.rejects(verifyStorage({ prepare: () => ({ bind: () => ({ all: async () => ({ results: [] }) }) }) },
+    { checkAccess: async () => { bucket = true; } }), /missing: studios/);
+  assert.equal(bucket, false);
 });
-
-test("gateway preserves separate cookies, ranges and redirects without following upstream destinations", async t => {
-  const origin = await serve(t, async (_url, options) => {
-    assert.equal(options.headers.get("range"), "bytes=0-10");
-    const headers = new Headers({ Location: source.STUDIO_WORKER_ORIGIN + "/creator", "Content-Encoding": "gzip" });
-    headers.append("Set-Cookie", "first=one; Path=/; HttpOnly; Secure");
-    headers.append("Set-Cookie", "second=two; Path=/; HttpOnly; Secure");
-    return new Response(null, { status: 302, headers });
-  });
-  const response = await fetch(origin + "/audio", { redirect: "manual", headers: { Range: "bytes=0-10" } });
-  assert.equal(response.status, 302);
-  assert.equal(response.headers.get("location"), source.STUDIO_PUBLIC_ORIGIN + "/creator");
-  assert.equal(response.headers.getSetCookie().length, 2);
-  assert.equal(response.headers.get("content-encoding"), null);
+test("D1 binds multilingual and hostile-looking text without SQL interpolation", async () => {
+  const calls = [];
+  const db = new D1Http({ ...resources, token: "fixture-only", transport: async (url, options) => {
+    calls.push({ url, options });
+    return Response.json({ success: true, result: [{ success: true, results: [{ content: "مرحبا", revision: 2 }], meta: { changes: 1 } }] });
+  } });
+  const value = "مرحبا'); DROP TABLE studios;--";
+  const row = await db.prepare("SELECT content, revision FROM studios WHERE owner = ?").bind(value).first();
+  assert.equal(row.content, "مرحبا");
+  assert.deepEqual(JSON.parse(calls[0].options.body), [{ sql: "SELECT content, revision FROM studios WHERE owner = ?", params: [value] }]);
+  assert.equal(calls[0].options.redirect, "error");
 });
-
-test("gateway returns a safe error on backend failure without retrying generation", async t => {
-  let calls = 0;
-  const origin = await serve(t, async () => { calls++; throw new Error("fixture internal details"); });
-  const response = await fetch(origin + "/api/studio/create", { method: "POST", body: "{}" });
-  assert.equal(response.status, 502);
-  const body = await response.text();
-  assert.ok(!body.includes("internal details"));
-  assert.ok(!body.includes(fixtureKey));
-  assert.equal(calls, 1);
+test("D1 multi-statement batch makes exactly one request and preserves order", async () => {
+  let count = 0;
+  const db = new D1Http({ ...resources, token: "fixture", transport: async (_url, options) => {
+    count++;
+    assert.equal(JSON.parse(options.body).length, 2);
+    return Response.json({ success: true, result: [
+      { success: true, meta: { changes: 1 } }, { success: true, results: [{ value: 3 }] },
+    ] });
+  } });
+  const result = await db.batch([db.prepare("UPDATE studios SET revision = ?").bind(3), db.prepare("SELECT 3 AS value")]);
+  assert.equal(result[0].meta.changes, 1);
+  assert.equal(result[1].results[0].value, 3);
+  assert.equal(count, 1);
 });
-
-test("gateway rejects network-path targets instead of forwarding to a caller-selected host", async t => {
-  let calls = 0;
-  const origin = await serve(t, async () => { calls++; return new Response("unexpected"); });
-  const response = await fetch(origin + "//attacker.example/private");
-  assert.equal(response.status, 400);
-  assert.equal(calls, 0);
+test("D1 ambiguous writes and provider errors are never automatically repeated or leaked", async () => {
+  for (const failure of ["network", "http", "json"]) {
+    let count = 0;
+    const db = new D1Http({ ...resources, token: "secret-fixture", transport: async () => {
+      count++;
+      if (failure === "network") throw new Error("secret-fixture");
+      return failure === "http" ? new Response("secret-fixture", { status: 503 }) : Response.json({ success: false, errors: ["secret-fixture"] });
+    } });
+    await assert.rejects(db.prepare("UPDATE studios SET revision = ?").bind(1).run(), e => !e.message.includes("secret-fixture"));
+    assert.equal(count, 1);
+  }
 });
-
-test("gateway preserves binary audio range responses without buffering or corrupting bytes", async t => {
-  const origin = await serve(t, async (_url, options) => {
-    assert.equal(options.headers.get("range"), "bytes=1-3");
-    assert.equal(options.headers.get("forwarded"), null);
-    return new Response(new Uint8Array([0, 255, 128]), {
-      status: 206,
-      headers: { "Content-Type": "audio/mpeg", "Content-Range": "bytes 1-3/9", "Accept-Ranges": "bytes" },
-    });
-  });
-  const response = await fetch(origin + "/api/studio/audio", {
-    headers: { Range: "bytes=1-3", Forwarded: "host=attacker.example" },
-  });
-  assert.equal(response.status, 206);
-  assert.equal(response.headers.get("content-range"), "bytes 1-3/9");
-  assert.deepEqual(new Uint8Array(await response.arrayBuffer()), new Uint8Array([0, 255, 128]));
+test("D1 raw arrays and first-column lookup preserve ORM mapping", async () => {
+  const db = new D1Http({ ...resources, transport: async () => Response.json({ success: true, result: [
+    { success: true, results: [{ owner: "a", revision: 2 }, { owner: "b", revision: 3 }] },
+  ] }) });
+  assert.deepEqual(await db.prepare("SELECT owner, revision FROM studios").raw(), [["a", 2], ["b", 3]]);
+  assert.equal(await db.prepare("SELECT owner FROM studios").first("owner"), "a");
+  assert.throws(() => db.prepare("SELECT ?").bind(undefined));
 });
-
-test("Cloudflare production builds require real identifiers and never accept the local D1 placeholder", () => {
-  assert.throws(() => cloudflareProductionBindings({}), /CLOUDFLARE_ACCOUNT_ID/);
-  const config = {
-    CLOUDFLARE_ACCOUNT_ID: "a".repeat(32), STUDIO_D1_DATABASE_ID: "12345678-1234-4321-8123-123456789012",
-    STUDIO_D1_DATABASE_NAME: "fixture-studio-db", STUDIO_R2_BUCKET_NAME: "fixture-studio-media",
-    STUDIO_CLOUDFLARE_WORKER_NAME: "fixture-studio", STUDIO_PUBLIC_ORIGIN: source.STUDIO_PUBLIC_ORIGIN,
-  };
-  const result = cloudflareProductionBindings(config);
-  assert.equal(result.d1_databases[0].binding, "DB");
-  assert.equal(result.r2_buckets[0].binding, "BUCKET");
-  assert.equal(result.vars.STUDIO_PUBLIC_ORIGIN, source.STUDIO_PUBLIC_ORIGIN);
-  assert.ok(!JSON.stringify(result).includes(fixtureKey));
-  assert.throws(() => cloudflareProductionBindings({ ...config, STUDIO_D1_DATABASE_ID: "00000000-0000-4000-8000-000000000000" }), /not a placeholder/);
+test("R2 metadata preserves camelCase, Arabic, mixed text and HTTP metadata", () => {
+  const custom = { checkedAt: "now", musicAccess: "unknown", songTitle: "سلام / Hello", defaultProvider: "elevenlabs" };
+  assert.deepEqual(decodeMetadata(encodeMetadata(custom, { contentType: "video/mp4" })), { custom, http: { contentType: "video/mp4" } });
+  assert.equal(decodeMetadata({ defaultprovider: "elevenlabs" }).custom.defaultProvider, "elevenlabs");
+});
+test("R2 private streaming range reads never create public URLs", async () => {
+  const seen = [];
+  const bucket = new R2PrivateBucket({ ...resources, client: { send: async command => {
+    seen.push(command);
+    return { ETag: '"etag"', ContentLength: 3, ContentRange: "bytes 1-3/9", ContentType: "audio/mpeg",
+      Metadata: encodeMetadata({ songTitle: "سلام" }), Body: { transformToWebStream: () => new Response(new Uint8Array([0, 255, 128])).body } };
+  } } });
+  const result = await bucket.get("songs/private/id", { range: { offset: 1, length: 3 } });
+  assert.equal(seen[0].input.Range, "bytes=1-3");
+  assert.equal(result.size, 9);
+  assert.equal(result.httpMetadata.contentType, "audio/mpeg");
+  assert.deepEqual(new Uint8Array(await result.arrayBuffer()), new Uint8Array([0,255,128]));
+});
+test("R2 conditional upload uses a private capped tempfile, preserves metadata and cleans up", async () => {
+  const before = (await readdir(tmpdir())).filter(f => f.startsWith("studio-upload-"));
+  let file;
+  const bucket = new R2PrivateBucket({ ...resources, client: { send: async command => {
+    assert.equal(command.constructor.name, "PutObjectCommand");
+    assert.equal(command.input.IfNoneMatch, "*");
+    file = command.input.Body.path;
+    assert.equal((await stat(file)).mode & 0o777, 0o600);
+    assert.equal(await readFile(file, "utf8"), "مرحبا");
+    assert.equal(command.input.ContentLength, Buffer.byteLength("مرحبا"));
+    assert.equal(decodeMetadata(command.input.Metadata).custom.songTitle, "مرحبا");
+    return { ETag: '"new"' };
+  } } });
+  const result = await bucket.put("fixture", "مرحبا", { onlyIf: { etagDoesNotMatch: "*" }, customMetadata: { songTitle: "مرحبا" } });
+  assert.equal(result.etag, "new");
+  await assert.rejects(stat(file), { code: "ENOENT" });
+  assert.deepEqual((await readdir(tmpdir())).filter(f => f.startsWith("studio-upload-")), before);
+  assert.equal(MAX_UPLOAD, 512 * 1024 * 1024);
+});
+test("R2 write conflicts return null, failures clean temporary bytes and never retry", async () => {
+  for (const code of [412, 503]) {
+    let count = 0, file;
+    const bucket = new R2PrivateBucket({ ...resources, client: { send: async command => {
+      count++; file = command.input.Body.path;
+      throw Object.assign(new Error("sensitive-provider-response"), { $metadata: { httpStatusCode: code } });
+    } } });
+    if (code === 412) assert.equal(await bucket.put("fixture", "data"), null);
+    else await assert.rejects(bucket.put("fixture", "data"), e => !e.message.includes("sensitive-provider-response"));
+    assert.equal(count, 1);
+    await assert.rejects(stat(file), { code: "ENOENT" });
+  }
+});
+test("R2 lists requested metadata without losing casing, multilingual text or pagination", async () => {
+  const calls = [];
+  const bucket = new R2PrivateBucket({ ...resources, client: { send: async command => {
+    calls.push(command);
+    if (command.constructor.name === "ListObjectsV2Command") return {
+      Contents: [{ Key: "song/a", Size: 9 }], IsTruncated: true, NextContinuationToken: "next-page",
+    };
+    return { ETag: '"test"', ContentLength: 9, Metadata: encodeMetadata({ createdAt: "now", songTitle: "سلام" }) };
+  } } });
+  const result = await bucket.list({ prefix: "song/", include: ["customMetadata"], cursor: "previous", limit: 25 });
+  assert.equal(calls[0].input.ContinuationToken, "previous");
+  assert.equal(result.objects[0].customMetadata.songTitle, "سلام");
+  assert.equal(result.objects[0].customMetadata.createdAt, "now");
+  assert.equal(result.cursor, "next-page");
+  assert.equal(result.truncated, true);
+  calls.length = 0;
+  await bucket.list({ prefix: "song/" });
+  assert.equal(calls.length, 1, "cleanup scans need not HEAD every object");
+});
+test("preview is emulated, production has no Worker gateway and no automatic retention scheduler", async () => {
+  const config = await readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
+  const startup = await readFile(new URL("../scripts/start-production.mjs", import.meta.url), "utf8");
+  const worker = await readFile(new URL("../worker/index.ts", import.meta.url), "utf8");
+  assert.match(config, /command === "build"[\s\S]*node-bindings/);
+  assert.match(startup, /initializeRuntime/);
+  assert.match(startup, /startProdServer[\s\S]*0\.0\.0\.0/);
+  assert.doesNotMatch(startup, /gateway|wrangler|createGateway/);
+  assert.doesNotMatch(worker, /scheduled\(|runSongRetention/);
 });

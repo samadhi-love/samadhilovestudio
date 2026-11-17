@@ -96,3 +96,24 @@ test("the real owner probe performs exactly one read-only subscription request, 
   assert.equal(calls[0].options.method, "GET");
   assert.equal(calls[0].options.body, undefined);
 });
+
+test("Settings Test connection is GET-only and never falsely verifies feature permissions", async () => {
+  const calls = [];
+  const api = compile("../app/api/studio/elevenlabs/provider.ts", {
+    "./music-sdk": { isSdkMusicPath: () => false, sdkMusicRequest: () => { throw new Error("No paid calls"); } },
+  }, { AbortSignal, Date, Response, fetch: async (url, options) => {
+    calls.push({ url, options });
+    return Response.json({ tier: "creator", character_count: 0, character_limit: 100 });
+  } });
+  const status = await api.testElevenLabs("fixture-key");
+  assert.equal(status.connection, "connected");
+  assert.equal(status.musicAccess, "unknown");
+  for (const feature of ["music", "alignment", "stems"]) {
+    assert.equal(status.capabilities[feature].state, "unknown");
+    assert.match(status.capabilities[feature].reason, /permission/i);
+  }
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.method, "GET");
+  assert.equal(calls[0].options.body, undefined);
+  assert.match(calls[0].url, /\/user\/subscription$/);
+});

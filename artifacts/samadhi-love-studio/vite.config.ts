@@ -7,7 +7,6 @@ import { sites } from "./scripts/vite/sites-vite-plugin";
 import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
 import { studioWorkerSecrets } from "./scripts/worker-secrets.mjs";
 import path from "node:path";
-import { cloudflareProductionBindings } from "./scripts/cloudflare-production-bindings.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -22,7 +21,6 @@ const localBindingConfig = {
   main: "./worker/index.ts",
   vars: { STUDIO_CREATOR_BETA: "1" },
   compatibility_flags: ["nodejs_compat"],
-  triggers: { crons: ["*/15 * * * *"] },
   d1_databases: d1
     ? [
         {
@@ -45,7 +43,12 @@ const localBindingConfig = {
 export default defineConfig(async ({ command }) => {
   configureToolEnvironment(process.cwd());
 
-  // Wrangler snapshots its log path while the Cloudflare plugin is imported.
+  // Production is an ordinary Vinext Node build. Never load Wrangler or use a Worker gateway.
+  if (command === "build") return {
+    resolve: { alias: { "cloudflare:workers": path.resolve("scripts/storage/node-bindings.mjs") } },
+    plugins: [vinext(), sites({ mockAuth: false })],
+  };
+  // Preview alone uses isolated local D1/R2 emulation.
   const { cloudflare } = await import("@cloudflare/vite-plugin");
   const { unstable_getVarsForDev } = await import("wrangler");
   const workerSecrets = studioWorkerSecrets(command, command === "serve"
@@ -71,7 +74,6 @@ export default defineConfig(async ({ command }) => {
         inspectorPort: false,
         config: {
           ...localBindingConfig,
-          ...(process.env.STUDIO_BUILD_TARGET === "cloudflare" ? cloudflareProductionBindings() : {}),
           secrets: workerSecrets,
           ...(command === "serve"
             ? {
