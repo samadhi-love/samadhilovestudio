@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import React,{act} from "react";
 import {JSDOM} from "jsdom";
+import { customCreate, creationIdea, englishCreation } from "./create-controls";
 import {autoTrackTime,isTrackDuration} from "../app/track-duration";
 import {QuickCreate} from "../app/quick-create";
 import {CreateStudio} from "../app/create-studio";
@@ -36,7 +37,7 @@ async function setup(){
   const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
   const button=(label:string)=>[...document.querySelectorAll("button")].find(b=>b.textContent?.trim()===label)!;
   async function input(element:HTMLInputElement|HTMLTextAreaElement,value:string){await act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element),"value")!.set!.call(element,value);element.dispatchEvent(new dom.window.Event("input",{bubbles:true}));});}
-  const select=async(value:string)=>act(async()=>{const control=[...document.querySelectorAll("select")].find(s=>s.parentElement?.textContent?.startsWith("Song opening"))!;control.value=value;control.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});
+  const select=async(value:string)=>{if(document.querySelector('[data-testid="tab-mode-custom"]'))await customCreate();await englishCreation();await act(async()=>{const control=[...document.querySelectorAll("select")].find(s=>s.parentElement?.textContent?.startsWith("Song opening"))!;control.value=value;control.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});};
   const submit=()=>act(async()=>{document.querySelector("form")!.dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));});
   return {root,button,input,select,submit,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
 }
@@ -44,10 +45,10 @@ test("Quick Create sends the displayed automatic duration instead of its old fix
   const h=await setup();let duration=0,opening="";
   try{
     await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{duration=input.duration;opening=input.openingMode??"";return undefined;}} saveSketch={async()=>undefined}/>));
-    await h.select("direct");await h.input(document.querySelector("textarea")!,"A four-minute joyful song");await h.submit();assert.equal(duration,240);assert.equal(opening,"direct");assert.match(document.querySelector(".quick-auto-time")!.textContent!,/4:00/);
-    await h.input(document.querySelector("textarea")!,"An eight-minute joyful song");await h.submit();assert.equal(duration,480);assert.match(document.querySelector(".quick-auto-time")!.textContent!,/8:00/);
-    await h.input(document.querySelector("textarea")!,"A 30-second joyful hook");await h.submit();assert.equal(duration,30);
-    await h.input(document.querySelector("textarea")!,"A 20-minute joyful song");await h.submit();assert.equal(duration,30,"unsupported requests are blocked before generation instead of silently shortened");assert(document.body.textContent!.includes("more than ten minutes"));
+    await h.select("direct");await h.input(creationIdea(),"A four-minute joyful song");await h.submit();assert.equal(duration,240);assert.equal(opening,"direct");assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/4:00/);
+    await h.input(creationIdea(),"An eight-minute joyful song");await h.submit();assert.equal(duration,480);assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/8:00/);
+    await h.input(creationIdea(),"A 30-second joyful hook");await h.submit();assert.equal(duration,30);
+    await h.input(creationIdea(),"A 20-minute joyful song");await h.submit();assert.equal(duration,30,"unsupported requests are blocked before generation instead of silently shortened");assert(document.body.textContent!.includes("more than ten minutes"));
   }finally{await h.close();}
 });
 test("Guided Auto honors prompt timing while retaining manual duration control",async()=>{
@@ -81,7 +82,7 @@ test("a heading-only template is automatically used as writing structure rather 
   try{
     await act(async()=>h.root.render(<CreateStudio seed={{idea:"A joyful original song",lyrics:structure,instrumental:false}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{payload=input;return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));
     await act(async()=>[...document.querySelectorAll("button")].find(b=>b.querySelector("strong")?.textContent==="Beginner")!.click());
-    await h.submit();
+    await englishCreation();await h.submit();
     assert(payload);assert.equal(payload.lyrics,"");assert.equal(payload.arrangement,structure);
   }finally{await h.close();}
 });

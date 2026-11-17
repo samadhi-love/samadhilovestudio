@@ -1,5 +1,6 @@
 "use client";
 import { RecoveryPanel, useDraftRecovery } from "./draft-recovery";
+import { MantraRecorder } from "./mantra-recorder";
 
 import { allowMicrophone, MicrophoneInput, microphoneError, useMicrophoneInputs } from "./microphone-input";
 import { HelpControl, HelpField } from "./help-tip";
@@ -42,7 +43,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
   songs: Song[];
   saving: boolean;
   onCapture: (active: boolean) => void;
-  save: (file: File, title: string, target: Song | null, projectId?: string) => Promise<SavedRecording | null>;
+  save: (file: File, title: string, target: Song | null, projectId?: string, saveId?: string) => Promise<SavedRecording | null>;
   open: (id: string) => void;
 }) {
   const [mode, setMode] = useState<Mode>(requestedMode);
@@ -50,6 +51,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
   const microphone = useMicrophoneInputs();
   const [inputMessage, setInputMessage] = useState("");
   const [transport, setTransport] = useState<Transport>("idle");
+  const [mantraBusy, setMantraBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [level, setLevel] = useState(0);
   const [takes, setTakes] = useState<Take[]>([]);
@@ -91,7 +93,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
   const originalUrl = useBlobUrl(take?.blob);
   const processedUrl = useBlobUrl(result?.blob);
   const sourceUrl = preview === "processed" && result ? processedUrl : originalUrl;
-  const busy = transport !== "idle" || reading || progress !== null || saving;
+  const busy = transport !== "idle" || reading || progress !== null || saving || mantraBusy;
   const trimStart = Number(start);
   const trimEnd = Number(end);
   const validTrim = !!decoded && start !== "" && end !== "" && trimStart >= 0 && trimEnd - trimStart >= 0.095 && trimEnd <= duration + 0.011;
@@ -339,6 +341,8 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
     <div className="create-banner"><span className="eyebrow"><AudioLines size={16}/> AUDIO PRODUCTION</span>
       <h1>Recording Desk</h1><p>Capture a vocal, tune a take, or mix a podcast. Preview your work before saving it to the Song Library.</p>
     </div>
+    <MantraRecorder active={active} disabled={transport!=="idle"||reading||progress!==null||saving} device={microphone.device}
+      onCapture={value=>{setMantraBusy(value);onCapture(value);}} save={save} open={open}/>
     <div className="create-layout recording-layout">
       <section className="panel form-panel">
         <div className="tabs recording-tabs" aria-label="Recording mode">{tools.map(({ id, name, Icon }) =>

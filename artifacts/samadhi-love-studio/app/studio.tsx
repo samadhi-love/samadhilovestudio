@@ -428,9 +428,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           mixTake={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           vocalTake={(blob, title, narration, projectId) => { if (navigate("vocal-studio")) setVocalInput({ blob, title, projectId, role: narration ? "Narration" : "Lead vocal" }); }}
           saving={saving} onCapture={active => { captureActive.current = active; setCapturing(active); }}
-          save={async (file, title, target, projectId) => {
+          save={async (file, title, target, projectId, saveId) => {
             if (!confirm("Confirm this recording contains clean content.")) return null;
-            const result = await sendAudio(file, title, target, undefined, projectId);
+            const result = await sendAudio(file, title, target, undefined, projectId, undefined, saveId);
             return result?.songId ? { id: result.songId, name: target?.name ?? title } : null;
           }}
           open={id => { setView("songs"); openSong(id, "Production"); }}/>}

@@ -4,6 +4,29 @@ import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
 
+test("the retained build plugin cannot re-enable legacy header or cookie sign-in", () => {
+  const source = readFileSync(new URL("../scripts/vite/sites-vite-plugin.ts", import.meta.url), "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  });
+  const exports = {};
+  vm.runInNewContext(outputText, {
+    exports,
+    process: { cwd: () => "/fixture" },
+    require(name) {
+      if (name === "node:fs/promises") return {};
+      if (name === "node:path") return {};
+      throw new Error(`Unexpected build-plugin import: ${name}`);
+    },
+  });
+  for (const options of [undefined, { mockAuth: true }, { mockAuth: false }]) {
+    const plugin = exports.sites(options);
+    assert.equal(plugin.configureServer, undefined, "No authentication middleware may be installed");
+    assert.equal(typeof plugin.closeBundle, "function", "Build-asset copying remains intact");
+  }
+  assert.doesNotMatch(source, /oai-authenticated-user|__sites_local_auth|signin-with-chatgpt/);
+});
+
 // Exercise the real bridge without credentials, external calls, or a running Clerk tenant.
 function loadBridge({ cookie = "", production = false, publicOrigin, respond = async () => new Response(null, { status: 401 }) } = {}) {
   const calls = [];

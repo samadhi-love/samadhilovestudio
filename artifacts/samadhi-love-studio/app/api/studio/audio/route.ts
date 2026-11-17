@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { hasExplicitWords, cleanWordsMessage, isExplicitSong } from "../../../clean-content";
 import { creationPresets, isInstrumental, type Instrumental } from "../../../creation-guide";
 import { serveAudio } from "../audio-response";
-import { audioFormatsLabel, audioTypes, freshSong, emptyCreatorStudio, initialStudio, isAudioFormat, maxAudioBytes, type Song } from "../../../studio-data";
+import { audioFormatsLabel, audioTypes, freshSong, emptyCreatorStudio, initialStudio, isAudioFormat, maxAudioBytes, validCreationReference, type Song } from "../../../studio-data";
 import { audioKey, maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "../store";
 
 import { privateWorkspace } from "../../../studio-access";
@@ -46,7 +46,7 @@ async function uploadAudio(request: Request) {
   if (!target && (!title || title.length > 100)) return problem("Enter a song title up to 100 characters.", 400);
   const rawInstrumental = request.headers.get("X-Studio-Instrumental");
   const creationId=request.headers.get("X-Creation-Id");
-  if(creationId&&(target||!rawInstrumental||!/^[\w-]{1,100}$/.test(creationId)))return problem("Invalid creation save reference.",400);
+  if(!validCreationReference(creationId,target,rawInstrumental))return problem("Invalid creation save reference.",400);
   let instrumental: { prompt: string; settings: Instrumental; arrangement?: string } | undefined;
   if (rawInstrumental !== null) {
     if (target || format !== "wav" || rawInstrumental.length > 40000)

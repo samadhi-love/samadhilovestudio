@@ -153,9 +153,10 @@ export function QuickCreate({ connected, connectionError, connectionChecking=fal
     }
     setError(""); setPending(true);
     try {
-      const prompt = simple
+      const described = simple
         ? idea.trim()
         : [genre.trim() ? `Style: ${genre.trim()}.` : "", idea.trim(), ...(!instrumental&&!useOwnLyrics?["Write coherent original lyrics with a memorable chorus. Style notes are directions, not words to sing."]:[]), mapOn?`Tempo: ${targetBpm} BPM.`:"", instruments.trim()?`Instruments: ${instruments.trim()}.`:""].filter(Boolean).join("\n");
+      const prompt = described || (useOwnLyrics ? "Create an original song using the exact supplied lyrics." : "");
       if(prompt.length>1600)throw new Error("These combined directions are too long. Shorten your description or styles so everything reaches the music provider.");
       const duration = timing.seconds;
       const title = ((customMode&&songTitle.trim())||((genre.trim().split(",")[0] || "Studio") + (localSketch ? " Sketch" : instrumental ? " Instrumental" : " Song"))).slice(0,100);

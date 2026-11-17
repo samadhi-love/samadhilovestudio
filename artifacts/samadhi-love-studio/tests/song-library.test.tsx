@@ -47,7 +47,7 @@ test("each song has working actions, personal likes, and 14-day deletion without
 test("Quick Create auto-saves local audio and retries a failed save with the same creation reference",async()=>{
  const h=await setup();const ids:(string|undefined)[]=[];let attempts=0;
  try{await act(async()=>h.root.render(<QuickCreate connected={false} saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async(_file,_title,_prompt,_code,_take,id)=>{ids.push(id);return ++attempts===1?undefined:"saved";}}/>));
- await act(async()=>h.button("Instrumental sketch").click());await h.input(document.querySelector("textarea")!,"A 3-second instrumental");await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to My Songs"));assert(document.querySelector('a[download]'));
+ await act(async()=>h.button("Custom").click());await act(async()=>h.button("Built-in sketch · no singing, no credits").click());await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!,"A 3-second instrumental");await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to My Songs"));assert(document.querySelector('a[download]'));
  await act(async()=>h.button("Retry save to My Songs").click());assert.equal(attempts,2);assert.equal(ids[0],ids[1]);assert(ids[0]);assert(!h.button("Retry save to My Songs"));
  }finally{await h.close();}
 });

@@ -210,7 +210,7 @@ const request = (url, method, body, headers = {}) =>
     },
     ...(body !== undefined
       ? {
-          body: typeof body === "string" ? body : JSON.stringify(body),
+          body: typeof body === "string" ? body : JSON.stringify(url==="/api/studio/create"?{language:"en",...body}:body),
           duplex: "half",
         }
       : {}),
@@ -458,6 +458,7 @@ r = await create.POST(
   request("/api/studio/create", "POST", {
     action: "song",
     title: "Caption ready",
+    language: "en",
     instruments:"Oud, Piano",genres:"Jazz, Lebanese Dabke",autoTitle:true,
     prompt: "Clear original music",
     lyrics: "[Verse]\nApproved words stay exact!",
@@ -469,7 +470,7 @@ r = await create.POST(
 );
 checked(
   r.status === 200,
-  "caption-ready generation saves a linked original with a mocked provider",
+  "caption-ready generation saves a linked original with a mocked provider: " + (r.status===200?"ok":await r.clone().text()),
 );
 const generated = state.studio.songs[0];
 checked(generated.notes.instruments==="Oud, Piano"&&generated.tags.includes("Jazz"),"instrument and genre selections are saved with the actual song");

@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Mantra phrase repetition, echo, microphone cleanup and safe recording saves", ["scripts/test-mantra.mjs"]],
+  ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],
   ["Vibe matching, stem motion and caption release kits", ["scripts/test-vibe-release.mjs"]],
   ["AI visual generation, durable job recovery and private media", ["scripts/test-visual-generation.mjs"]],
   ["Style DNA, bounded song maps and genuine stem analysis", ["scripts/test-style-dna.mjs"]],

@@ -24,6 +24,13 @@ export type AudioFormat = keyof typeof audioTypes;
 export const audioAccept = Object.keys(audioTypes).map(format => "." + format).join(",");
 export const audioFormatsLabel = "MP3, WAV, M4A, FLAC, OGG, OPUS or WebM";
 export const maxAudioBytes = 96 * 1024 * 1024;
+/** Owner-scoped upload retry receipts; never permit them to overwrite a target. */
+export function validCreationReference(id: string | null, target: string | null, instrumental: string | null) {
+  if (!id) return true;
+  if (target || !/^[\w-]{1,100}$/.test(id)) return false;
+  // Keep legacy local-sketch references. Ordinary recorded audio uses UUIDs.
+  return !!instrumental || /^[a-f\d]{8}-(?:[a-f\d]{4}-){3}[a-f\d]{12}$/i.test(id);
+}
 export function isAudioFormat(value: string): value is AudioFormat {
   return Object.hasOwn(audioTypes, value);
 }

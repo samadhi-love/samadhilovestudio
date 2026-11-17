@@ -1,3 +1,9 @@
+.mantra-recorder { margin-block: 1rem; }
+.mantra-settings { border: 0; padding: 0; margin: 0 0 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; }
+.mantra-settings input[type="range"] { width: 100%; }
+.mantra-clip { border-top: 1px solid var(--border, #465657); margin-top: 1rem; padding-top: 1rem; }
+.mantra-clip audio { display: block; width: 100%; max-width: 100%; margin-block: .75rem; }
+.mantra-recorder .actions { flex-wrap: wrap; }
 :root{color-scheme:dark;--bg:#130f18;--side:#18121e;--panel:#211925;--panel-hover:#2a2030;--border:#362b3c;--ink:#fbf2ee;--muted:#b9aabd;--soft:#d9cbd8;--peach:#ffc49f;--pink:#f6adbb;--purple:#d5bafa;--green:#a8dcc4;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink)}

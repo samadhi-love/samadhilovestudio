@@ -1,4 +1,5 @@
 import test from "node:test";
+import "./browser-platform";
 import assert from "node:assert/strict";
 import React, { act, useState } from "react";
 import { JSDOM } from "jsdom";

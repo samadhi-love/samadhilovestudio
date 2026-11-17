@@ -28,3 +28,17 @@ mtime_ms = 1794875933075
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/af162166-8413-405d-85c0-6567ee51fbed/36731bd2-aa1a-4f24-a549-575e344e9b18"
 storage_version_token = "1794875960051164"
 content_type = "text/plain"
+
+[[outputs]]
+id = "kEDmSwz4IAhimC0iOon0A"
+uri = "file://generated-artifacts/mantra-recording-verification.html"
+type = "html"
+title = "Mantra recording — build and test report"
+description = "Verified recorder behavior, browser save/privacy results, existing app-wide failures and remaining device limits."
+logical_id = "a94b354b-c676-4176-93e5-7f8b4dfb7428"
+content_hash = "sha256:da59f3dec9b4ae7daa13491a737baf214410834f100d1cb2bcb9cdf63e5d55d0"
+size = 7518
+mtime_ms = 1794921194698
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/a94b354b-c676-4176-93e5-7f8b4dfb7428/b172fc8f-9485-47ac-a140-36072fad2270"
+storage_version_token = "1794921300598399"
+content_type = "text/html"
