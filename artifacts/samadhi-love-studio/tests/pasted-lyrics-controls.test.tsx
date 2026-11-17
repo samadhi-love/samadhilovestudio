@@ -17,7 +17,7 @@ test("an uploaded recording accepts pasted multilingual lyrics and sends exact r
  const oldFetch=globalThis.fetch;
  globalThis.fetch=async(url,init)=>{
   if(String(url)==="/api/studio/credits")return Response.json({funding:"own",credits:0,enabled:true});
-  if(String(url)==="/api/studio/lyric-sync"){const input=JSON.parse(String(init?.body));requests.push(input);return input.mode==="audit"?Response.json({transcript:"نور وحب, love and light!",differences:[],confidenceAvailable:false}):Response.json({cues:[{text:"نور وحب, love and light!",time:1,end:5}],engine:"alignment fixture",warnings:[]});}
+  if(String(url)==="/api/studio/jobs"){const queued=JSON.parse(String(init?.body));assert.equal(queued.route,"/api/studio/lyric-sync");const input=queued.input;requests.push(input);return input.mode==="audit"?Response.json({transcript:"نور وحب, love and light!",differences:[],confidenceAvailable:false}):Response.json({cues:[{text:"نور وحب, love and light!",time:1,end:5}],engine:"alignment fixture",warnings:[]});}
   if(String(url)==="/api/studio/lyric-project"&&init?.method==="PUT"){const input=JSON.parse(String(init.body));saves.push(input);return Response.json({project:{...input.project,pro:{...input.project.pro,updatedAt:"2026-11-13T13:00:00Z"}},data:{songs:[song],templates:[]},revision:1});}
   return Response.json({versions:[],workspace:""});
  };

@@ -34,6 +34,7 @@ tables.push({name:"studio_catalog_songs"});
 function adapters() {
   const calls = [];
   const DB = { prepare(sql) {
+    if(/^UPDATE studio_jobs SET status='failed'/.test(sql))return {bind(...params){assert.equal(params.length,4);return {async run(){calls.push("reconcile-stale-jobs");return {meta:{changes:0}};}};}};
     assert.match(sql, /^SELECT name FROM sqlite_master/);
     return { bind(...params) { assert.deepEqual(params, ["table","view"]); return { async all() { calls.push("schema"); return { results: tables }; } }; } };
   } };
@@ -53,10 +54,10 @@ test("canonical vault name never silently rotates an existing alias", () => {
   assert.equal(runtimeConfig({ ...source, STUDIO_ELEVENLABS_VAULT_KEY: undefined, vault: "cd".repeat(32) }).vault, "cd".repeat(32));
   assert.throws(() => runtimeConfig({ ...source, STUDIO_ELEVENLABS_VAULT_KEY: "wrong", vault: "cd".repeat(32) }));
 });
-test("startup uses read-only schema and bucket checks, never schema writes or services", async () => {
+test("startup checks schema and bucket before reconciling stale job records without schema writes", async () => {
   const a = adapters();
   const result = await initializeRuntime(source, a);
-  assert.deepEqual(a.calls, ["schema", "head-bucket"]);
+  assert.deepEqual(a.calls, ["schema", "head-bucket", "reconcile-stale-jobs"]);
   assert.equal(env.DB, a.DB);
   assert.equal(result.env.STUDIO_ROW_STORAGE, "verified");
   assert.equal(result.env.STUDIO_CREDITS_ENABLED, undefined);

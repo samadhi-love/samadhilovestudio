@@ -140,6 +140,7 @@ async function putWorkspace(request: Request) {
     return saved ? Response.json(await readStudio(id), options) : saveConflict();
   } catch (error) {
     console.error("Studio save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
+    if(error instanceof Error&&/malformed JSON|revision.conflict/i.test(error.message))return saveConflict();
     return Response.json({ error: "The studio could not save your changes. Keep this page open and try again." }, { status: 503 });
   }
 }

@@ -7,6 +7,7 @@ import {SongOpeningControl} from "./song-opening-control";
 import {performanceWeight, type SongOpening} from "./song-opening";
 import {productionFetch} from "./credits/client";
 import { RecoveryPanel, useDraftRecovery } from "./draft-recovery";
+import {useAccountWriting} from "./use-account-writing";
 import {SongCard} from "./song-card";
 import { GenrePicker } from "./genre-picker";
 import { genreDirection, uniqueGenreNames } from "./music-genres";
@@ -200,6 +201,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
     setError("");
     return true;
   }
+  const writingStatus=useAccountWriting("custom",{title:title.trim()||"Writing draft",prompt:idea,lyrics,voice},recovery.ready&&!busy&&!!(idea.trim()||lyrics.trim()),w=>{setTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoice(w.voice);if(w.lyrics)setLyricsMode("own");});
 
   async function create(alternate = false) {
     if (busy || !idea.trim() || length === null || !validateIdea()) return;
@@ -290,7 +292,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
   const canCreate = !!idea.trim() && validTempo && length !== null && (isLocal || elevenLabs.connected) &&
     (type !== "vocals" || lyricsMode !== "own" || !!lyrics.trim());
   const formError = error || operationError;
-  return <div className="guided-creation"><RecoveryPanel recovery={recovery}/>
+  return <div className="guided-creation"><RecoveryPanel recovery={recovery}/>{writingStatus.status&&<small role="status">{writingStatus.status}</small>}{writingStatus.available&&<button type="button" className="text-button" onClick={writingStatus.open}>Open saved writing draft</button>}
     <div className="create-banner guide-banner">
       <span className="eyebrow"><Sparkles size={15}/> THE CREATION ROOM</span>
       <h1>Give your idea a sound.</h1>

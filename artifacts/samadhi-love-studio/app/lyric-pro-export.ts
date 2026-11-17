@@ -24,6 +24,7 @@ export async function exportProVideo(
     requiresFrameEncoding?:boolean;
     frameEncodingError?:string;
     preferRecorder?: boolean;
+    checkpoint?: {read:(index:number)=>Promise<Blob|undefined>;write:(index:number,blob:Blob)=>Promise<void>};
   },
   progress: (fraction: number) => void,
 ): Promise<ProExportResult> {
@@ -121,7 +122,8 @@ export async function exportProVideo(
       audioCodec = c.codec;
     },
   });
-  output.addVideoTrack(video, { frameRate: 30 });
+  const packetVideo=options.checkpoint?new media.EncodedVideoPacketSource("avc"):null;
+  output.addVideoTrack(packetVideo??video, { frameRate: 30 });
   output.addAudioTrack(sound);
   const total = intro + (end - start) + outro;
   const trimmed = new AudioBuffer({
@@ -152,12 +154,56 @@ export async function exportProVideo(
     const soundTask = sound.add(trimmed).then(() => sound.close());
     void soundTask.catch(() => {});
     const frames = Math.ceil(total * 30);
-    for (let frame = 0; frame < frames; frame++) {
+    const checkVisible=()=>{
       signal.throwIfAborted();
       if (hidden)
         throw new Error(
-          "Export paused because the page was hidden. Your project is saved. Return here and retry with this page visible.",
+          "Export paused because the page was hidden. Return to this device and resume with Studio visible.",
         );
+    };
+    if(options.checkpoint&&packetVideo){
+      const segmentFrames=150;
+      for(let first=0;first<frames;first+=segmentFrames){
+        checkVisible();
+        const index=first/segmentFrames;
+        let blob=await options.checkpoint.read(index);
+        if(!blob){
+          const segment=new media.Output({format:new media.Mp4OutputFormat({fastStart:"in-memory"}),target:new media.BufferTarget()});
+          const source=new media.CanvasSource(canvas,{codec:"avc",bitrate:resolution===1080?4_500_000:2_800_000,keyFrameInterval:2});
+          segment.addVideoTrack(source,{frameRate:30});
+          try{
+            await segment.start();
+            for(let frame=first;frame<Math.min(frames,first+segmentFrames);frame++){
+              checkVisible();
+              await options.paint(ctx,frame/30);
+              checkVisible();
+              await source.add((frame-first)/30,Math.min(1/30,total-frame/30));
+              if(frame%6===0)await new Promise<void>(resolve=>setTimeout(resolve,0));
+            }
+            source.close();
+            await segment.finalize();
+            if(!segment.target.buffer?.byteLength)throw new Error("No video frames were encoded.");
+            blob=new Blob([segment.target.buffer],{type:"video/mp4"});
+            await options.checkpoint.write(index,blob);
+          }catch(error){await segment.cancel().catch(()=>{});throw error;}
+        }
+        const input=new media.Input({source:new media.BlobSource(blob),formats:[media.MP4]});
+        try{
+          const track=await input.getPrimaryVideoTrack();
+          const config=await track?.getDecoderConfig();
+          if(!track||!config)throw new Error("A saved segment could not be read.");
+          let firstPacket=true;
+          for await(const packet of new media.EncodedPacketSink(track).packets()){
+            checkVisible();
+            await packetVideo.add(packet.clone({timestamp:packet.timestamp+first/30,sequenceNumber:-1}),firstPacket?{decoderConfig:config}:undefined);
+            firstPacket=false;
+          }
+        }finally{input.dispose();}
+        progress(Math.min(.95,.95*(first+segmentFrames)/frames));
+      }
+      packetVideo.close();
+    }else for (let frame = 0; frame < frames; frame++) {
+      checkVisible();
       await options.paint(ctx, frame / 30);
       signal.throwIfAborted();
       await video.add(frame / 30, Math.min(1 / 30, total - frame / 30));
@@ -166,7 +212,7 @@ export async function exportProVideo(
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
     }
-    video.close();
+    if(!packetVideo)video.close();
     await soundTask;
     signal.throwIfAborted();
     await output.finalize();

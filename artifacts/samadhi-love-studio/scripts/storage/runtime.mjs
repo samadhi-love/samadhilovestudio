@@ -1,5 +1,6 @@
 import { resourceConfig } from "./resources.mjs";
 import { D1Http } from "./d1.mjs";
+import {recoverStaleJobs} from "./jobs.mjs";
 import { R2PrivateBucket } from "./r2.mjs";
 import { readFile } from "node:fs/promises";
 import { TransformStream } from "node:stream/web";
@@ -42,6 +43,7 @@ export async function initializeRuntime(source = process.env, adapters) {
   const DB = adapters?.DB ?? new D1Http(config);
   const BUCKET = adapters?.BUCKET ?? new R2PrivateBucket(config);
   await verifyStorage(DB, BUCKET);
+  await recoverStaleJobs(DB);
   // Production always uses verified per-song rows, including brand-new empty
   // accounts. Never accept an environment override back to legacy bundle saves.
   // First saves are verified empty fresh starts, not implicit copy operations.

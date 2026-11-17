@@ -97,6 +97,7 @@ import {
 } from "./lyric-visual-template";
 import { drawProFrame } from "./lyric-pro-render";
 import { exportProVideo, proVideoSize } from "./lyric-pro-export";
+import {readRender,renderKey,saveRender,segmentStore,videoJob,type VideoCheckpoint} from "./video-render-recovery";
 import {
   VideoPublishing,
   VideoLinkActions,
@@ -276,6 +277,17 @@ function LyricVideoProContent(props: Props) {
   const [recovery, setRecovery] = useState<LyricProject | null>(null);
   const workspace = useRef("");
   const [recoveryReady, setRecoveryReady] = useState("");
+  const [resumeVideo,setResumeVideo]=useState(false);
+  useEffect(()=>{
+    if(!recoveryReady||!workspace.current)return;
+    let live=true;
+    void readRender(renderKey(workspace.current,recoveryReady)).then(item=>{
+      if(!live)return;
+      setResumeVideo(!!item&&!item.finished);
+      if(item&&!item.finished&&item.options){setResolution(item.options.resolution);setFallback(item.options.fallback);setCleanExport(item.options.cleanExport);setBatch(item.options.batch);}
+    }).catch(()=>{if(live)setResumeVideo(false);});
+    return()=>{live=false;};
+  },[recoveryReady]);
   const versionsRequest = useRef(0);
   const [versionsNext, setVersionsNext] = useState<string | null>(null);
   const [versionsLimit, setVersionsLimit] = useState(100);
@@ -778,6 +790,24 @@ function LyricVideoProContent(props: Props) {
     }
   }, [song?.id, p?.duration, busy]);
   const handledAutoCaption = useRef("");
+  useEffect(()=>{
+    if(!song||!p?.duration||recoveryReady!==song.id||recovery||current.current?.cues.length||props.autoCaptionRequest?.songId===song.id)return;
+    let active=true;
+    const opened=current.current;
+    if(!opened?.pro)return;
+    void fetch(`/api/studio/jobs?songId=${encodeURIComponent(song.id)}&captions=1`,{cache:"no-store"}).then(async response=>{
+      if(!response.ok)return;
+      const saved=await response.json() as {captions?:SyncResponse;sourceAudioId?:string;text?:string};
+      const source=opened.pro!;
+      if(!active||controller.current||current.current!==opened||saved.sourceAudioId!==source.sourceAudioId||!saved.captions?.cues?.length)return;
+      if(saved.text?.trim()!==source.approvedLyrics.trim()&&source.approvedLyrics.trim())return;
+      const cues=saved.captions.cues as LyricCue[];
+      const approved=source.approvedLyrics.trim()?source.approvedLyrics:cues.map(c=>c.text).join("\n");
+      const next:LyricProject={...opened,cues,pro:{...source,approvedLyrics:approved,sections:sectionsFromLyrics(approved,cues,source.duration),alignment:{engine:saved.captions.engine??"Recovered sync",at:new Date().toISOString(),audioId:source.sourceAudioId,reviewed:false,warnings:saved.captions.warnings??[]}}};
+      if(isLyricProject(next)){edit(next);setStatus("Recovered your timed captions. Listen and review before exporting.");}
+    }).catch(()=>{});
+    return()=>{active=false;};
+  },[song?.id,p?.duration,recoveryReady,recovery,props.autoCaptionRequest?.songId]);
   useEffect(() => {
     const request = props.autoCaptionRequest;
     if (!request || request.id === handledAutoCaption.current || song?.id !== request.songId || !p?.duration || busy || recoveryReady !== song.id) return;
@@ -945,11 +975,20 @@ function LyricVideoProContent(props: Props) {
   async function generateCaptions() {
     const next = current.current;
     if (!next?.pro || !song || busy) return;
+    const pro=next.pro;
+    const rough=()=>{
+      const lines=lyricLines(pro.approvedLyrics);
+      if(!lines.length||!pro.duration){setLyricsEditorOpen(true);setStep(1);setStatus("No words could be recovered. Paste the sung lyrics and Studio can give them rough timing.");return;}
+      if(next.cues.length){setStatus("Precise sync didn't finish. Your existing timing was kept; use Estimated timing if you want a new rough draft.");return;}
+      const cues=estimatedCues(lines,pro.duration);
+      const warning="Rough timing only — these lines were spread across the recording, not matched to the voice. Listen and adjust them by hand.";
+      const fallbackProject:LyricProject={...next,cues,pro:{...pro,sections:sectionsFromLyrics(pro.approvedLyrics,cues,pro.duration),alignment:{engine:"Rough timing",at:new Date().toISOString(),audioId:pro.sourceAudioId,reviewed:false,warnings:[warning]}}};
+      if(!isLyricProject(fallbackProject)){setStatus("The lyrics need shorter lines before rough timing can be added. Your writing is kept.");return;}
+      edit(fallbackProject);setStep(2);setStatus(warning);
+    };
     if(next.pro.approvedLyrics.trim()&&!lyricLines(next.pro.approvedLyrics).length){setStep(1);setLyricsEditorOpen(true);setError("Paste the words actually sung, not only section headings. No caption processing was started.");return;}
     if (!elevenLabs.connected) {
-      setError(
-        "Connect ElevenLabs in your existing provider settings to generate captions.",
-      );
+      rough();
       return;
     }
     if (sourceChanged(song, next) && !allowOld) {
@@ -958,8 +997,7 @@ function LyricVideoProContent(props: Props) {
       );
       return;
     }
-    const pro = next.pro,
-      mode = lyricLines(pro.approvedLyrics).length ? "align" : "transcribe";
+    const mode = lyricLines(pro.approvedLyrics).length ? "align" : "transcribe";
     setOperation(
       mode === "align" ? "Aligning the saved lyrics" : "Transcribing vocals",
     );
@@ -1064,8 +1102,8 @@ function LyricVideoProContent(props: Props) {
       setStatus(
         "Captions are on the preview. Listen at the beginning, middle, and end, then mark the review complete.",
       );
-    } catch (e) {
-      message(e, "Caption generation could not finish.");
+    } catch {
+      if(!task.signal.aborted)rough();
     } finally {
       controller.current = null;
       setOperation("");
@@ -1506,6 +1544,8 @@ function LyricVideoProContent(props: Props) {
     const task = new AbortController();
     controller.current = task;
     let exportFootage:FootageDecoder|undefined;
+    let jobId:string|undefined,timer:ReturnType<typeof setInterval>|undefined;
+    const owner=workspace.current;
     try {
       const exportMedia=activeAdMedia(pro);
       if(exportMedia.footage)exportFootage=await openFootage(assetUrl(pro.sourceSongId,exportMedia.footage.asset),task.signal);
@@ -1518,11 +1558,24 @@ function LyricVideoProContent(props: Props) {
       const formats: VideoFormat[] = batch
         ? ["vertical", "wide", "square"]
         : [next.format];
+      const recoveryKey=renderKey(workspace.current,pro.sourceSongId);
+      // Export history changes as each shape finishes, but does not change frames.
+      const fingerprint=signature({...next,pro:{...pro,exports:undefined}})+JSON.stringify([formats,resolution,fallback,cleanExport,song.name]);
+      const saved=await readRender(recoveryKey).catch(()=>undefined);
+      const checkpoint:VideoCheckpoint=saved&&!saved.finished&&saved.fingerprint===fingerprint?saved:{fingerprint,token:crypto.randomUUID(),completed:0,options:{resolution,fallback,cleanExport,batch}};
+      jobId=await videoJob({video:"start",songId:pro.sourceSongId,resume:saved&&!saved.finished?saved.jobId:undefined},owner);
+      if(!jobId)throw new Error("The video job could not start. Your project is saved.");
+      checkpoint.jobId=jobId;
+      timer=setInterval(()=>{void videoJob({video:"heartbeat",jobId},owner).catch(()=>{});},30000);
+      let localRecovery=true;
+      await saveRender(recoveryKey,checkpoint).catch(()=>{localRecovery=false;setStatus("Device storage is unavailable. Keep Studio visible until this export saves.");});
       const finished: typeof outputs = [];
-      for (let i = 0; i < formats.length; i++) {
+      for (let i = checkpoint.completed; i < formats.length; i++) {
         const format = formats[i];
         setOperation(`Rendering ${formatLabels[format]}`);
-        const result = await exportProVideo(
+        const segments=segmentStore(recoveryKey,checkpoint.token,format);
+        const finalBlob=localRecovery?await segments.read(-1):undefined;
+        const result = finalBlob?{blob:finalBlob,extension:finalBlob.type.includes("mp4")?"mp4" as const:"webm" as const,codec:"Recovered on this device",engine:"Recovered finished video"}:await exportProVideo(
           {
             audio: decoded,
             audioUrl: soundtrackUrl,
@@ -1534,6 +1587,7 @@ function LyricVideoProContent(props: Props) {
             resolution,
             signal: task.signal,
             preferRecorder: fallback,
+            checkpoint:localRecovery&&!fallback?segments:undefined,
             requiresFrameEncoding:!!exportMedia.footage,
             paint: async (context, t) => {
               const sourceTime=pro.range.start+Math.max(0,t-pro.intro);
@@ -1559,6 +1613,7 @@ function LyricVideoProContent(props: Props) {
         };
         finished.push(item);
         setOutputs([...finished]);
+        if(localRecovery&&!finalBlob)await segments.write(-1,result.blob).catch(()=>{});
         let asset: string | undefined;
         if (result.blob.size <= 120 * 1024 * 1024) {
           setOperation("Saving the finished video privately");
@@ -1588,18 +1643,26 @@ function LyricVideoProContent(props: Props) {
         };
         const latest = current.current!;
         edit(registerVideoExport(song,latest,exportRecord,pro.duration));
-        await persist();
+        if(!await persist())throw new Error("The video file is available below, but its project record did not save. Keep a download and retry the project save.");
+        checkpoint.completed=i+1;
+        if(localRecovery)await saveRender(recoveryKey,checkpoint);
       }
+      if(finished.some(item=>!item.savedUrl))throw new Error("A video was too large to save privately. Download it from this tab.");
+      await videoJob({video:"done",jobId},owner);
+      if(localRecovery)await saveRender(recoveryKey,{...checkpoint,finished:true}).catch(()=>{});
+      setResumeVideo(false);
       setPostCaption(before=>before.trim()?before:`“${song.name}”${pro.artist?` by ${pro.artist}`:""}\n#LyricVideo #SamadhiLove`);
       setStatus(
         "Video export finished. Download or share the video below. A saved-video link is created automatically for exports up to 120 MB; Studio access is required to open it.",
       );
     } catch (e) {
+      if(jobId){setResumeVideo(true);await videoJob({video:"failed",jobId},owner).catch(()=>{});}
       message(
         e,
         "Export failed. Your project is saved. Try again, select 720p, or use real-time fallback.",
       );
     } finally {
+      if(timer)clearInterval(timer);
       exportFootage?.dispose();
       controller.current = null;
       setOperation("");
@@ -2370,7 +2433,7 @@ function LyricVideoProContent(props: Props) {
                             type="button"
                             className="lvp-primary"
                             disabled={
-                              busy || !p.duration || !elevenLabs.connected
+                              busy || !p.duration || (!elevenLabs.connected&&!lyricLines(p.approvedLyrics).length)
                             }
                             aria-describedby={
                               !p.approvedLyrics.trim()
@@ -3380,8 +3443,7 @@ function LyricVideoProContent(props: Props) {
                             }
                             onClick={exportVideo}
                           >
-                            <Film size={17} /> Export{" "}
-                            {cleanExport ? "clean" : "lyric"} video
+                            <Film size={17} /> {resumeVideo?"Resume export":cleanExport?"Export clean video":"Export lyric video"}
                           </button>
                           <button type="button" disabled={busy||!project.cues.length} onClick={()=>void downloadReleaseKit()}><Download size={15}/> Download release kit · ZIP</button>
                           <p className="lvp-note">Includes full-song and selected-video SRT/VTT/LRC, approved lyrics, metadata and editable project data. Download your audio and finished videos separately. No distributor submission, loudness mastering or Spotify Canvas loop is performed.</p>

@@ -4,7 +4,7 @@ import { vocalStyles } from "../../../vocal-matching";
 import {titlesFromLyrics} from "../../../song-cover";
 import {genreTags} from "../../../music-genres";
 import { performanceWeight, songOpenings, type SongOpening } from "../../../song-opening";
-import { withProductionUsage, managedProviderKey } from "../../../credits/production";
+import { withProductionUsage, managedProviderKey, jobExecution } from "../../../credits/production";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { isExplicitSong } from "../../../clean-content";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
@@ -87,7 +87,8 @@ async function saveCreation(id: string, starter: Studio, update: (studio: Studio
 }
 
 async function createMusic(request: Request) {
-  const access = await privateWorkspace();
+  const job=jobExecution.get(request);
+  const access = job?{id:job.owner,role:job.role}:await privateWorkspace();
   if (!access) return problem("Sign in to use Create.", 401);
   const id = access.id;
   const expectedWorkspace = request.headers.get("X-Studio-Workspace");
@@ -119,7 +120,11 @@ async function createMusic(request: Request) {
   try { key = managedProviderKey(request) ?? await resolveElevenLabsKey(id); }
   catch { return problem("Could not read the saved ElevenLabs key. Update it in Settings → AI Music Providers.", 503); }
   if (!key) return problem("Open Settings → AI Music Providers to connect ElevenLabs.", 400);
-  const call = (path: string, payload: object) => elevenLabsRequest(key, path, payload, 300_000);
+  const execution=jobExecution.get(request);
+  const call = (path: string, payload: object) => {
+    if(execution)execution.providerStarted=true;
+    return elevenLabsRequest(key, path, payload, 300_000);
+  };
   let pendingCreationId: string | null = null;
   async function preservedProblem(error: string, status: number) {
     if (!pendingCreationId) return problem(error,status);
@@ -212,7 +217,10 @@ async function createMusic(request: Request) {
     const requestedProject = text("projectId");
     const sourceProject = requestedProject ? before.data?.songs.find(s => s.id === requestedProject && !s.deletedAt && !isExplicitSong(s)) : undefined;
     if (requestedProject && !sourceProject) return problem("Choose an available project before generating.", 400);
-    const draft = stampSong(freshSong(crypto.randomUUID(), title || "Untitled song", (before.data ?? starter).songs.length));
+    const queuedId=execution?.songId;
+    if(queuedId&&!before.data?.songs.some(song=>song.id===queuedId&&song.creationDraft&&!song.deletedAt))
+      return problem("This writing draft changed. No generation was started.",409);
+    const draft = stampSong(freshSong(queuedId||crypto.randomUUID(), title || "Untitled song", (before.data ?? starter).songs.length));
     if (sourceProject) draft.projectId = projectRoot(before.data!.songs, sourceProject).id;
     if(input?.musicalAd){draft.musicalAd=input.musicalAd;draft.notes.promotion=JSON.stringify({kind:"musical-ad/v1",...input.musicalAd});}
     draft.stage = "Production";
@@ -293,7 +301,11 @@ async function createMusic(request: Request) {
       createdAt: new Date().toISOString(), captionReady, timingSource: "not-provided", languageProfile };
     // Preserve every approved writing/arrangement draft before the audio request.
     {
-      const writing = await saveCreation(id,starter,studio=>({...studio,songs:[{...draft,audioFormat:undefined},...studio.songs]}));
+      const writing = await saveCreation(id,starter,studio=>{
+        const prior=studio.songs.find(song=>song.id===draft.id);
+        if(queuedId&&!prior?.creationDraft)throw new Error("The draft changed before generation.");
+        return {...studio,songs:[{...prior,...draft,notes:{...prior?.notes,...draft.notes},audioFormat:undefined},...studio.songs.filter(song=>song.id!==draft.id)]};
+      });
       if (!writing) return problem("The approved writing draft could not save. Generation was not started.",409);
       pendingCreationId = draft.id;
     }
@@ -320,7 +332,7 @@ async function createMusic(request: Request) {
       return { ...studio, songs: source ? attachRenderedMix(studio.songs, source, audioSong) : completed ? studio.songs.map(s => s.id === draft.id ? audioSong : s) : [draft, ...studio.songs] };
     });
     if (saved) return Response.json({ ...saved, songId: draft.id }, options);
-    await bucket.delete(object).catch(() => {});
+    if(!execution)await bucket.delete(object).catch(() => {});
     return problem("The recording was generated but could not be saved. Check studio storage before trying again.", 409);
   } catch {
     return preservedProblem("Creation could not finish. Check your drafts and ElevenLabs account before retrying.", 502);

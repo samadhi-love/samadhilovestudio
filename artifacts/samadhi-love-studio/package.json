@@ -27,6 +27,7 @@
     "test:song-rows": "node --test tests/song-row-storage.test.mjs && node scripts/test-song-rows-api.mjs",
     "test:boundaries": "node --test tests/backend-boundaries.test.mjs",
     "test:jobs": "node --test tests/background-jobs.test.mjs",
+    "test:durable-processing": "node --test tests/durable-processing.test.mjs",
     "test:self-healing": "node --test tests/self-healing.test.mjs",
     "test:workflow": "node scripts/test-project-workflow.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",

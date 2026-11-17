@@ -136,6 +136,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../song-opening": openings,
     "../../../credits/production": {
       managedProviderKey: () => null,
+      jobExecution: new WeakMap(),
       withProductionUsage: (handler: (r: Request) => Promise<Response>) => (r: Request) => { paidEntries++; return handler(r); },
     },
     "../../../project-assets": {

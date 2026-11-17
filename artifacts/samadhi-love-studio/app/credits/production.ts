@@ -5,6 +5,7 @@ import { readBoundedText } from "../api/studio/request-errors";
 import { creditPrice, type CreditQuote, type Operation } from "./data";
 import { CreditError, ensureCreditAccount, managedAvailable, reserveJob, settleJob } from "./account-ledger";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+export const jobExecution=new WeakMap<Request,{owner:string;role:"owner"|"creator";songId:string;providerStarted:boolean}>();
 export const productionIdValid = (id: unknown): id is string => typeof id === "string" && uuid.test(id);
 export function managedProviderKey(request: Request) {
   return request.headers.get("X-Samadhi-Production-Funding") === "studio" && managedAvailable() ? env.STUDIO_MANAGED_ELEVENLABS_KEY! : null;
@@ -56,7 +57,10 @@ async function processingRequest(request: Request, headers: Headers) {
   const body = request.body === null ? undefined : await readBoundedText(request, 80_000);
   const cleanHeaders = new Headers(headers);
   cleanHeaders.delete("Content-Length");
-  return new Request(request.url, { method: request.method, headers: cleanHeaders, body });
+  const forwarded=new Request(request.url, { method: request.method, headers: cleanHeaders, body });
+  const job=jobExecution.get(request);
+  if(job)jobExecution.set(forwarded,job);
+  return forwarded;
 }
 
 export function withProductionUsage(handler: (request: Request) => Promise<Response>) {
@@ -66,7 +70,8 @@ export function withProductionUsage(handler: (request: Request) => Promise<Respo
     if (env.STUDIO_CREDITS_ENABLED !== "1") return handler(await processingRequest(request, headers));
     let held: { id: string; credits: number; funding: string } | undefined, owner: string | undefined;
     try {
-      const workspace = await privateWorkspace();
+      const job=jobExecution.get(request);
+      const workspace = job?{id:job.owner,role:job.role}:await privateWorkspace();
       if (!workspace) throw new CreditError("Sign in to your private workspace.", 401);
       owner = workspace.id;
       if (request.headers.get("origin") !== new URL(request.url).origin) throw new CreditError("Open Studio directly to start production.", 403);

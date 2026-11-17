@@ -147,7 +147,7 @@ async function putProject(request: Request) {
         "This video was edited in another tab. Reload the saved project before saving again.",
         409,
       );
-    const at = new Date().toISOString(),
+    const at = new Date(Math.max(Date.now(),(Date.parse(song.lyricVideo?.pro?.updatedAt??"")||0)+1)).toISOString(),
       project = { ...input.project, pro: { ...p, updatedAt: at } };
     const next = {
         ...current.data,
@@ -161,7 +161,10 @@ async function putProject(request: Request) {
         "Studio storage is full. Download editable project data before trying again.",
         413,
       );
-    const saved = await writeStudio(access.id, current.revision, content);
+    const saved = await writeStudio(access.id, current.revision, content).catch(error=>{
+      if(error instanceof Error&&/malformed JSON|revision.conflict/i.test(error.message))return undefined;
+      throw error;
+    });
     if (!saved) continue;
     let snapshotId: string | undefined, warning: string | undefined;
     if (input.snapshot) {

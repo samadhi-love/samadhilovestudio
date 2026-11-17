@@ -24,12 +24,21 @@ export class D1Http {
     } catch (cause) {
       throw new Error("D1 request was not confirmed. Do not automatically repeat a write.",{cause});
     }
-    if (!response.ok) throw Object.assign(new Error(`D1 request failed (HTTP ${response.status}).`),{status:response.status});
+    if (!response.ok) {
+      // A deliberately invalid guard aborts a raced per-song batch. Classify
+      // that specific guard without exposing provider error bodies.
+      if(response.status===400&&queries[0].sql.includes("json('song-revision-conflict')")){
+        const failure=await response.json().catch(()=>null);
+        if(failure?.errors?.some(error=>/malformed JSON/i.test(error.message??"")))throw new Error("Song revision conflict.");
+      }
+      throw Object.assign(new Error(`D1 request failed (HTTP ${response.status}).`),{status:response.status});
+    }
     let body;
     try { body = await response.json(); }
     catch { throw new Error("D1 returned an unreadable result. No automatic retry was made."); }
     if (!body.success || !Array.isArray(body.result) || body.result.length !== statements.length ||
         body.result.some(r => r.success === false || r.error)) {
+      if(queries[0].sql.includes("json('song-revision-conflict')")&&[...(body.errors??[]),...(Array.isArray(body.result)?body.result:[])].some(error=>/malformed JSON/i.test(error?.message??error?.error??"")))throw new Error("Song revision conflict.");
       throw new Error("D1 rejected the request. No automatic retry was made.");
     }
     return body.result.map(r => ({ ...r, success: true, results: r.results ?? [], meta: r.meta ?? {} }));

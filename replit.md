@@ -1,3 +1,12 @@
+# Step 3 Part B — saving and recovering work
+
+Studio records music, lyric-timing and video jobs. An interrupted paid request
+is never automatically replayed. Create writing saves privately to the account;
+when precise caption timing fails, pasted or saved lyrics can get an editable
+rough draft. Guided video exports can reuse completed segments on supported
+browsers on the same device. See
+`artifacts/samadhi-love-studio/docs/STEP3B_RELIABILITY_REPORT.md` for the limits.
+
 # SAMADHI LOVE Studio
 
 ## Step 3A — approved reliability work

@@ -20,6 +20,7 @@ import type {SongOpening} from "./song-opening";
 import { HelpField } from "./help-tip";
 import {SongCard} from "./song-card";
 import {RecoveryPanel,useDraftRecovery} from "./draft-recovery";
+import {useAccountWriting} from "./use-account-writing";
 import { GenrePicker } from "./genre-picker";
 import { genreTags } from "./music-genres";
 import { GenreAssistant } from "./genre-assistant";
@@ -224,6 +225,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     setCustomMode(true);
     setPromptNotice("Saved lyrics and musical directions loaded. Create makes a new song.");
   }
+  const writingStatus=useAccountWriting("simple",{title:songTitle.trim()||"Writing draft",prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}});
   const promptLibraryItems=savedPrompts.filter(t=>!readStyleDNA(t)&&(!favoritePromptsOnly||t.favorite)&&
     (!promptSearch.trim()||[t.name,t.description,...t.tags,...Object.values(t.notes)].some(text=>text.toLowerCase().includes(promptSearch.trim().toLowerCase()))));
 
@@ -292,6 +294,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
 
   return <section className="create-banner quick-create" data-playful={playful} aria-labelledby="quick-create-heading">
     <RecoveryPanel recovery={recovery}/>
+    {writingStatus.status&&<small role="status">{writingStatus.status}</small>}
+    {writingStatus.available&&<button type="button" className="text-button" onClick={writingStatus.open}>Open saved writing draft</button>}
     <div className="eyebrow"><Sparkles size={15}/> SAMADHI LOVE · SONG + VIDEO CREATOR</div>
     <h1 id="quick-create-heading">{simple?"Turn your feeling into a song.":"Your song. Your world. Your video."}</h1>
     <p>{simple?"Describe your song. We write the lyrics and the music.":"Write your own lyrics, set your styles and name your song."}</p>

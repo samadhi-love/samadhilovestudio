@@ -20,6 +20,8 @@ import { CaptionTemplatePicker, CaptionTemplateDemo } from "./lyric-caption-pick
 import { getCaptionTemplate, loadCaptionFonts, type CaptionTemplateId, type CaptionEmphasis } from "./lyric-caption-templates";
 import { drawLyricVideo } from "./lyric-video-render";
 import { exportShort } from "./short-export";
+import {videoJob,renderKey,readRender,saveRender,segmentStore} from "./video-render-recovery";
+import {useRecoveryScope} from "./draft-recovery";
 import { songAudioUrl, type Song } from "./studio-data";
 
 const maxVideoSeconds = 600;
@@ -31,6 +33,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
   elevenLabs: ElevenLabsKey;
   connectionSettings: () => void;
 }) {
+  const owner=useRecoveryScope();
   const latestSongs=useRef(songs);latestSongs.current=songs;
   const tracks = songs.filter(song => song.audioFormat);
   const [songId, setSongId] = useState(initialSongId);
@@ -195,7 +198,15 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
 
   async function autoSync(mode: "align" | "transcribe") {
     if (!song || !duration || pending.current) return;
-    if (!elevenLabs.connected) { setError("Open Music connections to enable automatic sync."); return; }
+    const rough=()=>{
+      if(cues.length){setNotice("Precise sync was unavailable. Your existing timing was kept.");return;}
+      const lines=lyricLines(text||song.notes.lyrics);
+      if(!lines.length){setNotice("Paste the sung lyrics to create rough timing. There are no words to place yet.");return;}
+      const next=estimatedCues(lines,duration);
+      if(!isLyricProject({...project,cues:next})){setNotice("Use shorter lyric lines before applying rough timing. Your writing is kept.");return;}
+      setCues(next);setNextCue(0);setNotice("Rough timing only — listen and move the lines to match the vocals.");
+    };
+    if (!elevenLabs.connected) { rough(); return; }
     const controller = new AbortController();
     pending.current = controller;
     audio.current?.pause();
@@ -203,7 +214,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
     try {
       const response = await productionFetch("/api/studio/lyric-sync", {
         method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-        body: JSON.stringify({ songId: song.id, audioId: song.audioId, mode, text: mode === "align" ? text : "" }),
+        body: JSON.stringify({ songId: song.id, audioId: song.audioId, duration, mode, text: mode === "align" ? text : "" }),
       });
       const result = await response.json().catch(() => null) as { cues?: LyricCue[]; error?: string } | null;
       if (!response.ok || !result?.cues) throw new Error(result?.error ?? "Automatic sync could not finish.");
@@ -218,8 +229,8 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
       setNotice(mode === "align"
         ? "Lyrics aligned to the vocals. Play the result and adjust any lines that need it."
         : "A timed caption draft is ready. Listen through and correct any words the model missed.");
-    } catch (error) {
-      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "Automatic sync could not finish.");
+    } catch {
+      if (!controller.signal.aborted) rough();
     } finally { pending.current = null; setSyncMode(null); }
   }
 
@@ -247,13 +258,25 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
     pending.current = controller;
     audio.current?.pause();
     setProgress(0); setError(""); setNotice("");
+    let jobId:string|undefined,timer:ReturnType<typeof setInterval>|undefined;
     try {
+      const key=renderKey(owner,song.id)+":classic";
+      const fingerprint=JSON.stringify([renderProject,start,end,song.audioId??song.id,song.name]);
+      const previous=owner?await readRender(key).catch(()=>undefined):undefined;
+      const checkpoint=previous&&!previous.finished&&previous.fingerprint===fingerprint?previous:{fingerprint,token:crypto.randomUUID(),completed:0};
+      jobId=await videoJob({video:"start",songId:song.id,resume:previous&&!previous.finished?previous.jobId:undefined},owner);
+      if(!jobId)throw new Error("The export job could not start. Your project is safe.");
+      timer=setInterval(()=>{void videoJob({video:"heartbeat",jobId},owner).catch(()=>{});},30000);
+      if(owner)await saveRender(key,{...checkpoint,jobId}).catch(()=>{});
+      const segments=segmentStore(key,checkpoint.token,format);
       await loadCaptionFonts();
-      const blob = await exportShort({
+      const finished=owner?await segments.read(-1).catch(()=>undefined):undefined;
+      const blob = finished??await exportShort({
         audio: songAudioUrl(song.id, song.audioId), title: song.name, hook: "", start, length: end - start,
         signal: controller.signal, frameSize: size,
         paint: (context, time) => drawLyricVideo(context, time, renderProject, song.name, image),
       }, setProgress);
+      if(owner&&!finished)await segments.write(-1,blob).catch(()=>{});
       if (outputUrl.current) URL.revokeObjectURL(outputUrl.current);
       const url = URL.createObjectURL(blob);
       outputUrl.current = url;
@@ -261,18 +284,21 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
       if (blob.size <= 120 * 1024 * 1024) {
         try {
           const asset = await uploadLyricAsset(song.id, "video", blob, controller.signal, song.audioId ?? song.id);
+          await videoJob({video:"done",jobId},owner);
+          if(owner)await saveRender(key,{...checkpoint,jobId,finished:true}).catch(()=>{});
           setOutput({ url, blob, extension: blob.type.includes("mp4") ? "mp4" : "webm", savedUrl: assetUrl(song.id, asset) });
           const latest=latestSongs.current.find(s=>s.id===song.id);
           if(latest){const history=registerVideoExport(latest,latest.lyricVideo??project,{id:crypto.randomUUID(),at:new Date().toISOString(),format,extension:blob.type.includes("mp4")?"mp4":"webm",asset,start,end},duration);
             const registered=await save({...latest,lyricVideo:history});
             setNotice(registered?"Lyric video saved and added to shared video history. Its link is ready to share.":"Video file saved. History could not sync; find it under all saved video files or retry saving.");
           }else setNotice("Video file saved. Open the song again to find it in all saved video files.");
-        } catch { setNotice("Video ready to download. Cloud saving failed; export again to create a video link."); }
-      } else setNotice("Video ready to download. Automatic links support videos up to 120 MB.");
+        } catch { await videoJob({video:"failed",jobId},owner).catch(()=>{});setNotice("Video ready to download. Cloud saving failed; export again to recover the finished video when device storage is available."); }
+      } else {await videoJob({video:"failed",jobId},owner).catch(()=>{});setNotice("Video ready to download. Automatic links support videos up to 120 MB.");}
       setPostCaption(current => current || `“${song.name}” by SAMADHI LOVE\n#SamadhiLove #OriginalMusic`);
     } catch (error) {
+      if(jobId)await videoJob({video:"failed",jobId},owner).catch(()=>{});
       if (!controller.signal.aborted) setError(error instanceof Error ? error.message : "The video could not export.");
-    } finally { pending.current = null; setProgress(null); }
+    } finally { if(timer)clearInterval(timer);pending.current = null; setProgress(null); }
   }
 
   return <>
@@ -364,7 +390,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
           <h3>Automatic vocal sync</h3>
           {!elevenLabs.connected && <p className="muted creation-note">Connect ElevenLabs to align vocals automatically. Manual timing is ready to use. <button type="button" className="text-button" disabled={busy} onClick={connectionSettings}>Provider settings</button></p>}
           <div className="actions">
-            <HelpControl subject="Align pasted lyrics" tip="Match your pasted words to the recording through ElevenLabs. This replaces the current caption timing and may use plan credits."><button className="primary" disabled={busy || !duration || !clean || !elevenLabs.connected || !lyricLines(text).length} onClick={() => autoSync("align")}>
+            <HelpControl subject="Align pasted lyrics" tip="Match your pasted words to the recording through ElevenLabs. This replaces the current caption timing and may use plan credits."><button className="primary" disabled={busy || !duration || !clean || !lyricLines(text).length} onClick={() => autoSync("align")}>
               <Sparkles size={16}/> Align pasted lyrics</button></HelpControl>
             <HelpControl subject="Create captions from audio" tip="Ask ElevenLabs to transcribe the recording into timed captions. Review the words and timing before export."><button className="secondary" disabled={busy || !duration || !elevenLabs.connected} onClick={() => autoSync("transcribe")}>Create captions from audio</button></HelpControl>
           </div>

@@ -1,4 +1,4 @@
-import { withProductionUsage, managedProviderKey } from "../../../credits/production";
+import { withProductionUsage, managedProviderKey,jobExecution } from "../../../credits/production";
 import { sendProviderAudio } from "../elevenlabs/audio-upload";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { serverStorage as env } from "../../../server/storage";
@@ -21,7 +21,7 @@ function problem(error: string, status: number) {
 }
 
 async function syncLyrics(request: Request) {
-  const id = (await privateWorkspace())?.id;
+  const id = jobExecution.get(request)?.owner??(await privateWorkspace())?.id;
   if (!id) return problem("Sign in to your private Studio to sync captions.", 401);
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return problem("Open the studio directly to sync captions.", 403);
@@ -68,6 +68,8 @@ async function syncLyrics(request: Request) {
     }
     if (!audio || audio.size < 1 || audio.size > maxAudioBytes) return problem("The recording is unavailable for sync.", 404);
     const aligning = mode === "align";
+    const execution=jobExecution.get(request);
+    if(execution)execution.providerStarted=true;
     const response = await sendProviderAudio(audio, format, key, aligning ? { text: lines.join("\n") } : {
       model_id: "scribe_v2", timestamps_granularity: "word", tag_audio_events: "true", diarize: "true",
       ...(input.language && input.language !== "auto" ? { language_code: input.language } : {}),

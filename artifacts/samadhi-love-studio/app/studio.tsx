@@ -46,6 +46,7 @@ import { ReleaseTools } from "./release-tools";
 import { ArtistConsole } from "./community/artist-dashboard/studio";
 import { RecordingDesk } from "./recording-desk";
 import { PanelErrorBoundary } from "./panel-error-boundary";
+import {JobStatus} from "./job-status";
 import {makeSavedSongPrompt,savedPromptFromSong,sameSavedPrompt,type PromptDraft} from "./saved-song-prompts";
 import { Multitrack } from "./multitrack";
 import { VocalStudio } from "./vocal/vocal-studio";
@@ -174,6 +175,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
   }
   useEffect(() => { void load(); }, []);
+  const jobCompleted=useRef(()=>{});
+  jobCompleted.current=()=>{if(!pendingSave.current&&!hasDraft.current)void load();};
+  const refreshCompletedJobs=useRef(()=>jobCompleted.current()).current;
   useEffect(()=>{
     if(!loaded||!workspaceId)return;
     try{if(localStorage.getItem(`samadhi:guided-tour:v1:${workspaceId}`)!=="done")setModal(current=>current??"tour");}
@@ -535,6 +539,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       <MobileProjectBar songs={cleanLibrary} currentId={song?.id??""} disabled={!loaded||saving||creating} select={id=>{if(navigate("songs"))openSong(id);}}/>
       <div className="content">
         {loaded && !song && !pane && <ScreenSections activeView={view} navigate={navigate} beginner={beginner}/>}
+        {loaded&&<PanelErrorBoundary panel="studio"><JobStatus completed={refreshCompletedJobs}/></PanelErrorBoundary>}
         {loaded && !song && pane==="plan-credits" && <PanelErrorBoundary panel="plan-credits"><PlanCreditsScreen tab={planTab} setTab={t=>{setPlanTab(t);try{window.history.replaceState(null,"",`${window.location.pathname}?studio=plan-credits&section=${t}`);}catch{}}} owner={!creatorName} signOut={signOut}/></PanelErrorBoundary>}
         {!beginner && <DivineSpark/>}
         {error && !modal && (view !== "create" || !!song) && <div className="notice" role="alert">{error}{!loaded && <button onClick={load}>Retry</button>}</div>}

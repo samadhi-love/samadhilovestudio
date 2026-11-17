@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scope = createContext("");
+export const useRecoveryScope=()=>useContext(Scope);
 export function DraftRecoveryProvider({ scope, children }: { scope: string; children: ReactNode }) {
   return <Scope.Provider value={scope}>{children}</Scope.Provider>;
 }
