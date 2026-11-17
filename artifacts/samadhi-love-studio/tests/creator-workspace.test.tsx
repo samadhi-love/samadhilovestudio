@@ -4,6 +4,9 @@ import {CreatorLookBrowser,SocialVideoTools} from "../app/creator-video-tools";
 import {creatorInstruments,worldFusionRecipes} from "../app/creator-music-options";
 import {isLyricProject,type LyricProject} from "../app/lyric-video-data";
 import {newProSettings,clipCues} from "../app/lyric-pro-data";import {freshSong} from "../app/studio-data";import {QuickCreate} from "../app/quick-create";
+import {bestShortStart,expandSongDescription,insertLyricSection} from "../app/creation-shortcuts";
+import {SongCard,SongHubProvider,type SongAction,type SongHub} from "../app/song-card";
+import {MelodyReferenceRecorder} from "../app/melody-reference-recorder";
 const song={...freshSong("song","World original",0),audioId:"original",audioFormat:"mp3" as const};
 function project():LyricProject{return{theme:"cosmic",format:"wide",motion:"drift",cues:[{time:122,end:128,text:"نور Love",words:[{offset:3,time:122},{offset:8,time:124}]}],pro:{...newProSettings(song,360),approvedLyrics:"نور Love",sections:[{id:"chorus",name:"Chorus",time:120,end:160,language:"ara",singer:"A"}],background:"saved-image",alignment:{engine:"fixture",at:"test",audioId:"original",reviewed:true,warnings:[]}}};}
 test("26 complete looks are valid and preserve approved multilingual lyrics, sections, source, range and alignment",()=>{
@@ -17,6 +20,76 @@ test("short ranges clamp one shared origin, including end-of-song clips, short f
  const full=applySocialVideoPreset(short,'youtube',350);assert.equal(full.format,'wide');assert.deepEqual(full.pro!.range,{start:0,end:360});assert.equal(original.format,'wide');
 });
 async function setup(){const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,localStorage:dom.window.localStorage,IS_REACT_ACT_ENVIRONMENT:true});const{createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('root')!);const button=(name:string)=>[...document.querySelectorAll<HTMLButtonElement>('button')].find(b=>b.textContent?.trim()===name)!;const input=async(el:HTMLInputElement|HTMLTextAreaElement,value:string)=>act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el),'value')!.set!.call(el,value);el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));});const select=async(el:HTMLSelectElement,value:string)=>act(async()=>{el.value=value;el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});return{dom,root,button,input,select,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};}
+test("local song-description help, lyric section insertion and short selection work without provider calls",()=>{
+ const description=expandSongDescription("A hopeful song about a fresh start. Sing in English.");
+ assert.match(description,/fresh start/i);assert.match(description,/English/);assert.match(description,/coherent, singable lyrics/);
+ const inserted=insertLyricSection("First line",5,5,"Verse");assert.equal(inserted.text,"First\n\n[Verse]\n\n line");assert.equal(inserted.cursor,"First\n\n[Verse]\n".length);
+ assert.equal(bestShortStart(60,[{name:"Chorus",time:22,end:38}],[],30),22);
+ const energy=Array.from({length:60},(_,index)=>index>=30&&index<45?.95:.1);assert.equal(bestShortStart(60,[],energy,15),30);
+});
+test("Create help is local, lyric chips insert at the cursor, and two versions require clear cost consent",async()=>{
+ const h=await setup();let requests:any[]=[];let allowTwo=false;
+ h.dom.window.confirm=()=>allowTwo;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `version-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
+  const idea=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
+  await h.input(idea,"A hopeful pop song about starting again. Sing in English.");
+  await act(async()=>h.button("Help me describe it").click());
+  assert.match(idea.value,/coherent, singable lyrics/);assert.equal(requests.length,0);
+  const versions=document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!;
+  assert.equal(versions.checked,false);assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/one music request/);
+  await act(async()=>versions.click());assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/2×/);
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(requests.length,0);
+  allowTwo=true;
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(requests.length,2);assert.equal(requests[1].projectId,"version-1");assert.equal(requests[1].title.endsWith("Version 2"),true);
+ }finally{await h.close();}
+});
+test("lyrics chips appear in Custom mode and insert a part at the cursor",async()=>{
+ const h=await setup();
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.button("Custom").click());
+  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
+  await h.input(lyrics,"First line");
+  lyrics.setSelectionRange(5,5);
+  await act(async()=>h.button("[Verse]").click());
+  assert.equal(lyrics.value,"First\n\n[Verse]\n\n line");
+ }finally{await h.close();}
+});
+test("My Songs exposes non-destructive next steps and plays a private melody reference",async()=>{
+ const h=await setup(),actions:SongAction[]=[];
+ const value:SongHub={busy:false,simple:true,folders:[],stemsConnected:false,preview:"",setPreview(){},expanded:"song-next",setExpanded(){},save:async()=>true,action:action=>actions.push(action),archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
+ const saved={...freshSong("song-next","A saved song",0),audioId:"audio-original",audioFormat:"mp3" as const,melodyReference:{assetId:"asset-reference",contentType:"audio/webm",durationSeconds:12,savedAt:"2026-01-01T00:00:00.000Z"}};
+ try{
+  await act(async()=>h.root.render(<SongHubProvider value={value}><SongCard song={saved}/></SongHubProvider>));
+  for(const label of ["Make it longer","Redo a part","Make another like this","Make a Short"])await act(async()=>h.button(label).click());
+  assert.deepEqual(actions,["extend","redo-part","make-like-this","short-video"]);
+  const audio=document.querySelector<HTMLAudioElement>('[data-testid="melody-reference-player"]')!;
+  assert.match(audio.src,/song=song-next.*asset=asset-reference/);
+ }finally{await h.close();}
+});
+test("the short-start slider moves only the excerpt and keeps caption cues",async()=>{
+ const h=await setup();let current=project();
+ function Screen(){const[value,setValue]=useState(current);return <SocialVideoTools project={value} change={next=>{current=next;setValue(next);}} time={0}/>;}
+ try{
+  await act(async()=>h.root.render(<Screen/>));
+  await act(async()=>h.button("Use selected clip").click());
+  const slider=document.querySelector<HTMLInputElement>('[aria-label="Move the short start point"]')!;
+  await h.input(slider,"200");
+  assert.equal(current.pro!.range.start,200);assert.equal(current.pro!.range.end,230);assert.deepEqual(current.cues,project().cues);
+ }finally{await h.close();}
+});
+test("the Create melody recorder explains its private reference limits without an available microphone",async()=>{
+ const h=await setup();
+ try{
+  await act(async()=>h.root.render(<MelodyReferenceRecorder take={null} onTake={()=>{throw new Error("No microphone should be called by this test");}} onClear={()=>{}}/>));
+  assert.match(document.body.textContent!,/not sent to ElevenLabs/);
+  assert.equal(h.button("Record a melody idea").disabled,true);
+  assert.match(document.body.textContent!,/not available in this browser/i);
+ }finally{await h.close();}
+});
 test("connection failures show the actual permission error and refresh never generates music",async()=>{
  const h=await setup();let refreshes=0,generations=0;
  const props={connected:false,saving:false,drafts:[],settings:()=>{},guided:()=>{},openDrafts:()=>{},generateSong:async()=>{generations++;return undefined;},saveSketch:async()=>undefined,refreshConnection:()=>{refreshes++;},connectionError:"The key lacks User read. (HTTP 401)"};

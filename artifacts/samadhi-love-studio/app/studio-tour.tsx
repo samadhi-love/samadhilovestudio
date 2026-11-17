@@ -3,16 +3,16 @@ import { useState } from "react";
 
 const tourSteps = [
   {
-    title: "Start with one idea",
-    text: "In Create, describe what the song is about and choose a style. Simple keeps the form short; Custom opens lyrics, vocals and more controls. Nothing is submitted until you press Create.",
+    title: "Describe or hum your song",
+    text: "Describe the subject, mood, style and language—or record a private melody idea. Help me describe it expands your words locally. Nothing is sent until you press Create.",
   },
   {
-    title: "Your work stays in My Songs",
-    text: "Saved songs and recordings are private. Reopen a song to edit it, keep lyric versions, make a video, or review its Release checklist. A failed save should show an error so you can retry.",
+    title: "Listen and keep your favourite",
+    text: "Make one version, or choose two for two separate music requests and twice the provider usage. Both versions stay together in My Songs; listen and favorite the one you prefer.",
   },
   {
-    title: "Review before sharing",
-    text: "Choose a video look, then check the actual captions and timing before export. You can record your own voice in Record. Nothing is published or shared automatically.",
+    title: "Make a video",
+    text: "Make a short, choose a look and move where it starts. Review the captions before export. Your songs and videos stay private until you choose to share them.",
   },
 ];
 

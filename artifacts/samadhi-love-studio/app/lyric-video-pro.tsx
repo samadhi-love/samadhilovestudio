@@ -6,7 +6,7 @@ import {registerVideoExport} from "./video-export-history";
 import {activeAdMedia} from "./active-visual-source";
 import {CreatorLookBrowser,SocialVideoTools} from "./creator-video-tools";
 import {applyPlayVisual} from "./creative-video-handoff";
-import {applySocialVideoPreset,applyVideoShape,shortClipRange,suggestedHookStart} from "./creator-video-presets";
+import {applySocialVideoPreset,applyVideoShape,creatorVideoLooks,shortClipRange,suggestedHookStart} from "./creator-video-presets";
 import {VideoFormatPicker} from "./video-format-picker";
 import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
@@ -139,7 +139,7 @@ type Props = {
   coverVideoRequest?:{id:string;songId:string;asset:string;overlay:OverlayStyle}|null;
   createSong?:()=>void;
   advanced?:boolean;
-  socialVideoRequest?: {songId:string;id:string;look?:string;photoAsset?:string;audioId?:string}|null;
+  socialVideoRequest?: {songId:string;id:string;look?:string;photoAsset?:string;audioId?:string;start?:number;seconds?:number}|null;
   autoCaptionRequest?: { songId: string; id: string } | null;
   songs: Song[];
   initialSongId: string;
@@ -331,6 +331,8 @@ export function LyricVideoPro(props: Props) {
     }
     current.current = next;
     setProject(next);
+    const selectedLook=creatorVideoLooks.find(look=>look.theme===next.theme&&look.caption===next.captionTemplate);
+    if(selectedLook)try{localStorage.setItem("samadhi:last-video-look:v1",selectedLook.id);}catch{}
     setRetrySave(false);
   }
   function changeLibraryBackground(next: LyricProject, completePreset = false) {
@@ -790,7 +792,7 @@ export function LyricVideoPro(props: Props) {
     handledSocialRequest.current=request.id;
     if(recovery){setError("Resolve the available recovery copy before changing this video's excerpt. Your saved project is preserved.");return;}
     if(request.audioId&&request.audioId!==p.sourceAudioId){setError("This recording changed. Open its current version before preparing the video; your saved design is preserved.");return;}
-    let next=song.musicalAd?applySocialVideoPreset(current.current!,"reels",0,song.musicalAd.seconds):applySocialVideoPreset(current.current!,"reels",suggestedHookStart(current.current!));next=applyPlayVisual(next,request.look,request.photoAsset);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
+    const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;let next=applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
   },[props.socialVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   const handledCover=useRef("");
   useEffect(()=>{const request=props.coverVideoRequest;if(!request||handledCover.current===request.id||song?.id!==request.songId||!p?.duration||busy||recoveryReady!==song.id)return;handledCover.current=request.id;if(recovery){setError("Resolve the recovery copy before preparing this cover video.");return;}const currentProject=current.current!;const next=applySocialVideoPreset(currentProject,"reels",0,30);edit({...next,motion:"drift",visualLayers:{backgroundMotion:.6,overlayAmount:.45,overlayStyle:request.overlay,overlayMotion:true,beatOffset:0},pro:{...next.pro!,background:request.asset,intro:0,outro:0,sections:next.pro!.sections.map(section=>({...section,background:undefined,theme:undefined}))}});setCleanExport(true);setStep(4);seek(0);setPlatform("instagram");setStatus("Animated cover prepared. Render the video to include your song and moving cover.");},[props.coverVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);

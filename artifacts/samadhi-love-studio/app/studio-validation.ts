@@ -38,6 +38,10 @@ export function isStudio(value: unknown): value is Studio {
       entries(s.mixes, m => text(m.name) && text(m.notes) && text(m.link) && optional(m.audioSongId, id)) &&
       text(s.preferred) && Array.isArray(s.done) && s.done.every(boolean) && text(s.releaseDate) &&
       [s.projectId, s.sourceSessionId, s.folderId, s.audioId,s.coverAsset,s.logoAsset].every(v => optional(v, id)) &&
+      optional(s.melodyReference, reference => object(reference) && id(reference.assetId) &&
+        ["audio/webm", "audio/wav", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/flac"].includes(reference.contentType) &&
+        Number.isFinite(reference.durationSeconds) && reference.durationSeconds > 0 && reference.durationSeconds <= 30 &&
+        text(reference.savedAt) && Number.isFinite(Date.parse(reference.savedAt))) &&
       optional(s.partySource,(value:unknown)=>["upload","recording","mix"].includes(value as string)) &&
       optional(s.sectionEdit,isSectionEditPlan) &&
       optional(s.logoDesign,isBrandLogo) && optional(s.musicalAd,isMusicalAd) &&

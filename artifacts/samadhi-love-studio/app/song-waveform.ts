@@ -1,5 +1,5 @@
 /** A bounded streaming overview; fine edits must be auditioned rather than inferred from pixels. */
-export async function songWaveform(source: string | Blob, signal: AbortSignal, bins = 640) {
+export async function songWaveformAnalysis(source: string | Blob, signal: AbortSignal, bins = 640) {
   if (!Number.isInteger(bins) || bins < 16 || bins > 2048) throw new Error("Choose a bounded waveform resolution.");
   const { Input, UrlSource, BlobSource, ALL_FORMATS, AudioBufferSink } = await import("mediabunny");
   const input = new Input({ source: typeof source === "string" ? new UrlSource(source, { maxCacheSize: 1024 * 1024, requestInit: { credentials: "same-origin" }, getRetryDelay: n => n < 2 ? .25 : null }) : new BlobSource(source), formats: ALL_FORMATS });
@@ -20,8 +20,11 @@ export async function songWaveform(source: string | Blob, signal: AbortSignal, b
         }
       }
     }
-    signal.throwIfAborted(); return Array.from(peaks);
+    signal.throwIfAborted(); return { duration: seconds, peaks: Array.from(peaks) };
   } finally { signal.removeEventListener("abort", abort); input.dispose(); }
+}
+export async function songWaveform(source: string | Blob, signal: AbortSignal, bins = 640) {
+  return (await songWaveformAnalysis(source, signal, bins)).peaks;
 }
 export function waveformTime(clientX: number, left: number, width: number, seconds: number) {
   if (![clientX,left,width,seconds].every(Number.isFinite) || width <= 0 || seconds <= 0) return 0;

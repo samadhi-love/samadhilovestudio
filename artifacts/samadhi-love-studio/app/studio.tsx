@@ -53,6 +53,8 @@ import { SavedLyricVideos } from "./saved-lyric-videos";
 import { LyricVideoPro } from "./lyric-video-pro";
 import { CleanLyricsChecker } from "./clean-lyrics-checker";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "./clean-content";
+import { bestShortStart } from "./creation-shortcuts";
+import { songWaveformAnalysis } from "./song-waveform";
 
 import { MusicWorkflow, type WorkflowStep } from "./music-workflow";
 import { MeditativeVibes } from "./meditative-vibes";
@@ -139,8 +141,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [autoCaptionRequest, setAutoCaptionRequest] = useState<{ songId: string; id: string } | null>(null);
   const [coverBusy,setCoverBusy]=useState(false);
   const [coverSongId,setCoverSongId]=useState("");
+  const [sectionInitialAction,setSectionInitialAction]=useState<"remove"|"replace"|"insert"|"trim">("remove");
   const [coverVideoRequest,setCoverVideoRequest]=useState<{id:string;songId:string;asset:string;overlay:OverlayStyle}|null>(null);
-  const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;audioId?:string}|null>(null);
+  const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;audioId?:string;start?:number;seconds?:number}|null>(null);
   const [lyricSongId, setLyricSongId] = useState("");
   const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "tour" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | null>(null);
   const [undoPromptFavorite,setUndoPromptFavorite]=useState<{id:string;favorite?:boolean}|null>(null);
@@ -246,6 +249,17 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     }, message, undefined, throwOnError);
   }
   const saveSong = (song: Song, message = "Song saved") => commit({ ...data, songs: data.songs.map(s => s.id === song.id ? song : s) }, message);
+  async function saveMelodyReference(songId:string,blob:Blob,durationSeconds:number){
+    const before=dataRef.current.songs.find(song=>song.id===songId&&!song.deletedAt);
+    if(!before)throw new Error("The saved song could not be found. The recording remains in Create.");
+    const assetId=await uploadLyricAsset(songId,"reference",blob,undefined,before.audioId??before.id);
+    const latest=dataRef.current;
+    const song=latest.songs.find(item=>item.id===songId&&!item.deletedAt);
+    if(!song)throw new Error("The song changed before its private reference could be saved. Check My Songs.");
+    const contentType=(blob.type||"audio/webm").split(";")[0].toLowerCase();
+    const melodyReference={assetId,contentType,durationSeconds:Math.max(1,Math.min(30,Math.round(durationSeconds))),savedAt:new Date().toISOString()};
+    return commit({...latest,songs:latest.songs.map(item=>item.id===songId?{...item,melodyReference}:item)},"Private melody reference saved");
+  }
   async function archiveSong(song:Song){
     if(!confirm(`Delete “${song.name}”? ${deletionNotice} Any Community release will be unlisted. Download anything you want to keep before deleting.`))return false;
     const saved=await saveSong({...song,deletedAt:new Date().toISOString()},"Song deleted · recoverable for 14 days");if(saved&&songPreview===song.id)setSongPreview("");return saved;
@@ -287,22 +301,44 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   async function setPromptAutoSave(enabled:boolean){
     await commit({...dataRef.current,autoSavePrompts:enabled},enabled?"Automatic prompt saving is on":"Automatic prompt saving is off");
   }
+  function lastUsedVideoLook(){try{return localStorage.getItem("samadhi:last-video-look:v1")||undefined;}catch{return undefined;}}
   function finishTour(){
     if(workspaceId){try{localStorage.setItem(`samadhi:guided-tour:v1:${workspaceId}`,"done");}catch{}}
     setModal(null);
   }
   function songAction(action:SongAction,song:Song){
-    if(action==="sections"||action==="stems-midi"){setCoverSongId(song.id);setModal(action);return;}
+    if(action==="sections"){setCoverSongId(song.id);setSectionInitialAction("remove");setModal("sections");return;}
+    if(action==="extend"||action==="redo-part"){setCoverSongId(song.id);setSectionInitialAction(action==="extend"?"insert":"replace");setModal("sections");return;}
+    if(action==="stems-midi"){setCoverSongId(song.id);setModal(action);return;}
     if(action==="logo"){if(navigate("promote"))setCoverSongId(song.id);return;}
     if(action==="cover"){setCoverSongId(song.id);setModal("cover");return;}
     if(action==="save-prompt"){void saveReusablePrompt(savedPromptFromSong(song));return;}
     if(action==="remix"){remix(song);return;}
     if(action==="regenerate"){navigate("create",false,{projectId:projectRoot(data.songs,song).id,title:song.name.slice(0,84)+" · New version",genres:uniqueGenreNames(song.tags),idea:song.notes.prompt.slice(0,1000)||song.summary||"A new arrangement",lyrics:song.notes.lyrics.slice(0,5000),vocal:song.notes.vocals,seconds:song.creationSeconds,instrumental:song.creationKind==="instrumental",sectionDirections:song.sectionDirections});return;}
+    if(action==="make-like-this"){
+      const profile=song.generation?.languageProfile;
+      const languageChoice=profile?.resolved?{language:profile.resolved,dialect:profile.dialect??""}:undefined;
+      if(navigate("overview"))setQuickSeed({id:uid(),projectId:projectRoot(data.songs,song).id,title:song.name,idea:song.notes.prompt.slice(0,1000)||song.summary||"A new song inspired by this one",styles:uniqueGenreNames(song.tags),lyrics:song.notes.lyrics.slice(0,5000),vocal:song.notes.vocals,languageChoice,custom:true,notice:"Song details copied into Create. Edit anything you like, then press Create when ready."});
+      return;
+    }
     if(action==="mix"){
       void (async()=>{try{const response=await fetch(songAudioUrl(song.id,song.audioId));if(!response.ok)throw new Error("This recording could not load for mixing.");const blob=await response.blob();if(navigate("multitrack"))setMixInput({blob,title:song.name,projectId:projectRoot(data.songs,song).id});}catch(e){setError(e instanceof Error?e.message:"The mixer could not open this recording.");}})();return;
     }
     if(action==="record"){openWorkflow("record",song);return;}
-    if(action==="short-video"){if(navigate("lyric-video")){setLyricSongId(song.id);setSocialVideoRequest({id:uid(),songId:song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}return;}
+    if(action==="short-video"){
+      if(navigate("lyric-video")){
+        const id=uid(),look=lastUsedVideoLook(),sections=song.lyricVideo?.pro?.sections??[];
+        let duration=song.lyricVideo?.pro?.duration??song.creationSeconds??0;
+        const fallbackStart=bestShortStart(duration,sections,[],30);
+        setLyricSongId(song.id);setSocialVideoRequest({id,songId:song.id,look,start:fallbackStart,seconds:30});
+        if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});
+        if(song.audioFormat)void songWaveformAnalysis(songAudioUrl(song.id,song.audioId),new AbortController().signal).then(analysis=>{
+          const start=bestShortStart(analysis.duration,sections,analysis.peaks,30);
+          setSocialVideoRequest(current=>current?.id===id?{...current,start}:current);
+        }).catch(()=>{});
+      }
+      return;
+    }
     if(action==="auto-video"){if(navigate("lyric-video")){setLyricSongId(song.id);setAutoCaptionRequest({songId:song.id,id:uid()});}return;}
     if(action==="video"){openWorkflow("video",song);return;}
     if(action==="export"){if(navigate("songs"))openSong(song.id,"Release");return;}
@@ -346,7 +382,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     if(!fromHistory.current){try{const url=studioUrl(window.location.pathname,next,next===view?new URLSearchParams(window.location.search).get("song")??undefined:undefined);if(url!==window.location.pathname+window.location.search)window.history.pushState(null,"",url);}catch{}}
     return true;
   }
-  function quickFromCreate(seed:CreateSeed):Omit<QuickSeed,"id">{return {idea:seed.idea,styles:seed.genres,lyrics:seed.lyrics,vocal:seed.vocal,title:seed.title,custom:!!(seed.lyrics||seed.vocal||seed.genres?.length),notice:"Loaded into Create. Review, then press Create when you are ready."};}
+  function quickFromCreate(seed:CreateSeed):Omit<QuickSeed,"id">{return {projectId:seed.projectId,idea:seed.idea,styles:seed.genres,lyrics:seed.lyrics,vocal:seed.vocal,title:seed.title,custom:!!(seed.lyrics||seed.vocal||seed.genres?.length),notice:"Loaded into Create. Review, then press Create when you are ready."};}
   function sendToCreate(seed:CreateSeed){if(navigate("overview"))setQuickSeed({...quickFromCreate(seed),id:uid()});}
   function openScreen(screen:Screen){
     if(screen==="plan-credits"){if(!canNavigate(null))return;setPane("plan-credits");setSelected("");try{window.history.pushState(null,"",`${window.location.pathname}?studio=plan-credits&section=${planTab}`);}catch{}window.scrollTo(0,0);return true;}
@@ -578,6 +614,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
             connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
             generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to My Songs", true))?.songId}
+             saveMelodyReference={saveMelodyReference}
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
           <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted">Turn your music into a lyric video, animated cover or social short. Choose cosmic and sacred scenes, cinematic backgrounds and animated lyric templates in the same studio.</p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
@@ -664,7 +701,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     {modal && modal!=="tour" && <div className="modal-shade" onClick={e => { if (e.target === e.currentTarget && !modalBusy) setModal(null); }}><div className={modal === "connections" ? "modal settings-modal" : modal === "new" ? "modal song-start-modal" : "modal"} role="dialog" aria-modal="true" aria-label={modalTitle}>
       <div className="modal-head"><h2>{modalTitle}</h2><button className="icon-button" aria-label="Close" onClick={() => setModal(null)} disabled={modalBusy}><X size={20}/></button></div>
       {error && modal !== "connections" && <div className="notice" role="alert">{error}</div>}
-      {modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
+      {modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}} initialAction={sectionInitialAction}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
         <fieldset disabled={saving}>
           <HelpField label="Audio file" tip="Choose a clean recording such as an MP3, WAV, or M4A. The file limit is 96 MB."><input name="audio" type="file" accept={audioAccept} aria-describedby="audio-formats" required autoFocus/></HelpField>
           <p className="muted upload-note" id="audio-formats">{audioFormatsLabel} up to 96 MB. Your audio is saved in your private workspace.</p>

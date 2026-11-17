@@ -4,6 +4,22 @@
 
 The guided-screen consolidation is implemented and its final offline verification passed. This guide describes the actual screen homes. Historical feature documents are retained intact under `archive/` and are not current setup instructions.
 
+## Stage 3 — beginner creation improvements
+
+The new creation shortcuts reuse the current music, section-editing and video engines. “Help me describe it” expands the creator’s own words with the existing local style catalog; it makes no AI/provider call and the description stays editable. Lyrics chips insert song-part labels at the cursor, and the existing draft recovery autosaves those lyrics locally.
+
+“Make 2 versions” is off by default. Turning it on warns that it sends two separate requests and uses twice the provider usage or Studio credits; the exact Studio-credit check still appears before each request. Confirmed versions are grouped under the same project and can be listened to and favorited separately.
+
+My Songs offers “Make it longer,” “Redo a part,” and “Make another like this.” Extend and replace use the existing non-destructive section editor; the original is kept, and the user confirms the additional generation cost before proceeding. “Make another like this” fills Create with the saved description, style, vocals and known language.
+
+“Make a Short” opens Video with a vertical 30-second clip. It starts at a saved chorus/hook when available, otherwise uses the strongest audio window that can be analyzed; a slider lets the creator adjust the start. It uses the last-used look and existing caption workflow. Review captions before export.
+
+Create also offers an optional microphone recording up to 30 seconds. It is saved privately as a reference on the song, never sent to ElevenLabs, because the connected music engine has no verified melody-following capability. The three-step welcome now explains **Describe or hum → Listen and keep your favourite → Make a video** and stays reopenable from Studio Guide.
+
+### Stage 3 verification
+
+All **41/41 offline Studio verification groups passed**, including the new creation, lyric-chip, two-version, song-action, short-slider and insert-at-the-end checks. The full-workspace typecheck and production build also passed. No paid music requests or other provider charges were made. Real microphone hardware, signed-in browser journeys and production saving were not tested in this stage.
+
 ## Start here
 
 Studio is for beginners first. Follow one path: **Create → My Songs → Video**. Record your own performance when you want to; Explore is for listening and discovering other work. Existing production engines remain available, but related tools now belong together.
@@ -13,6 +29,10 @@ The main navigation is **Create, My Songs, Video, Record, Explore**, with **Sett
 ### Create
 
 Choose an optional **Start from a recipe** template, describe the song, choose style chips and press Create. Use **Simple** for the shortest path. **Custom** opens separate lyrics, style, vocals and prompt-helper fold-outs when you want control. Language and singing-arrangement overrides are inside **Custom → Vocals**. The original detailed engine is inside **Custom → Pro production**, not another Create page; it stays mounted when folded away. Saved templates, prompts, lyric versions and drafts remain reusable.
+
+In Simple, **Help me describe it** suggests fuller wording locally without calling an AI service; edit the result before creating. In Custom → Lyrics, tap **Intro, Verse, Pre-Chorus, Chorus, Bridge** or **Outro** to insert a section label at the cursor. Your lyrics use the existing draft recovery. Optional melody recording is private and only becomes an attached reference after a song is saved. It is not used as music-generation input.
+
+“Make 2 versions” starts off. It creates two separate music requests, clearly warns about double usage/cost, and keeps confirmed versions together so you can listen and favorite the one you prefer. Each request still passes the existing credit check; the first stays saved if the second fails.
 
 The header keeps a **Simple / Advanced** switch available on every screen; it only changes navigation and visibility, not saved work. Screen-specific help sits beside the page title. The first visit shows a short tour; reopen it later through **Settings & Help → Studio guide → Take the quick tour**. The tour explains the workflow but does not generate a song or use provider credits.
 
@@ -33,9 +53,13 @@ Find songs, drafts and recordings, use folders and filters, and reopen existing 
 
 Covers belong to their song. Project workflow, release planning, release tools and the artist-dashboard entry point belong here rather than becoming competing workspaces. Nothing becomes public merely because it is saved or exported. Recovery controls and the disabled permanent-deletion scheduler remain unchanged.
 
+The song actions include **Make it longer** and **Redo a part** through the non-destructive section editor, plus **Make another like this** to prefill Create. Each new passage is separate; the original stays saved. The screen shows a cost warning before another generation.
+
 ### Video
 
 Choose a song and a visual vibe for a local preview, then export when ready. The six featured looks are **Awaken, Violet Flame, Sacred Bloom, Aurora Silk, Star Stories and Neon Skyline**. **Phone** is vertical; **YouTube** is wide. **More looks** contains the rest of the looks, backgrounds, caption styling, signature overlays and square format. Pro exposes the deeper editor within the same screen.
+
+**Make a Short** from My Songs prepares a vertical 30-second excerpt at a chorus/hook when marked, otherwise at the strongest audio window the app can analyze. Move the start with the slider, choose another look, and review captions before exporting. The existing caption/alignment checks still apply.
 
 Preserve saved projects and their actual look IDs; opening a project must not replace its original look with one of the featured six. Arabic and mixed-language text remain part of the original project. A local visual preview is not proof that lyrics are accurately aligned to singing. Automatic alignment and provider processing must retain their existing permission and approval boundaries.
 

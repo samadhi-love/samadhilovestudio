@@ -6,3 +6,4 @@
 - [Runtime boundaries and active jobs](runtime-boundary-testing.md) — Test foreign request wrappers; check active provider generations before restarting the preview.
 - [Mantra recording scope](mantra-recording-direction.md) — Local voice repetition and echo belong in the existing recorder; preserve original phrases and defer automatic phrase detection.
 - [Security scanner inputs](security-scanner-inputs.md) — Publish dependency scans inspect retained alternate lockfiles, not only the dependency tree used to build.
+- [Melody reference privacy](melody-reference-privacy.md) — Keep hummed recordings private and reference-only unless melody-conditioned support and explicit consent are verified.

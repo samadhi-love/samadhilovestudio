@@ -29,6 +29,29 @@ test("the visible editor crops, previews, blocks stale saves and saves a new ver
  }finally{await act(async()=>root.unmount());dom.window.close();}
 });
 
+test("Make it longer starts after the saved recording and asks before requesting another passage",async()=>{
+ const fixture=(globalThis as any).__audioEdit;fixture.renders=[];fixture.uploads=[];
+ const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
+ let confirmation="";dom.window.confirm=(message:string)=>{confirmation=message;return false;};
+ const{createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
+ const song={...freshSong("original","My creation",0),audioId:"original-recording",audioFormat:"mp3" as const};
+ const button=(label:string)=>[...document.querySelectorAll<HTMLButtonElement>("button")].find(item=>item.textContent===label)!;
+ const wait=async(done:()=>boolean)=>{for(let i=0;i<200&&!done();i++)await act(async()=>{await new Promise(resolve=>setTimeout(resolve,5));});assert.ok(done());};
+ try{
+  await act(async()=>root.render(<SongSectionEditor song={song} songs={[song]} owner="owner" working={()=>{}} saved={async()=>{}} initialAction="insert"/>));
+  await wait(()=>document.body.textContent!.includes("120.00 seconds"));
+  assert.equal(document.querySelector("select")!.value,"insert");
+  const start=document.querySelector<HTMLInputElement>('[aria-label="Waveform selection start"]')!;
+  const end=document.querySelector<HTMLInputElement>('[aria-label="Waveform selection end"]')!;
+  assert.equal(start.value,"120");assert.equal(end.value,"120");
+  const prompt= [...document.querySelectorAll("details")].find(item=>item.textContent?.includes("Generate a replacement section from a prompt"))!;
+  await act(async()=>{prompt.open=true;});
+  const field=prompt.querySelector("textarea")!;await act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field),"value")!.set!.call(field,"Add a gentle closing chorus");field.dispatchEvent(new dom.window.Event("input",{bubbles:true}));});
+  await act(async()=>button("Generate replacement section").click());
+  assert.match(confirmation,/one 15-second replacement passage/);assert.match(confirmation,/original recording stays saved/i);
+  assert.equal((globalThis as any).__audioEdit.renders.length,0);assert.equal((globalThis as any).__audioEdit.uploads.length,0);
+ }finally{await act(async()=>root.unmount());dom.window.close();}
+});
 
 test("section generation exposes saved language, editable choices for legacy songs and an instrumental bypass",async()=>{
  const old:Song={...freshSong("legacy","Legacy song",0),audioFormat:"mp3"};

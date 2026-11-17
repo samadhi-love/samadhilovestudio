@@ -17,6 +17,7 @@ const kinds: Record<string, string[]> = {
   analysis: ["audio/wav"],
   soundtrack: ["audio/wav"],
   vocal: ["audio/mpeg", "audio/wav", "audio/mp4", "audio/flac", "audio/ogg"],
+  reference: ["audio/webm", "audio/wav", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/flac"],
   stems: ["application/zip"],
   video: ["video/mp4", "video/webm"],
   sourceVideo: ["video/mp4", "video/webm", "video/quicktime"],
