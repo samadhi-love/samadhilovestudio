@@ -5,11 +5,12 @@
   does not cancel the server's work. On startup, and when checking a stale job,
   Studio marks waiting or working jobs without a heartbeat for ten minutes as
   interrupted. It does not replay them. Music drafts remain in My Songs.
-- **Try again:** Available for failures confirmed before any provider request.
-  The new attempt uses the original saved input, with a separate request ID,
-  current credit confirmation when applicable, and the existing reservation and
-  refund rules. An uncertain provider charge is not a safe retry. Existing
-  owner credit recovery remains available for interrupted reservations.
+- **Try again:** Failed music and lyric timing jobs can be retried explicitly.
+  If the last attempt may have reached ElevenLabs, Studio warns that the
+  retry may use credits again and waits for confirmation. The retry uses
+  the saved input, a new request ID and the current credit quote when
+  applicable. Existing reservation and refund rules still apply; an uncertain
+  hold is not refunded merely because a retry was requested.
 - **Video:** Kept the browser renderer to preserve its fonts, visuals and caption
   layout. Guided WebCodecs exports checkpoint five-second video segments on
   the same device, then remux them with the full soundtrack. Reopening the same

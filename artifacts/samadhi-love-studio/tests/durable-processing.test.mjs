@@ -72,3 +72,77 @@ test("only a failure before the provider was contacted is marked safe to retry",
     assert.equal((await runner.readJobDocument("owner",id,"result")).retryable,true);
   }finally{db.sql.close();}
 });
+
+await build({entryPoints:["app/api/studio/jobs/route.ts","app/job-status.tsx"],outdir:"generated-artifacts/tests/retry-confirmation",outExtension:{".js":".mjs"},bundle:true,platform:"node",format:"esm",packages:"external",jsx:"automatic",plugins:[{name:"offline-retry",setup(b){
+  const mocks={
+    "cloudflare:workers":"export const env=globalThis.__durable.env;",
+    "../../../studio-access":"export async function privateWorkspace(){return {id:'owner',role:'owner'};}",
+    "../store":"export const privateHeaders={};export async function readStudio(){return {data:globalThis.__durable.data};}",
+    "../api/studio/store":"export {readStudio} from '../store';export async function writeStudio(){throw new Error('Unexpected draft write');}",
+    "../create/route":"export const POST=request=>globalThis.__durable.execute(request);",
+    "../lyric-sync/route":"export const POST=request=>globalThis.__durable.execute(request);",
+    "../../../credits/account-ledger":"export const settleJob=(...args)=>globalThis.__durable.settlements.push(args);",
+    "../../../credits/production":"export async function quoteProduction(){return {funding:'studio',enabled:true,credits:7};}",
+    "../credits/production":"export const jobExecution=new WeakMap();",
+    "vinext/shims/request-context":"export function getRequestExecutionContext(){return {waitUntil(task){globalThis.__durable.tasks.push(task);}};}",
+    "./draft-recovery":"export const useRecoveryScope=()=> 'owner';",
+  };
+  b.onResolve({filter:/.*/},a=>Object.hasOwn(mocks,a.path)?{path:a.path,namespace:"retry-fixture"}:undefined);
+  b.onLoad({filter:/.*/,namespace:"retry-fixture"},a=>({contents:mocks[a.path],loader:"js"}));
+}}]});
+const {POST:retryPost}=await import("../generated-artifacts/tests/retry-confirmation/api/studio/jobs/route.mjs");
+for(const type of ["music-generation","lyric-sync"])test(`${type}: uncertainty requires consent, saved inputs and fresh credit approval; double submission cannot replay`,async()=>{
+  const {db}=fixture();
+  const state=globalThis.__durable;
+  state.env.STUDIO_CREDITS_ENABLED="1";
+  state.data={songs:[{id:"song",creationDraft:true}]};
+  state.tasks=[];state.settlements=[];
+  const calls=[];
+  state.execute=async(request)=>{calls.push({body:await request.json(),id:request.headers.get("X-Production-Id"),accepted:request.headers.get("X-Studio-Credits-Accepted")});return Response.json({ok:true});};
+  const input={action:"song",songId:"song",text:"نور",lyrics:"Saved lyrics",prompt:"Saved prompt"};
+  const parent="old-attempt";
+  const submit=(body)=>retryPost(new Request("https://studio.test/api/studio/jobs",{method:"POST",headers:{origin:"https://studio.test","X-Production-Id":crypto.randomUUID()},body:JSON.stringify({retry:parent,...body})}));
+  try{
+    db.sql.prepare("INSERT INTO studio_jobs(id,owner,type,status,created_at,updated_at,song_id,error_message) VALUES(?,?,?,?,?,?,?,?)").run(parent,"owner",type,"failed",0,0,"song","Interrupted");
+    await runner.saveJobDocument("owner",parent,"request",{route:type==="music-generation"?"/api/studio/create":"/api/studio/lyric-sync",input,accepted:"3"});
+    assert.equal((await submit({confirmChargeUncertain:true})).status,409);
+    assert.equal((await submit({confirm:true})).status,409);
+    const quote=await submit({confirm:true,confirmChargeUncertain:true,accepted:3});
+    assert.equal(quote.status,402);assert.deepEqual(await quote.json(),{confirmCredits:7});
+    assert.equal(calls.length,0);
+    const results=await Promise.all([1,2].map(()=>submit({confirm:true,confirmChargeUncertain:true,accepted:7,input:{lyrics:"Do not use"}})));
+    assert.deepEqual(results.map(r=>r.status).sort(),[202,409]);
+    await Promise.all(state.tasks);
+    assert.equal(calls.length,1);assert.deepEqual(calls[0].body,input);assert.equal(calls[0].accepted,"7");
+    assert.notEqual(calls[0].id,parent);assert.deepEqual(state.settlements,[]);
+  }finally{delete state.env.STUDIO_CREDITS_ENABLED;db.sql.close();}
+});
+
+test("Try again shows the uncertainty warning and canceling sends no retry request",async()=>{
+  const {JSDOM}=await import("jsdom");
+  const React=await import("react");
+  const {createRoot}=await import("react-dom/client");
+  const {JobStatus}=await import("../generated-artifacts/tests/retry-confirmation/job-status.mjs");
+  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});
+  const original={window:globalThis.window,document:globalThis.document,fetch:globalThis.fetch,IS_REACT_ACT_ENVIRONMENT:globalThis.IS_REACT_ACT_ENVIRONMENT,CustomEvent:globalThis.CustomEvent};
+  Object.assign(globalThis,{window:dom.window,document:dom.window.document,IS_REACT_ACT_ENVIRONMENT:true,CustomEvent:dom.window.CustomEvent});
+  const warnings=[],requests=[];
+  let confirm=false;
+  window.confirm=message=>{warnings.push(message);return confirm;};
+  globalThis.fetch=async(_url,init)=>{
+    if(init?.method==="POST"){requests.push(JSON.parse(init.body));return Response.json({jobId:"new"},{status:202});}
+    return Response.json({jobs:[{id:"interrupted",type:"music-generation",status:"failed",error_message:"Charge uncertain"}]});
+  };
+  const root=createRoot(document.getElementById("root"));
+  try{
+    await React.act(async()=>root.render(React.createElement(JobStatus,{completed:()=>{}})));
+    const button=document.querySelector("button");
+    assert.equal(button?.textContent,"Try again");
+    await React.act(async()=>button.click());
+    assert.deepEqual(warnings,["This may use credits again, because the last attempt may have reached ElevenLabs. Try again?"]);
+    assert.deepEqual(requests,[]);
+    confirm=true;
+    await React.act(async()=>button.click());
+    assert.deepEqual(requests,[{retry:"interrupted",confirm:true,confirmChargeUncertain:true}]);
+  }finally{await React.act(async()=>root.unmount());dom.window.close();Object.assign(globalThis,original);}
+});

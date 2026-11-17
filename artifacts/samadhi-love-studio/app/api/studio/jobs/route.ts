@@ -81,15 +81,28 @@ export const POST=recoverableRoute(async(request:Request)=>{
   let songId:string;
   if(input.retry){
     const prior=await ownedJob(owner,input.retry);
-    if(!prior||prior.status!=="failed")return reply({error:"Only an unfinished job can be retried. No processing started."},409);
-    if(input.confirm!==true)return reply({error:"Confirm a new provider attempt first. Your previous provider charge may be uncertain."},409);
+    if(!prior||prior.status!=="failed"||!["music-generation","lyric-sync"].includes(prior.type))
+      return reply({error:"Only an unfinished music or lyric timing job can be retried. No processing started."},409);
+    if(input.confirm!==true)return reply({error:"Confirm a new provider attempt first."},409);
+    if(prior.error_message?.startsWith("Retry started:"))
+      return reply({error:"A retry already started. Check its status below; no extra work was started."},409);
     const outcome=await readJobDocument<{retryable?:boolean}>(owner,prior.id,"result");
-    if(outcome?.retryable!==true)return reply({error:"Studio can't confirm that this attempt was uncharged. Check your provider history; no retry was started."},409);
+    const chargeUncertain=outcome?.retryable!==true;
+    if(chargeUncertain&&input.confirmChargeUncertain!==true)
+      return reply({error:"Confirm that the last attempt may have reached ElevenLabs before trying again."},409);
     const saved=await readJobDocument<SavedWork>(owner,prior.id,"request");
     if(!saved)return reply({error:"The saved inputs are unavailable. No processing started."},409);
+    if(prior.type==="music-generation"){
+      const {data}=await readStudio(owner);
+      const draft=data?.songs.find(song=>song.id===prior.song_id&&!song.deletedAt);
+      if(!draft?.creationDraft||draft.audioFormat)
+        return reply({error:"This draft is no longer awaiting a recording. Check My Songs; no retry was started."},409);
+    }
     let accepted:string|null=null;
     if(env.STUDIO_CREDITS_ENABLED==="1"){
-      await settleJob(owner,prior.id,true);
+      // A retry is not evidence that an interrupted attempt should be refunded.
+      // Keep any uncertain hold in the existing owner recovery flow.
+      if(!chargeUncertain)await settleJob(owner,prior.id,true);
       const quote=await quoteProduction(owner,saved.route,saved.input);
       if(quote.funding==="studio"){
         if(!quote.enabled)return reply({error:quote.message},409);

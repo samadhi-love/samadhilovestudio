@@ -12,9 +12,10 @@ no paid provider calls. Stop after the approved Part A and report.
 
 The owner subsequently approved Part B only: durable processing, safe explicit
 retries, video recovery, account autosave and rough lyric timing. Keep the
-feature freeze and stop after reporting Part B. A provider charge cannot be
-inferred from missing output, so built-in retry is limited to failures confirmed
-before any provider request, including paid composition planning.
+feature freeze and stop after reporting Part B. The owner later approved a
+manual retry for uncertain charges only after an explicit warning that the
+retry may use credits again. Never infer a provider charge from missing
+output or replay a paid request automatically.
 
 **Why:** The user explicitly made Step 2 the top priority after feature work proceeded while foundation work was unfinished.
 
