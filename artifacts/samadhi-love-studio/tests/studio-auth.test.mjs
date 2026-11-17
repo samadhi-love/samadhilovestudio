@@ -5,7 +5,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 // Exercise the real bridge without credentials, external calls, or a running Clerk tenant.
-function loadBridge({ cookie = "", respond = async () => new Response(null, { status: 401 }) } = {}) {
+function loadBridge({ cookie = "", production = false, publicOrigin, respond = async () => new Response(null, { status: 401 }) } = {}) {
   const calls = [];
   const compile = (file, imports) => {
     const source = readFileSync(new URL(file, import.meta.url), "utf8");
@@ -15,6 +15,7 @@ function loadBridge({ cookie = "", respond = async () => new Response(null, { st
     const exports = {};
     vm.runInNewContext(outputText, {
       exports, URL, AbortSignal,
+      process: { env: { NODE_ENV: production ? "production" : "development" } },
       require(name) {
         if (!(name in imports)) throw new Error(`Unexpected import: ${name}`);
         return imports[name];
@@ -36,6 +37,7 @@ function loadBridge({ cookie = "", respond = async () => new Response(null, { st
     }) },
     "next/navigation": { redirect: () => { throw new Error("redirect"); } },
     "./auth-return-path": returnPaths,
+    "cloudflare:workers": { env: { STUDIO_PUBLIC_ORIGIN: publicOrigin } },
   });
   return { ...bridge, calls };
 }
@@ -90,3 +92,23 @@ test("invalid identity responses fail closed", async () => {
   });
   await assert.rejects(bridge.getChatGPTUser(), /Invalid verified studio identity/);
 });
+
+test("production verifies cookies only against the configured HTTPS auth service", async () => {
+  const user = { userId: "fixture-user", email: "fixture@example.test" };
+  const bridge = loadBridge({
+    cookie: "__session=fixture", production: true, publicOrigin: "https://public.example.test",
+    respond: async () => Response.json(user),
+  });
+  await bridge.getChatGPTUser();
+  assert.equal(bridge.calls[0].url, "https://public.example.test/api/replit-auth/session");
+  assert.equal(bridge.calls[0].options.headers["x-forwarded-host"], "public.example.test");
+  assert.equal(bridge.calls[0].options.redirect, "manual");
+});
+
+for (const publicOrigin of [undefined, "http://public.example.test", "https://public.example.test/path", "https://user:password@public.example.test"]) {
+  test(`production never falls back to loopback with invalid origin configuration (${publicOrigin ? "invalid" : "missing"})`, async () => {
+    const bridge = loadBridge({ cookie: "__session=fixture", production: true, publicOrigin });
+    await assert.rejects(bridge.getChatGPTUser());
+    assert.equal(bridge.calls.length, 0);
+  });
+}

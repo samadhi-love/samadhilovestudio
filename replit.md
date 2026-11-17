@@ -11,6 +11,8 @@ Continue the user's existing music-creation app, with beginner-friendly songs an
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/samadhi-love-studio run test:elevenlabs` — offline SDK transport and sign-in regressions
+- `pnpm --filter @workspace/samadhi-love-studio run test:runtime` — offline production gateway, Worker boundary, and binding checks
+- `pnpm --filter @workspace/samadhi-love-studio run start` — production gateway; requires the configured Cloudflare Worker origin, public origin, and transport secret
 - `pnpm --filter @workspace/samadhi-love-studio run test:credits` — offline credit reservation/refund checks
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/samadhi-love-studio exec wrangler d1 migrations apply DB --local --config replit-local.wrangler.json` — initialize the studio's **local development** D1 store
@@ -50,7 +52,7 @@ Focus on affordability and beginners, with easy and advanced controls in the sam
 ## Gotchas
 
 - Preview storage is LOCAL ONLY. It is not a production data migration or durable published storage. Do not publish with emulated D1/R2 as if it were production storage.
-- The generated artifact's static production configuration does not yet fit this server-rendered app; production runtime, durable bindings, and domain configuration still need to be finalized before launch.
+- Production uses a Replit Node gateway in front of the Cloudflare Worker, not static hosting or Wrangler local development. Actual Worker connection settings, durable resource bindings, secrets, and domain configuration still need to be completed before launch; see `artifacts/samadhi-love-studio/docs/CLOUDFLARE_PRODUCTION.md`. The normal build uses local placeholder bindings for validation; only `build:cloudflare` requires actual resource identifiers for a deployable Worker build.
 - The source archive included no account records, saved provider keys, or original hosted private media. Do not claim those were transferred.
 - ElevenLabs generation and billing must not be claimed connected based only on source code or an account-status check. No live paid generation has been verified.
 - Server-funded production and paid billing remain disabled pending provider setup and operator approval.

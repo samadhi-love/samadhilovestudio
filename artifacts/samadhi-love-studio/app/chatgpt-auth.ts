@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { safeStudioReturnPath } from "./auth-return-path";
+import { env } from "cloudflare:workers";
 
 export type ChatGPTUser = {
   userId: string;
@@ -16,11 +17,23 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const incoming = await headers();
   const cookie = incoming.get("cookie") ?? "";
   if (!/(?:^|;\s*)__session=/.test(cookie)) return null;
-  // Fixed loopback proxy: credentials never go to a client-selected host.
-  const response = await fetch("http://127.0.0.1:80/api/replit-auth/session", {
+  // Production Workers cannot reach Replit's loopback interface. Use only the
+  // configured public origin, never a visitor-selected host or redirect.
+  let origin = "http://127.0.0.1:80";
+  if (process.env.NODE_ENV !== "development") {
+    const configured = new URL(env.STUDIO_PUBLIC_ORIGIN ?? "");
+    if (configured.protocol !== "https:" || configured.username || configured.password ||
+        configured.pathname !== "/" || configured.search || configured.hash) {
+      throw new Error("Studio public origin is not configured.");
+    }
+    origin = configured.origin;
+  }
+  const verifiedHost = new URL(origin).host;
+  const response = await fetch(origin + "/api/replit-auth/session", {
     headers: {
       cookie,
-      "x-forwarded-host": incoming.get("x-forwarded-host") ?? incoming.get("host") ?? "",
+      "x-forwarded-host": process.env.NODE_ENV === "development"
+        ? incoming.get("x-forwarded-host") ?? incoming.get("host") ?? "" : verifiedHost,
       "x-forwarded-proto": "https",
     },
     cache: "no-store",

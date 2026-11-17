@@ -16,12 +16,7 @@ run = "pnpm --filter @workspace/samadhi-love-studio run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/samadhi-love-studio", "run", "build" ]
-serve = "static"
-publicDir = "artifacts/samadhi-love-studio/dist/public"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+run = [ "pnpm", "--filter", "@workspace/samadhi-love-studio", "run", "start" ]
 
 [services.env]
 PORT = "19551"

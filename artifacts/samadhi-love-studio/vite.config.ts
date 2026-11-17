@@ -7,6 +7,7 @@ import { sites } from "./scripts/vite/sites-vite-plugin";
 import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
 import { studioWorkerSecrets } from "./scripts/worker-secrets.mjs";
 import path from "node:path";
+import { cloudflareProductionBindings } from "./scripts/cloudflare-production-bindings.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -70,6 +71,7 @@ export default defineConfig(async ({ command }) => {
         inspectorPort: false,
         config: {
           ...localBindingConfig,
+          ...(process.env.STUDIO_BUILD_TARGET === "cloudflare" ? cloudflareProductionBindings() : {}),
           secrets: workerSecrets,
           ...(command === "serve"
             ? {

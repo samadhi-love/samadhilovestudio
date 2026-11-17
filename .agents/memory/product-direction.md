@@ -8,6 +8,12 @@ Continue the existing SAMADHI LOVE Studio rather than building a replacement.
 
 **How to apply:** Preserve the imported screens, features, assets, and data model. Make targeted hosting and compatibility changes before redesigning.
 
+Keep the Cloudflare backend for production rather than converting the app to a Node-compatible backend.
+
+**Why:** The user explicitly chose “Keep Cloudflare backend” when asked how to resolve the production-runtime mismatch.
+
+**How to apply:** Preserve D1/R2 and the Worker runtime. Preparing the connection is not permission to deploy, provision resources, migrate data, or replace encryption keys.
+
 The goal is a unique, affordable app for young enthusiasts, especially beginners, with easy song creation and both easy and advanced visual/lyric-video tools.
 
 **Why:** The user explicitly described this target audience and workflow.
