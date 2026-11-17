@@ -2,6 +2,40 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync,readdirSync } from "node:fs";
 import { copySongRows,readSongRows,writeSongRows,rebaseUnchanged } from "../scripts/storage/song-rows.mjs";
+test("a new account saves directly into verified per-song rows without a legacy bundle",async()=>{
+  const {db,source,raw}=fixture();
+  try{
+    db.sql.exec(`CREATE TRIGGER forbid_legacy_insert BEFORE INSERT ON studios BEGIN SELECT RAISE(ABORT,'legacy insert forbidden'); END;
+      CREATE TRIGGER forbid_legacy_update BEFORE UPDATE ON studios BEGIN SELECT RAISE(ABORT,'legacy update forbidden'); END;
+      CREATE TRIGGER forbid_legacy_delete BEFORE DELETE ON studios BEGIN SELECT RAISE(ABORT,'legacy delete forbidden'); END;`);
+    assert.deepEqual(await readSongRows(db,"brand-new"),{data:null,revision:0});
+    const fresh=structuredClone(source.songs[0]);fresh.id="fresh";fresh.notes.lyrics="مرحبا / A fresh start";
+    const input={songs:[fresh],templates:[]};
+    const saved=await writeSongRows(db,"brand-new",JSON.stringify(input));
+    assert.equal(saved.data.songs[0].notes.lyrics,"مرحبا / A fresh start");
+    const account=db.sql.prepare("SELECT verified,comparison FROM studio_accounts WHERE owner=?").get("brand-new");
+    assert.equal(account.verified,1);
+    const receipt=JSON.parse(account.comparison);
+    assert.equal(receipt.mode,"empty-fresh-start");assert.equal(receipt.songCount,0);
+    for(const table of ["studio_songs","studio_song_lyrics","studio_song_notes","studio_projects"])
+      assert.equal(db.sql.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE owner=?`).get("brand-new").count,1);
+    saved.data.songs[0].notes.lyrics="An edited fresh song";
+    await writeSongRows(db,"brand-new",JSON.stringify(saved.data));
+    assert.equal((await readSongRows(db,"brand-new")).data.songs[0].notes.lyrics,"An edited fresh song");
+    assert.equal(db.sql.prepare("SELECT COUNT(*) AS count FROM studios").get().count,1);
+    assert.equal(db.sql.prepare("SELECT content FROM studios WHERE owner=?").get("owner").content,raw);
+  }finally{db.sql.close();}
+});
+test("first save never silently copies an existing legacy bundle",async()=>{
+  const {db,source}=fixture();
+  try{
+    const raw=JSON.stringify(source);
+    db.sql.prepare("INSERT INTO studios VALUES(?,?,?)").run("legacy-owner",raw,1);
+    await assert.rejects(writeSongRows(db,"legacy-owner",JSON.stringify({songs:[],templates:[]})),/explicit verified per-song data copy/);
+    assert.equal(db.sql.prepare("SELECT content FROM studios WHERE owner=?").get("legacy-owner").content,raw);
+    assert.equal(db.sql.prepare("SELECT COUNT(*) AS count FROM studio_accounts").get().count,0);
+  }finally{db.sql.close();}
+});
 import { sqliteD1 } from "../scripts/storage/sqlite-fixture.mjs";
 function fixture(){
   const db=sqliteD1();

@@ -1,6 +1,32 @@
 # SAMADHI LOVE Studio
 
-## Step 2 foundation status — feature freeze remains in effect
+## Step 2 finished for the approved fresh start — feature freeze remains
+
+The owner chose to start cloud use with new songs. **Do not copy or upload the
+7 local preview songs.** Leave local data, legacy bundles and all backups intact.
+Production is pinned to verified per-song D1 storage. A new account's first save
+now creates a verified `empty-fresh-start` receipt in `studio_accounts`, then
+saves songs/lyrics/notes/projects in their separate tables. It does not run the
+copy helper or write a `studios` bundle. Existing legacy accounts are refused
+rather than silently imported, overwritten or reset.
+
+The read-only cloud check confirmed the correct database ID/name, the expected
+schema, private R2 access, and zero legacy/normalized accounts, songs, lyrics,
+notes, projects and jobs. No cloud account marker was inserted just to claim a
+test: each real new account receives its verified empty-start receipt on first
+save. Offline actual API tests saved and reopened a fresh song while legacy
+bundle inserts were blocked. Final checks passed: **44/44 verification groups,
+25/25 test commands, full workspace typecheck/build** (overlapping totals).
+Storage tests: 7/7; actual song API assertions: 18/18; runtime tests: 20/20.
+
+Step 2's foundation work is complete for this approved fresh-start scope. It is
+not a deployed live-song saving test: signed-in cloud save/reopen, paid provider
+output and downloaded-video playback remain unverified. Nothing was published.
+Keep the feature freeze until explicit owner approval. `STUDIO_PUBLIC_ORIGIN`
+stays pending; remind the owner to set the actual HTTPS origin immediately after
+first publish.
+
+### Earlier preparation evidence
 
 Work is restricted to secrets, independent song saving, shared server helpers
 and durable job records. Keep Stage 3 as it is. Flag feature requests instead of

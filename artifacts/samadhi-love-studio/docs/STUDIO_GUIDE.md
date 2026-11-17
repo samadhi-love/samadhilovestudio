@@ -2,6 +2,19 @@
 
 ## Current priority — Step 2 foundation freeze
 
+**Step 2 is finished for the owner's approved fresh start.** Production uses the
+new per-song cloud tables from the first save. New accounts are marked verified
+with an `empty-fresh-start` receipt on first save; no old bundle is created and
+no legacy data is implicitly copied. Do not upload the 7 preview songs. Local
+data and all backups stay intact. Read-only cloud checks confirmed the selected
+database is empty and ready. Offline new-account save/reopen tests passed:
+44/44 verification groups, 25/25 test commands and full workspace typecheck/build.
+There was no live song write, publishing, paid call, UI change or feature work.
+Signed-in deployed saving remains unverified. Feature freeze remains until the
+owner approves lifting it.
+
+### Earlier preparation evidence
+
 No new features or visual changes until the owner approves Step 2. Stage 3 stays
 unchanged. Local per-song saving is active after an exact copy of 3 accounts and
 7 songs; original bundles are read-only and R2 checkpoints were untouched.

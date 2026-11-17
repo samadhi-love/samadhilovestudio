@@ -42,6 +42,9 @@ export async function initializeRuntime(source = process.env, adapters) {
   const DB = adapters?.DB ?? new D1Http(config);
   const BUCKET = adapters?.BUCKET ?? new R2PrivateBucket(config);
   await verifyStorage(DB, BUCKET);
+  // Production always uses verified per-song rows, including brand-new empty
+  // accounts. Never accept an environment override back to legacy bundle saves.
+  // First saves are verified empty fresh starts, not implicit copy operations.
   // Production cannot silently activate project-funded generation or billing.
   const env = { DB, BUCKET, STUDIO_ROW_STORAGE: "verified", STUDIO_OWNER_EMAIL: source.STUDIO_OWNER_EMAIL,
     STUDIO_ELEVENLABS_VAULT_KEY: config.vault, STUDIO_PUBLIC_ORIGIN: config.publicOrigin,

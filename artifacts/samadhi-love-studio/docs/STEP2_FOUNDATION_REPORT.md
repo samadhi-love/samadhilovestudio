@@ -1,5 +1,51 @@
 # Step 2 — Clean Structure
 
+## Final decision: verified empty fresh start
+
+The owner approved starting cloud use with newly created songs and explicitly
+declined uploading or copying the 7 local preview songs. This supersedes the
+earlier pending migration/cutover requirement below. Local data and all backups
+remain intact; no legacy files or leftover folders were removed.
+
+Production is fixed to `STUDIO_ROW_STORAGE: "verified"`; an environment override
+cannot restore bundle saving. A first save for an account without legacy data
+now directly creates a verified `studio_accounts` record whose comparison
+receipt says `mode: "empty-fresh-start"` and `songCount: 0`. It does not call the
+copy helper. The new song and its lyrics, notes/prompts and project are written
+to their separate tables. An atomic absence check prevents initializing over
+an existing legacy bundle; existing legacy accounts need an explicit approved
+copy and are never silently imported or reset. The explicit copy utility stays
+available but was not run for this fresh-start change.
+
+### Fresh verification
+
+- Read-only cloud identity check: database ID and name matched.
+- Expected schema and private R2 access: passed read-only.
+- Cloud legacy accounts, normalized accounts, songs, lyrics, notes, projects and
+  jobs: all **0**. No cloud rows/objects were written by this check.
+- A fake cloud owner/receipt was not inserted. Verification of the empty target
+  is recorded here; each real account is marked verified on its first save.
+- Offline actual GET/PUT API: **18/18 assertions passed**, including empty first
+  load, first-song save, separate rows, verified empty-start receipt and reopen.
+  Legacy bundle inserts were deliberately blocked during the fresh-account test.
+- Storage repository tests: **7/7 passed**, including preservation/refusal of
+  legacy data, independent revisions and multilingual content.
+- Runtime tests: **20/20 passed**, including forced per-song production mode.
+- All Studio verification groups: **44/44 passed, 0 failed**.
+- All package test commands: **25/25 passed, 0 failed**.
+- Full workspace typecheck/build: **passed**. Totals overlap.
+
+**Status:** Step 2 is complete for the approved fresh-start scope; no populated
+cloud migration is required. Signed-in cloud save/reopen, production deployment,
+paid provider output, microphone hardware and downloaded-video playback are
+not verified by these checks. No publishing, paid calls, domain/billing changes,
+new features or UI changes occurred. The feature freeze remains in effect.
+Production origin stays pending until first publish.
+
+The sections below retain the earlier local-copy/preparation evidence and
+leftover recommendations. Any earlier requirement to migrate the 7 preview
+songs or await approval of that migration is superseded by this decision.
+
 Feature freeze: keep Stage 3 unchanged. No new features or visual changes until
 the owner approves Step 2. No publishing, domain changes, billing activation,
 user-data deletion or leftover-file removal is authorized.

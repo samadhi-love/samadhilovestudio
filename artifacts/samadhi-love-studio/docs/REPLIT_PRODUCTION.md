@@ -85,6 +85,16 @@ copied into the live database.
 
 ### Step 2 per-song copy
 
+**Current owner decision: fresh start, not a preview-song migration.** Do not
+copy/upload the 7 local preview songs. Production always selects verified
+per-song storage; new-account saves initialize a verified `empty-fresh-start`
+receipt and then write separate song/lyrics/notes/project records. They never
+write the legacy `studios` bundle or automatically call the copy utility.
+The cloud database/schema were checked read-only and are empty/ready. Local
+preview remains isolated. Existing legacy accounts are refused rather than
+automatically imported; the copy procedure below is for a future separately
+approved legacy migration only. No deployment or live song write was tested.
+
 Cloud connectivity was checked read-only after resource settings were supplied:
 D1 and private R2 were reachable, but the selected D1 contained 0 legacy accounts
 and 0 songs and did not yet have the normalized foundation tables/view. Confirm

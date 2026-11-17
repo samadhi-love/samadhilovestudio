@@ -12,6 +12,18 @@ Local emulated songs are not automatically present in the configured cloud D1.
 Do not treat an empty cloud database as proof that local saves were lost, or
 silently upload/merge preview accounts into it.
 
+The owner chose a fresh cloud start: "do NOT copy or upload the 7 local preview
+songs to the cloud — I'll make new songs from scratch." Leave local preview
+data and all backups as they are; do not delete anything. New cloud use starts
+with newly created songs, not a preview-account migration.
+
+**Why:** the owner explicitly chose a fresh start instead of importing preview
+work. This supersedes any earlier expectation to migrate those preview songs.
+
+**How to apply:** never run a preview-to-cloud copy under the old authorization.
+Preserve local data and backups, and distinguish offline first-save verification
+from a real signed-in cloud write.
+
 **Why:** the user explicitly requires an unchanged legacy backup, and older
 clients could otherwise save into a store the new app no longer reads.
 

@@ -124,10 +124,27 @@ export async function copySongRows(db,owner) {
   if(!update.meta?.changes)throw new Error("The original changed during copy; comparison must be repeated. No switch occurred.");
   return report;
 }
+// First save is not a migration. Only the explicit copy command may import a
+// legacy account; fresh accounts start verified with no legacy bundle written.
+async function initializeEmptyAccount(db,owner) {
+  const legacy=await stmt(db,"SELECT owner FROM studios WHERE owner=?",owner).first();
+  if(legacy)throw new Error("This account needs the explicit verified per-song data copy. The original workspace is unchanged.");
+  const source={songs:[],templates:[]},sourceHash=await digest(source);
+  const verifiedAt=new Date().toISOString();
+  const report={mode:"empty-fresh-start",songCount:0,sourceHash,verifiedAt,
+    checks:{songCounts:true,lyrics:true,promptsAndNotes:true,allFieldsAndMediaKeys:true}};
+  // A concurrent legacy writer must not slip in between the check and insert.
+  await stmt(db,`INSERT INTO studio_accounts(owner,revision,settings,source_hash,verified,comparison,verified_at)
+    SELECT ?,0,?,?,1,?,? WHERE NOT EXISTS(SELECT 1 FROM studios WHERE owner=?)
+    ON CONFLICT(owner) DO NOTHING`,owner,encode({templates:[]}),sourceHash,encode(report),verifiedAt,owner).run();
+  const account=await stmt(db,"SELECT * FROM studio_accounts WHERE owner=?",owner).first();
+  if(!account)throw new Error("The original workspace appeared during fresh-start setup. No copy was performed.");
+  return account;
+}
 export async function writeSongRows(db,owner,content) {
   const input=JSON.parse(content), baseline=input._storage;
   let account=await stmt(db,"SELECT * FROM studio_accounts WHERE owner=?",owner).first();
-  if(!account){await copySongRows(db,owner);account=await stmt(db,"SELECT * FROM studio_accounts WHERE owner=?",owner).first();}
+  if(!account)account=await initializeEmptyAccount(db,owner);
   if(!account.verified)throw new Error("Complete the verified data copy first.");
   const current=await hydrate(db,owner,account),meta=current.data._storage;
   if(!baseline&&current.data.songs.length)throw new Error("Reload the Studio to use per-song saving; your edits have not been discarded.");

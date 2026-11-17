@@ -58,9 +58,14 @@ test("startup uses read-only schema and bucket checks, never schema writes or se
   const result = await initializeRuntime(source, a);
   assert.deepEqual(a.calls, ["schema", "head-bucket"]);
   assert.equal(env.DB, a.DB);
+  assert.equal(result.env.STUDIO_ROW_STORAGE, "verified");
   assert.equal(result.env.STUDIO_CREDITS_ENABLED, undefined);
   assert.equal(result.env.ELEVENLABS_API_KEY, undefined);
   assert.equal(result.env.STUDIO_BILLING_LAUNCH_APPROVED, undefined);
+});
+test("production cannot be switched back to legacy bundle storage by an environment override",async()=>{
+  const result=await initializeRuntime({...source,STUDIO_ROW_STORAGE:"legacy"},adapters());
+  assert.equal(result.env.STUDIO_ROW_STORAGE,"verified");
 });
 test("missing schema fails startup without creating tables or checking media", async () => {
   let bucket = false;
