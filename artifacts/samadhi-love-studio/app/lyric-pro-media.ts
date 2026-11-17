@@ -200,6 +200,9 @@ export async function uploadLyricAsset(
   signal?: AbortSignal,
   sourceAudioId?: string,
 ) {
+  if(!blob.size)throw new Error("This file is empty. Choose or create media with content.");
+  if(blob.size>120*1024*1024)throw new Error("Choose project media up to 120 MB.");
+  if(["background","logo"].includes(kind)&&blob.size>15*1024*1024)throw new Error("Choose an image up to 15 MB.");
   const response = await fetch("/api/studio/lyric-assets", {
     method: "POST",
     signal,

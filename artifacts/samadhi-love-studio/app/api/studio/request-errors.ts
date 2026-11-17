@@ -35,10 +35,10 @@ export function recoverableRoute<T extends unknown[]>(handler: (...args: T) => P
       // Do not log request bodies, credentials, lyrics, or provider error payloads.
       console.error("Studio operation unavailable", {
         operation: handler.name, requestId,
-        errorType: error instanceof Error ? error.name : typeof error,
-        // Stack frames locate local failures without logging error messages,
-        // which may contain submitted inputs or provider response payloads.
-        frames: error instanceof Error ? error.stack?.split("\n").slice(1, 5).map(frame => frame.replace(/\?.*$/, "")) : undefined,
+        errorType: error instanceof TypeError ? "TypeError" : error instanceof Error ? "Error" : "Unknown",
+        at:new Date().toISOString(),
+        // Do not include raw errors, causes, stacks or messages. Any of those
+        // can contain submitted text, signed media URLs or provider payloads.
       });
       return Response.json({ error: message, requestId, retryable: true }, { status: 503, headers: { ...privateHeaders, "X-Studio-Request-Id": requestId } });
     }

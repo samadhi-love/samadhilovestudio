@@ -35,7 +35,7 @@ export class R2PrivateBucket {
   }
   async checkAccess() {
     try { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }
-    catch { throw new Error("Private R2 access check failed. Check STUDIO_R2_ACCESS_KEY_ID and STUDIO_R2_SECRET_ACCESS_KEY for the configured bucket."); }
+    catch (cause) { throw new Error("Private R2 access check failed. Check STUDIO_R2_ACCESS_KEY_ID and STUDIO_R2_SECRET_ACCESS_KEY for the configured bucket.",{cause}); }
   }
   info(key, value) {
     const envelope = decodeMetadata(value.Metadata);
@@ -52,7 +52,7 @@ export class R2PrivateBucket {
   }
   async head(key) {
     try { return this.info(key, await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))); }
-    catch (e) { if (missing(e)) return null; throw new Error("Private media metadata could not be read."); }
+    catch (e) { if (missing(e)) return null; throw new Error("Private media metadata could not be read.",{cause:e}); }
   }
   async get(key, options = {}) {
     const range = options.range;
@@ -62,7 +62,7 @@ export class R2PrivateBucket {
     else if (range) Range = `bytes=${range.offset ?? 0}-${range.length !== undefined ? (range.offset ?? 0) + range.length - 1 : ""}`;
     let value;
     try { value = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key, Range })); }
-    catch (e) { if (missing(e)) return null; throw new Error("Private media could not be read."); }
+    catch (e) { if (missing(e)) return null; throw new Error("Private media could not be read.",{cause:e}); }
     const body = value.Body?.transformToWebStream ? value.Body.transformToWebStream() : Readable.toWeb(value.Body);
     const response = new Response(body);
     const info = this.info(key, value);

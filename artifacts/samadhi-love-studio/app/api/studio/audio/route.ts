@@ -120,7 +120,7 @@ async function uploadAudio(request: Request) {
       bucket.put(key, stream.readable, { httpMetadata: { contentType: audioTypes[format] } }),
     ]);
   } catch (error) {
-    console.error("Studio audio upload failed", error);
+    console.error("Studio audio upload failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("The audio upload failed. Try again.", 502);
   }
 
@@ -128,7 +128,7 @@ async function uploadAudio(request: Request) {
     const saved = await writeStudio(id, revision, content);
     if (saved) return Response.json({ ...await readStudio(id), songId: song.id }, { headers: privateHeaders });
   } catch (error) {
-    console.error("Studio upload save failed", error);
+    console.error("Studio upload save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("The studio could not confirm the upload. Reload your library before trying again.", 503);
   }
   if(creationId||uploadId){
@@ -138,7 +138,7 @@ async function uploadAudio(request: Request) {
       return Response.json({...latest,songId:completed.id},{headers:privateHeaders});
     }
   }
-  await bucket.delete(key).catch(error => console.error("Could not remove an unsaved audio upload", error));
+  await bucket.delete(key).catch(error => console.error("Could not remove an unsaved audio upload", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()}));
   return saveConflict();
 }
 

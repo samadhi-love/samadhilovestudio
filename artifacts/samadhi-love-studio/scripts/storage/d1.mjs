@@ -21,10 +21,10 @@ export class D1Http {
         // Keep a batch in one request; never replay ambiguous writes.
         body: JSON.stringify(queries.length===1?queries[0]:{batch:queries}),
       });
-    } catch {
-      throw new Error("D1 request was not confirmed. Do not automatically repeat a write.");
+    } catch (cause) {
+      throw new Error("D1 request was not confirmed. Do not automatically repeat a write.",{cause});
     }
-    if (!response.ok) throw new Error(`D1 request failed (HTTP ${response.status}).`);
+    if (!response.ok) throw Object.assign(new Error(`D1 request failed (HTTP ${response.status}).`),{status:response.status});
     let body;
     try { body = await response.json(); }
     catch { throw new Error("D1 returned an unreadable result. No automatic retry was made."); }

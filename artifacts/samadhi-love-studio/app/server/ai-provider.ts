@@ -3,12 +3,20 @@
  * and multipart alignment/stems all use this boundary. No shared-key fallback.
  * A credential is provided by the owner's existing encrypted-vault resolver.
  */
+import { retryRead } from "../../scripts/storage/retry.mjs";
 const origin = "https://api.elevenlabs.io";
 export function elevenLabsTransport(input:RequestInfo|URL,init:RequestInit={}) {
   const url=new URL(typeof input==="string"?input:input instanceof URL?input.href:input.url);
   if(url.origin!==origin||!url.pathname.startsWith("/v1/")||url.username||url.password)
     throw new Error("Unexpected ElevenLabs destination. No request was sent.");
-  return fetch(input,{...init,redirect:"manual"});
+  // Request wrappers can cross runtimes and fail instanceof Request. Inspect
+  // their method rather than accidentally treating a paid POST as a safe GET.
+  const inheritedMethod=typeof input==="object"&&"method" in input&&typeof input.method==="string"?input.method:"GET";
+  const method=(init.method??inheritedMethod).toUpperCase();
+  const send=()=>fetch(input,{...init,redirect:"manual"});
+  // Production IDs deduplicate our app, but provider billing idempotency is not
+  // guaranteed. Never replay POST music/plans/alignment/stems/visual requests.
+  return method==="GET"||method==="HEAD"?retryRead(send,{signal:init.signal??undefined}):send();
 }
 export function providerRequest(key:string,path:string,init:RequestInit) {
   if(!key.trim())throw new Error("Connect your own ElevenLabs key before processing.");
@@ -25,5 +33,5 @@ export function providerMediaRequest(value:string) {
   if(url.protocol!=="https:"||url.username||url.password||url.port||
     !["storage.googleapis.com","api.elevenlabs.io"].includes(url.hostname))
     throw new Error("Unexpected generated-media destination.");
-  return fetch(url.href,{redirect:"manual",signal:AbortSignal.timeout(60_000)});
+  return retryRead(()=>fetch(url.href,{redirect:"manual",signal:AbortSignal.timeout(60_000)}));
 }

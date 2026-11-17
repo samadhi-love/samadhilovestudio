@@ -30,7 +30,7 @@ export async function GET() {
     }
     return Response.json({ ...(access.role === "creator" && !current.data ? { ...current, data: emptyCreatorStudio } : current), workspace: access.id }, options);
   } catch (error) {
-    console.error("Studio load failed", error);
+    console.error("Studio load failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return Response.json({ error: "The studio could not load. Try again." }, { ...options, status: 503 });
   }
 }
@@ -139,7 +139,7 @@ async function putWorkspace(request: Request) {
     const saved = await writeStudio(id, revision, content);
     return saved ? Response.json(await readStudio(id), options) : saveConflict();
   } catch (error) {
-    console.error("Studio save failed", error);
+    console.error("Studio save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return Response.json({ error: "The studio could not save your changes. Keep this page open and try again." }, { status: 503 });
   }
 }

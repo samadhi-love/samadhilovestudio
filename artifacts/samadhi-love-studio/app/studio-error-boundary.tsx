@@ -1,10 +1,17 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import {installActionCrashReporting,reportPanelCrash} from "./client-crash-report";
+import {installInputSafety} from "./input-safety";
 
 export class StudioErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
+  private removeCrashReporting?:()=>void;
+  private removeInputSafety?:()=>void;
+  componentDidMount(){this.removeCrashReporting=installActionCrashReporting();this.removeInputSafety=installInputSafety();}
+  componentWillUnmount(){this.removeCrashReporting?.();this.removeInputSafety?.();}
+  componentDidCatch(error:Error){reportPanelCrash("studio","render",error);}
   render() {
     if (!this.state.failed) return this.props.children;
     return <main className="listener-shell"><section className="panel form-panel" role="alert">

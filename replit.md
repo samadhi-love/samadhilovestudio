@@ -1,5 +1,25 @@
 # SAMADHI LOVE Studio
 
+## Step 3A — approved reliability work
+
+Added bounded safe-read retries (1s/3s waits), a main-server `/health` route and
+production supervisor, recoverable panel/editor/timeline boundaries, private-safe
+crash logging, and common early upload/form checks. Paid POST processing and
+ambiguous D1/R2 writes are deliberately not auto-retried: Studio request IDs do
+not guarantee provider billing idempotency. Credit logic remains unchanged.
+No new creation features or redesign were added. No data/backups were removed,
+no preview songs were uploaded, and nothing was published or billed.
+
+Full scope, exceptions and final verification:
+`artifacts/samadhi-love-studio/docs/STEP3A_RELIABILITY_REPORT.md`.
+Final result: **45/45 verification groups, 26/26 test commands, 10/10 new
+reliability checks, and the full workspace typecheck/build passed** (overlapping
+totals). Main Studio `/health` returned HTTP 200; the cloud D1/R2 health check
+also passed read-only. A real published freeze/restart, signed-in cloud saving,
+paid output and native phone validation remain unverified.
+The feature freeze remains in force. Production origin is still pending first
+publish; immediately afterward remind the owner to set the actual HTTPS origin.
+
 ## Step 2 finished for the approved fresh start — feature freeze remains
 
 The owner chose to start cloud use with new songs. **Do not copy or upload the

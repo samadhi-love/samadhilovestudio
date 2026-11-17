@@ -1,5 +1,16 @@
 # SAMADHI LOVE Studio — current guide
 
+## Reliability safeguards — Step 3A
+
+Temporary safe reads retry twice. Paid processing and ambiguous saves do not
+auto-repeat. A failed panel offers **Try again** while navigation stays usable.
+Crash reports contain only approved technical categories/time/request IDs, not
+lyrics, keys or private content. File pickers/forms have shared early checks.
+The main server provides `/health`; the production launcher monitors it and
+uses bounded restarts. No publishing or live paid test was performed.
+See `STEP3A_RELIABILITY_REPORT.md` for exact limits, verification and exceptions.
+The feature freeze remains; no new creation features were added.
+
 ## Current priority — Step 2 foundation freeze
 
 **Step 2 is finished for the owner's approved fresh start.** Production uses the

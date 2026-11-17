@@ -1,4 +1,5 @@
 "use client";
+import {PanelErrorBoundary} from "./panel-error-boundary";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { captionTokens } from "./lyric-caption-render";
 import {
@@ -11,7 +12,10 @@ import {
   type LyricProject,
   type LyricCue,
 } from "./lyric-video-data";
-export function ProTimeline({
+export function ProTimeline(props:Parameters<typeof ProTimelineContent>[0]) {
+  return <PanelErrorBoundary panel="video-timeline"><ProTimelineContent {...props}/></PanelErrorBoundary>;
+}
+function ProTimelineContent({
   project,
   edit,
   audio,

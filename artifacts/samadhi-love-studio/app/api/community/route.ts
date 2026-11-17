@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const artist = params.get("artist");
     return reply(await loadCommunity(access.id, validId(song) ? song : null, validId(artist) ? artist : null, { page: Number(params.get("page")) || 1, search: params.get("search") ?? "",genre:params.get("genre")??"" }));
   } catch (error) {
-    console.error("Community read failed", error);
+    console.error("Community read failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("Community could not load. Try again.", 503);
   }
 }
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     }
     return await engage(access.id, input);
   } catch (error) {
-    console.error("Community change failed", error);
+    console.error("Community change failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("The change could not be saved. Try again.", 503);
   } finally {
     reader.releaseLock();

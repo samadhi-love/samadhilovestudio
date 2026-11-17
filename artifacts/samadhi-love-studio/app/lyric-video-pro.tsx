@@ -1,4 +1,5 @@
 "use client";
+import {PanelErrorBoundary} from "./panel-error-boundary";
 import { MusicLanguageSummary } from "./music-language-summary";
 import {StemReactiveControls} from "./stem-reactive-controls";
 import {releaseKit} from "./lyric-release-kit";
@@ -186,6 +187,9 @@ const looks = [
   { name: "Intimate R&B / acoustic", theme: "dawn", template: "ink-echo" },
 ] as const;
 export function LyricVideoPro(props: Props) {
+  return <PanelErrorBoundary panel="video-editor"><LyricVideoProContent {...props}/></PanelErrorBoundary>;
+}
+function LyricVideoProContent(props: Props) {
   const {
     songs,
     initialSongId,

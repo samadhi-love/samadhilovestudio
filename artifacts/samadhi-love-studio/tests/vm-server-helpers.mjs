@@ -9,8 +9,9 @@ function compile(file,globals){
   const source=[path.resolve("app/server",file),path.resolve("artifacts/samadhi-love-studio/app/server",file)].find(existsSync);
   if(!source)throw new Error("Shared server test source could not be located.");
   const {outputText}=ts.transpileModule(readFileSync(source,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}});
-  const exports={};vm.runInNewContext(outputText,{exports,URL,Request,Headers,AbortSignal,...globals,require(name){
+  const exports={};vm.runInNewContext(outputText,{exports,URL,Request,Response,Headers,AbortSignal,setTimeout,clearTimeout,...globals,require(name){
     if(name==="./storage-service")return compile("storage-service.ts",globals);
+    if(name==="../../scripts/storage/retry.mjs")return compile("../../scripts/storage/retry.mjs",globals);
     if(globals.require)return globals.require(name);
     throw new Error("Unexpected boundary import "+name);
   }});return exports;

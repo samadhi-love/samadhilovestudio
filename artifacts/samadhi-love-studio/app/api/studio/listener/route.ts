@@ -61,7 +61,7 @@ async function saveListener(request: Request) {
   const trackIds = JSON.stringify(tracks.map(track => recordingGrant(track!)));
   try { await checkpointStudio(access.id); }
   catch (error) {
-    console.error("Could not checkpoint listener settings", error);
+    console.error("Could not checkpoint listener settings", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("The station could not save your changes. Try again.", 503);
   }
   await getDb().insert(listenerStation).values({ id: stationId, owner: access.id, trackIds })

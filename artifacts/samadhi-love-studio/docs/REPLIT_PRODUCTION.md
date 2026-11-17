@@ -83,6 +83,20 @@ supplied.** Durable production saving is implemented but is not live-verified or
 activated by a publish in this work. Existing preview data is not automatically
 copied into the live database.
 
+### Step 3A health and automatic recovery
+
+The existing `pnpm ... run start` command now runs the main Studio server under
+a separate supervisor that probes `/health`. The endpoint performs cheap
+read-only D1/R2 checks and exposes only availability labels. Defaults: 30-second
+probe interval, five-second HTTP deadline, 90-second startup grace, three failed
+probes before child restart, ten-second forced-shutdown deadline, and at most
+three local restarts before exiting unsuccessfully. It never replays requests.
+
+Replit Autoscale does not expose a custom health-path field; do not invent one.
+The existing production command now uses this application-level monitor, and
+the platform handles a failed/exited process. No publication was performed to
+test real platform restart behavior. See `STEP3A_RELIABILITY_REPORT.md`.
+
 ### Step 2 per-song copy
 
 **Current owner decision: fresh start, not a preview-song migration.** Do not

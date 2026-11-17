@@ -1,6 +1,10 @@
 import { initializeRuntime } from "./storage/runtime.mjs";
+import {supervise} from "./storage/supervisor.mjs";
+import {fileURLToPath} from "node:url";
 
-try {
+if(!process.argv.includes("--studio-server-child")){
+  await supervise(fileURLToPath(import.meta.url));
+}else try {
   const { config } = await initializeRuntime();
   process.env.NODE_ENV = "production";
   // Configure trust before Vinext's proxy module is imported. Otherwise HTTPS
