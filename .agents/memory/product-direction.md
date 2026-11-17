@@ -67,3 +67,9 @@ For songs created in the studio, aim for accurate automatic lyric alignment with
 **Why:** The user emphasized accurate voice timing and specifically objected to a country-style singer being used for rap or hip-hop.
 
 **How to apply:** Evaluate timing against the finished sung audio and test genre-appropriate vocal delivery. Treat manual timing as an exception path, and do not represent spoken-voice catalogs as selectable singing voices.
+
+Consolidate tools by the beginner's task. Simple and Pro should share the same screen homes; advanced depth belongs inside those screens rather than in competing menus or duplicate workflows.
+
+**Why:** The user repeated: "if anything exists in several options that makes the same function take it out" and "professionals know where they can go beginners needs to hold a solid hand".
+
+**How to apply:** Reuse existing engines when combining related tools, keep a clear next step, and preserve old entry points through compatibility routing. Merely renaming tabs or grouping unchanged duplicate pages is not sufficient.

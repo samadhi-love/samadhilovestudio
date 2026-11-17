@@ -7,7 +7,7 @@ test('Simple creation preserves separate takes and hands the selected recording 
  const describe=async(text:string)=>act(async()=>{const field=creationIdea();Object.getOwnPropertyDescriptor(h.dom.window.HTMLTextAreaElement.prototype,'value')!.set!.call(field,text);field.dispatchEvent(new h.dom.window.Event('input',{bubbles:true}));});
  try{
   await act(async()=>h.root.render(<Screen/>));await englishCreation();
-  await describe('A hopeful 90-second English pop song about sending love');
+  await describe('A hopeful 90-second pop song about sending love. Sing in English.');
   await act(async()=>h.button('Create').click());assert.equal(calls[0].duration,90);assert.match(calls[0].prompt,/hopeful/);assert.equal(library.length,1);
   const controls=[...document.querySelectorAll('.play-controls select')] as unknown as HTMLSelectElement[];
   await act(async()=>{controls[0].value='sacred';controls[0].dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));});

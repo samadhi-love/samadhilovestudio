@@ -1,127 +1,80 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BookOpen, CircleHelp, Clapperboard, ClipboardList, FileText, Film, FlaskConical, GitCompareArrows, Globe2, Headphones, House, Layers3, LayoutGrid, ListMusic, Menu, Mic, Radio, Settings2, ShieldCheck, Sparkles, Users, X, type LucideIcon } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
+import { useState } from "react";
+import { CircleHelp, CreditCard, Film, Globe2, Layers3, ListMusic, Megaphone, Menu, Mic, Radio, Settings2, ShieldCheck, Sparkles, X, type LucideIcon } from "lucide-react";
+import { screenHome, screenOf, screenSections, type Screen, type SectionView } from "./studio-routes";
 
-export const workspaceNavigation = [
-  { id: "overview", label: "Music Creation", icon: LayoutGrid },
-  { id: "workflow", label: "Project Workflow", icon: Layers3 },
-  { id: "create", label: "Detailed Song Production", icon: Sparkles },
-  { id: "prompt-lab", label: "Creative Prompt Lab", icon: FlaskConical },
-  { id: "vocal-director", label: "Vocal Director", icon: Mic },
-  { id: "templates", label: "Templates", icon: Layers3 },
-  { id: "recording", label: "Recording Desk", icon: Mic },
-  { id: "vocal-studio", label: "Vocal Studio Pro", icon: Mic },
-  { id: "podcast", label: "Podcast Studio", icon: Mic },
-  { id: "multitrack", label: "Audio + Visual Studio", icon: Layers3 },
-  { id: "compare", label: "Mix Lab", icon: GitCompareArrows },
-  { id: "music-library", label: "Universal Music Library", icon: BookOpen },
-  { id: "meditative-vibes", label: "Meditative Vibes", icon: Sparkles },
-  { id: "rhythm-atlas", label: "World Rhythm Atlas", icon: Globe2 },
-  { id: "international-tent", label: "International Music Tent", icon: Globe2 },
-  { id: "songs", label: "My Songs", icon: ListMusic },
-  { id: "radio", label: "Radio", icon: Radio },
-  { id: "lyric-video", label: "Lyric Videos & Shorts", icon: Film },
-  { id: "releases", label: "Release Board", icon: ClipboardList },
-  { id: "distribution", label: "Release Tools", icon: Clapperboard },
-] as const;
+export type WorkspaceView = SectionView;
 
-export type WorkspaceView = typeof workspaceNavigation[number]["id"];
-type Entry = { view: WorkspaceView } | { label: string; icon: LucideIcon; href: string; newTab?: boolean; ownerOnly?: boolean } | { label: string; icon: LucideIcon; action: "settings" | "guide" };
-export const navigationGroups: { id: string; label: string; icon: LucideIcon; entries: Entry[] }[] = [
-  { id: "music-creation", label: "Create", icon: Sparkles, entries: [
-    { view: "overview" }, { view: "lyric-video" }, { view: "create" }, { view: "prompt-lab" }, { view: "vocal-director" }, { view: "templates" },
-  ] },
-  { id: "home-projects", label: "Projects & Artist", icon: House, entries: [
-    { view: "workflow" },
-    { label: "Artist Dashboard", icon: Headphones, href: "/community/artist-dashboard", newTab: true },
-  ] },
-  { id: "recording-production", label: "Recording & Production", icon: Mic, entries: [
-    { view: "recording" }, { view: "vocal-studio" }, { view: "podcast" }, { view: "multitrack" }, { view: "compare" },
-  ] },
-  { id: "world-sounds", label: "Music & World Sounds", icon: Globe2, entries: [
-    { view: "music-library" }, { view: "meditative-vibes" }, { view: "rhythm-atlas" }, { view: "international-tent" }, { view: "songs" },
-  ] },
-  { id: "entertainment", label: "Entertainment", icon: Radio, entries: [
-    { view: "radio" }, { label: "Party Mix", icon: Radio, href: "/party" },
-  ] },
-  { id: "video-releases", label: "Video & Releases", icon: Film, entries: [
-    { view: "releases" }, { view: "distribution" },
-  ] },
-  { id: "artist-community", label: "Artist & Community", icon: Users, entries: [
-    { label: "Community", icon: Users, href: "/community", newTab: true },
-    { label: "Subscriber Listening Room", icon: Headphones, href: "/subscriber", newTab: true },
-    { label: "Community Moderation", icon: ShieldCheck, href: "/community/moderation", newTab: true, ownerOnly: true },
-  ] },
-  { id: "settings-help", label: "Settings & Help", icon: Settings2, entries: [
-    { label: "My Membership", icon: Users, href: "/members" },
-    { label: "Plans", icon: Sparkles, href: "/plans" },
-    { label: "Credits & Usage", icon: Sparkles, href: "/credits" },
-    { label: "Settings", icon: Settings2, action: "settings" },
-    { label: "Studio Guide", icon: CircleHelp, action: "guide" },
-    { label: "Launch administration", icon: ShieldCheck, href: "/admin", ownerOnly: true },
-  ] },
+const sectionLabels: Record<SectionView, string> = {
+  overview: "Create", create: "Detailed production", "prompt-lab": "Prompt helpers", "vocal-director": "Vocals", templates: "Start from a recipe",
+  "music-library": "World Sounds · Library", "rhythm-atlas": "World Sounds · Rhythms", "international-tent": "World Sounds · International", "meditative-vibes": "World Sounds · Meditative",
+  recording: "Record · Voice", podcast: "Record · Podcast", "vocal-studio": "Record · Vocal Studio Pro",
+  multitrack: "Mix & Edit · Timeline", compare: "Mix & Edit · Compare",
+  songs: "My Songs", workflow: "My Songs · Song steps", releases: "My Songs · Release checklist", distribution: "My Songs · Export & release tools",
+  promote: "Promote", radio: "Explore", "lyric-video": "Video",
+};
+/** Kept for breadcrumb/label lookups: every internal subsection with its consolidated label. */
+export const workspaceNavigation = (Object.keys(sectionLabels) as SectionView[]).map(id => ({ id, label: sectionLabels[id] }));
+
+export const primaryScreens: { screen: Screen; label: string; icon: LucideIcon; pro?: boolean }[] = [
+  { screen: "create", label: "Create", icon: Sparkles },
+  { screen: "songs", label: "My Songs", icon: ListMusic },
+  { screen: "lyric-video", label: "Video", icon: Film },
+  { screen: "record", label: "Record", icon: Mic },
+  { screen: "explore", label: "Explore", icon: Radio },
+  { screen: "world-sounds", label: "World Sounds", icon: Globe2, pro: true },
+  { screen: "mix-edit", label: "Mix & Edit", icon: Layers3, pro: true },
+  { screen: "promote", label: "Promote", icon: Megaphone, pro: true },
 ];
 
-export const simpleWorkspaces: { id: string; label: string; icon: LucideIcon; home: WorkspaceView; views: WorkspaceView[]; primary: WorkspaceView[] }[] = [
-  { id: "make", label: "Create", icon: Sparkles, home: "overview", views: ["overview", "create", "templates", "prompt-lab", "vocal-director", "music-library", "meditative-vibes", "rhythm-atlas", "international-tent", "lyric-video", "releases", "distribution"], primary: ["overview", "lyric-video"] },
-  { id: "library", label: "My Music", icon: ListMusic, home: "songs", views: ["songs", "workflow"], primary: ["songs"] },
-  { id: "record", label: "Record", icon: Mic, home: "recording", views: ["recording", "podcast", "vocal-studio", "multitrack", "compare"], primary: ["recording", "podcast"] },
-  { id: "listen", label: "Radio & Community", icon: Radio, home: "radio", views: ["radio"], primary: ["radio"] },
-];
-const simpleLabels: Partial<Record<WorkspaceView,string>> = {overview:"1 · Music Creation",create:"Detailed production editor",templates:"Song templates",recording:"Record a voice",podcast:"Record a podcast","lyric-video":"2 · Lyric Videos & Shorts",releases:"Release checklist",distribution:"Export & release tools",songs:"Songs & recordings",workflow:"Full project workflow"};
-export function SimpleWorkspaceTools({ activeView, navigate, visit }: { activeView: WorkspaceView; navigate: (view: WorkspaceView) => boolean | undefined;visit?:(href:string)=>void }) {
-  const group = simpleWorkspaces.find(g=>g.views.includes(activeView))!;
-  const extras = group.views.filter(view=>!group.primary.includes(view)&&(group.id!=="make"||["releases","distribution"].includes(view)));
-  const button = (view: WorkspaceView) => <button key={view} type="button" className={`secondary small${view===activeView?" simple-tool-active":""}`} aria-current={view===activeView?"page":undefined} onClick={()=>navigate(view)}>{simpleLabels[view]??workspaceNavigation.find(n=>n.id===view)!.label}</button>;
-  return <section className="simple-workspace-tools" aria-label={`${group.label} tools`}><div className="actions">{group.primary.map(button)}{group.id==="listen"&&<><a className="secondary small" href="/community">Discover artists</a><a className="secondary small" href="/party">Party Mix</a></>}{group.id==="make"&&<a className="secondary small" href="/community/artist-dashboard" onClick={event=>{if(visit){event.preventDefault();visit("/community/artist-dashboard");}}}>3 · Publish & share</a>}</div>{extras.length>0&&<details key={group.id} open={extras.includes(activeView)||undefined}><summary>More {group.id==="record"?"recording & mixing":group.id==="make"?"release":"creative"} tools</summary><div className="actions">{extras.map(button)}</div></details>}</section>;
+/** Subsection tabs inside a consolidated screen. Pro-only subsections appear when Pro tools are on. */
+export function ScreenSections({ activeView, navigate, beginner = true, extra }: { activeView: SectionView; navigate: (view: SectionView) => boolean | undefined; beginner?: boolean; extra?: React.ReactNode }) {
+  const screen = screenOf(activeView);
+  const items = screenSections[screen].filter(s => !s.pro || !beginner || s.view === activeView);
+  if (items.length < 2 && !extra) return null;
+  return <nav className="screen-sections" aria-label="Sections" data-testid={`nav-sections-${screen}`}>
+    {items.map(s => <button key={s.view} type="button" data-testid={`tab-section-${s.view}`} className={s.view === activeView ? "screen-section-active" : ""} aria-current={s.view === activeView ? "page" : undefined} onClick={() => navigate(s.view)}>{s.label}{s.pro && <small>Pro</small>}</button>)}
+    {extra}
+  </nav>;
 }
+/** Legacy export name retained for callers. */
+export const SimpleWorkspaceTools = ScreenSections;
 
-export function StudioNavigation({ activeView, activeUtility, owner, navigate, settings, guide, visit, beginner = true, changeBeginner }: {
-  activeView: WorkspaceView; activeUtility?: "settings" | "guide"; owner: boolean;
-  navigate: (view: WorkspaceView) => boolean | undefined;
-  settings: () => void; guide: () => void; visit?:(href:string)=>void; beginner?: boolean; changeBeginner?: (value: boolean) => void;
+export function StudioNavigation({ activeView, activeScreen, activeUtility, owner, navigate, openScreen, settings, guide, beginner = true, changeBeginner }: {
+  activeView: WorkspaceView; activeScreen?: Screen; activeUtility?: "settings" | "guide"; owner: boolean;
+  navigate: (view: WorkspaceView) => boolean | undefined; openScreen?: (screen: Screen) => boolean | undefined;
+  settings: () => void; guide: () => void; visit?: (href: string) => void; beginner?: boolean; changeBeginner?: (value: boolean) => void;
 }) {
-  const activeGroup = activeUtility ? "settings-help" : navigationGroups.find(group => group.entries.some(entry => "view" in entry && entry.view === activeView))!.id;
-  const [expanded, setExpanded] = useState<string[]>([activeGroup]);
+  const current = activeScreen ?? screenOf(activeView);
   const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => {
-    setExpanded(current => current.includes(activeGroup) ? current : [...current, activeGroup]);
-  }, [activeGroup, activeView, activeUtility]);
-
+  const [helpOpen, setHelpOpen] = useState(current === "plan-credits");
+  const visible = primaryScreens.filter(item => !item.pro || !beginner);
+  const go = (screen: Screen) => { if ((openScreen ?? (sc => navigate(screenHome[sc])))(screen)) { setMobileOpen(false); window.scrollTo?.({ top: 0, behavior: "smooth" }); } };
+  const entry = (item: typeof primaryScreens[number]) => <button key={item.screen} type="button" data-testid={`nav-${item.screen}`} className={`studio-nav-entry${!activeUtility && current === item.screen ? " nav-active" : ""}`} aria-current={!activeUtility && current === item.screen ? "page" : undefined} onClick={() => go(item.screen)}><item.icon size={18}/><span>{item.label}</span>{item.pro && <small className="nav-pro-tag">Pro</small>}</button>;
   return <div className="studio-navigation" data-mobile-open={mobileOpen}>
     <button type="button" className="studio-menu-toggle" aria-expanded={mobileOpen} aria-controls="studio-workspace-navigation" onClick={() => setMobileOpen(!mobileOpen)}>
       {mobileOpen ? <X size={18}/> : <Menu size={18}/>}<span>Studio menu</span>
     </button>
     <nav id="studio-workspace-navigation" className="studio-workspace-navigation" aria-label="Workspace">
-      {changeBeginner && <div className="studio-mode-control"><button type="button" role="switch" aria-checked={!beginner} aria-label="Show Pro tools" onClick={()=>changeBeginner(!beginner)}>Pro tools <span>{beginner?"Off":"On"}</span></button><small>{beginner?"Simple view · start with an idea":"All workspaces · detailed controls"}</small></div>}
-      {beginner && <div className="simple-main-navigation">{simpleWorkspaces.filter(group=>["make","library"].includes(group.id)).map(group=><button key={group.id} type="button" className={`studio-nav-entry${!activeUtility&&group.views.includes(activeView)?" nav-active":""}`} aria-current={!activeUtility&&group.views.includes(activeView)?"page":undefined} onClick={()=>{if(navigate(group.home))setMobileOpen(false);}}><group.icon size={18}/><span>{group.label}</span></button>)}<a className="studio-nav-entry" href="/community" onClick={event=>{if(visit){event.preventDefault();visit("/community");}}}><Users size={18}/><span>Explore</span></a></div>}
-      {beginner&&<div className="creator-secondary-nav">{simpleWorkspaces.filter(group=>["record","listen"].includes(group.id)).map(group=><button key={group.id} className={`studio-nav-entry${group.views.includes(activeView)?" nav-active":""}`} type="button" onClick={()=>{if(navigate(group.home))setMobileOpen(false);}}><group.icon size={16}/>{group.id==="listen"?"Radio":"Recording tools"}</button>)}</div>}
-      <Accordion type="multiple" value={expanded} onValueChange={setExpanded} className="studio-nav-groups">
-        {navigationGroups.filter(group=>!beginner||group.id==="settings-help").map(({ id, label, icon: Icon, entries }) => <AccordionItem key={id} value={id} className="studio-nav-group" data-active={activeGroup === id}>
-          <AccordionTrigger className="studio-nav-heading"><Icon size={17}/><span>{label}</span></AccordionTrigger>
-          <AccordionContent className="studio-nav-content"><div className="studio-nav-items">
-            {entries.map(entry => {
-              if ("view" in entry) {
-                const item = workspaceNavigation.find(item => item.id === entry.view)!;
-                const active = !activeUtility && activeView === item.id;
-                return <button key={item.id} type="button" className={`studio-nav-entry${active ? " nav-active" : ""}`} aria-current={active ? "page" : undefined} onClick={() => {
-                  if (navigate(item.id)) setMobileOpen(false);
-                }}><item.icon size={15}/><span>{item.label}</span></button>;
-              }
-              if ("href" in entry) {
-                if (entry.ownerOnly && !owner) return null;
-                return <a key={entry.href} className="studio-nav-entry" href={entry.href} target={entry.newTab ? "_blank" : undefined} rel={entry.newTab ? "noreferrer" : undefined}><entry.icon size={15}/><span>{entry.label}</span></a>;
-              }
-              return <button key={entry.action} type="button" className={`studio-nav-entry${activeUtility === entry.action ? " nav-active" : ""}`} onClick={() => {
-                (entry.action === "settings" ? settings : guide)(); setMobileOpen(false);
-              }}><entry.icon size={15}/><span>{entry.label}</span></button>;
-            })}
-          </div></AccordionContent>
-        </AccordionItem>)}
-      </Accordion>
+      {changeBeginner && <div className="studio-mode-control"><button type="button" role="switch" data-testid="switch-pro-tools" aria-checked={!beginner} aria-label="Show Pro tools" onClick={() => changeBeginner(!beginner)}>Pro tools <span>{beginner ? "Off" : "On"}</span></button><small>{beginner ? "Simple view · start with an idea" : "World Sounds, Mix & Edit and Promote unlocked"}</small></div>}
+      <div className="simple-main-navigation">{visible.filter(i => !i.pro).map(entry)}</div>
+      {!beginner && <div className="creator-secondary-nav nav-pro-group"><p className="nav-label">PRO TOOLS</p>{visible.filter(i => i.pro).map(entry)}</div>}
+      <div className="studio-nav-group nav-help-group" data-active={helpOpen}>
+        <button type="button" className="studio-nav-heading" data-testid="toggle-settings-help" aria-expanded={helpOpen} onClick={() => setHelpOpen(!helpOpen)}><Settings2 size={17}/><span>Settings & Help</span></button>
+        {helpOpen && <div className="studio-nav-items">
+          <button type="button" data-testid="nav-plan-credits" className={`studio-nav-entry${!activeUtility && current === "plan-credits" ? " nav-active" : ""}`} onClick={() => go("plan-credits")}><CreditCard size={15}/><span>Plan & Credits</span></button>
+          <button type="button" data-testid="nav-settings" className={`studio-nav-entry${activeUtility === "settings" ? " nav-active" : ""}`} onClick={() => { settings(); setMobileOpen(false); }}><Settings2 size={15}/><span>Settings</span></button>
+          <button type="button" data-testid="nav-guide" className={`studio-nav-entry${activeUtility === "guide" ? " nav-active" : ""}`} onClick={() => { guide(); setMobileOpen(false); }}><CircleHelp size={15}/><span>Studio Guide</span></button>
+          {owner && <a className="studio-nav-entry" href="/community/moderation" target="_blank" rel="noreferrer"><ShieldCheck size={15}/><span>Community Moderation</span></a>}
+          {owner && <a className="studio-nav-entry" href="/admin"><ShieldCheck size={15}/><span>Launch administration</span></a>}
+        </div>}
+      </div>
     </nav>
-    <nav className="studio-mobile-dock" aria-label="Mobile quick actions">{[{view:"overview",label:"Create",Icon:Sparkles},{view:"songs",label:"My Songs",Icon:ListMusic},{view:"recording",label:"Record",Icon:Mic},{view:"lyric-video",label:"Video",Icon:Film}].map(({view,label,Icon})=><button key={view} type="button" aria-current={activeView===view?"page":undefined} onClick={()=>{if(navigate(view as WorkspaceView)){setMobileOpen(false);window.scrollTo?.({top:0,behavior:"smooth"});}}}><Icon size={20}/><span>{label}</span></button>)}<button type="button" aria-expanded={mobileOpen} aria-controls="studio-workspace-navigation" onClick={()=>{setMobileOpen(!mobileOpen);window.scrollTo?.({top:0,behavior:"smooth"});}}><Menu size={20}/><span>More</span></button></nav>
+    <nav className="studio-mobile-dock" aria-label="Mobile quick actions">
+      {primaryScreens.filter(i => !i.pro).map(({ screen, label, icon: Icon }) => <button key={screen} type="button" data-testid={`dock-${screen}`} aria-current={current === screen ? "page" : undefined} onClick={() => go(screen)}><Icon size={20}/><span>{label}</span></button>)}
+      <button type="button" data-testid="dock-more" aria-expanded={mobileOpen} aria-controls="studio-workspace-navigation" onClick={() => { setMobileOpen(!mobileOpen); setHelpOpen(true); window.scrollTo?.({ top: 0, behavior: "smooth" }); }}><Menu size={20}/><span>More</span></button>
+    </nav>
   </div>;
 }
+export { screenHome };

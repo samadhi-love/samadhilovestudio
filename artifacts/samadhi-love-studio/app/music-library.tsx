@@ -162,7 +162,7 @@ export function MusicLibrary({ atlas, data, saving, save, openPrompt }: {
         <HelpField label="Add an instrument" tip="Add up to six sounds to your arrangement prompt. The audio preview plays the rhythm pulse."><select value="" disabled={instruments.length >= 6} onChange={event => setInstruments([...instruments, event.target.value])}><option value="">Choose an instrument</option>{musicCatalog.filter(entry => entry.kind === "Instrument" && !instruments.includes(entry.id)).map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></HelpField>
       </div>
       <div className="chips">{selectedInstruments.map(entry => <button key={entry.id} className="chip active" type="button" aria-label={`Remove ${entry.name}`} onClick={() => setInstruments(instruments.filter(id => id !== entry.id))}>{entry.name} ×</button>)}</div>
-      {fusion && <div className="version-preview"><p>{fusion}</p><HelpControl subject="Edit this arrangement" tip="Take the rhythm and instrument combination into Prompt Lab for editing or saving."><button className="primary small" onClick={() => openPrompt(fusion)}>Edit in Prompt Lab</button></HelpControl></div>}
+      {fusion && <div className="version-preview"><p>{fusion}</p><HelpControl subject="Edit this arrangement" tip="Open Create with this rhythm and instrument combination filled in. Nothing is generated until you press Create."><button className="primary small" data-testid="button-fusion-use-in-song" onClick={() => openPrompt(fusion)}>Use in my song</button></HelpControl></div>}
     </section>}
     {previewError && <p className="notice" role="alert">{previewError}</p>}
     <div className="music-grid">{filtered.slice(0, visibleCount).map(entry => {
@@ -177,7 +177,7 @@ export function MusicLibrary({ atlas, data, saving, save, openPrompt }: {
         <div className="actions">
           <button className="secondary small" type="button" disabled={saving || (!favorite && data.favorites.length >= 300)} aria-pressed={favorite} onClick={() => void save({ ...data, favorites: favorite ? data.favorites.filter(id => id !== entry.id) : [...new Set([...data.favorites, entry.id])] })}><Star size={15} fill={favorite ? "currentColor" : "none"}/>{favorite ? "Favorited" : "Favorite"}</button>
           {entry.rhythm && <HelpControl subject="Play rhythm study" tip="Hear two cycles using synthesized pulses. D marks a low stroke, t a high stroke, and a dot a rest."><button className="secondary small" type="button" onClick={() => void preview(entry)}>{playing === entry.id ? <><Square size={14}/> Stop</> : <><Play size={14}/> Hear rhythm</>}</button></HelpControl>}
-          <button className="text-button" type="button" onClick={() => openPrompt(`Create an uplifting original piece featuring ${entry.name}. ${entry.combine ? "Combine " + entry.combine + "." : entry.description}${entry.rhythm ? ` Work at ${entry.rhythm.bpm} BPM in ${entry.rhythm.meter}.` : ""}`)}>Use in prompt</button>
+          <button className="secondary small" type="button" data-testid={`button-use-in-song-${entry.id}`} onClick={() => openPrompt(`Create an uplifting original piece featuring ${entry.name}. ${entry.combine ? "Combine " + entry.combine + "." : entry.description}${entry.rhythm ? ` Work at ${entry.rhythm.bpm} BPM in ${entry.rhythm.meter}.` : ""}`)}>Use in my song</button>
         </div>
         {!!data.collections.length && <HelpField label="Add to collection" tip="Save this entry in an existing collection."><select value="" disabled={saving} onChange={event => {
           const id = event.target.value;
@@ -189,8 +189,8 @@ export function MusicLibrary({ atlas, data, saving, save, openPrompt }: {
     })}</div>
     {visibleCount < filtered.length && <button type="button" className="secondary" onClick={() => setVisibleCount(n => n + 60)}>Show more catalog entries ({Math.min(visibleCount, filtered.length)} of {filtered.length})</button>}
     {!filtered.length && <p className="empty">No entries match. Adjust your filters or add entries to this collection.</p>}
-    {!atlas && <section className="section"><h2>Ready-to-edit templates</h2><div className="music-grid">{promptTemplates.map(template =>
-      <article key={template.name} className="music-card"><h3>{template.name}</h3><p>{template.text}</p><button type="button" className="secondary small" onClick={() => openPrompt(template.text)}>Edit template</button></article>)}</div></section>}
+    {!atlas && <section className="section"><h2>Ready-to-use starting points</h2><div className="music-grid">{promptTemplates.map(template =>
+      <article key={template.name} className="music-card"><h3>{template.name}</h3><p>{template.text}</p><button type="button" className="secondary small" data-testid={`button-template-use-in-song-${template.name}`} onClick={() => openPrompt(template.text)}>Use in my song</button></article>)}</div></section>}
     <details className="section"><summary>About the catalog and listening examples</summary><p className="section-sub">Tempo ranges and combinations are creative suggestions. No licensed instrument recordings are attached to this edition.</p>
       <p><a href="https://ich.unesco.org/en/examples-of-regional-living-heritage-00379" target="_blank" rel="noreferrer">UNESCO · Levantine living heritage</a></p>
       <p><a href="https://scalar.usc.edu/works/music-in-global-america/traditional-music-in-the-arab-world" target="_blank" rel="noreferrer">USC · Traditional music in the Arab world</a></p>

@@ -32,14 +32,14 @@ test("connection failures show the actual permission error and refresh never gen
 });
 test("a rejected song submission displays its exact error and keeps the written prompt",async()=>{
  const h=await setup();let calls=0;
- const description="A short hopeful English pop song about a fresh start.";
+ const description="A short hopeful pop song about a fresh start. Sing in English.";
  try{
   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>{calls++;throw new Error("Fixture: the generation response was interrupted. Check your existing draft.");}} saveSketch={async()=>undefined}/>));
   const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
   await h.input(prompt,description);
   const language=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==="auto")&&[...s.options].some(o=>/^English\b/.test(o.textContent??"")))!;
-  assert(language);
-  await h.select(language,[...language.options].find(o=>/^English\b/.test(o.textContent??""))!.value);
+  assert.equal(language,undefined,"Simple infers the requested language instead of showing a language menu");
+  assert.match(document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!,/English/);
   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(calls,1);
   assert.match(document.body.textContent!,/Fixture: the generation response was interrupted/);
@@ -61,15 +61,19 @@ test("Simple recognizes the requested language and singer, exposes alternatives 
   assert.match(submitted[0].voice,/Solo female lead/);
   assert.equal(submitted[0].language,"auto");
   assert.equal(submitted[0].prompt,prompt.value);
-  const voices=document.querySelector('[data-testid="select-singing-arrangement"]') as unknown as HTMLSelectElement;
+   assert.equal(document.querySelector('[data-testid="select-singing-arrangement"]'),null,"Simple follows the description without an advanced singer menu");
+   await act(async()=>h.button("Custom").click());
+   await act(async()=>{document.querySelector<HTMLDetailsElement>('[data-testid="fold-vocals"]')!.open=true;});
+   const customPrompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!;
+   const voices=document.querySelector('[data-testid="select-singing-arrangement"]') as unknown as HTMLSelectElement;
   assert.equal(voices.options.length,6);
   await h.select(voices,"Solo male lead");
   assert.match(summary(),/conflicts with the description/);
   await submit();assert.equal(submitted.length,1);
-  await h.input(prompt,"A warm acoustic song; sing in Spanish with a deep male lead.");
+   await h.input(customPrompt,"A warm acoustic song; sing in Spanish with a deep male lead.");
   await submit();assert.equal(submitted.length,2);
   assert.match(submitted[1].voice,/Solo male lead/);
-  assert.equal(prompt.value,"A warm acoustic song; sing in Spanish with a deep male lead.");
+   assert.equal(customPrompt.value,"A warm acoustic song; sing in Spanish with a deep male lead.");
  }finally{await h.close();}
 });
 test("look collections filter and social cards apply editable clip length and platform without changing source timing",async()=>{

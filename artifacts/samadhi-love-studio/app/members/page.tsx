@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { legacyPageRedirect } from "../studio-routes";
 import { chatGPTSignInPath, chatGPTSignOutPath } from "../chatgpt-auth";
 import { privateWorkspace, studioAccess } from "../studio-access";
 import { creatorAccount, creatorBetaEnabled } from "../creator-accounts";
@@ -8,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function MembersPage({ searchParams }: { searchParams: Promise<{ plan?: string; checkout?: string }> }) {
   const params = await searchParams, plan: Plan = typeof params.plan === "string" && Object.hasOwn(plans, params.plan) ? params.plan as Plan : "free";
   const [access, workspace] = await Promise.all([studioAccess(), privateWorkspace()]);
+  if (workspace && params.plan === undefined && params.checkout === undefined) redirect(legacyPageRedirect("/members", workspace.role));
   if (workspace) return <MemberDashboard selectedPlan={typeof params.plan === "string" && Object.hasOwn(plans, params.plan) ? plan : undefined} returned={params.checkout === "returned"} signOut={chatGPTSignOutPath("/members")}/>;
   const account = access.role === "subscriber" ? await creatorAccount(access.id) : null;
   return <main className="member-shell member-login"><header className="member-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><strong>SAMADHI LOVE</strong></a><a href="/plans">Compare plans</a></header><section className="member-login-card"><p className="eyebrow">BECOME A MEMBER</p><h1>Your own space<br/>to create.</h1><p>Start with a free private workspace. {plan !== "free" ? `${plans[plan].name} is your selected plan; it will not be activated or billed by registration.` : "No card is required."}</p>

@@ -1,33 +1,42 @@
 # SAMADHI LOVE Studio
 
-## Security and build blockers — latest verification
+## Stage 2 — one guided Studio
 
-The four critical findings from the November 15 publish are cleared in a fresh dependency scan. The active pnpm installation already used patched Next.js 16.4.6 and React Server Components 19.3.1; an obsolete imported npm lockfile still described the vulnerable versions. That conflicting lockfile was removed, the compatibility installer now uses the frozen workspace pnpm lock, and builds now reject conflicting package-manager lockfiles. Unnecessary credential-related diagnostic logging was also removed. Fresh static-code and privacy scans reported no findings. **Other dependency findings remain: 24 high, 28 moderate and 8 low; this is not a clean bill of health for public launch.**
+The main navigation is now **Create, My Songs, Video, Record, Explore**, plus **Settings & Help**. **Pro tools** adds **World Sounds, Mix & Edit, Promote** and deeper controls inside the same screens, not a separate Studio. Existing engines and saved-data formats were reused; no songs, recordings, templates, videos or settings were reset or deleted.
 
-The preview sandbox now uses Vite's actual build command to select safe build-only defaults (`PORT=5173`, `BASE_PATH=/`), while development still requires managed settings and rejects invalid ports. Full-workspace typecheck/build passed with both variables unset. All 22 offline Studio suites, all 40 Studio verification groups, six new regression tests, and the built-Node-server smoke check passed. The restarted phone-sized signed-out preview rendered correctly. No paid generation or signed-in end-to-end browser test was performed, and nothing was published.
+| Previous tools | Where they now live |
+| --- | --- |
+| Music Creation, Detailed Song Production, Prompt Lab, Vocal Director, Templates | **Create**: recipes at the top, Simple/Custom, then lyrics/style/vocals/prompt-helper fold-outs. The existing detailed production engine stays mounted in Custom → Pro production, outside the main form. |
+| Universal Music Library, Rhythm Atlas, International Tent, Meditative Vibes | **World Sounds**: browse sections and “Use in my song” to prefill Create without generating anything. |
+| Recording Desk, Podcast Studio, Vocal Studio Pro | **Record**: Voice/Podcast switch, the existing recorder and a Pro fold-out. Switching is locked during capture. Mantra and echo tools remain. |
+| Audio + Visual Studio, Mix Lab | **Mix & Edit**: Pro timeline and comparison tools. |
+| My Songs, Project Workflow, Release Board/Tools, Artist Dashboard | **My Songs**: Listen → Fix a part → Make video → Release; checklist, exports and artist publishing are inside the song's Release step. Covers stay with their song. |
+| Logo Creator, animated nature logos, Musical Ad | **Promote**: existing design tools; ads prefill Custom Create for review, never auto-submit. |
+| Community/Discover, personal/community Radio, Party Mix, Listening Room | **Explore**: listening tabs; Radio has My station/Community station, with only one active. Moderation remains owner-only. |
+| Membership, Plans, Credits & Usage | **Settings & Help → Plan & Credits**. Billing was not enabled. |
+| Lyric Videos & Shorts | **Video**: Awaken, Violet Flame, Sacred Bloom, Aurora Silk, Star Stories and Neon Skyline up front; Phone/YouTube shapes, with square and deeper styling under More looks. Vibe previews are local and preserve caption timing and saved per-format layouts. |
 
-Details and the four advisory IDs: `artifacts/samadhi-love-studio/docs/SECURITY_BUILD_VERIFICATION.md`.
+Old view IDs, query/hash links and song identifiers route into these homes. Eligible signed-in legacy pages redirect; guest/public sharing and checkout-return gates remain intact. Simple keeps the main song-description field and style choices; language/singer overrides are in Custom → Vocals.
 
-## Stage 1 — owner-first readiness
+Current instructions: `artifacts/samadhi-love-studio/docs/STUDIO_GUIDE.md`. Production/setup details: `artifacts/samadhi-love-studio/docs/REPLIT_PRODUCTION.md`. Forty-seven historical documents were moved intact into `docs/archive/`; use the current guide rather than the old handoff.
 
-Implemented: a real Node production build with direct existing Cloudflare D1/private R2 storage, fail-closed startup checks, a one-time verified-email **Claim owner** screen, and Settings → **Connect ElevenLabs** with free-only connection testing. Preview still uses isolated local emulation; no production storage connection, publish, domain/DNS change, paid provider call, billing activation or user-data deletion was performed.
+### Verification and remaining limits
 
-Fixed: lyrics-only creation no longer sends an empty music prompt; obsolete test assumptions were corrected; recording/stem controls have distinct keys; saved videos accept codec-qualified container types; legacy header/cookie identity middleware was removed; the design-preview sandbox can build without runtime-only PORT/BASE_PATH values and its Vite types now match.
+All **23 offline command suites passed**, including the final **41/41 Studio verification groups**. The full-workspace typecheck/build passed with PORT and BASE_PATH unset. Built-Node smoke, six lock/config regressions, two patched request-parser tests and the image-adapter encode/decode check also passed. Navigation, legacy-link, recorder-mode, song-step and format-control tests now check the consolidated structure without discarding the original saving/caption safeguards.
 
-Verification: all 22 offline command suites passed, including all 40 Studio verification groups. Full-workspace typechecking and build passed. An additional actual-built-Node-server smoke check passed with in-memory fixtures. New owner-claim and free-only connection tests passed. These results do not certify live Cloudflare saves, provider feature availability or real-browser video playback.
+Fresh dependency scan: **0 critical, 1 high, 4 moderate, 2 low**; static-code and privacy scans reported no findings. Compatible patches reduced high findings from 24 to 1. The remaining high is Zod 3 (`GHSA-mrhx-c7xc-m3w5`): its fix requires Zod 4, a behavior-changing major migration, so it was not forced into API/database/form contracts. Details and patched versions are in the current guide. No findings were suppressed. The previous four critical advisory details are preserved in `docs/archive/SECURITY_BUILD_VERIFICATION.md`.
 
-Pending this run: live storage checks were not run because the named Cloudflare credentials are missing. The signed-in browser journey was skipped after the earlier testing-credit block; no additional browser-testing run was purchased or attempted. A signed-out phone-sized preview screenshot rendered correctly, but that is not an end-to-end test.
+The restarted phone-sized signed-out preview renders, but **no credit-consuming interactive browser journey, paid generation, live Cloudflare verification, publishing, DNS/domain change, billing activation or user-data deletion was performed**. These checks do not certify live saves, sung-language quality or downloaded-video playback.
 
-**Owner checklist:**
-1. In Replit **Secrets**, add `STUDIO_CLOUDFLARE_D1_API_TOKEN` (Cloudflare profile → API Tokens → Account/D1/Edit, account-scoped).
-2. Add `STUDIO_R2_ACCESS_KEY_ID` and `STUDIO_R2_SECRET_ACCESS_KEY` separately (Cloudflare R2 → Manage R2 API Tokens → bucket-scoped Object Read & Write S3 pair for the existing private bucket). Do not use the API Token value for either S3 field.
-3. Preserve the existing vault key. `STUDIO_ELEVENLABS_VAULT_KEY` must be the same stable 64-hex-character encryption key; the existing `vault` secret remains supported. **Do not generate a replacement or overwrite it.**
-4. Set `STUDIO_OWNER_EMAIL` in Secrets to your own verified Studio sign-in email. Keep managed Clerk unchanged.
-5. Sign in, open `/owner`, and press **Claim owner** once.
-6. Open Settings → **Connect ElevenLabs**, paste your own key from ElevenLabs → Developers → API Keys, then press **Test Connection**. It only reads account information; feature permissions absent from that response show **Not verified**, never a false success.
-7. Complete live storage verification and the signed-in song-to-video/download journey before calling this fully personal-use verified. Browser testing is pending when testing credits are unavailable. No paid processing is approved.
+### Owner checklist — credentials are supplied, live setup is not yet verified
 
-Full setup, safety boundaries and opt-in live commands: `artifacts/samadhi-love-studio/docs/REPLIT_PRODUCTION.md`.
+Stage 1's Node → existing Cloudflare D1/private R2 adapter, verified Clerk sign-in, Claim owner and free-only connection test remain in place. Preview still uses isolated local emulation even with production Secrets present.
+
+1. The named D1, R2 and owner-email Secrets have been supplied; do not re-create them merely because live verification is pending. D1 token source: Cloudflare profile → API Tokens → Account/D1/Edit. R2 pair source: R2 → Manage R2 API Tokens → bucket-scoped Object Read & Write; Access Key ID and Secret Access Key go in separate fields, not the API Token value.
+2. Preserve the existing `vault` key unchanged. If adopting `STUDIO_ELEVENLABS_VAULT_KEY`, securely use the identical existing 64-hex value, never a new key.
+3. Sign in with the verified email matching `STUDIO_OWNER_EMAIL`, open `/owner` and press **Claim owner** once. First signup is never automatic admin.
+4. Settings → **Connect ElevenLabs** → paste your own key from ElevenLabs → Developers → API Keys → **Test connection**. This reads free account information only; unknown feature permissions show Not verified. No silent shared-key fallback.
+5. Complete the opt-in live storage checks and, when authorized/credits allow, the signed-in create → save → reopen → captions → vertical video → download journey before calling personal-use readiness fully verified. The retention/permanent-deletion job stays disabled.
 
 Continue the user's existing music-creation app, with beginner-friendly songs and both easy and advanced visual/lyric videos. Do not build a replacement or discard its features. The user owns `samadhilove.com`; domain cutover and publishing require separate confirmation.
 

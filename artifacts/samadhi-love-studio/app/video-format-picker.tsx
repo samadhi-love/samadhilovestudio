@@ -13,6 +13,6 @@ export function VideoFormatPicker({value,change,disabled=false,resolution=1080}:
       </button>;
     })}</div>
     <p className="video-shape-note">{primaryVideoFormats.find(option=>option.id===value)?.note??"Square video for feed posts."} Video shape and clip duration are separate choices.</p>
-    <details open={value==="square"||undefined}><summary>More formats</summary><button type="button" disabled={disabled} aria-pressed={value==="square"} onClick={()=>change("square")}>Square feed · 1:1</button></details>
+    <details open={value==="square"||undefined}><summary>More looks · square format</summary><button type="button" disabled={disabled} aria-pressed={value==="square"} onClick={()=>change("square")}>Square feed · 1:1</button></details>
   </section>;
 }

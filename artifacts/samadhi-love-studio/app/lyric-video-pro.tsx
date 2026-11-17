@@ -8,6 +8,7 @@ import {CreatorLookBrowser,SocialVideoTools} from "./creator-video-tools";
 import {applyPlayVisual} from "./creative-video-handoff";
 import {applySocialVideoPreset,applyVideoShape,shortClipRange,suggestedHookStart} from "./creator-video-presets";
 import {VideoFormatPicker} from "./video-format-picker";
+import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
 import {savedLyricsForAudio} from "./caption-ready-lyrics";
 import {artistDashboardHref} from "./community/data";
@@ -28,7 +29,7 @@ import {
   Upload,
 } from "lucide-react";
 import type { Song, Studio } from "./studio-data";
-import { isAudioFormat, songAudioUrl } from "./studio-data";
+import { freshSong, isAudioFormat, songAudioUrl } from "./studio-data";
 import type { ElevenLabsKey } from "./elevenlabs-key";
 import { LyricVideoStudio } from "./lyric-video-studio";
 import {
@@ -1808,7 +1809,10 @@ export function LyricVideoPro(props: Props) {
           {(mode === "start" || (mode === "existing" && !song)) && (
             <section className="lvp-visual-library" id="lyric-visual-library">
               <h2>Find your video’s look</h2>
+              <VibeLookPicker project={libraryProject.pro?libraryProject:{...libraryProject,pro:newProSettings(freshSong("vibe-preview","SAMADHI LOVE",0),9)}} change={next=>{if(current.current){edit(next);return;}pendingVisualLayout.current={formatLooks:next.pro?.formatLooks??signatureLayouts()};changeLibraryBackground(next,true);}} disabled={busy}/>
+              <details className="lvp-more-looks"><summary>More looks</summary>
               <CreatorLookBrowser project={libraryProject} change={next=>changeLibraryBackground(next,true)} disabled={busy}/>
+              </details>
               <p>
                 {project && song
                   ? `Customize the look for “${song.name}” here, or continue to its recording preview.`
@@ -2157,6 +2161,7 @@ export function LyricVideoPro(props: Props) {
                   <><button type="button" className="mobile-preview-toggle" aria-expanded={mobilePreview} aria-controls="mobile-video-preview" onClick={()=>setMobilePreview(!mobilePreview)}>{mobilePreview?"Hide preview · focus on editing":"Show video preview"}</button><p className="mobile-context-note">Phone exports start at 720p to reduce memory use. Keep Studio visible and your screen awake during rendering. Download the result and check playback before sharing. Existing project framing stays unchanged.</p><div className="lvp-workspace" data-mobile-preview={mobilePreview}>
                     <aside className="lvp-preview-panel" id="mobile-video-preview">
                       <VideoFormatPicker value={project.format} change={format=>edit(applyVideoShape(project,format))} disabled={busy} resolution={resolution}/>
+                      <VibeLookPicker project={project} change={edit} disabled={busy}/>
                       <div className={`lvp-video-preview ${project.format}`}>
                         <canvas
                           ref={canvas}
@@ -2831,8 +2836,10 @@ export function LyricVideoPro(props: Props) {
                           tabIndex={-1}
                         >
                           <span className="lvp-kicker">STEP 4</span>
-                          <h2>Backgrounds &amp; lyric styles</h2>
-                          <details open><summary>Sacred images & backgrounds · Jesus, Mother Mary & all 36 designs</summary>
+                          <h2>Choose your look</h2>
+                          <VibeLookPicker project={project} change={edit} disabled={busy} title="Featured vibes"/>
+                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More looks · backgrounds, caption styles, signature overlays & ad tools</summary>
+                          <details><summary>Sacred images & backgrounds · Jesus, Mother Mary & all 36 designs</summary>
                           <LyricBackgroundPicker
                             initialGroup="sacred"
                             project={project}
@@ -3182,6 +3189,7 @@ export function LyricVideoPro(props: Props) {
                               Remove logo
                             </button>
                           )}
+                          </details>
                           </details>
                           <button
                             type="button"

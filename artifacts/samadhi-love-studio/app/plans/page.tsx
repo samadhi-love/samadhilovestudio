@@ -1,7 +1,12 @@
 import { billingReady, paymentMode } from "../billing/config";
 import { PlanCards } from "./plan-cards";
+import { redirect } from "next/navigation";
+import { privateWorkspace } from "../studio-access";
+import { legacyPageRedirect } from "../studio-routes";
 export const dynamic = "force-dynamic";
-export default function PlansPage() {
+export default async function PlansPage() {
+  const workspace = await privateWorkspace();
+  if (workspace) redirect(legacyPageRedirect("/plans", workspace.role));
   const ready = billingReady() && paymentMode() === "live";
   return <main className="member-shell"><header className="member-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><strong>SAMADHI LOVE</strong></a><div className="actions"><a href="/community">Discover music</a><a className="secondary small" href="/login">Member login</a></div></header>
     <section className="member-hero"><p className="eyebrow">ONE CREATIVE HOME · YOUR MUSIC, YOUR JOURNEY</p><h1>Your next song<br/>starts here.</h1><p>Create music, record your voice and bring your lyrics to life in one Studio. Start free, then choose a clear monthly production allowance.</p><span className="member-state">{ready ? "Monthly memberships available" : "Free member registration open · paid plans preparing for launch"}</span></section>

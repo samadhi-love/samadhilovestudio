@@ -1,4 +1,6 @@
-import { studioAccess } from "../studio-access";
+import { studioAccess, privateWorkspace } from "../studio-access";
+import { redirect } from "next/navigation";
+import { legacyPageRedirect } from "../studio-routes";
 import { chatGPTSignInPath } from "../chatgpt-auth";
 import { PartyMix } from "./studio";
 import "./party.css";
@@ -21,5 +23,7 @@ export default async function PartyPage() {
         </a>
       </main>
     );
+  const workspace = await privateWorkspace();
+  if (workspace) redirect(legacyPageRedirect("/party", workspace.role));
   return <PartyMix />;
 }

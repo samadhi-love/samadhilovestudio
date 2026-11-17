@@ -7,7 +7,7 @@ export const videoFormatLabels:Record<VideoFormat,string>={
 };
 export const primaryVideoFormats=[
   {id:"wide",name:"YouTube video",shape:"Widescreen · 16:9",note:"Wide video for YouTube, desktop and TV."},
-  {id:"vertical",name:"Shorts / Reels",shape:"Full-height phone video · 9:16",note:"Upright video for YouTube Shorts, TikTok and Reels."},
+  {id:"vertical",name:"Phone video",shape:"Full-height phone video · 9:16",note:"Upright video for YouTube Shorts, TikTok and Reels."},
 ] as const;
 export const videoFrameSize=(format:VideoFormat,resolution:1080|720=1080)=>format==="wide"
   ?{width:resolution===1080?1920:1280,height:resolution}

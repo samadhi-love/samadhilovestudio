@@ -16,6 +16,7 @@ const checks = [
   ["Song deletion API ownership and deadline validation", ["scripts/verify-song-deletion-api.mjs"]],
   ["Frequency tools and removal of guided meditations", ["scripts/test-meditative.mjs"]],
   ["Public homepage and separate private Studio", ["scripts/test-public-home.mjs"]],
+  ["Guided screens, legacy links and local video looks", ["scripts/test-studio-consolidation.mjs"]],
   ["TypeScript", ["node_modules/typescript/bin/tsc", "--noEmit", "--incremental", "false"]],
   ["Member registration and verified subscription billing", ["scripts/test-membership-billing.mjs"]],
   ["Member plans and registration controls", ["scripts/test-membership-controls.mjs"]],
