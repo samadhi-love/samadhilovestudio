@@ -1,3 +1,40 @@
+# Live storage verification — November 17, 2026
+
+Owner-authorized live checks only; no publishing, migrations, paid provider calls
+or user-data changes were made.
+
+- **D1: partially passed.** All expected application tables/views exist.
+  Foreign keys are enabled, the foreign-key consistency check found no problems,
+  and a two-statement read-only batch passed. The migration ledger has eight
+  entries but does not record `0008_independent_song_storage.sql` or
+  `0009_background_jobs.sql`. These tables already exist: do not blindly rerun
+  the migrations. A separately approved reconciliation must compare the full
+  migration definitions with the cloud schema before recording any missing
+  history. This is not evidence of a token-permission failure.
+- **R2: passed the exercised checks.** Authenticated storage, multilingual
+  camelCase metadata, ranged reads, streamed upload, create-only writes and stale
+  revision rejection passed. Unsigned access to the tested S3 object was rejected
+  with HTTP 400 (an authentication error), not object content. All uniquely named
+  temporary objects were removed and their absence checked. Cloudflare dashboard
+  public-access/custom-domain settings were not independently inspected; S3 denial
+  alone does not prove those settings are disabled.
+- **Vault: passed.** The actual application vault functions encrypted, stored and
+  recovered a dummy key for a unique synthetic owner using the existing vault
+  secret unchanged. The synthetic vault object was removed and absence checked.
+  No existing owner/provider keys were read or changed.
+- **Production startup: attempted once and stopped safely.** With an isolated
+  local port, the real production entry point exited with
+  `STUDIO_PUBLIC_ORIGIN must be a valid HTTPS origin.` No serving production
+  instance was started. A separate read-only check found zero active cloud jobs;
+  no startup reconciliation was run against them.
+
+**Owner checklist:** Keep `STUDIO_PUBLIC_ORIGIN` pending as previously requested
+while unpublished. Immediately after first publish, set it to the actual HTTPS
+origin without a path, then repeat the production-startup verification. Do not
+invent a production hostname now. No D1/R2 credential replacement is indicated
+by these results. Migration-history reconciliation needs separate approval;
+nothing was migrated during this verification.
+
 # Step 3 Part B — saving and recovering work
 
 Studio records music, lyric-timing and video jobs. An interrupted paid request
