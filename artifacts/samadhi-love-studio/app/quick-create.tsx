@@ -38,8 +38,9 @@ import { songAudioUrl, type Song } from "./studio-data";
 import { autoTrackTime, formatTrackTime } from "./track-duration";
 
 
-export function QuickCreate({ connected, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
+export function QuickCreate({ connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
   connected: boolean; saving: boolean; drafts: Song[]; settings: () => void; guided: () => void; openDrafts: () => void;
+  connectionError?: string; connectionChecking?: boolean; refreshConnection?: () => void;
   generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"] }) => Promise<string | undefined>;
   saveSketch: (file: File, title: string, prompt: string, arrangement: string, settings: Instrumental,saveId?:string) => Promise<string | undefined>;
   working?:(value:boolean)=>void;
@@ -167,8 +168,9 @@ export function QuickCreate({ connected, saving, drafts, settings, guided, openD
     <p>{simple?"Describe your song. We write the lyrics and the music.":"Write your own lyrics, set your styles and name your song."}</p>
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>
-      <strong>{connected?"Music account connected":"Music account not connected"}</strong>
-      <span className="muted">{connected?"Ready to sing.":"Singing needs a connected music account."}</span>
+      <strong>{connectionChecking?"Checking music account…":connected?"Music account connected":"Music account not connected"}</strong>
+      <span className="muted" role={connectionError?"alert":undefined}>{connectionError||(connectionChecking?"Checking your saved connection. No music is being generated.":connected?"Your key is saved. Music permissions and credits are checked when you create.":"Singing needs a connected music account.")}</span>
+      {!connected&&refreshConnection&&<button type="button" className="secondary small" disabled={busy||connectionChecking} onClick={refreshConnection}>Refresh connection</button>}
       {!connected&&<button type="button" className="primary small" data-testid="button-connect-music" disabled={busy} onClick={settings}><Settings2 size={15}/> Connect music account</button>}
     </div>
     <form ref={createForm} onSubmit={create}>

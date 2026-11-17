@@ -35,7 +35,16 @@ export function useElevenLabsKey() {
     } finally { pending.current = false; setOperation(null); }
   }
 
-  useEffect(() => { void update("GET"); }, []);
+  useEffect(() => {
+    void update("GET");
+    const refresh = () => { void update("GET"); };
+    window.addEventListener("online", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      window.removeEventListener("online", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
 
   return {
     status, operation, busy: operation !== null, error, update,

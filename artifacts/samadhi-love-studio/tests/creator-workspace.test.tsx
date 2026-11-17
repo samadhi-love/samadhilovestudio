@@ -17,6 +17,36 @@ test("short ranges clamp one shared origin, including end-of-song clips, short f
  const full=applySocialVideoPreset(short,'youtube',350);assert.equal(full.format,'wide');assert.deepEqual(full.pro!.range,{start:0,end:360});assert.equal(original.format,'wide');
 });
 async function setup(){const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,localStorage:dom.window.localStorage,IS_REACT_ACT_ENVIRONMENT:true});const{createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('root')!);const button=(name:string)=>[...document.querySelectorAll<HTMLButtonElement>('button')].find(b=>b.textContent?.trim()===name)!;const input=async(el:HTMLInputElement|HTMLTextAreaElement,value:string)=>act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el),'value')!.set!.call(el,value);el.dispatchEvent(new dom.window.Event('input',{bubbles:true}));});const select=async(el:HTMLSelectElement,value:string)=>act(async()=>{el.value=value;el.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});return{dom,root,button,input,select,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};}
+test("connection failures show the actual permission error and refresh never generates music",async()=>{
+ const h=await setup();let refreshes=0,generations=0;
+ const props={connected:false,saving:false,drafts:[],settings:()=>{},guided:()=>{},openDrafts:()=>{},generateSong:async()=>{generations++;return undefined;},saveSketch:async()=>undefined,refreshConnection:()=>{refreshes++;},connectionError:"The key lacks User read. (HTTP 401)"};
+ try{
+  await act(async()=>h.root.render(<QuickCreate {...props}/>));
+  assert.match(document.querySelector('[data-testid="status-provider"]')!.textContent!,/key lacks User read/);
+  await act(async()=>h.button('Refresh connection').click());
+  assert.equal(refreshes,1);assert.equal(generations,0);
+  await act(async()=>h.root.render(<QuickCreate {...props} connectionError={undefined} connectionChecking/>));
+  assert.match(document.querySelector('[data-testid="status-provider"]')!.textContent!,/Checking music account/);
+  assert.equal(h.button('Refresh connection').disabled,true);
+ }finally{await h.close();}
+});
+test("a rejected song submission displays its exact error and keeps the written prompt",async()=>{
+ const h=await setup();let calls=0;
+ const description="A short hopeful English pop song about a fresh start.";
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>{calls++;throw new Error("Fixture: the generation response was interrupted. Check your existing draft.");}} saveSketch={async()=>undefined}/>));
+  const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
+  await h.input(prompt,description);
+  const language=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==="auto")&&[...s.options].some(o=>/^English\b/.test(o.textContent??"")))!;
+  assert(language);
+  await h.select(language,[...language.options].find(o=>/^English\b/.test(o.textContent??""))!.value);
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(calls,1);
+  assert.match(document.body.textContent!,/Fixture: the generation response was interrupted/);
+  assert.equal(prompt.value,description);
+  assert(!document.body.textContent!.includes("This take was not confirmed."));
+ }finally{await h.close();}
+});
 test("look collections filter and social cards apply editable clip length and platform without changing source timing",async()=>{
  const h=await setup();let latest=project(),platform='';function Screen(){const[value,setValue]=useState(project());return <><CreatorLookBrowser project={value} change={p=>{latest=p;setValue(p);}}/><SocialVideoTools project={value} change={p=>{latest=p;setValue(p);}} time={355} choosePlatform={p=>{platform=p;}}/></>;}
  try{await act(async()=>h.root.render(<Screen/>));assert.equal(document.querySelectorAll('.creator-look-cards button').length,26);await h.select(document.querySelector('.creator-browser-filters select') as unknown as HTMLSelectElement,'World Fusion');assert.equal(document.querySelectorAll('.creator-look-cards button').length,4);await act(async()=>document.querySelector<HTMLButtonElement>('.creator-look-cards button')!.click());assert.equal(latest.theme,'desert');

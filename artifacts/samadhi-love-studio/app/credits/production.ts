@@ -48,11 +48,22 @@ export async function quoteProduction(owner: string, route: string, input: Recor
     message: funding === "own" ? "Your personal provider account pays its processing charges. No SAMADHI credits are deducted." :
       enabled ? `${credits} SAMADHI credits will be reserved. Unsuccessful jobs are refunded.` : "Studio-funded production is not available or your credit allowance is insufficient." };
 }
+
+/** Vinext's request wrapper is not a native Workers Request in development. */
+async function processingRequest(request: Request, headers: Headers) {
+  // These routes accept bounded JSON, not uploads. Rebuild from the URL and
+  // bounded body rather than passing a foreign Request object to the runtime.
+  const body = request.body === null ? undefined : await readBoundedText(request, 80_000);
+  const cleanHeaders = new Headers(headers);
+  cleanHeaders.delete("Content-Length");
+  return new Request(request.url, { method: request.method, headers: cleanHeaders, body });
+}
+
 export function withProductionUsage(handler: (request: Request) => Promise<Response>) {
   return async (request: Request) => {
     // Never trust an incoming internal funding header, including when metering is disabled.
     const headers = new Headers(request.headers); headers.set("X-Samadhi-Production-Funding", "own");
-    if (env.STUDIO_CREDITS_ENABLED !== "1") return handler(new Request(request, { headers }));
+    if (env.STUDIO_CREDITS_ENABLED !== "1") return handler(await processingRequest(request, headers));
     let held: { id: string; credits: number; funding: string } | undefined, owner: string | undefined;
     try {
       const workspace = await privateWorkspace();
@@ -70,7 +81,7 @@ export function withProductionUsage(handler: (request: Request) => Promise<Respo
       const rawAccepted = request.headers.get("X-Studio-Credits-Accepted");
       held = await reserveJob(owner, description.operation, description.seconds, requestId, rawAccepted === null ? null : Number(rawAccepted));
       headers.set("X-Samadhi-Production-Funding", held.funding);
-      const response = await handler(new Request(request, { headers }));
+      const response = await handler(await processingRequest(request, headers));
       await settleJob(owner, held.id, !response.ok);
       response.headers.set("X-Production-Id", held.id);
       response.headers.set("X-Studio-Credits", String(response.ok ? held.credits : 0));

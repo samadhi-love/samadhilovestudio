@@ -33,7 +33,13 @@ export function recoverableRoute<T extends unknown[]>(handler: (...args: T) => P
         return Response.json({ error: error.message }, { status: error.status, headers: privateHeaders });
       const requestId = crypto.randomUUID();
       // Do not log request bodies, credentials, lyrics, or provider error payloads.
-      console.error("Studio operation unavailable", { operation: handler.name, requestId });
+      console.error("Studio operation unavailable", {
+        operation: handler.name, requestId,
+        errorType: error instanceof Error ? error.name : typeof error,
+        // Stack frames locate local failures without logging error messages,
+        // which may contain submitted inputs or provider response payloads.
+        frames: error instanceof Error ? error.stack?.split("\n").slice(1, 5).map(frame => frame.replace(/\?.*$/, "")) : undefined,
+      });
       return Response.json({ error: message, requestId, retryable: true }, { status: 503, headers: { ...privateHeaders, "X-Studio-Request-Id": requestId } });
     }
   };

@@ -172,7 +172,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
 
   useEffect(()=>{if(!modal)return;const trigger=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('.modal-shade [role="dialog"]');if(dialog)return containDialogFocus(dialog,trigger);},[modal]);
 
-  async function saveRequest(url: string, request: RequestInit, message: string, next?: Studio) {
+  async function saveRequest(url: string, request: RequestInit, message: string, next?: Studio, throwOnError = false) {
     if (!loaded || pendingSave.current) return null;
     pendingSave.current = true; setError(""); setSaving(true);
     try {
@@ -190,7 +190,11 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const savedData = result.data ?? next;
       if (savedData) setData(savedData);
       setRevision(result.revision); setToast(message); return result;
-    } catch (e) { setError(e instanceof Error ? e.message : "Save failed. Try again."); return null; }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Save failed. Try again.");
+      if (throwOnError) throw e;
+      return null;
+    }
     finally { pendingSave.current = false; setSaving(false); }
   }
   async function commit(next: Studio, message: string) {
@@ -199,12 +203,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: next, revision }),
     }, message, next));
   }
-  async function createRequest(payload: Record<string, unknown>, message: string) {
+  async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
     return saveRequest("/api/studio/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }, message);
+    }, message, undefined, throwOnError);
   }
   const saveSong = (song: Song, message = "Song saved") => commit({ ...data, songs: data.songs.map(s => s.id === song.id ? song : s) }, message);
   async function archiveSong(song:Song){
@@ -491,7 +495,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         : view === "overview" ? <>
           <QuickCreate simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} openLogo={()=>{setCoverSongId("");setModal("logo");}} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
             makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
-            generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to My Songs"))?.songId}
+            connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
+            generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to My Songs", true))?.songId}
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
           <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted">Turn your music into a lyric video, animated cover or social short. Choose cosmic and sacred scenes, cinematic backgrounds and animated lyric templates in the same studio.</p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
