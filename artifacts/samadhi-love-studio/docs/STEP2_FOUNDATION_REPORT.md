@@ -77,8 +77,24 @@ frozen source and returns the original comparison receipt, without overwriting
 later edits in the new tables. A source change or comparison failure stops the
 switch; it does not try to repair or overwrite user data.
 
-**Not done:** production schema application, production copy/comparison, or a
-production read/write switch. No publish or live migration was performed.
+**Cloud setup update:** after explicit owner approval and a fresh database
+ID/name check, migrations 0008 and 0009 were applied to the selected cloud D1.
+The copy command completed with **0 accounts, 0 songs, 0 failed accounts**.
+Because the cloud database was empty, the reported comparison flags mean there
+were no mismatches to find, not that actual cloud song content was tested.
+The legacy rows matched their pre-operation digest. All expected application
+tables and the catalog view passed `verifyStorage`; private R2 access passed
+read-only. Cloud normalized accounts, songs and jobs all remain at zero.
+No local songs were uploaded and no R2 objects or checkpoint backups changed.
+
+After this approved cloud setup, the offline checks were rerun: **44/44 Studio
+verification groups and 25/25 package test commands passed, with 0 failures**.
+The full workspace build, including typechecks, also passed. These totals
+overlap. A signed-out preview screenshot confirmed the landing page still
+renders; it does not verify signed-in cloud saving.
+
+**Not done:** a real-song cloud copy/comparison, signed-in cloud saving, or a
+deployed production read/write switch. No publish was performed.
 
 ### Follow-up: unpublished origin and read-only cloud checks
 
@@ -100,10 +116,12 @@ https://developers.cloudflare.com/api/resources/d1/subresources/database/methods
 - Configured cloud database legacy accounts: **0**.
 - Configured cloud database legacy songs: **0**.
 - The six new foundation tables and current-song catalog view are not yet there.
-- No schema or user data was changed. No local songs were uploaded.
+- At this earlier read-only stage, no schema or user data was changed. The
+  subsequent owner-approved schema setup is reported above. No local songs
+  were uploaded in either operation.
 
-The earlier 3-account/7-song comparison applies only to local emulation. Confirm
-that this empty cloud database is the intended target before any live setup.
+The 3-account/7-song comparison applies only to local emulation. The owner later
+approved setup of this empty cloud database after its ID and name matched.
 Immediately after first publish, remind the owner to add the actual published
 HTTPS origin; do not invent a domain or use the preview address.
 
@@ -205,7 +223,7 @@ mocks still expected the old imports or assumed headers were plain objects.
 Those harnesses now load the actual shared helpers against fake storage/fetch;
 strict import and permission assertions remain. The final full rerun was green.
 
-No real microphone, signed-in device journey, live Cloudflare copy, paid provider
+No real microphone, signed-in device journey, real-song Cloudflare copy, paid provider
 processing or live exported-video playback is being claimed. No security-scan
 clearance is implied by these offline tests. The older sibling app was not
 available for inspection; its compatibility with a live cutover remains an
@@ -217,13 +235,15 @@ owner confirmation.
    email and `vault` are present; no replacement vault key is needed. Leave the
    public origin pending for now and add the actual origin right after first
    publish. Development and storage setup must not wait for that address.
-2. Confirm whether the sibling app still writes to the same live D1 database.
-   Stop legacy writers before an approved live copy.
-3. Approve/confirm the specific live-copy operation and intended database before
-   it runs. It adds tables and copies records; it does not publish or delete.
-4. Review the live comparison before considering the foundation work fully
-   complete or approving any feature work.
+2. Confirm whether the sibling app still writes to the same live D1 database
+   before migrating any populated legacy accounts. No accounts existed during
+   the approved cloud preparation, so none were frozen by that operation.
+3. Review the cloud setup result: schema present, 0 accounts/0 songs copied,
+   0 failures. Local preview's 7 songs were not uploaded.
+4. Real signed-in cloud saving remains an owner-approved verification step, not
+   a result established by the empty-database copy.
 
 **Bottom line:** local implementation and offline verification through 2D are
-finished. Production copy, production comparison and live cutover are **not**
-finished. The feature freeze remains in force.
+finished, and the approved empty-cloud schema preparation is finished. A
+real-song production comparison and deployed live cutover are **not** finished.
+The feature freeze remains in force.

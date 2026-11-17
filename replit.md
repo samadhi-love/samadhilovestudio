@@ -23,25 +23,29 @@ publish, obtain the actual published URL and remind the owner to add its HTTPS
 origin. Never invent an origin or use the development URL.**
 Production startup/sign-in keeps strict origin validation. Storage diagnostics
 and the explicitly approved copy command do not require an origin or host port.
-Read-only cloud checks now pass for D1 and private R2 after correcting the D1
-request envelope. The selected cloud database has **0 legacy accounts / 0 songs**
-and lacks the new Step 2 tables/view. Confirm that empty target before applying
-schema. Preview's 3 accounts/7 songs have not been uploaded.
+The owner approved cloud setup after the corrected database name and ID matched
+Cloudflare. The additive Step 2 tables, view, backup guards and job indexes are
+now present in the selected cloud database. The copy command completed with
+**0 accounts / 0 songs / 0 failures** because that database is empty; this is not
+a real-song cloud comparison. All expected schema objects and read-only private
+R2 access passed. Legacy rows were unchanged. Preview's 3 accounts/7 songs have
+not been uploaded, and no R2 objects or checkpoint backups were changed.
 Existing credential names and the existing `vault` value
 are preserved. Missing production configuration is named explicitly at startup.
-**No live schema application, production data copy, production read/write
-switch or publish has been performed.** Do not describe local comparison as live
-verification. The general jobs helper is record-keeping only; no processing has
-been moved into a worker.
+**Cloud schema preparation is done; no deployed production read/write switch or
+publish has been performed.** Development remains isolated. Do not describe the
+local 7-song comparison as live cloud verification. The general jobs helper is
+record-keeping only; no processing has been moved into a worker.
 
 Full report, exact verification totals and leftover recommendations:
 `artifacts/samadhi-love-studio/docs/STEP2_FOUNDATION_REPORT.md`.
 Final offline result: **44/44 verification groups, 25/25 test commands, and the
 full workspace typecheck/build passed**. These totals overlap. No paid provider
 or signed-in device testing was performed. Code/local verification through 2D is
-finished; production copy/cutover still requires owner confirmation of the target
-database and sibling-app use. The origin is pending first publish, not a blocker
-for development or database setup.
+finished; approved empty-cloud preparation is also finished. Signed-in cloud
+saving and production cutover remain unverified. Confirm sibling-app writers
+before any future migration of populated legacy accounts. The origin is pending
+first publish, not a blocker for development or database setup.
 
 ## Owner test checklist — before launch
 

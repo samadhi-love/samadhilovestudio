@@ -8,13 +8,16 @@ unchanged. Local per-song saving is active after an exact copy of 3 accounts and
 The four Cloudflare resource settings have been supplied. The app is unpublished,
 so `STUDIO_PUBLIC_ORIGIN` is pending and not required for development/storage
 setup. **Immediately after first publish, remind the owner to add the actual
-published HTTPS origin.** Live schema/copy verification and live cutover are not
-complete. Shared storage/provider boundaries and durable job helpers are in
+published HTTPS origin.** Owner-approved cloud schema setup is complete; the
+copy command found 0 accounts/0 songs and reported 0 failures. All expected tables
+and the catalog view passed the cloud schema check. No local preview songs were
+uploaded and no R2 objects were changed. Real-song cloud saving and deployed
+cutover remain unverified. Shared storage/provider boundaries and durable job helpers are in
 place; no background processing has been enabled. See
 `STEP2_FOUNDATION_REPORT.md` for scope, verification totals, limits and leftovers.
 Final offline result: 44/44 verification groups and 25/25 test commands passed;
 full workspace typecheck/build passed. The totals overlap. Production has not
-been copied or switched, so this is not yet a completed live cutover.
+had a real-song copy or deployed switch, so this is not a completed live cutover.
 The owner test checklist below is retained for later owner-approved testing, not
 permission to make paid calls or launch during the freeze.
 
