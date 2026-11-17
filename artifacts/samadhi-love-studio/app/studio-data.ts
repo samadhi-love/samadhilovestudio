@@ -76,7 +76,8 @@ export type CustomPlaylist = { id: string; name: string; tracks: string[] };
 export type Folder = { id: string; name: string };
 export type Station = { skin: keyof typeof playerSkins; queue?: string[]; playlists?: Partial<Record<PlaylistId, string[]>>; customPlaylists?: CustomPlaylist[] };
 export type Voice = { id: string; name: string; description: string };
-export type Studio = { songs: Song[]; templates: Template[]; station?: Station; voices?: Voice[]; folders?: Folder[]; discovery?: Discovery; autoSavePrompts?: boolean };
+export type StorageVersions = {songs:Record<string,{revision:number;hash:string}>;settings:{revision:number;hash:string}};
+export type Studio = { songs: Song[]; templates: Template[]; station?: Station; voices?: Voice[]; folders?: Folder[]; discovery?: Discovery; autoSavePrompts?: boolean; _storage?:StorageVersions };
 
 export function songAudioUrl(id: string, audioId?: string) {
   const url = `/api/studio/audio?song=${encodeURIComponent(id)}`;

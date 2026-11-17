@@ -4,7 +4,11 @@ import assert from "node:assert/strict";
 import { initializeRuntime } from "./storage/runtime.mjs";
 const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
 const tables = [...schema.matchAll(/sqliteTable\("([^"]+)"/g)].map(m => ({ name: m[1] }));
+tables.push({name:"studio_catalog_songs"});
 const source = { PORT: "3000", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture", STUDIO_R2_ACCESS_KEY_ID: "fixture",
+  CLOUDFLARE_ACCOUNT_ID: "a".repeat(32), CLOUDFLARE_D1_DATABASE_ID: "00000000-0000-4000-8000-000000000001",
+  CLOUDFLARE_D1_DATABASE_NAME: "fixture-database", STUDIO_R2_BUCKET_NAME: "fixture-private-bucket",
+  STUDIO_PUBLIC_ORIGIN: "https://studio.example.test",
   STUDIO_R2_SECRET_ACCESS_KEY: "fixture", STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32) };
 await initializeRuntime(source, {
   DB: { prepare(sql) {

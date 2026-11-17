@@ -3,7 +3,7 @@
 ## Safety boundary
 
 Do not publish, change domains/DNS, enable billing, run paid provider operations,
-apply remote migrations or delete user data as part of setup. The built retention
+apply unapproved remote migrations or delete user data as part of setup. The built retention
 implementation has **no active scheduler**. Startup does not seed accounts or
 create tables. Preview remains on its isolated emulated D1/R2 storage and does not
 use the production adapters even when production credentials exist.
@@ -16,12 +16,14 @@ then starts Vinext on `PORT`, bound to `0.0.0.0`. Existing artifact commands alr
 use those scripts. There is no Worker gateway, Wrangler production server, static
 fallback, PostgreSQL conversion, or persistent local-file fallback.
 
-The server-only resource identifiers are in `scripts/storage/resources.mjs`.
-They point to the existing `samadhi-love-studio-db` and private
-`samadhi-love-studio-media` bucket. Never expose private files using `r2.dev`.
-The recorded application origin is used only for verified Clerk session checks;
-setting it does not alter the domain or DNS. A future confirmed origin change can
-use `STUDIO_PUBLIC_ORIGIN`, server-side only.
+Production resource identifiers are now read from Secrets by
+`scripts/storage/resources.mjs`: `CLOUDFLARE_ACCOUNT_ID`,
+`CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_D1_DATABASE_NAME`,
+`STUDIO_R2_BUCKET_NAME`. They must identify the existing resources; there is no
+fallback that guesses a live database/bucket. Never expose private files using
+`r2.dev`. `STUDIO_PUBLIC_ORIGIN` must retain the existing trusted HTTPS origin for
+verified Clerk session checks and request-origin handling. Setting this value
+does not alter domain/DNS configuration.
 
 Startup requires credentials and a valid existing 64-hex-character vault key,
 verifies every application table name with a parameterized read-only D1 query,
@@ -37,6 +39,11 @@ environment. Do not replace an existing working credential just to rename it.
 
 | Name | Where to get the value |
 | --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | The existing Cloudflare account's Account ID; not an API token. |
+| `CLOUDFLARE_D1_DATABASE_ID` | The existing D1 database's UUID from its details page. |
+| `CLOUDFLARE_D1_DATABASE_NAME` | The exact existing D1 database name. |
+| `STUDIO_R2_BUCKET_NAME` | The exact existing private R2 bucket name; do not create a public replacement. |
+| `STUDIO_PUBLIC_ORIGIN` | The same trusted production HTTPS origin previously configured. Do not change the domain/DNS as part of this setup. |
 | `STUDIO_CLOUDFLARE_D1_API_TOKEN` | Cloudflare profile → API Tokens → Create Token → custom token configuration. Permission: **Account → D1 → Edit**, limited to the account containing the named existing database. Copy the token value, not its token ID. |
 | `STUDIO_R2_ACCESS_KEY_ID` | Cloudflare account → R2 Object Storage → Manage R2 API Tokens → create a bucket-scoped **Object Read & Write** S3 credential for `samadhi-love-studio-media`. Use its **Access Key ID**, not its API token value. |
 | `STUDIO_R2_SECRET_ACCESS_KEY` | The **Secret Access Key** from that same R2 credential pair. This is a separate secret field. Keep the bucket private. |
@@ -72,6 +79,21 @@ After the required credentials are supplied:
 supplied.** Durable production saving is implemented but is not live-verified or
 activated by a publish in this work. Existing preview data is not automatically
 copied into the live database.
+
+### Step 2 per-song copy
+
+The local preview was copied and verified separately (3 accounts, 7 songs).
+Production has **not** been copied. The production Node path uses per-song rows
+and refuses to open a legacy account without its verified copy receipt. Tables
+and the current-song catalog view must exist before startup.
+
+The explicit, additive `scripts/copy-song-storage.mjs` command applies the new
+schema and checks each owner before activating that owner's rows. It never
+modifies `studios` content or R2 checkpoints; triggers make verified legacy
+bundles read-only. It is not a build/startup hook. Live mode requires explicit
+approval and database-ID confirmation as described in
+`STEP2_FOUNDATION_REPORT.md`. Confirm older apps using the same live database
+before cutover; their legacy writes will be blocked after copy verification.
 
 ## Offline verification
 

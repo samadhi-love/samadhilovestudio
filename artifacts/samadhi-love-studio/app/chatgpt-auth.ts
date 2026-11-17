@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { safeStudioReturnPath } from "./auth-return-path";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "./server/storage";
 
 export type ChatGPTUser = {
   userId: string;

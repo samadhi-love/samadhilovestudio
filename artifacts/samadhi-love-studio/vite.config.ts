@@ -19,7 +19,7 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
   main: "./worker/index.ts",
-  vars: { STUDIO_CREATOR_BETA: "1" },
+  vars: { STUDIO_CREATOR_BETA: "1", STUDIO_ROW_STORAGE: "verified" },
   compatibility_flags: ["nodejs_compat"],
   d1_databases: d1
     ? [

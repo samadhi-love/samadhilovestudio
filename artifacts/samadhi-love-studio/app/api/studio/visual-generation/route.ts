@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { hasExplicitWords, isExplicitSong } from "../../../clean-content";
 import { visualActive, visualDownloadUrl, visualId, visualRequestId, visualSignature, type VisualJob, type VisualMode } from "../../../visual-generation-data";
@@ -6,6 +6,7 @@ import { privateHeaders, readStudio } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { visualFailure, visualJson, visualPayload, visualPlan, visualProvider } from "./provider";
+import { providerMediaRequest } from "../../../server/ai-provider";
 
 export const dynamic = "force-dynamic";
 type StoredJob = VisualJob & { providerId?:string; reference?:string; touchedAt?:number };
@@ -130,7 +131,7 @@ async function postVisuals(request:Request) {
     if(!lock)return problem("Another tab is saving this visual. Check again shortly.",409);
     const asset=prefix(access.id,song.id)+job.id,limit=(job.mode==="image"?15:120)*1024*1024;
     try {
-      const media=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(60000)});
+      const media=await providerMediaRequest(url);
       const length=Number(media.headers.get("Content-Length"));
       if(!media.ok||!media.body||!Number.isSafeInteger(length)||length<1||length>limit){await media.body?.cancel();throw new Error();}
       // R2 requires a known-length stream. This also rejects truncated or oversized provider bodies.

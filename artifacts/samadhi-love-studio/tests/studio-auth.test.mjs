@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import {vmStorage} from "./vm-server-helpers.mjs";
 
 test("the retained build plugin cannot re-enable legacy header or cookie sign-in", () => {
   const source = readFileSync(new URL("../scripts/vite/sites-vite-plugin.ts", import.meta.url), "utf8");
@@ -40,6 +41,7 @@ function loadBridge({ cookie = "", production = false, publicOrigin, respond = a
       exports, URL, AbortSignal,
       process: { env: { NODE_ENV: production ? "production" : "development" } },
       require(name) {
+        if(name.endsWith("/server/storage")&&imports["cloudflare:workers"])return vmStorage(imports["cloudflare:workers"].env);
         if (!(name in imports)) throw new Error(`Unexpected import: ${name}`);
         return imports[name];
       },
@@ -155,6 +157,7 @@ function ownerFixture({ user = { userId: "owner-id", email: "owner@example.test"
     });
     const exports = {};
     vm.runInNewContext(outputText, { exports, URL, Response, Date, require(name) {
+      if(name.endsWith("/server/storage")&&imports["cloudflare:workers"])return vmStorage(imports["cloudflare:workers"].env);
       assert.ok(name in imports, `Unexpected import: ${name}`); return imports[name];
     } });
     return exports;

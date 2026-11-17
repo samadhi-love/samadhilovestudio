@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 export function publicLegalUrl(value?: string) { try { const url = new URL(value ?? ""); return url.protocol === "https:" && !url.username && !url.password ? url.href : null; } catch { return null; } }
 export function legalDetails() {
   const contact = env.STUDIO_BILLING_CONTACT_EMAIL?.trim();

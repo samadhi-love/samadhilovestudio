@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import type { ElevenLabsSettings } from "../../../elevenlabs-settings-data";
 
 type Check = Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "accountMessage" | "musicMessage" | "error" | "capabilities">;

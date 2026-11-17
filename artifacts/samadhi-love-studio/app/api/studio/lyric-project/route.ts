@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { hasExplicitWords, isExplicitSong } from "../../../clean-content";
 import { isLyricProject, type LyricProject } from "../../../lyric-video-data";
@@ -189,7 +189,7 @@ async function putProject(request: Request) {
       }
     }
     return Response.json(
-      { project, revision: saved.revision, data: next, snapshotId, warning },
+      { project, ...await readStudio(access.id), snapshotId, warning },
       { headers: privateHeaders },
     );
   }
@@ -266,7 +266,7 @@ async function attachMix(request: Request) {
     const saved = await writeStudio(access.id, current.revision, content);
     if (saved)
       return Response.json(
-        { data: next, revision: saved.revision },
+        { ...await readStudio(access.id) },
         { headers: privateHeaders },
       );
   }

@@ -1,7 +1,7 @@
 import { withProductionUsage, managedProviderKey } from "../../../credits/production";
 import { sendProviderAudio } from "../elevenlabs/audio-upload";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "../../../clean-content";
 import { alignLyricLines, captionsFromTranscript } from "../../../lyric-alignment";
 import { compareLyrics, reviewTiming, proLanguages } from "../../../lyric-pro-data";

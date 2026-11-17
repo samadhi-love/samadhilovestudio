@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { ownerSetup } from "../../../studio-access";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };

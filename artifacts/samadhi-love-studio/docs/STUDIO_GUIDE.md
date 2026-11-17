@@ -1,5 +1,20 @@
 # SAMADHI LOVE Studio — current guide
 
+## Current priority — Step 2 foundation freeze
+
+No new features or visual changes until the owner approves Step 2. Stage 3 stays
+unchanged. Local per-song saving is active after an exact copy of 3 accounts and
+7 songs; original bundles are read-only and R2 checkpoints were untouched.
+Production resource Secrets, live schema/copy verification and live cutover are
+not complete. Shared storage/provider boundaries and durable job helpers are in
+place; no background processing has been enabled. See
+`STEP2_FOUNDATION_REPORT.md` for scope, verification totals, limits and leftovers.
+Final offline result: 44/44 verification groups and 25/25 test commands passed;
+full workspace typecheck/build passed. The totals overlap. Production has not
+been copied or switched, so this is not yet a completed live cutover.
+The owner test checklist below is retained for later owner-approved testing, not
+permission to make paid calls or launch during the freeze.
+
 ## Owner test checklist — before launch
 
 1. In **Replit Secrets**, add `STUDIO_CLOUDFLARE_D1_API_TOKEN`, `STUDIO_R2_ACCESS_KEY_ID`, `STUDIO_R2_SECRET_ACCESS_KEY`, and `STUDIO_OWNER_EMAIL`. Use the D1 Edit token and the bucket-scoped R2 S3 key pair. Leave the existing `vault` secret unchanged; never paste secret values in chat.

@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Independent song records, exact copy and two-tab saves", ["scripts/test-song-rows-api.mjs"]],
+  ["Per-song storage and shared backend boundaries", ["--test", "tests/song-row-storage.test.mjs", "tests/backend-boundaries.test.mjs"]],
+  ["Durable background-job records without processing", ["--test", "tests/background-jobs.test.mjs"]],
   ["Mantra phrase repetition, echo, microphone cleanup and safe recording saves", ["scripts/test-mantra.mjs"]],
   ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],
   ["Vibe matching, stem motion and caption release kits", ["scripts/test-vibe-release.mjs"]],

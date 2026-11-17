@@ -1,18 +1,23 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../server/storage";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { listenerStation, studios } from "../../../db/schema";
 import type { Studio } from "../../studio-data";
+import { readSongRows, writeSongRows } from "../../../scripts/storage/song-rows.mjs";
 
-export const maxStudioBytes = 1_500_000;
+// Transport limit only. Persistent limits and revisions are per song, not per account.
+export const maxStudioBytes = 32 * 1024 * 1024;
 export const privateHeaders = { "Cache-Control": "private, no-store" };
 
 export async function readStudio(id: string) {
+  if(env.STUDIO_ROW_STORAGE==="verified")return readSongRows(env.DB!,id) as Promise<{data:Studio|null;revision:number}>;
   const row = await getDb().select().from(studios).where(eq(studios.owner, id)).get();
   return row ? { data: JSON.parse(row.content) as Studio, revision: row.revision } : { data: null, revision: 0 };
 }
 
 export async function checkpointStudio(id: string, expectedRevision?: number, name = "pre-upgrade") {
+  // Existing R2 checkpoints and the frozen studios row are never rewritten.
+  if(env.STUDIO_ROW_STORAGE==="verified")return true;
   const bucket = env.BUCKET;
   if (!bucket) throw new Error("Workspace backup storage is unavailable.");
   const key = `checkpoints/${encodeURIComponent(id)}/${name}.json`;
@@ -29,6 +34,7 @@ export async function checkpointStudio(id: string, expectedRevision?: number, na
 }
 
 export async function writeStudio(id: string, revision: number, content: string) {
+  if(env.STUDIO_ROW_STORAGE==="verified")return writeSongRows(env.DB!,id,content) as Promise<{data:Studio;revision:number}|undefined>;
   const db = getDb();
   const previous=await db.select().from(studios).where(eq(studios.owner,id)).get();
   if((previous?.revision??0)!==revision)return undefined;

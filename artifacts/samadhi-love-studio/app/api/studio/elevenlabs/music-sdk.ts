@@ -1,4 +1,5 @@
 import { ElevenLabsClient, ElevenLabsError } from "@elevenlabs/elevenlabs-js";
+import { elevenLabsTransport } from "../../../server/ai-provider";
 
 type ComposeRequest = NonNullable<Parameters<ElevenLabsClient["music"]["compose"]>[0]>;
 type PlanRequest = Parameters<ElevenLabsClient["music"]["compositionPlan"]["create"]>[0];
@@ -35,7 +36,7 @@ export async function sdkMusicRequest(key: string, path: string, payload: object
       if (url.origin !== "https://api.elevenlabs.io" || !["/v1/music", "/v1/music/plan"].includes(url.pathname))
         throw new Error("Unexpected ElevenLabs SDK destination.");
       // Workers does not support redirect: "error". Do not forward keys on redirects.
-      return fetch(input, { ...init, redirect: "manual", signal });
+      return elevenLabsTransport(input, { ...init, signal });
     },
   });
   const requestOptions = { maxRetries: 0, timeoutInSeconds: timeout / 1000, abortSignal: signal };

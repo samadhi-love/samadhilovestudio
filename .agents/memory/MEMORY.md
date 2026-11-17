@@ -7,3 +7,5 @@
 - [Mantra recording scope](mantra-recording-direction.md) — Local voice repetition and echo belong in the existing recorder; preserve original phrases and defer automatic phrase detection.
 - [Security scanner inputs](security-scanner-inputs.md) — Publish dependency scans inspect retained alternate lockfiles, not only the dependency tree used to build.
 - [Melody reference privacy](melody-reference-privacy.md) — Keep hummed recordings private and reference-only unless melody-conditioned support and explicit consent are verified.
+- [Foundation feature freeze](foundation-freeze.md) — Finish Step 2 only; preserve Stage 3 and flag feature requests until owner approval.
+- [Per-song cutover safety](per-song-cutover.md) — Legacy backups freeze after copy; confirm sibling-app writers before live cutover and never equate local checks with production.

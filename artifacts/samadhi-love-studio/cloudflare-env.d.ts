@@ -1,5 +1,6 @@
 declare namespace Cloudflare {
   interface Env {
+    STUDIO_ROW_STORAGE?: "verified";
     DB?: D1Database;
     STUDIO_OWNER_EMAIL?: string;
     ELEVENLABS_API_KEY?: string;

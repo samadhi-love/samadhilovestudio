@@ -1,5 +1,37 @@
 # SAMADHI LOVE Studio
 
+## Step 2 foundation status — feature freeze remains in effect
+
+Work is restricted to secrets, independent song saving, shared server helpers
+and durable job records. Keep Stage 3 as it is. Flag feature requests instead of
+building them until the owner approves Step 2. No visual changes, publishing,
+domain changes, billing activation, data deletion or leftover-file removal.
+
+The local copy of **3 accounts / 7 songs** matched exactly: counts, lyrics,
+prompts/notes and all fields including audio/video/media references. Preview now
+uses separate D1 records with per-song revisions. The original studios bundles
+are read-only backups and R2 checkpoints were not touched. Community catalog and
+moderation use current song rows for migrated accounts, not frozen backup data.
+Retention remains disabled and refuses migrated data to protect those backups.
+
+The production resource values still need the owner's secure entry:
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`,
+`CLOUDFLARE_D1_DATABASE_NAME`, `STUDIO_R2_BUCKET_NAME`, and
+`STUDIO_PUBLIC_ORIGIN`. Existing credential names and the existing `vault` value
+are preserved. Missing production configuration is named explicitly at startup.
+**No live schema application, production data copy, production read/write
+switch or publish has been performed.** Do not describe local comparison as live
+verification. The general jobs helper is record-keeping only; no processing has
+been moved into a worker.
+
+Full report, exact verification totals and leftover recommendations:
+`artifacts/samadhi-love-studio/docs/STEP2_FOUNDATION_REPORT.md`.
+Final offline result: **44/44 verification groups, 25/25 test commands, and the
+full workspace typecheck/build passed**. These totals overlap. No paid provider
+or signed-in device testing was performed. Code/local verification through 2D is
+finished; production copy/cutover remains blocked by the resource Secrets and
+owner confirmation of the target database and sibling-app use.
+
 ## Owner test checklist — before launch
 
 1. In **Replit Secrets**, add `STUDIO_CLOUDFLARE_D1_API_TOKEN`, `STUDIO_R2_ACCESS_KEY_ID`, `STUDIO_R2_SECRET_ACCESS_KEY`, and `STUDIO_OWNER_EMAIL`. Use the D1 Edit token and the bucket-scoped R2 S3 key pair. Keep the existing `vault` secret unchanged; never paste secret values in chat.

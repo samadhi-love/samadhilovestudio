@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 import { privateWorkspace } from "../studio-access";
 import { privateHeaders, readStudio } from "../api/studio/store";
 import { readBoundedText } from "../api/studio/request-errors";

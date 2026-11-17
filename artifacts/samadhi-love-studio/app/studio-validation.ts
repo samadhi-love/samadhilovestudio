@@ -36,6 +36,11 @@ const boolean = (v: unknown) => typeof v === "boolean";
 export function isStudio(value: unknown): value is Studio {
   try {
     if (!object(value)) return false;
+    if(value._storage!==undefined){
+      const stamp=(v:unknown)=>object(v)&&Number.isSafeInteger(v.revision)&&v.revision>0&&text(v.hash)&&/^[a-f0-9]{64}$/.test(v.hash);
+      if(!object(value._storage)||!stamp(value._storage.settings)||!object(value._storage.songs)||
+        !Object.entries(value._storage.songs).every(([key,v])=>id(key)&&stamp(v)))return false;
+    }
     return entries(value.songs, s =>
       text(s.name) && text(s.summary) && strings(s.tags) && text(s.stage) &&
       Number.isSafeInteger(s.art) && s.art >= 0 && boolean(s.example) && notes(s.notes) && versions(s.versions) &&

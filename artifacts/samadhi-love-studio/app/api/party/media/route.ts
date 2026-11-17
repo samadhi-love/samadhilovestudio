@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { studioAccess, privateWorkspace } from "../../../studio-access";
 import { serveAudio } from "../../studio/audio-response";
 import { readStudio, privateHeaders } from "../../studio/store";

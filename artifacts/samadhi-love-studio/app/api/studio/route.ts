@@ -1,6 +1,6 @@
 import {normalizeSongDeletion,deletionDeadline,songDependsOn} from "../../song-deletion";
 import { isSectionDirections } from "../../song-section-directions";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../server/storage";
 import { revokeSongShare } from "../../song-sharing";
 import { stampSong } from "../../song-library";
 import { maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "./store";
@@ -13,6 +13,7 @@ import { projectMembers, validReleaseMetadata } from "../../project-assets";
 import { privateWorkspace } from "../../studio-access";
 import { isStudio } from "../../studio-validation";
 import { readBoundedText, recoverableRoute } from "./request-errors";
+import { rebaseUnchanged } from "../../../scripts/storage/song-rows.mjs";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
@@ -25,7 +26,7 @@ export async function GET() {
     if(current.data?.songs.some(song=>song.deletedAt&&deletionDeadline(song)===null)){
       const next={...current.data,songs:current.data.songs.map(song=>song.deletedAt&&deletionDeadline(song)===null?normalizeSongDeletion(song,song):song)};
       const saved=await writeStudio(access.id,current.revision,JSON.stringify(next));
-      if(!saved)return saveConflict();current={data:next,revision:saved.revision};
+      if(!saved)return saveConflict();current=await readStudio(access.id);
     }
     return Response.json({ ...(access.role === "creator" && !current.data ? { ...current, data: emptyCreatorStudio } : current), workspace: access.id }, options);
   } catch (error) {
@@ -59,7 +60,8 @@ async function putWorkspace(request: Request) {
     (!isSectionDirections(song.sectionDirections) || song.sectionDirections.some(section => hasExplicitWords(section.genre, section.instruments, section.voice)))))
     return Response.json({ error: "Check the genres and vocal directions for each song section." }, { status: 400 });
   const previous = await readStudio(id);
-  if (previous.revision !== revision) return saveConflict();
+  if(data._storage&&previous.data)Object.assign(data,await rebaseUnchanged(data,previous.data));
+   if (!data._storage && previous.revision !== revision) return saveConflict();
   const previousSongs = new Map((previous.data?.songs ?? []).map(song => [song.id, song]));
   for (const song of data.songs) {
     if (song.releaseMetadata !== undefined && (!validReleaseMetadata(song.releaseMetadata) || hasExplicitWords(...Object.values(song.releaseMetadata))))
@@ -135,7 +137,7 @@ async function putWorkspace(request: Request) {
     // Unlist before changing archive state; a failed write is safe to retry.
     for(const song of songs){const old=previousSongs.get(song.id);if(old&&!!old.deletedAt!==!!song.deletedAt){await revokeSongShare(id,song.id);if(env.DB)await env.DB.prepare("update community_releases set listed = 0 where owner = ? and song_id = ?").bind(id,song.id).run();}}
     const saved = await writeStudio(id, revision, content);
-    return saved ? Response.json({ ...saved, data: next }, options) : saveConflict();
+    return saved ? Response.json(await readStudio(id), options) : saveConflict();
   } catch (error) {
     console.error("Studio save failed", error);
     return Response.json({ error: "The studio could not save your changes. Keep this page open and try again." }, { status: 503 });

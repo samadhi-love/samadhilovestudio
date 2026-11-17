@@ -10,7 +10,7 @@ import { isExplicitSong } from "../../../clean-content";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
 import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
 import { stampSong } from "../../../song-library";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords } from "../../../clean-content";
 import { freshSong, emptyCreatorStudio, initialStudio, type Studio } from "../../../studio-data";
 import { isTrackDuration } from "../../../track-duration";
@@ -81,7 +81,7 @@ async function saveCreation(id: string, starter: Studio, update: (studio: Studio
     const content = JSON.stringify(data);
     if (new TextEncoder().encode(content).length > maxStudioBytes) break;
     const saved = await writeStudio(id, current.revision, content);
-    if (saved) return { ...saved, data };
+    if (saved) return readStudio(id);
   }
   return null;
 }

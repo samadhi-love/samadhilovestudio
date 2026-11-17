@@ -4,6 +4,7 @@ import { webcrypto } from "node:crypto";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import {vmStorage} from "./vm-server-helpers.mjs";
 import { studioWorkerSecrets } from "../scripts/worker-secrets.mjs";
 
 const fixtureVault = "01".repeat(32);
@@ -40,6 +41,7 @@ function loadVault(secrets = {}) {
   vm.runInNewContext(outputText, {
     exports, crypto: webcrypto, TextEncoder, TextDecoder, Uint8Array,
     require(name) {
+      if(name==="../../../server/storage")return vmStorage(env);
       assert.equal(name, "cloudflare:workers");
       return { env };
     },

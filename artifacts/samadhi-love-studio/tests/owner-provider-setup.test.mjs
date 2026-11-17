@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import {vmStorage,vmAI} from "./vm-server-helpers.mjs";
 
 function compile(file, imports, globals = {}) {
   const { outputText } = ts.transpileModule(readFileSync(new URL(file, import.meta.url), "utf8"), {
@@ -11,7 +12,11 @@ function compile(file, imports, globals = {}) {
   const exports = {};
   vm.runInNewContext(outputText, {
     exports, ...globals,
-    require(name) { assert.ok(name in imports, `Unexpected import: ${name}`); return imports[name]; },
+    require(name) {
+      if(name.endsWith("/server/storage")&&imports["cloudflare:workers"])return vmStorage(imports["cloudflare:workers"].env);
+      if(name.endsWith("/server/ai-provider")&&globals.fetch)return vmAI(globals.fetch);
+      assert.ok(name in imports, `Unexpected import: ${name}`); return imports[name];
+    },
   });
   return exports;
 }

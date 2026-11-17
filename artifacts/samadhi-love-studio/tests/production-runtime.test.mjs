@@ -2,27 +2,33 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resources } from "../scripts/storage/resources.mjs";
 import { runtimeConfig, initializeRuntime, verifyStorage } from "../scripts/storage/runtime.mjs";
 import { D1Http } from "../scripts/storage/d1.mjs";
 import { R2PrivateBucket, encodeMetadata, decodeMetadata, MAX_UPLOAD } from "../scripts/storage/r2.mjs";
 import { env } from "../scripts/storage/node-bindings.mjs";
 
 const source = { PORT: "19559", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture-d1",
+  CLOUDFLARE_ACCOUNT_ID: "a".repeat(32), CLOUDFLARE_D1_DATABASE_ID: "00000000-0000-4000-8000-000000000001",
+  CLOUDFLARE_D1_DATABASE_NAME: "fixture-database", STUDIO_R2_BUCKET_NAME: "fixture-private-bucket",
+  STUDIO_PUBLIC_ORIGIN: "https://studio.example.test",
   STUDIO_R2_ACCESS_KEY_ID: "fixture-s3", STUDIO_R2_SECRET_ACCESS_KEY: "fixture-secret",
   STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32), STUDIO_OWNER_EMAIL: "owner@example.test" };
+const resources = runtimeConfig(source);
 const schema = await readFile(new URL("../db/schema.ts", import.meta.url), "utf8");
 const tables = [...schema.matchAll(/sqliteTable\("([^"]+)"/g)].map(m => ({ name: m[1] }));
+tables.push({name:"studio_catalog_songs"});
 function adapters() {
   const calls = [];
   const DB = { prepare(sql) {
     assert.match(sql, /^SELECT name FROM sqlite_master/);
-    return { bind(...params) { assert.deepEqual(params, ["table"]); return { async all() { calls.push("schema"); return { results: tables }; } }; } };
+    return { bind(...params) { assert.deepEqual(params, ["table","view"]); return { async all() { calls.push("schema"); return { results: tables }; } }; } };
   } };
   return { DB, BUCKET: { async checkAccess() { calls.push("head-bucket"); } }, calls };
 }
 test("production requires every credential and validates vault format and allocated port", () => {
-  assert.equal(runtimeConfig(source).databaseId, resources.databaseId);
+  assert.equal(runtimeConfig(source).databaseId, source.CLOUDFLARE_D1_DATABASE_ID);
+  for (const name of ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_D1_DATABASE_ID", "CLOUDFLARE_D1_DATABASE_NAME", "STUDIO_R2_BUCKET_NAME"])
+    assert.throws(() => runtimeConfig({ ...source, [name]: "" }), new RegExp(name));
   for (const name of ["STUDIO_CLOUDFLARE_D1_API_TOKEN", "STUDIO_R2_ACCESS_KEY_ID", "STUDIO_R2_SECRET_ACCESS_KEY", "STUDIO_ELEVENLABS_VAULT_KEY"])
     assert.throws(() => runtimeConfig({ ...source, [name]: "" }), /Secrets|encryption key/);
   for (const port of ["NaN", "", "0", "65536", "5.5"]) assert.throws(() => runtimeConfig({ ...source, PORT: port }), /PORT/);

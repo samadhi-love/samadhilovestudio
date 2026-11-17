@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "./server/storage";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "../db";
 import { creatorAccounts } from "../db/schema";

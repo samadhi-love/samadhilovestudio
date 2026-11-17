@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../server/storage";
 import { privateWorkspace } from "../../studio-access";
 import { getChatGPTUser } from "../../chatgpt-auth";
 import { billingAccount, billingPortal, startCheckout, applyPaidInvoice, stripe } from "../../billing/service";

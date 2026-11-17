@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../server/storage";
 import { privateWorkspace, studioAccess } from "../../studio-access";
 import { privateHeaders } from "../studio/store";
 import { hasExplicitWords } from "../../clean-content";

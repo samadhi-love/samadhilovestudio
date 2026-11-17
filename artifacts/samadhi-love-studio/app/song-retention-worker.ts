@@ -1,12 +1,15 @@
 import {isStudio} from "./studio-validation";
 import type {Studio} from "./studio-data";
+import {storageBindings} from "./server/storage-service";
 import {audioIdsForSong,deletionDeadline,normalizeSongDeletion,songDependsOn,withoutDeletedSongs} from "./song-deletion";
 type Bindings={DB?:D1Database;BUCKET?:R2Bucket};
 const valid=(s:unknown):s is string=>typeof s==="string"&&/^[\w-]{1,100}$/.test(s);
 const parse=(content:string):Studio=>{const value=JSON.parse(content);if(!isStudio(value))throw new Error("Invalid workspace; cleanup paused.");return value;};
 /** Called by the Worker scheduler, independent of a browser. No public cleanup endpoint. */
 export async function runSongRetention(env:Bindings,now=Date.now()){
- const db=env.DB,bucket=env.BUCKET;if(!db||!bucket)throw new Error("Song cleanup requires DB and BUCKET.");
+ const {DB:db,BUCKET:bucket}=storageBindings(env);if(!db||!bucket)throw new Error("Song cleanup requires DB and BUCKET.");
+ if(await db.prepare("SELECT owner FROM studio_accounts WHERE verified=1 LIMIT 1").first())
+  throw new Error("Retention is paused for per-song storage; frozen workspace backups and media must remain unchanged.");
  const cursorKey="maintenance/song-retention/v1/scan.json";
  const cursorFile=await bucket.get(cursorKey),cursor=cursorFile?await cursorFile.json<{owner:string}>():{owner:""};
  const page=await db.prepare("select owner,content,revision from studios where owner > ? order by owner limit 25").bind(cursor.owner??"").all<{owner:string;content:string;revision:number}>();

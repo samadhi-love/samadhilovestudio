@@ -1,5 +1,5 @@
 import { withProductionUsage, managedProviderKey } from "../../../credits/production";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { reserveCreatorGeneration } from "../../../creator-accounts";
 import { isExplicitSong } from "../../../clean-content";

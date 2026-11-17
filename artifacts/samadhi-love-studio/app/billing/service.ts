@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 import { creditQuery, CreditError, ensureCreditAccount } from "../credits/account-ledger";
 import { plans, type Plan } from "../credits/data";
 import { billingReady, membershipNoticeVersion, paidPlan, paymentMode, planFromPrice, priceId, stripeVersion } from "./config";

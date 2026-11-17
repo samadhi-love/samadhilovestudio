@@ -1,13 +1,14 @@
 import type { ElevenLabsSettings } from "../../../elevenlabs-settings-data";
 import { isSdkMusicPath, sdkMusicRequest } from "./music-sdk";
+import { providerRequest } from "../../../server/ai-provider";
 
 export const musicModel = "music_v2_5";
 
 export function elevenLabsRequest(key: string, path: string, payload?: object, timeout = 45_000) {
   if (payload && isSdkMusicPath(path)) return sdkMusicRequest(key, path, payload, timeout);
-  return fetch("https://api.elevenlabs.io/v1/" + path, {
+  return providerRequest(key, path, {
     method: payload ? "POST" : "GET",
-    headers: { "xi-api-key": key, Accept: "application/json, audio/*", ...(payload && { "Content-Type": "application/json" }) },
+    headers: { Accept: "application/json, audio/*", ...(payload && { "Content-Type": "application/json" }) },
     body: payload ? JSON.stringify(payload) : undefined,
     // Sites rejects redirect: "error" on outbound fetches. Manual keeps the key on the original host.
     redirect: "manual",

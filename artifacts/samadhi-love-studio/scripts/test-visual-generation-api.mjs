@@ -31,7 +31,7 @@ globalThis.fetch=async(input,options={})=>{
   const url=String(input);requests.push({url,...options});
   if(url.includes("user/subscription"))return Response.json({tier});
   if(url.includes("/v1/flows/")){
-    assert.equal(options.headers["xi-api-key"],"fixture-private-key");assert.equal(options.redirect,"manual");
+    assert.equal(new Headers(options.headers).get("xi-api-key"),"fixture-private-key");assert.equal(options.redirect,"manual");
     if(options.method==="POST"){providerPosts++;if(networkFailure)throw new Error("connection lost");if(postFailure)return Response.json({detail:"Never expose this provider payload"},{status:postFailure});return Response.json({id:"provider-id",status:"pending"});}
     const id=new URL(url).pathname.split("/").pop();
     return Response.json(providerStatus==="completed"?{id,status:providerStatus,content_url:downloadUrl,content_mime_type:mime}:providerStatus==="failed"?{id,status:"failed",failure_reason:"moderated",error_message:"private provider detail"}:{id,status:providerStatus});

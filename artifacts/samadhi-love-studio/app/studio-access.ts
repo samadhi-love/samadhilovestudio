@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "./server/storage";
 import { creatorAccount, creatorBetaEnabled } from "./creator-accounts";
 import { getChatGPTUser } from "./chatgpt-auth";
 

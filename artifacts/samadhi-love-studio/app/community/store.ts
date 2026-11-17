@@ -1,6 +1,6 @@
 import { eligibleSong } from "../song-visibility";
 export { eligibleSong } from "../song-visibility";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 import { readStudio } from "../api/studio/store";
 import { hasExplicitWords } from "../clean-content";
 import { type Song } from "../studio-data";
@@ -37,9 +37,8 @@ const visible = `
           'tags', json_extract(song.value, '$.tags'), 'instruments', json_extract(song.value, '$.notes.instruments'), 'coverAsset', json_extract(song.value, '$.coverAsset'), 'notes', json_object('lyrics', json_extract(song.value, '$.notes.lyrics'))) as songJson
   from community_releases r
   join community_artists a on a.owner = r.owner
-  join studios s on s.owner = r.owner
+   join studio_catalog_songs song on song.owner = r.owner and song.id = r.song_id
   left join creator_accounts creator on creator.id = r.owner
-  join json_each(s.content, '$.songs') song on json_extract(song.value, '$.id') = r.song_id
   where r.listed = 1 and r.blocked = 0 and coalesce(creator.suspended, 0) = 0
     and json_extract(song.value, '$.deletedAt') is null
     and coalesce(json_extract(song.value, '$.creationDraft'), 0) = 0
@@ -204,18 +203,15 @@ export async function loadModeration(): Promise<ModerationData> {
   const [comments, reports, hidden] = await db().batch([
     query(`select c.id, c.release, c.body, c.status, coalesce(json_extract(song.value, '$.name'), 'Unavailable recording') as title
       from community_comments c join community_releases r on r.id = c.release
-      left join studios s on s.owner = r.owner
-      left join json_each(s.content, '$.songs') song on json_extract(song.value, '$.id') = r.song_id
+       left join studio_catalog_songs song on song.owner = r.owner and song.id = r.song_id
       where c.status in ('pending', 'approved') order by (c.status = 'pending') desc, c.created_at desc limit 80`),
     query(`select f.id, f.release, f.reason, f.comment, c.body as commentBody, r.blocked, coalesce(json_extract(song.value, '$.name'), 'Unavailable recording') as title
       from community_reports f join community_releases r on r.id = f.release
       left join community_comments c on c.id = f.comment
-      left join studios s on s.owner = r.owner
-      left join json_each(s.content, '$.songs') song on json_extract(song.value, '$.id') = r.song_id
+       left join studio_catalog_songs song on song.owner = r.owner and song.id = r.song_id
       where f.closed = 0 order by f.created_at desc limit 80`),
     query(`select r.id, coalesce(json_extract(song.value, '$.name'), 'Unavailable recording') as title
-      from community_releases r left join studios s on s.owner = r.owner
-      left join json_each(s.content, '$.songs') song on json_extract(song.value, '$.id') = r.song_id
+       from community_releases r left join studio_catalog_songs song on song.owner = r.owner and song.id = r.song_id
       where r.blocked = 1 order by r.released_at desc limit 80`),
   ]);
   return { comments: comments.results as ModerationData["comments"], reports: reports.results as ModerationData["reports"], hidden: hidden.results as ModerationData["hidden"] };

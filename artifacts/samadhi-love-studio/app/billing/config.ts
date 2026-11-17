@@ -1,5 +1,5 @@
 import { legalDetails } from "./legal";
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 import { plans, type Plan } from "../credits/data";
 export { membershipNoticeVersion } from "./config-data";
 export const stripeVersion = "2024-06-20";

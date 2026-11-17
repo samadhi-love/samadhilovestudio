@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 import vm from "node:vm";
 import ts from "typescript";
+import {vmAI} from "./vm-server-helpers.mjs";
 
 const require = createRequire(import.meta.url);
 const sdk = require("@elevenlabs/elevenlabs-js");
@@ -15,9 +16,16 @@ function transport(respond) {
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   });
+  const mockFetch=async (url,init)=>{
+    calls.push({url:String(url),init});
+    assert.equal(init.redirect,"manual");assert.ok(init.signal instanceof AbortSignal);
+    assert.equal(new URL(String(url)).origin,"https://api.elevenlabs.io");
+    return respond(url,init);
+  };
   vm.runInNewContext(outputText, {
     exports, URL, URLSearchParams, Response, AbortSignal,
     require(name) {
+      if(name==="../../../server/ai-provider")return vmAI(mockFetch);
       assert.equal(name, "@elevenlabs/elevenlabs-js");
       return sdk;
     },

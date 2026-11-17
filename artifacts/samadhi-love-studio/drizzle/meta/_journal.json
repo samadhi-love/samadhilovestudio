@@ -57,6 +57,20 @@
       "when": 1794541286941,
       "tag": "0007_song_deletion_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794938400000,
+      "tag": "0008_independent_song_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794938400001,
+      "tag": "0009_background_jobs",
+      "breakpoints": true
     }
   ]
 }

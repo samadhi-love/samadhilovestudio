@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { isExplicitSong } from "../../../clean-content";
 import { privateHeaders, readStudio, audioKey } from "../store";

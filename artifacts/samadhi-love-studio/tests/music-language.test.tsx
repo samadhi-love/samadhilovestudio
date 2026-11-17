@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import vm from "node:vm";
+import {vmStorage} from "./vm-server-helpers.mjs";
 import ts from "typescript";
 import React, { act, useState } from "react";
 import { JSDOM } from "jsdom";
@@ -177,7 +178,10 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
   const file = readFileSync(resolve("app/api/studio/create/route.ts"), "utf8");
   vm.runInNewContext(ts.transpileModule(file, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, {
     exports, Response, Request, URL, TextEncoder, crypto: globalThis.crypto,
-    require: (name: string) => { assert(name in modules, "Unmocked dependency " + name); return modules[name]; },
+    require: (name: string) => {
+      if(name.endsWith("/server/storage"))return vmStorage((modules["cloudflare:workers"] as {env:object}).env);
+      assert(name in modules, "Unmocked dependency " + name); return modules[name];
+    },
   });
   return { calls, stored: () => stored, paidEntries: () => paidEntries,
     post: (input: unknown) => exports.POST(new Request("https://studio.test/api/studio/create", {

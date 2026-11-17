@@ -178,3 +178,27 @@ export const billingInvoices = sqliteTable("billing_invoices", {
 export const songDeletionJobs = sqliteTable("song_deletion_jobs",{
  owner:text("owner").notNull(),songId:text("song_id").notNull(),audioIds:text("audio_ids").notNull(),state:text("state").notNull().default("queued"),createdAt:integer("created_at").notNull(),updatedAt:integer("updated_at").notNull(),
 },table=>[primaryKey({columns:[table.owner,table.songId]}),index("song_deletion_pending").on(table.state,table.updatedAt)]);
+
+export const studioAccounts = sqliteTable("studio_accounts",{
+  owner:text("owner").primaryKey(),revision:integer("revision").notNull(),settingsRevision:integer("settings_revision").notNull().default(1),
+  settings:text("settings").notNull(),verified:integer("verified").notNull().default(0),sourceHash:text("source_hash").notNull(),
+  comparison:text("comparison").notNull().default("{}"),verifiedAt:text("verified_at"),
+});
+export const studioSongs = sqliteTable("studio_songs",{
+  owner:text("owner").notNull(),id:text("id").notNull(),revision:integer("revision").notNull(),content:text("content").notNull(),
+  position:integer("position").notNull(),removed:integer("removed").notNull().default(0),
+},table=>[primaryKey({columns:[table.owner,table.id]})]);
+export const studioSongLyrics = sqliteTable("studio_song_lyrics",{
+  owner:text("owner").notNull(),songId:text("song_id").notNull(),lyrics:text("lyrics").notNull(),versions:text("versions").notNull(),
+},table=>[primaryKey({columns:[table.owner,table.songId]})]);
+export const studioSongNotes = sqliteTable("studio_song_notes",{
+  owner:text("owner").notNull(),songId:text("song_id").notNull(),content:text("content").notNull(),promptVersions:text("prompt_versions").notNull(),
+},table=>[primaryKey({columns:[table.owner,table.songId]})]);
+export const studioProjects = sqliteTable("studio_projects",{
+  owner:text("owner").notNull(),id:text("id").notNull(),parentId:text("parent_id"),content:text("content").notNull(),
+},table=>[primaryKey({columns:[table.owner,table.id]})]);
+export const studioJobs = sqliteTable("studio_jobs",{
+  id:text("id").primaryKey(),owner:text("owner").notNull(),type:text("type").notNull(),status:text("status").notNull().default("waiting"),
+  attempts:integer("attempts").notNull().default(0),errorMessage:text("error_message"),createdAt:integer("created_at").notNull(),
+  updatedAt:integer("updated_at").notNull(),startedAt:integer("started_at"),finishedAt:integer("finished_at"),songId:text("song_id").notNull(),
+},table=>[index("studio_jobs_owner_status").on(table.owner,table.status,table.createdAt),index("studio_jobs_owner_song").on(table.owner,table.songId,table.createdAt)]);

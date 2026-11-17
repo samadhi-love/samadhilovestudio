@@ -1,4 +1,5 @@
 import { audioTypes } from "../../../studio-data";
+import { providerRequest } from "../../../server/ai-provider";
 
 export async function sendProviderAudio(audio: R2ObjectBody, format: keyof typeof audioTypes, key: string,
   fields: Record<string, string>, endpoint: "forced-alignment" | "speech-to-text" | "music/stem-separation?output_format=mp3_44100_128", signal: AbortSignal) {
@@ -19,9 +20,9 @@ export async function sendProviderAudio(audio: R2ObjectBody, format: keyof typeo
     try { await finish.write(suffix); await finish.close(); } finally { finish.releaseLock(); }
   })();
   void pump.catch(() => {});
-  const response = fetch("https://api.elevenlabs.io/v1/" + endpoint, {
+  const response = providerRequest(key, endpoint, {
     method: "POST", redirect: "manual", signal,
-    headers: { "Content-Type": "multipart/form-data; boundary=" + boundary, "xi-api-key": key },
+    headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
     body: stream.readable,
   });
   // Let provider rejections surface even when it closes the request before reading the file.

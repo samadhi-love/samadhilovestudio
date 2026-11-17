@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../server/storage";
 const name = "samadhi_listener";
 const lifetime = 30 * 86400;
 let signingKey: Promise<CryptoKey> | undefined;

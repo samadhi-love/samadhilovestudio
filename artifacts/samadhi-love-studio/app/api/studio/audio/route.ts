@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { serverStorage as env } from "../../../server/storage";
 import { hasExplicitWords, cleanWordsMessage, isExplicitSong } from "../../../clean-content";
 import { creationPresets, isInstrumental, type Instrumental } from "../../../creation-guide";
 import { serveAudio } from "../audio-response";
@@ -126,7 +126,7 @@ async function uploadAudio(request: Request) {
 
   try {
     const saved = await writeStudio(id, revision, content);
-    if (saved) return Response.json({ ...saved, data, songId: song.id }, { headers: privateHeaders });
+    if (saved) return Response.json({ ...await readStudio(id), songId: song.id }, { headers: privateHeaders });
   } catch (error) {
     console.error("Studio upload save failed", error);
     return problem("The studio could not confirm the upload. Reload your library before trying again.", 503);
