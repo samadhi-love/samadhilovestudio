@@ -14,3 +14,17 @@ mtime_ms = 1794778038324
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/09abdecb-7ccf-4bec-8a6c-0b45b2f5d5d7/06d09222-1bd7-4ec9-9dba-14a7ef3e7228"
 storage_version_token = "1794778042626448"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "0Ua_0v5KLj8VhhnPujm-i"
+uri = "file://generated-artifacts/SAMADHI_Studio_Full_Diagnostic.txt"
+type = "text"
+title = "Full Studio Diagnostic and Source Inventory"
+description = "Read-only diagnostic with 761 workspace files, 2,587 import specifiers, direct dependencies, 1,044 lockfile packages, route checks, environment wiring, and ranked findings."
+logical_id = "af162166-8413-405d-85c0-6567ee51fbed"
+content_hash = "sha256:8385eaecec668283dc9686ee296f6d89f703679d06bbc6f55115f7c46a922d80"
+size = 216252
+mtime_ms = 1794875933075
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/af162166-8413-405d-85c0-6567ee51fbed/36731bd2-aa1a-4f24-a549-575e344e9b18"
+storage_version_token = "1794875960051164"
+content_type = "text/plain"
