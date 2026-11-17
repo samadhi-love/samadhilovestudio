@@ -1,5 +1,15 @@
 # SAMADHI LOVE Studio — current guide
 
+## Owner test checklist — before launch
+
+1. In **Replit Secrets**, add `STUDIO_CLOUDFLARE_D1_API_TOKEN`, `STUDIO_R2_ACCESS_KEY_ID`, `STUDIO_R2_SECRET_ACCESS_KEY`, and `STUDIO_OWNER_EMAIL`. Use the D1 Edit token and the bucket-scoped R2 S3 key pair. Leave the existing `vault` secret unchanged; never paste secret values in chat.
+2. Sign in with the verified email matching `STUDIO_OWNER_EMAIL`, then press **Claim owner** once.
+3. Open **Settings → Connect ElevenLabs**, paste your own key, and press **Test connection**. This checks account permissions without generating music.
+4. On both **desktop and phone**, record a 2-minute melody idea, create one song with **Make 2 versions** off, find it in **My Songs**, then close and reopen the app to confirm it is still saved.
+5. Choose **Make a Short**, export and download it, then play the downloaded video and check that the lyrics stay in sync.
+
+The song test may use provider usage or Studio credits; run it only when ready for that cost. Nothing is published or shared automatically.
+
 ## Stage 2 status
 
 The guided-screen consolidation is implemented and its final offline verification passed. This guide describes the actual screen homes. Historical feature documents are retained intact under `archive/` and are not current setup instructions.
@@ -14,11 +24,11 @@ My Songs offers “Make it longer,” “Redo a part,” and “Make another lik
 
 “Make a Short” opens Video with a vertical 30-second clip. It starts at a saved chorus/hook when available, otherwise uses the strongest audio window that can be analyzed; a slider lets the creator adjust the start. It uses the last-used look and existing caption workflow. Review captions before export.
 
-Create also offers an optional microphone recording up to 30 seconds. It is saved privately as a reference on the song, never sent to ElevenLabs, because the connected music engine has no verified melody-following capability. The three-step welcome now explains **Describe or hum → Listen and keep your favourite → Make a video** and stays reopenable from Studio Guide.
+Create also offers optional microphone recording up to 5 minutes per take, with several takes allowed for one song idea. Each is saved privately as a reference on the song and never sent to ElevenLabs. The three-step welcome now explains **Describe or hum → Listen and keep your favourite → Make a video** and stays reopenable from Studio Guide.
 
 ### Stage 3 verification
 
-All **41/41 offline Studio verification groups passed**, including the new creation, lyric-chip, two-version, song-action, short-slider and insert-at-the-end checks. The full-workspace typecheck and production build also passed. No paid music requests or other provider charges were made. Real microphone hardware, signed-in browser journeys and production saving were not tested in this stage.
+All **41/41 offline Studio verification groups passed**, including the new creation, multi-take timer, lyric-chip, two-version, song-action, short-slider and insert-at-the-end checks. The full-workspace typecheck and production build also passed. No paid music requests or other provider charges were made. Real microphone hardware, signed-in browser journeys and production saving were not tested in this stage.
 
 ## Start here
 

@@ -45,6 +45,7 @@ export type Song = {
   coverAsset?:string;
   logoAsset?:string;
   melodyReference?: { assetId: string; contentType: string; durationSeconds: number; savedAt: string };
+  melodyReferences?: { assetId: string; contentType: string; durationSeconds: number; savedAt: string }[];
   musicalAd?:import("./musical-ad").MusicalAd;
   logoDesign?:import("./brand-logo").BrandLogo;
   audioHistory?: { audioId: string; audioFormat: AudioFormat; date: string; name: string; sectionEdit?:import("./song-section-data").SectionEditPlan }[];

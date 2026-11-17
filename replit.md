@@ -1,10 +1,20 @@
 # SAMADHI LOVE Studio
 
+## Owner test checklist — before launch
+
+1. In **Replit Secrets**, add `STUDIO_CLOUDFLARE_D1_API_TOKEN`, `STUDIO_R2_ACCESS_KEY_ID`, `STUDIO_R2_SECRET_ACCESS_KEY`, and `STUDIO_OWNER_EMAIL`. Use the D1 Edit token and the bucket-scoped R2 S3 key pair. Keep the existing `vault` secret unchanged; never paste secret values in chat.
+2. Sign in with the verified email matching `STUDIO_OWNER_EMAIL`, then press **Claim owner** once.
+3. Open **Settings → Connect ElevenLabs**, paste your own key, and press **Test connection**. This checks account permissions without generating music.
+4. Repeat the creation and video check on **desktop and phone**: record a 2-minute melody idea; create one song with **Make 2 versions** off; find it in **My Songs**; close and reopen the app and confirm it is still there.
+5. Choose **Make a Short**, export and download the video, then play the downloaded file and check the lyrics appear in sync.
+
+Creating the test song may use provider usage or Studio credits. Run it only when you are ready for that cost. Saving does not publish or share anything.
+
 ## Stage 3 — beginner creation tools
 
-Create now has free, on-device **Help me describe it**, editable lyric-part chips, and optional “Make 2 versions” with clear double-cost confirmation. My Songs adds **Make it longer**, **Redo a part**, and **Make another like this**; originals stay intact. **Make a Short** prepares a vertical 30-second clip from the chorus when marked, otherwise from the strongest available audio window, with a start slider and the last-used look. Creators can record up to 30 seconds of a melody privately as a song reference; it is never sent to ElevenLabs because this music engine cannot follow humming yet. The first-visit guide now explains **Describe or hum → Listen and keep your favourite → Make a video**.
+Create now has free, on-device **Help me describe it**, editable lyric-part chips, and optional “Make 2 versions” with clear double-cost confirmation. My Songs adds **Make it longer**, **Redo a part**, and **Make another like this**; originals stay intact. **Make a Short** prepares a vertical 30-second clip from the chorus when marked, otherwise from the strongest available audio window, with a start slider and the last-used look. Creators can record several private melody references, up to five minutes each, per song idea; they are never sent to ElevenLabs. The first-visit guide now explains **Describe or hum → Listen and keep your favourite → Make a video**.
 
-Only offline/DOM verification was used for this stage. All **41/41 Studio verification groups passed**, including the new Create, My Songs, short-video slider and non-destructive section-edit checks. The full-workspace typecheck and production build also passed, including the design-preview sandbox. No paid provider calls, publishing, billing or data deletion occurred. Real microphone hardware, signed-in browser use and live production saving were not tested.
+Only offline/DOM verification was used for this stage. All **41/41 Studio verification groups passed**, including the new Create, My Songs, short-video slider, multi-take recorder and non-destructive section-edit checks. The full-workspace typecheck and production build also passed, including the design-preview sandbox. No paid provider calls, publishing, billing or data deletion occurred. Real microphone hardware, signed-in browser use and live production saving were not tested.
 
 ## Stage 2 — one guided Studio
 

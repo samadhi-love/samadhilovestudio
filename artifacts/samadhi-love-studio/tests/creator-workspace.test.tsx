@@ -6,7 +6,7 @@ import {isLyricProject,type LyricProject} from "../app/lyric-video-data";
 import {newProSettings,clipCues} from "../app/lyric-pro-data";import {freshSong} from "../app/studio-data";import {QuickCreate} from "../app/quick-create";
 import {bestShortStart,expandSongDescription,insertLyricSection} from "../app/creation-shortcuts";
 import {SongCard,SongHubProvider,type SongAction,type SongHub} from "../app/song-card";
-import {MelodyReferenceRecorder} from "../app/melody-reference-recorder";
+import {MelodyReferenceRecorder,formatMelodyTimer,melodyReferenceLimitSeconds} from "../app/melody-reference-recorder";
 const song={...freshSong("song","World original",0),audioId:"original",audioFormat:"mp3" as const};
 function project():LyricProject{return{theme:"cosmic",format:"wide",motion:"drift",cues:[{time:122,end:128,text:"نور Love",words:[{offset:3,time:122},{offset:8,time:124}]}],pro:{...newProSettings(song,360),approvedLyrics:"نور Love",sections:[{id:"chorus",name:"Chorus",time:120,end:160,language:"ara",singer:"A"}],background:"saved-image",alignment:{engine:"fixture",at:"test",audioId:"original",reviewed:true,warnings:[]}}};}
 test("26 complete looks are valid and preserve approved multilingual lyrics, sections, source, range and alignment",()=>{
@@ -61,13 +61,14 @@ test("lyrics chips appear in Custom mode and insert a part at the cursor",async(
 test("My Songs exposes non-destructive next steps and plays a private melody reference",async()=>{
  const h=await setup(),actions:SongAction[]=[];
  const value:SongHub={busy:false,simple:true,folders:[],stemsConnected:false,preview:"",setPreview(){},expanded:"song-next",setExpanded(){},save:async()=>true,action:action=>actions.push(action),archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
- const saved={...freshSong("song-next","A saved song",0),audioId:"audio-original",audioFormat:"mp3" as const,melodyReference:{assetId:"asset-reference",contentType:"audio/webm",durationSeconds:12,savedAt:"2026-01-01T00:00:00.000Z"}};
+ const saved={...freshSong("song-next","A saved song",0),audioId:"audio-original",audioFormat:"mp3" as const,melodyReference:{assetId:"asset-reference",contentType:"audio/webm",durationSeconds:12,savedAt:"2026-01-01T00:00:00.000Z"},melodyReferences:[{assetId:"asset-reference-2",contentType:"audio/webm",durationSeconds:120,savedAt:"2026-01-01T00:00:00.000Z"},{assetId:"asset-reference-3",contentType:"audio/webm",durationSeconds:300,savedAt:"2026-01-01T00:00:00.000Z"}]};
  try{
   await act(async()=>h.root.render(<SongHubProvider value={value}><SongCard song={saved}/></SongHubProvider>));
   for(const label of ["Make it longer","Redo a part","Make another like this","Make a Short"])await act(async()=>h.button(label).click());
   assert.deepEqual(actions,["extend","redo-part","make-like-this","short-video"]);
   const audio=document.querySelector<HTMLAudioElement>('[data-testid="melody-reference-player"]')!;
   assert.match(audio.src,/song=song-next.*asset=asset-reference/);
+  assert.equal(document.querySelectorAll('[data-testid="melody-reference-player"]').length,3);
  }finally{await h.close();}
 });
 test("the short-start slider moves only the excerpt and keeps caption cues",async()=>{
@@ -84,11 +85,51 @@ test("the short-start slider moves only the excerpt and keeps caption cues",asyn
 test("the Create melody recorder explains its private reference limits without an available microphone",async()=>{
  const h=await setup();
  try{
-  await act(async()=>h.root.render(<MelodyReferenceRecorder take={null} onTake={()=>{throw new Error("No microphone should be called by this test");}} onClear={()=>{}}/>));
-  assert.match(document.body.textContent!,/not sent to ElevenLabs/);
+  await act(async()=>h.root.render(<MelodyReferenceRecorder takes={[]} onTake={()=>{throw new Error("No microphone should be called by this test");}} onRemove={()=>{}}/>));
+  assert.match(document.body.textContent!,/not sent to ElevenLabs/);assert.match(document.body.textContent!,/5 minutes/);
   assert.equal(h.button("Record a melody idea").disabled,true);
   assert.match(document.body.textContent!,/not available in this browser/i);
+  assert.equal(formatMelodyTimer(0),"00:00");assert.equal(formatMelodyTimer(125),"02:05");assert.equal(formatMelodyTimer(melodyReferenceLimitSeconds),"05:00");assert.equal(formatMelodyTimer(999),"05:00");
  }finally{await h.close();}
+});
+test("the melody recorder shows a running five-minute timer and keeps several takes",async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});
+ const oldNavigator=Object.getOwnPropertyDescriptor(globalThis,"navigator"),oldRecorder=Object.getOwnPropertyDescriptor(globalThis,"MediaRecorder");
+ let stoppedTracks=0;
+ const stream={getTracks:()=>[{stop:()=>{stoppedTracks++;}}]};
+ Object.defineProperty(dom.window.navigator,"mediaDevices",{configurable:true,value:{getUserMedia:async()=>stream}});
+ Object.defineProperty(globalThis,"navigator",{configurable:true,value:dom.window.navigator});
+ class MockRecorder{
+  static isTypeSupported(){return true;}
+  mimeType="audio/webm";state:"inactive"|"recording"="inactive";ondataavailable?:(event:{data:Blob})=>void;onstop?:()=>void;onerror?:()=>void;
+  constructor(_stream:unknown,_options?:unknown){}
+  start(){this.state="recording";}
+  stop(){if(this.state!=="recording")return;this.state="inactive";this.ondataavailable?.({data:new Blob(["take"],{type:this.mimeType})});this.onstop?.();}
+ }
+ Object.defineProperty(globalThis,"MediaRecorder",{configurable:true,value:MockRecorder});
+ Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
+ const{createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
+ let captures=0;
+ function Screen(){const[takes,setTakes]=useState<{id:string;blob:Blob;durationSeconds:number}[]>([]);return <MelodyReferenceRecorder takes={takes} onTake={(blob,durationSeconds)=>{captures++;setTakes(current=>[...current,{id:`take-${captures}`,blob,durationSeconds}]);}} onRemove={id=>setTakes(current=>current.filter(take=>take.id!==id))}/>;}
+ const button=(label:string)=>[...document.querySelectorAll<HTMLButtonElement>("button")].find(item=>item.textContent?.trim()===label)!;
+ const wait=async(done:()=>boolean)=>{for(let i=0;i<100&&!done();i++)await act(async()=>{await new Promise(resolve=>setTimeout(resolve,20));});assert.ok(done());};
+ try{
+  await act(async()=>root.render(<Screen/>));
+  await act(async()=>{button("Record a melody idea").click();await new Promise(resolve=>setTimeout(resolve,0));});
+  await wait(()=>document.body.textContent!.includes("Recording · 00:00"));
+  await act(async()=>{await new Promise(resolve=>setTimeout(resolve,1100));});
+  assert.match(document.querySelector('[data-testid="melody-recording-timer"]')!.textContent!,/00:0[1-2] \/ 05:00/);
+  await act(async()=>button("Stop recording").click());
+  assert.equal(captures,1);assert.match(document.body.textContent!,/Record another take/);
+  await act(async()=>{button("Record another take").click();await new Promise(resolve=>setTimeout(resolve,0));});
+  await wait(()=>document.body.textContent!.includes("Recording · 00:00"));
+  await act(async()=>button("Stop recording").click());
+  assert.equal(captures,2);assert.equal(document.querySelectorAll('[data-testid="melody-reference-take"]').length,2);assert.equal(stoppedTracks,2);
+ }finally{
+  await act(async()=>root.unmount());dom.window.close();
+  if(oldNavigator)Object.defineProperty(globalThis,"navigator",oldNavigator);else delete (globalThis as any).navigator;
+  if(oldRecorder)Object.defineProperty(globalThis,"MediaRecorder",oldRecorder);else delete (globalThis as any).MediaRecorder;
+ }
 });
 test("connection failures show the actual permission error and refresh never generates music",async()=>{
  const h=await setup();let refreshes=0,generations=0;

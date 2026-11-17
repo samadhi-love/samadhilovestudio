@@ -38,7 +38,7 @@ import { songBlueprint } from "./song-blueprint";
 import { songAudioUrl, type Song } from "./studio-data";
 import { autoTrackTime, formatTrackTime } from "./track-duration";
 import { expandSongDescription, insertLyricSection } from "./creation-shortcuts";
-import { MelodyReferenceRecorder } from "./melody-reference-recorder";
+import { MelodyReferenceRecorder, type MelodyReferenceTake } from "./melody-reference-recorder";
 
 
 /** A prefill handed to Create from recipes, World Sounds, helpers, Promote or legacy links. Never submits. */
@@ -58,7 +58,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
    savedPrompts?:Template[];savePrompt?:(draft:PromptDraft)=>Promise<Template|undefined>;
    favoritePrompt?:(id:string,favorite:boolean)=>Promise<boolean>;
     autoSavePrompts?:boolean;setAutoSavePrompts?:(enabled:boolean)=>void;
-    saveMelodyReference?:(songId:string,blob:Blob,durationSeconds:number)=>Promise<boolean>;
+   saveMelodyReference?:(songId:string,blob:Blob,durationSeconds:number)=>Promise<boolean>;
   seed?:QuickSeed|null; recipes?:Template[]; editRecipe?:(template:Template|null)=>void;
   /** The full production engine (CreateStudio). Rendered outside this form, always mounted, shown in Custom. */
   proProduction?:ReactNode;
@@ -73,8 +73,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   function changePlay(next:PlayChoices){setPreviousChoices(playChoices);setPlayChoices(next);try{localStorage.setItem("samadhi:last-video-look:v1",playLooks[next.look].preset);}catch{}}
   const [idea, setIdea] = useState("");
   const [makeTwoVersions,setMakeTwoVersions]=useState(false);
-  const [melodyTake,setMelodyTake]=useState<Blob|null>(null);
-  const [melodyDurationSeconds,setMelodyDurationSeconds]=useState(0);
+  const [melodyTakes,setMelodyTakes]=useState<MelodyReferenceTake[]>([]);
   const [melodyStatus,setMelodyStatus]=useState("");
   const [songMap,setSongMap]=useState<SongMap>(defaultSongMap),[mapEnabled,setMapEnabled]=useState(false);
   const [adMode,setAdMode]=useState(false),[adBrief,setAdBrief]=useState<MusicalAd>(emptyMusicalAd);
@@ -96,15 +95,19 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
-  const recovery=useDraftRecovery("quick-create",{languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTake,melodyDurationSeconds,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+  const recovery=useDraftRecovery("quick-create",{languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}if(typeof value.resultId==="string")setResultId(value.resultId);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
-    setMakeTwoVersions(value.makeTwoVersions===true);if(value.melodyTake instanceof Blob)setMelodyTake(value.melodyTake);if(Number.isFinite(value.melodyDurationSeconds))setMelodyDurationSeconds(Math.max(0,Math.min(30,value.melodyDurationSeconds)));
+    setMakeTwoVersions(value.makeTwoVersions===true);
+    const recoveredTakes=Array.isArray(value.melodyTakes)?[...value.melodyTakes]:[];
+    const priorDraft=value as typeof value & {melodyTake?:unknown;melodyDurationSeconds?:number};
+    if(typeof Blob!=="undefined"&&priorDraft.melodyTake instanceof Blob)recoveredTakes.unshift({id:`recovered-${Date.now()}`,blob:priorDraft.melodyTake,durationSeconds:priorDraft.melodyDurationSeconds??30});
+    setMelodyTakes(recoveredTakes.filter((take:any)=>take&&typeof take.id==="string"&&typeof Blob!=="undefined"&&take.blob instanceof Blob&&Number.isFinite(take.durationSeconds)).map((take:any)=>({...take,durationSeconds:Math.max(1,Math.min(300,Math.round(take.durationSeconds)))})));
     setSongTitle(value.songTitle??"");setVoiceEdit(value.voiceEdit??null);setCustomMode(value.customMode===true);setVocalOptions({...defaultCreatorVocals,...value.vocalOptions});setOwnLyrics(value.ownLyrics===true);setLyrics(typeof value.lyrics==="string"?value.lyrics:"");
     if(validSongMap(value.songMap))setSongMap(value.songMap);setMapEnabled(value.mapEnabled===true);setIdea(value.idea);setChoice(recoverCreateChoice(value.choice));setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto");setGenreEdit(value.genreEdit);setInstrumentsEdit(value.instrumentsEdit);setCodeEdit(value.codeEdit);setAutoGenre(value.autoGenre);setUseHistory(value.useHistory);setFusionName(value.fusionName);setFusionVariation(value.fusionVariation);
     if(value.pendingTake){if(!(value.pendingTake.blob instanceof Blob))throw new Error("The device recording is unavailable. Check My Songs before retrying.");setPendingTake({...value.pendingTake,url:URL.createObjectURL(value.pendingTake.blob)});}
-  },!!photo||ownLyrics&&!!lyrics.trim()||mapEnabled||!!idea.trim()||!!pendingTake||!!melodyTake||adMode&&!!(adBrief.brand||adBrief.benefit||adBrief.cta));
+  },!!photo||ownLyrics&&!!lyrics.trim()||mapEnabled||!!idea.trim()||!!pendingTake||melodyTakes.length>0||adMode&&!!(adBrief.brand||adBrief.benefit||adBrief.cta));
   const [proOpen,setProOpen]=useState(seed?.panel==="pro");
   const [promptSearch,setPromptSearch]=useState(""),[favoritePromptsOnly,setFavoritePromptsOnly]=useState(false),[promptName,setPromptName]=useState("");
   const [openPanel,setOpenPanel]=useState(seed?.panel??""),[panelKey,setPanelKey]=useState(0),[recipeId,setRecipeId]=useState("");
@@ -165,9 +168,22 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const covered=useRef("");
   useEffect(()=>{if(!autoCover||!result?.audioFormat||result.coverAsset||covered.current===result.id||saving||pending)return;covered.current=result.id;void autoCover(result).then(()=>setPromptNotice("Cover created automatically from your title.")).catch(()=>setPromptNotice("Song saved. Automatic cover could not save; use Create / animate cover to retry."));},[result?.id,result?.coverAsset,saving,pending,autoCover]);
   const busy = saving || pending || promptBusy;
+  async function saveMelodyReferencesToSong(songId:string){
+    if(!melodyTakes.length)return;
+    if(!saveMelodyReference){setMelodyStatus("The song saved, but its melody takes are still in this local draft because private song storage is unavailable.");return;}
+    const remaining=[...melodyTakes];let saved=0;
+    while(remaining.length){
+      const take=remaining[0];
+      try{if(!await saveMelodyReference(songId,take.blob,take.durationSeconds))break;}
+      catch{break;}
+      remaining.shift();saved++;setMelodyTakes([...remaining]);
+    }
+    if(!remaining.length)setMelodyStatus(`Saved ${saved} private melody reference${saved===1?"":"s"} with the song. They were not sent to ElevenLabs.`);
+    else setMelodyStatus(`Saved ${saved} reference${saved===1?"":"s"}; ${remaining.length} take${remaining.length===1?" remains":"s remain"} in this local draft. Check My Songs before retrying.`);
+  }
   async function savePending(t:NonNullable<typeof pendingTake>){
     const id=await saveSketch(new File([t.blob],"quick-studio-sketch.wav",{type:"audio/wav"}),t.title,t.prompt,t.code,t.take,t.saveId);
-    if(id){URL.revokeObjectURL(t.url);setResultId(id);setPendingTake(undefined);}else setError("Your instrumental is ready but its save could not be confirmed. Download it below or Retry save to My Songs.");
+    if(id){await saveMelodyReferencesToSong(id);URL.revokeObjectURL(t.url);setResultId(id);setPendingTake(undefined);}else setError("Your instrumental is ready but its save could not be confirmed. Download it below or Retry save to My Songs.");
   }
   function switchMode(custom:boolean){
     setCustomMode(custom);setError("");
@@ -252,12 +268,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         const made=await generateSong(input);
         if(made){
           const madeIds=[made];setResultId(made);
-          if(melodyTake&&saveMelodyReference){
-            try{
-              if(await saveMelodyReference(made,melodyTake,melodyDurationSeconds)){setMelodyTake(null);setMelodyDurationSeconds(0);setMelodyStatus("Saved as your private reference — the music engine cannot follow a hummed melody yet, so it was not sent for generation.");}
-              else setMelodyStatus("The song saved, but its melody reference could not be confirmed. Your local reference is still here; check My Songs before retrying.");
-            }catch{setMelodyStatus("The song saved, but its melody reference could not be confirmed. Your local reference is still here; check My Songs before retrying.");}
-          }
+          if(melodyTakes.length)await saveMelodyReferencesToSong(made);
           if(makeTwoVersions){
             try{
               const second=await generateSong({...input,title:(title+" · Version 2").slice(0,100),projectId:seed?.projectId??made});
@@ -343,7 +354,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
             <small className="muted">Tell us what it is about, how it should feel, the style and the language to sing.</small></label>
           <div className="actions"><button type="button" className="secondary small" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Description expanded with local style suggestions. Review and edit it before creating; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
           <div className="actions qc-style-chips" role="group" aria-label="Style ideas">{featuredGenres.slice(0,8).map(g=>{const on=idea.toLowerCase().includes(g.toLowerCase());return <button type="button" key={g} className={`chip ${on?"active":""}`} aria-pressed={on} data-testid={`chip-style-${g}`} onClick={()=>{setError("");setIdea(on?idea.split(/\s*,\s*/).filter(part=>part.toLowerCase()!==g.toLowerCase()).join(", "):(idea.trim()?idea.trim()+", ":"")+g);}}>{g}</button>;})}</div>
-          <MelodyReferenceRecorder disabled={busy} take={melodyTake} onTake={(blob,seconds)=>{setMelodyTake(blob);setMelodyDurationSeconds(seconds);setMelodyStatus("Reference recorded. It will stay private and will not be sent to the music provider.");}} onClear={()=>{setMelodyTake(null);setMelodyDurationSeconds(0);setMelodyStatus("");}}/>
+          <MelodyReferenceRecorder disabled={busy} takes={melodyTakes} onTake={(blob,seconds)=>{setMelodyTakes(current=>[...current,{id:crypto.randomUUID(),blob,durationSeconds:seconds}]);setMelodyStatus("Take recorded. It stays private and will be attached to the saved song; it is not sent to ElevenLabs.");}} onRemove={id=>{setMelodyTakes(current=>current.filter(take=>take.id!==id));setMelodyStatus("Melody take removed from this local draft.");}}/>
           {melodyStatus&&<p role="status" data-testid="text-melody-reference-status">{melodyStatus}</p>}
           {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
           {lyrics.trim()&&<p className="qc-disclose" data-testid="text-custom-kept" role="note">Your own lyrics{songTitle.trim()?", title":""}{genreEdit?" and styles":""} are kept in Custom. Simple writes new lyrics from your description. <button type="button" className="text-button" data-testid="button-open-custom" onClick={()=>switchMode(true)}>Use them in Custom</button></p>}

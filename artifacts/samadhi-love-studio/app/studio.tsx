@@ -257,8 +257,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const song=latest.songs.find(item=>item.id===songId&&!item.deletedAt);
     if(!song)throw new Error("The song changed before its private reference could be saved. Check My Songs.");
     const contentType=(blob.type||"audio/webm").split(";")[0].toLowerCase();
-    const melodyReference={assetId,contentType,durationSeconds:Math.max(1,Math.min(30,Math.round(durationSeconds))),savedAt:new Date().toISOString()};
-    return commit({...latest,songs:latest.songs.map(item=>item.id===songId?{...item,melodyReference}:item)},"Private melody reference saved");
+    const melodyReference={assetId,contentType,durationSeconds:Math.max(1,Math.min(300,Math.round(durationSeconds))),savedAt:new Date().toISOString()};
+    return commit({...latest,songs:latest.songs.map(item=>item.id===songId?{...item,melodyReferences:[...(item.melodyReferences??[]),melodyReference]}:item)},"Private melody reference saved");
   }
   async function archiveSong(song:Song){
     if(!confirm(`Delete “${song.name}”? ${deletionNotice} Any Community release will be unlisted. Download anything you want to keep before deleting.`))return false;

@@ -12,6 +12,13 @@ test("workspace validation preserves old projects and extensions while rejecting
   extended.songs[0].audioHistory = [{ audioId: "older-audio", audioFormat: "wav", date: "2026-11-01", name: "Original" }];
   const unchanged = JSON.stringify(extended);
   assert(isStudio(extended)); assert.equal(JSON.stringify(extended), unchanged);
+  const withMelodyTakes=structuredClone(initialStudio);
+  withMelodyTakes.songs[0].melodyReferences=[
+    {assetId:"melody-take-one",contentType:"audio/webm",durationSeconds:120,savedAt:"2026-11-17T00:00:00.000Z"},
+    {assetId:"melody-take-two",contentType:"audio/webm",durationSeconds:300,savedAt:"2026-11-17T00:00:00.000Z"},
+  ];
+  assert(isStudio(withMelodyTakes));
+  assert.equal(isStudio({...withMelodyTakes,songs:[{...withMelodyTakes.songs[0],melodyReferences:[{assetId:"too-long",contentType:"audio/webm",durationSeconds:301,savedAt:"2026-11-17T00:00:00.000Z"}]},...withMelodyTakes.songs.slice(1)]}),false);
   for (const value of [null, [], { songs: [null], templates: [] }, { ...extended, songs: [...extended.songs, extended.songs[0]] },
     { ...extended, folders: [{ id: "folder", name: null }] }, { ...extended, station: { skin: "cosmic", queue: [null] } },
     ...["notes", "mixes", "versions", "tags", "done"].map(key => ({ ...extended, songs: [{ ...extended.songs[0], [key]: null }] }))]) {

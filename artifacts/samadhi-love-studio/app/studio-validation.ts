@@ -14,6 +14,10 @@ const text = (v: unknown): v is string => typeof v === "string";
 const id = (v: unknown): v is string => text(v) && /^[\w-]{1,100}$/.test(v);
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(text);
 const optional = (v: unknown, check: (v: any) => boolean) => v === undefined || check(v);
+const validMelodyReference = (reference: unknown) => object(reference) && id(reference.assetId) &&
+  ["audio/webm", "audio/wav", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/flac"].includes(reference.contentType) &&
+  Number.isFinite(reference.durationSeconds) && reference.durationSeconds > 0 && reference.durationSeconds <= 300 &&
+  text(reference.savedAt) && Number.isFinite(Date.parse(reference.savedAt));
 const notes = (v: unknown) => object(v) && Object.keys(fields).every(k => text(v[k]));
 function entries(v: unknown, check: (v: Record<string, any>) => boolean) {
   if (!Array.isArray(v)) return false;
@@ -38,10 +42,8 @@ export function isStudio(value: unknown): value is Studio {
       entries(s.mixes, m => text(m.name) && text(m.notes) && text(m.link) && optional(m.audioSongId, id)) &&
       text(s.preferred) && Array.isArray(s.done) && s.done.every(boolean) && text(s.releaseDate) &&
       [s.projectId, s.sourceSessionId, s.folderId, s.audioId,s.coverAsset,s.logoAsset].every(v => optional(v, id)) &&
-      optional(s.melodyReference, reference => object(reference) && id(reference.assetId) &&
-        ["audio/webm", "audio/wav", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/flac"].includes(reference.contentType) &&
-        Number.isFinite(reference.durationSeconds) && reference.durationSeconds > 0 && reference.durationSeconds <= 30 &&
-        text(reference.savedAt) && Number.isFinite(Date.parse(reference.savedAt))) &&
+      optional(s.melodyReference, validMelodyReference) &&
+      optional(s.melodyReferences, references => Array.isArray(references) && references.every(validMelodyReference)) &&
       optional(s.partySource,(value:unknown)=>["upload","recording","mix"].includes(value as string)) &&
       optional(s.sectionEdit,isSectionEditPlan) &&
       optional(s.logoDesign,isBrandLogo) && optional(s.musicalAd,isMusicalAd) &&
