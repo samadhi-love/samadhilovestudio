@@ -184,7 +184,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         setData(result.data); setRevision(result.revision);
       }
-      if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? "The save could not be confirmed. Keep this tab open and retry.");
+      if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
+        ? "The production result could not be confirmed. Keep this tab open and check My Songs and your provider history before generating again to avoid a duplicate charge."
+        : "The save could not be confirmed. Keep this tab open and retry."));
       const savedData = result.data ?? next;
       if (savedData) setData(savedData);
       setRevision(result.revision); setToast(message); return result;

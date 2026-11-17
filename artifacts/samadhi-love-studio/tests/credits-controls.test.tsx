@@ -17,6 +17,27 @@ test("production preflight confirms server cost and submits a stable reference, 
  globalThis.fetch=async()=>Response.json({error:"Accounting unavailable"},{status:503});await assert.rejects(productionFetch("/api/studio/create",init),/Accounting unavailable/);
  }finally{globalThis.fetch=oldFetch;dom.window.close();}
 });
+test("a lost estimate connection sends no production request and explains the safe next step",async()=>{
+ const oldFetch=globalThis.fetch;let calls=0;
+ try{
+  globalThis.fetch=async()=>{calls++;throw new TypeError("Failed to fetch");};
+  await assert.rejects(productionFetch("/api/studio/create",{method:"POST",body:JSON.stringify({action:"song"})}),/No generation request was sent/);
+  assert.equal(calls,1);
+  globalThis.fetch=async()=>{calls++;return new Response("<html>Preview unavailable</html>",{status:502,headers:{"Content-Type":"text/html"}});};
+  await assert.rejects(productionFetch("/api/studio/create",{method:"POST",body:"{}"}),/No generation request was sent/);
+  assert.equal(calls,2);
+ }finally{globalThis.fetch=oldFetch;}
+});
+test("a lost production connection warns about an uncertain outcome and never automatically retries",async()=>{
+ const dom=new JSDOM("",{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window});
+ const oldFetch=globalThis.fetch;let calls=0,events=0;
+ dom.window.addEventListener("samadhi-usage-updated",()=>events++);
+ try{
+  globalThis.fetch=async()=>{calls++;if(calls===1)return Response.json({funding:"own"});throw new TypeError("Failed to fetch");};
+  await assert.rejects(productionFetch("/api/studio/create",{method:"POST",body:JSON.stringify({action:"song"})}),/Generation may already have started.*Do not click Generate again/);
+  assert.equal(calls,2);assert.equal(events,1);
+ }finally{globalThis.fetch=oldFetch;dom.window.close();}
+});
 test("account screen labels proposed plans honestly and does not show owner grant controls to creators",async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
  const oldFetch=globalThis.fetch;globalThis.fetch=async()=>Response.json({account:{owner:"me",plan:"creator",status:"beta",funding:"own",balance:228,period_end:Date.now()+86400000},plans,managedAvailable:false,billingActive:false,limits:{concurrent:1,daily:20,musicSeconds:360,uploadMB:96},held:72,active:0,today:1,used:0,expired:false,jobs:[],ledger:[],owner:false});
