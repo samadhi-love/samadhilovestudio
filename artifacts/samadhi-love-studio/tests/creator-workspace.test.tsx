@@ -109,9 +109,40 @@ test("world starters and simple vocal/lyric controls reach the real generation c
 });
 
 test("saved prompts retain lyrics and instrument directions and can be loaded and saved in the same creator",async()=>{
- const {makeSavedSongPrompt,savedPromptFromSong}=await import('../app/saved-song-prompts');const source={...song,tags:['Jazz'],notes:{...song.notes,lyrics:'[Chorus]\nنور الحب\nنور الحب',prompt:'A gentle world jazz song',instruments:'Oud, Piano',vocals:'Warm Lebanese Arabic duet'}};
- const preset=makeSavedSongPrompt(savedPromptFromSong(source),'prompt-private'),before=structuredClone(preset);const h=await setup();let saved:any;
-  try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} savedPrompts={[preset]} savePrompt={async input=>{saved=input;return preset;}}/>));await act(async()=>h.button('Custom').click());const select=document.querySelector('[data-testid="select-saved-prompt"]') as unknown as HTMLSelectElement;await h.select(select,preset.id);assert.equal(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!.value,source.notes.prompt);assert(document.body.textContent!.includes('نور الحب'));await act(async()=>h.button('Save prompt').click());assert.equal(saved.lyrics,source.notes.lyrics);assert.equal(saved.instruments,'Oud, Piano');assert.equal(saved.vocals,'Warm Lebanese Arabic duet');assert.deepEqual(saved.tags,['Jazz']);assert.deepEqual(preset,before);}finally{await h.close();}
+  const {makeSavedSongPrompt,savedPromptFromSong}=await import('../app/saved-song-prompts');const source={...song,tags:['Jazz'],notes:{...song.notes,lyrics:'[Chorus]\nنور الحب\nنور الحب',prompt:'A gentle world jazz song',instruments:'Oud, Piano',vocals:'Warm Lebanese Arabic duet'}};
+  const preset={...makeSavedSongPrompt(savedPromptFromSong(source),'prompt-private'),favorite:true},before=structuredClone(preset);const h=await setup();let saved:any,favoriteChange:any;
+   try{
+    await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} savedPrompts={[preset]} autoSavePrompts setAutoSavePrompts={()=>{}} favoritePrompt={async(id,favorite)=>{favoriteChange={id,favorite};return true;}} savePrompt={async input=>{saved=input;return preset;}}/>));
+    const library=document.querySelector<HTMLDetailsElement>('[data-testid="saved-prompt-library"]')!;await act(async()=>{library.open=true;});
+    const search=document.querySelector<HTMLInputElement>('[data-testid="input-search-saved-prompts"]')!;await h.input(search,"no match");assert.equal(document.querySelector('[data-testid="saved-prompt-prompt-private"]'),null);
+    await h.input(search,"gentle world jazz");assert(document.querySelector('[data-testid="saved-prompt-prompt-private"]'));
+    await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-use-saved-prompt-prompt-private"]')!.click());
+    assert.equal(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!.value,source.notes.prompt);assert(document.body.textContent!.includes('نور الحب'));
+    await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-favorite-saved-prompt-prompt-private"]')!.click());assert.deepEqual(favoriteChange,{id:preset.id,favorite:false});
+    await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-save-current-prompt"]')!.click());
+    assert.equal(saved.lyrics,source.notes.lyrics);assert.equal(saved.instruments,'Oud, Piano');assert.equal(saved.vocals,'Warm Lebanese Arabic duet');assert.deepEqual(saved.tags,['Jazz']);assert.deepEqual(preset,before);
+   }finally{await h.close();}
+});
+
+test("automatic prompt history saves only after a confirmed song",async()=>{
+ const h=await setup();let saves=0;let submitted:any;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{submitted=input;return "saved-song";}} saveSketch={async()=>undefined} autoSavePrompts savePrompt={async input=>{saves++;assert.match(input.idea,/new beginning/);return {...(await import('../app/saved-song-prompts')).makeSavedSongPrompt(input,"prompt-auto")};}}/>));
+  const field=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
+  await h.input(field,"A hopeful song about a new beginning. Sing in English.");
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(saves,1);assert.match(submitted.prompt,/new beginning/);
+ }finally{await h.close();}
+});
+
+test("automatic prompt history does not save an unconfirmed generation",async()=>{
+ const h=await setup();let saves=0;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} autoSavePrompts savePrompt={async()=>{saves++;return undefined;}}/>));
+  await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!,"A hopeful song about starting again. Sing in English.");
+  await act(async()=>h.button("Create").click());
+  assert.equal(saves,0);assert.match(document.body.textContent!,/This take was not confirmed/);
+ }finally{await h.close();}
 });
 test("title suggestions preserve original lyrics, cover designs support Unicode and vocal matching follows musical direction",async()=>{
  const {titlesFromLyrics,coverStyleForTitle,drawSongCover,coverStyles}=await import('../app/song-cover');const {matchVocalToSong}=await import('../app/vocal-matching');const lyrics='[Verse]\nWalking home\n[Chorus]\nنور الحب\nنور الحب';assert.equal(titlesFromLyrics(lyrics)[0],'نور الحب');assert.equal(coverStyleForTitle('Cosmic Moon'),'cosmic');assert.equal(Object.keys(coverStyles).length,8);const texts:string[]=[];const ctx:any={canvas:{width:1600,height:1600},createLinearGradient:()=>({addColorStop(){}}),fillRect(){},beginPath(){},arc(){},stroke(){},fill(){},measureText:(s:string)=>({width:s.length*45}),fillText:(s:string)=>texts.push(s)};drawSongCover(ctx,'نور الحب','Artist','gold');assert.equal(ctx.direction,'rtl');assert(texts.includes('نور الحب'));assert.match(matchVocalToSong('An intimate song','R&B','Piano'),/soulful/);assert.match(matchVocalToSong('A dance anthem','Trance','Synths'),/dance groove/);assert.match(matchVocalToSong('A Lebanese story','Dabke','Oud'),/world-music blend/);

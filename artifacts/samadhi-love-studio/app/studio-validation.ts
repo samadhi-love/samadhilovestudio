@@ -53,7 +53,8 @@ export function isStudio(value: unknown): value is Studio {
       optional(s.creationSeconds, n => Number.isFinite(n) && n > 0 && n <= 600) &&
       optional(s.instrumental, isInstrumental) && optional(s.sectionDirections, isSectionDirections) &&
       optional(s.lyricVideo, isLyricProject)) &&
-      entries(value.templates, t => text(t.name) && text(t.description) && strings(t.tags) && notes(t.notes)) &&
+      entries(value.templates, t => text(t.name) && text(t.description) && strings(t.tags) && notes(t.notes) && optional(t.favorite, boolean)) &&
+      optional(value.autoSavePrompts, boolean) &&
       optional(value.folders, f => entries(f, item => text(item.name))) &&
       optional(value.voices, v => entries(v, item => optional(item.name, text) && optional(item.description, text))) &&
       optional(value.discovery, isDiscovery) &&

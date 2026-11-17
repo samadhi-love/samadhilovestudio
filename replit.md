@@ -18,6 +18,8 @@ The main navigation is now **Create, My Songs, Video, Record, Explore**, plus **
 
 Old view IDs, query/hash links and song identifiers route into these homes. Eligible signed-in legacy pages redirect; guest/public sharing and checkout-return gates remain intact. Simple keeps the main song-description field and style choices; language/singer overrides are in Custom → Vocals.
 
+Recent guided-workspace work adds an always-available Simple/Advanced switch, contextual screen help, and a first-visit tour that can be restarted from **Settings & Help → Studio guide**. Create now has a private, searchable **My prompts** library with one-click reuse, favorites and an immediate Undo for favorite changes. Manual prompt saving is available; optional automatic prompt saving is off by default and only stores a prompt after a confirmed song. Saved records remain compatible, and existing draft recovery, lyric versions, and recently deleted song restore remain in place. This phase adds no paid provider calls.
+
 Current instructions: `artifacts/samadhi-love-studio/docs/STUDIO_GUIDE.md`. Production/setup details: `artifacts/samadhi-love-studio/docs/REPLIT_PRODUCTION.md`. Forty-seven historical documents were moved intact into `docs/archive/`; use the current guide rather than the old handoff.
 
 ### Verification and remaining limits

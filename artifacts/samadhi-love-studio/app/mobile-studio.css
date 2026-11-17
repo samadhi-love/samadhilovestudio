@@ -5,6 +5,9 @@
  .shell .topbar{height:auto;min-height:56px;flex-wrap:wrap;gap:8px;padding-top:8px;padding-bottom:8px}
  .shell .breadcrumb{min-width:0;max-width:100%;overflow-wrap:anywhere}
  .shell .topbar-actions{gap:6px;flex-wrap:wrap}
+ .shell .workspace-mode-switch{font-size:10px}
+ .shell .workspace-mode-switch>button{min-height:32px;padding:.2rem .5rem}
+ .shell .screen-context-help>span{display:none}
  .shell button,.shell .secondary,.shell .primary,.shell summary{min-height:44px;touch-action:manipulation}
  .shell input:not([type=checkbox]):not([type=radio]),.shell textarea,.shell select{font-size:16px;max-width:100%;min-width:0}
  .shell input[type=range]{min-height:36px;touch-action:pan-y}

@@ -61,9 +61,10 @@ import { InternationalMusicTent } from "./international-music-tent";
 import { PromptLab, VocalDirector } from "./music-creation-tools";
 import { emptyDiscovery, type CreateSeed } from "./music-workspace-data";
 
-import { StudioNavigation, ScreenSections, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
+import { StudioNavigation, ScreenContextHelp, ScreenSections, WorkspaceModeSwitch, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
 import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from "./studio-routes";
 import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
+import { StudioQuickTour } from "./studio-tour";
 
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
@@ -84,6 +85,9 @@ function Section({ title, action, children }: { title: string; action?: ReactNod
 export default function Studio({ signOut, creatorName }: { signOut: string; creatorName?: string }) {
   const [data, setData] = useState<Studio>(creatorName ? { ...initialStudio, songs: [] } : initialStudio);
   const [revision, setRevision] = useState(0);
+  // Create can resolve and auto-save a prompt before React's next render; keep the committed song and revision available synchronously.
+  const dataRef=useRef(data),revisionRef=useRef(revision);
+  dataRef.current=data;revisionRef.current=revision;
   const [loaded, setLoaded] = useState(false);
   const [workspaceId, setWorkspaceId] = useState("");
   const elevenLabs = useElevenLabsKey();
@@ -138,7 +142,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [coverVideoRequest,setCoverVideoRequest]=useState<{id:string;songId:string;asset:string;overlay:OverlayStyle}|null>(null);
   const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;audioId?:string}|null>(null);
   const [lyricSongId, setLyricSongId] = useState("");
-  const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | null>(null);
+  const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "tour" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | null>(null);
+  const [undoPromptFavorite,setUndoPromptFavorite]=useState<{id:string;favorite?:boolean}|null>(null);
   const modalBusy = modal === "cover"||modal === "logo"||modal === "sections"||modal === "stems-midi"?coverBusy||saving:modal === "connections" ? elevenLabs.busy : saving;
   const [uploadForVideo, setUploadForVideo] = useState(false);
   const [uploadTarget, setUploadTarget] = useState<Song | null>(null);
@@ -157,14 +162,19 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         throw new Error(result?.error || "The studio could not load. Try again.");
       if (result.data) {
         if (!isStudio(result.data)) throw new Error("The saved workspace could not be read safely. Your account data has not been changed. Try again or contact support.");
-        setData(result.data);
+        dataRef.current=result.data;setData(result.data);
       }
       if (result.workspace) setWorkspaceId(result.workspace);
-      setRevision(result.revision);
+      revisionRef.current=result.revision;setRevision(result.revision);
       setLoaded(true);
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
   }
   useEffect(() => { void load(); }, []);
+  useEffect(()=>{
+    if(!loaded||!workspaceId)return;
+    try{if(localStorage.getItem(`samadhi:guided-tour:v1:${workspaceId}`)!=="done")setModal(current=>current??"tour");}
+    catch{setModal(current=>current??"tour");}
+  },[loaded,workspaceId]);
   const releaseSignature=JSON.stringify(data.songs.map(s=>[s.id,s.audioId,s.audioFormat,s.deletedAt,s.creationDraft,s.explicit]));
   useEffect(()=>{if(!loaded||!workspaceId)return;let current=true;const token=++releaseRequest.current;setReleaseLoaded(false);void fetch("/api/community?dashboard=1",{cache:"no-store"}).then(async response=>{if(!response.ok)return;const dashboard=await response.json() as ArtistDashboard;if(!Array.isArray(dashboard.songs))return;if(current&&token===releaseRequest.current){setReleaseMap(Object.fromEntries(dashboard.songs.map(s=>[s.songId,{status:s.status,releaseId:s.releaseId}])));setReleaseLoaded(true);}}).catch(()=>{});return()=>{current=false;};},[loaded,workspaceId,releaseSignature]);
   function applyLocation(push:boolean){const r=resolveLocation(window.location.search,window.location.hash);if(!r)return false;fromHistory.current=!push;
@@ -188,7 +198,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   }, [toast]);
   useEffect(() => {
     if (!modal) return;
-    const close = (e: KeyboardEvent) => { if (e.key === "Escape" && !modalBusy) setModal(null); };
+    const close = (e: KeyboardEvent) => { if (e.key === "Escape" && !modalBusy) { if(modal==="tour")finishTour();else setModal(null); } };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [modal, modalBusy]);
@@ -205,14 +215,14 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const response = await (url === "/api/studio/create" ? productionFetch : fetch)(url, { ...request, headers });
       const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
-        setData(result.data); setRevision(result.revision);
+        dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
       }
       if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
         ? "The production result could not be confirmed. Keep this tab open and check My Songs and your provider history before generating again to avoid a duplicate charge."
         : "The save could not be confirmed. Keep this tab open and retry."));
       const savedData = result.data ?? next;
-      if (savedData) setData(savedData);
-      setRevision(result.revision); setToast(message); return result;
+      if (savedData) {dataRef.current=savedData;setData(savedData);}
+      revisionRef.current=result.revision;setRevision(result.revision); setToast(message); return result;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed. Try again.");
       if (throwOnError) throw e;
@@ -221,9 +231,11 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     finally { pendingSave.current = false; setSaving(false); }
   }
   async function commit(next: Studio, message: string) {
-    if(next.songs.some(s=>!!s.deletedAt!==!!data.songs.find(old=>old.id===s.id)?.deletedAt)){releaseRequest.current++;setReleaseLoaded(false);}
+    setUndoPromptFavorite(null);
+    const latest=dataRef.current;
+    if(next.songs.some(s=>!!s.deletedAt!==!!latest.songs.find(old=>old.id===s.id)?.deletedAt)){releaseRequest.current++;setReleaseLoaded(false);}
     return !!(await saveRequest("/api/studio", {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: next, revision }),
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: next, revision:revisionRef.current }),
     }, message, next));
   }
   async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
@@ -255,7 +267,30 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const list=lists.find(p=>p.id===id);if(!list)return false;
     return commit({...data,station:{...current,customPlaylists:lists.map(p=>p.id===id?{...p,tracks:[...new Set([...p.tracks,song.id])]}:p)}},"Added to private playlist");
   }
-  async function saveReusablePrompt(input:PromptDraft){const preset=makeSavedSongPrompt(input,"prompt-"+uid());const existing=data.templates.find(t=>t.id.startsWith("prompt-")&&sameSavedPrompt(t,preset));if(existing){setToast("This prompt is already saved privately.");return existing;}return await commit({...data,templates:[preset,...data.templates]},"Prompt saved privately for reuse")?preset:undefined;}
+  async function saveReusablePrompt(input:PromptDraft){const current=dataRef.current;const preset=makeSavedSongPrompt(input,"prompt-"+uid());const existing=current.templates.find(t=>t.id.startsWith("prompt-")&&sameSavedPrompt(t,preset));if(existing){setToast("This prompt is already saved privately.");return existing;}return await commit({...current,templates:[preset,...current.templates]},"Prompt saved privately for reuse")?preset:undefined;}
+  async function favoriteReusablePrompt(id:string,favorite:boolean){
+    const latest=dataRef.current;const current=latest.templates.find(t=>t.id===id&&t.id.startsWith("prompt-"));
+    if(!current)return false;
+    const previous=current.favorite;
+    if(!await commit({...latest,templates:latest.templates.map(t=>t.id===id?{...t,favorite}:t)},"Prompt favorite updated"))return false;
+    setUndoPromptFavorite({id,favorite:previous});
+    return true;
+  }
+  async function undoFavoritePrompt(){
+    const previous=undoPromptFavorite;
+    if(!previous)return;
+    const latest=dataRef.current;const current=latest.templates.find(t=>t.id===previous.id);
+    if(!current){setUndoPromptFavorite(null);return;}
+    if(await commit({...latest,templates:latest.templates.map(t=>{if(t.id!==previous.id)return t;const restored={...t};if(previous.favorite===undefined)delete restored.favorite;else restored.favorite=previous.favorite;return restored;})},"Prompt favorite restored"))
+      setToast("Prompt favorite restored.");
+  }
+  async function setPromptAutoSave(enabled:boolean){
+    await commit({...dataRef.current,autoSavePrompts:enabled},enabled?"Automatic prompt saving is on":"Automatic prompt saving is off");
+  }
+  function finishTour(){
+    if(workspaceId){try{localStorage.setItem(`samadhi:guided-tour:v1:${workspaceId}`,"done");}catch{}}
+    setModal(null);
+  }
   function songAction(action:SongAction,song:Song){
     if(action==="sections"||action==="stems-midi"){setCoverSongId(song.id);setModal(action);return;}
     if(action==="logo"){if(navigate("promote"))setCoverSongId(song.id);return;}
@@ -434,7 +469,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setModal(null);
     setFirstSongRequest(true);
   }
-  const modalTitle = modal === "sections"?"Edit audio · crop, cut & join":modal === "stems-midi"?"Stems & MIDI":modal === "logo"?"Logo Creator":modal === "cover"?"Create / animate cover":modal === "connections" ? "Settings" : modal === "new" ? "Start a song" : modal === "upload" ? (uploadTarget ? (uploadTarget.audioFormat ? "Replace audio" : "Attach audio") : "Upload song") : modal === "help" ? "Studio guide" : "Song template";
+  const modalTitle = modal === "tour"?"Quick tour":modal === "sections"?"Edit audio · crop, cut & join":modal === "stems-midi"?"Stems & MIDI":modal === "logo"?"Logo Creator":modal === "cover"?"Create / animate cover":modal === "connections" ? "Settings" : modal === "new" ? "Start a song" : modal === "upload" ? (uploadTarget ? (uploadTarget.audioFormat ? "Replace audio" : "Attach audio") : "Upload song") : modal === "help" ? "Studio guide" : "Song template";
   const song = data.songs.find(s => s.id === selected && !s.deletedAt);
   const library = sortSongs(data.songs.filter(s => !s.deletedAt));
   const cleanLibrary = library.filter(song => !isExplicitSong(song));
@@ -452,13 +487,13 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     <aside className="sidebar">
       <button className="brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>SAMADHI LOVE</strong><small>CREATIVE STUDIO</small></span></button>
       <p className="nav-label">WORKSPACE</p>
-      <StudioNavigation activeView={song ? "songs" : view} activeScreen={pane??(song?"songs":screenOf(view))} openScreen={openScreen} activeUtility={modal === "connections" ? "settings" : modal === "help" ? "guide" : undefined}
+       <StudioNavigation activeView={song ? "songs" : view} activeScreen={pane??(song?"songs":screenOf(view))} openScreen={openScreen} activeUtility={modal === "connections" ? "settings" : modal === "help"||modal==="tour" ? "guide" : undefined}
         beginner={beginner} changeBeginner={changeBeginner} owner={!creatorName} navigate={navigate} visit={leaveStudio} settings={connectionSettings} guide={() => setModal("help")}/>
       <div className="sidebar-bottom"><p className="studio-motto">From the silence<br/>comes the light.</p><div className="private"><div className="avatar">S</div><div><strong>{creatorName ?? "Samadhi"}</strong><small>{creatorName ? "Private creator workspace" : "Owner workspace"}</small></div><LockKeyhole size={13}/></div><a className="owner-signout" href={signOut} target="_top">Sign out</a></div>
     </aside>
     <main>
-      <header className="topbar"><div className="breadcrumb"><span>Studio</span><ChevronRight size={14}/><strong>{song ? song.name : pane==="plan-credits" ? "Plan & Credits" : workspaceNavigation.find(n => n.id === view)?.label}</strong></div>
-        <div className="topbar-actions"><CreditBadge/><button type="button" className="secondary small" onClick={connectionSettings} aria-label="Settings"><Settings2 size={16}/><span>Settings</span></button>
+      <header className="topbar"><div className="breadcrumb"><span>Studio</span><ChevronRight size={14}/><strong>{song ? song.name : pane==="plan-credits" ? "Plan & Credits" : workspaceNavigation.find(n => n.id === view)?.label}</strong><ScreenContextHelp screen={pane??(song?"songs":screenOf(view))}/></div>
+        <div className="topbar-actions"><WorkspaceModeSwitch beginner={beginner} change={changeBeginner}/><CreditBadge/><button type="button" className="secondary small" onClick={connectionSettings} aria-label="Settings"><Settings2 size={16}/><span>Settings</span></button>
           <button className="primary" disabled={!loaded || saving} onClick={() => beginner ? navigate("overview") : newSong()}><Plus size={17}/> {beginner ? "Create music" : "New song"}</button></div></header>
       <MobileProjectBar songs={cleanLibrary} currentId={song?.id??""} disabled={!loaded||saving||creating} select={id=>{if(navigate("songs"))openSong(id);}}/>
       <div className="content">
@@ -514,7 +549,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             elevenLabs={elevenLabs} connectionSettings={connectionSettings} upload={() => openUpload(null, true)}
             generate={async payload=>{const result=await createRequest(payload,"Caption-ready song saved to My Originals");return result?.data?.songs.find(s=>s.id===result.songId);}}
             importFile={async (file,title)=>{const result=await sendAudio(file,title,null);return result?.data?.songs.find(s=>s.id===result.songId);}}
-            persisted={(next,nextRevision)=>{setData(next);setRevision(nextRevision);}}
+            persisted={(next,nextRevision)=>{dataRef.current=next;setData(next);revisionRef.current=nextRevision;setRevision(nextRevision);}}
             persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
           <QuickCreate seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
@@ -539,7 +574,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             setQuery(""); setTag(""); setStage(""); setExplicitView(false); setArchiveView(false); setFolderFilter(""); navigate("songs");
             return true;
           }}/></div>}
-            simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
+             simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} favoritePrompt={favoriteReusablePrompt} autoSavePrompts={data.autoSavePrompts===true} setAutoSavePrompts={enabled=>{void setPromptAutoSave(enabled);}} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
             makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
             connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
             generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to My Songs", true))?.songId}
@@ -625,8 +660,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         </>}
       </div>
     </main>
-    {toast && <div className="toast" role="status"><Check size={17}/>{toast}</div>}
-    {modal && <div className="modal-shade" onClick={e => { if (e.target === e.currentTarget && !modalBusy) setModal(null); }}><div className={modal === "connections" ? "modal settings-modal" : modal === "new" ? "modal song-start-modal" : "modal"} role="dialog" aria-modal="true" aria-label={modalTitle}>
+    {toast && <div className="toast" role="status"><Check size={17}/>{toast}{undoPromptFavorite&&<button type="button" className="text-button" data-testid="button-undo-prompt-favorite" onClick={()=>void undoFavoritePrompt()}>Undo</button>}</div>}
+    {modal && modal!=="tour" && <div className="modal-shade" onClick={e => { if (e.target === e.currentTarget && !modalBusy) setModal(null); }}><div className={modal === "connections" ? "modal settings-modal" : modal === "new" ? "modal song-start-modal" : "modal"} role="dialog" aria-modal="true" aria-label={modalTitle}>
       <div className="modal-head"><h2>{modalTitle}</h2><button className="icon-button" aria-label="Close" onClick={() => setModal(null)} disabled={modalBusy}><X size={20}/></button></div>
       {error && modal !== "connections" && <div className="notice" role="alert">{error}</div>}
       {modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
@@ -647,8 +682,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           {data.templates.some(t => t.id === templateEdit.id) && <button type="button" className="secondary danger" disabled={saving} onClick={async () => {
             if (confirm(isStudioPreset(templateEdit.id) ? "Reset this Studio template to its default? Songs created from it will keep their contents." : "Delete this template? Songs created from it will keep their contents.") && await commit({ ...data, templates: data.templates.filter(t => t.id !== templateEdit.id) }, isStudioPreset(templateEdit.id) ? "Studio template reset" : "Template deleted")) setModal(null);
           }}>{isStudioPreset(templateEdit.id) ? "Reset Studio template" : "Delete template"}</button>}</div>
-      </form> : <div className="guide"><p>Start with a blank song or a reusable template. The examples are writing drafts. Open any song to attach a recording, or use Upload song to create a song from a file.</p><p>Use <strong>Save song</strong> to keep your edits. Use <strong>Save version</strong> in Writing to keep a named snapshot of your lyrics or creative prompt.</p><p>Compare directions in Mix lab, then use the release checklist to plan the master, visuals, and promotion.</p></div>}
+      </form> : <div className="guide"><p>Start with a blank song or a reusable template. The examples are writing drafts. Open any song to attach a recording, or use Upload song to create a song from a file.</p><p>Use <strong>Save song</strong> to keep your edits. Use <strong>Save version</strong> in Writing to keep a named snapshot of your lyrics or creative prompt.</p><p>Compare directions in Mix lab, then use the release checklist to plan the master, visuals, and promotion.</p><button type="button" className="primary" data-testid="button-restart-tour" onClick={()=>setModal("tour")}>Take the quick tour</button></div>}
     </div></div>}
+    {modal==="tour"&&<div className="modal-shade" onClick={event=>{if(event.target===event.currentTarget)finishTour();}}><div className="modal" role="dialog" aria-modal="true" aria-label="Quick tour"><div className="modal-head"><h2>Quick tour</h2><button type="button" className="icon-button" aria-label="Close" onClick={finishTour}><X size={20}/></button></div><StudioQuickTour onDone={finishTour}/></div></div>}
   </div></SongHubProvider></DraftRecoveryProvider>;
 }
 

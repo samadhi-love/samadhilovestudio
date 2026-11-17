@@ -6,6 +6,17 @@
 .qc-lyrics .chip[aria-pressed=true]{background:#c6ebcf;color:#142b20;border-color:#c6ebcf;font-weight:700;box-shadow:0 0 0 2px #c6ebcf33}
 .qc-create{min-height:50px;padding-inline:28px;font-size:1.05rem}.qc-more-body{display:grid;gap:14px;padding:10px 0}
 .qc-modes{display:inline-flex;padding:4px;gap:4px;border-radius:999px;border:1px solid var(--border);background:var(--panel);margin:4px 0 14px}.qc-modes button{min-height:40px;padding:0 22px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-weight:600;cursor:pointer}.qc-modes button[aria-selected=true]{background:linear-gradient(120deg,#42644e,#5c457c);color:#fff8de}
+.qc-prompt-library{margin:0 0 1rem;border:1px solid var(--border);border-radius:12px;background:color-mix(in srgb,var(--panel) 78%,transparent);padding:.75rem 1rem}
+.qc-prompt-library>summary{display:flex;align-items:center;justify-content:space-between;gap:.8rem;cursor:pointer;font-weight:650}
+.qc-prompt-library>summary small{color:var(--muted);font-weight:450}
+.qc-prompt-library>.field{margin-block:.7rem}
+.prompt-save-row{display:flex;align-items:flex-end;gap:.7rem;flex-wrap:wrap;margin-block:.8rem}
+.prompt-save-row .field{flex:1;min-width:min(100%,230px)}
+.saved-prompt-list{display:grid;gap:.45rem;margin-top:.7rem;max-height:20rem;overflow:auto}
+.saved-prompt-item{display:flex;align-items:center;justify-content:space-between;gap:.7rem;border:1px solid var(--border);border-radius:10px;padding:.65rem}
+.saved-prompt-item p{margin:.2rem 0 0;color:var(--muted);font-size:.83rem}
+.saved-prompt-item .actions{justify-content:flex-end}
+@media(max-width:560px){.saved-prompt-item{align-items:flex-start;flex-direction:column}.saved-prompt-item .actions{width:100%;justify-content:flex-start}.prompt-save-row .secondary{width:100%}}
 .qc-field{display:grid;gap:6px;margin:10px 0}.qc-field small{font-size:.82rem}
 .qc-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 20px;margin:12px 0}.qc-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;font-weight:600;cursor:pointer}.qc-check input{width:18px;height:18px;accent-color:#5c457c}
 .qc-disclose{padding:10px 14px;border-radius:12px;border:1px dashed #dcc18b;background:#dcc18b1a;font-size:.92rem}

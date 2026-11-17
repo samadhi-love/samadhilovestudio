@@ -269,6 +269,16 @@ body {
 
 .topbar-actions { display: flex; align-items: center; gap: .5rem; }
 .topbar-actions .secondary { padding-inline: .62rem; }
+.workspace-mode-switch { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .76rem; }
+.workspace-mode-switch > button { min-height: 34px; border: 1px solid var(--room-border); border-radius: 999px; padding: .3rem .7rem; color: var(--ink); background: var(--room-tint); font-weight: 650; cursor: pointer; }
+.workspace-mode-switch > button:focus-visible { outline: 2px solid var(--peach); outline-offset: 2px; }
+.screen-context-help { display: inline-flex; align-items: center; gap: .28rem; white-space: nowrap; color: var(--muted); font-size: .72rem; }
+.screen-context-help .help-tip-button { width: 24px; height: 24px; }
+.tour-progress { display: flex; gap: .4rem; margin-block: 1rem; }
+.tour-progress span { width: 1.4rem; height: .3rem; border-radius: 99px; background: var(--border); }
+.tour-progress span[aria-current="step"] { background: var(--peach); }
+.studio-tour .actions { justify-content: flex-end; }
+.studio-tour .actions .text-button { margin-right: auto; }
 .guided-creation { display: grid; gap: 1rem; }
 .guided-creation .guide-banner { margin-bottom: 0; }
 .guide-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CircleHelp, CreditCard, Film, Globe2, Layers3, ListMusic, Megaphone, Menu, Mic, Radio, Settings2, ShieldCheck, Sparkles, X, type LucideIcon } from "lucide-react";
 import { screenHome, screenOf, screenSections, type Screen, type SectionView } from "./studio-routes";
+import { HelpTip } from "./help-tip";
 
 export type WorkspaceView = SectionView;
 
@@ -14,6 +15,37 @@ const sectionLabels: Record<SectionView, string> = {
   songs: "My Songs", workflow: "My Songs · Song steps", releases: "My Songs · Release checklist", distribution: "My Songs · Export & release tools",
   promote: "Promote", radio: "Explore", "lyric-video": "Video",
 };
+const screenGuidance: Record<Screen, { label: string; tip: string }> = {
+  create: { label: "Create", tip: "Start with one song idea. Simple keeps choices light; Custom opens lyrics, language, vocals, prompts and Pro production. Nothing is sent until you press Create." },
+  "world-sounds": { label: "World Sounds", tip: "Browse a sound or rhythm, then choose Use in my song to fill Create. This does not generate music or use credits." },
+  record: { label: "Record", tip: "Choose Voice or Podcast before recording. Your takes stay private; stop recording before switching workspaces." },
+  "mix-edit": { label: "Mix & Edit", tip: "Use these advanced tools to edit saved audio. Keep the original take and compare versions before choosing a result." },
+  songs: { label: "My Songs", tip: "Your saved songs stay private. Listen, reopen a song to edit, make a video, or review its Release checklist." },
+  promote: { label: "Promote", tip: "Prepare artwork or an ad brief here. Review everything before exporting or sharing; nothing is published automatically." },
+  explore: { label: "Explore", tip: "Listen, discover and visit Party Mix. Community sharing and the Listening Room keep their existing access rules." },
+  "plan-credits": { label: "Plan & Credits", tip: "Review membership and usage. Viewing plans does not start billing." },
+  "lyric-video": { label: "Video", tip: "Choose a look for a local preview. Check caption wording and timing before export; a visual preview does not verify singing alignment." },
+};
+
+/** One persistent workspace-level mode control, available from every screen. */
+export function WorkspaceModeSwitch({ beginner, change }: { beginner: boolean; change: (value: boolean) => void }) {
+  return <div className="workspace-mode-switch">
+    <span>View</span>
+    <button type="button" role="switch" data-testid="switch-workspace-mode" aria-checked={!beginner}
+      aria-label={beginner ? "Switch to Advanced view" : "Switch to Simple view"}
+      onClick={() => change(!beginner)}>
+      <span aria-hidden="true">{beginner ? "Simple" : "Advanced"}</span>
+    </button>
+    <HelpTip subject="Simple and Advanced views" tip="Simple is the guided starting point. Advanced opens Pro navigation and deeper controls without changing your songs or settings."/>
+  </div>;
+}
+export function ScreenContextHelp({ screen }: { screen: Screen }) {
+  const guidance = screenGuidance[screen];
+  return <div className="screen-context-help" data-testid={`context-help-${screen}`}>
+    <HelpTip subject={`${guidance.label} screen`} tip={guidance.tip}/>
+    <span>{guidance.label} help</span>
+  </div>;
+}
 /** Kept for breadcrumb/label lookups: every internal subsection with its consolidated label. */
 export const workspaceNavigation = (Object.keys(sectionLabels) as SectionView[]).map(id => ({ id, label: sectionLabels[id] }));
 
@@ -57,7 +89,7 @@ export function StudioNavigation({ activeView, activeScreen, activeUtility, owne
       {mobileOpen ? <X size={18}/> : <Menu size={18}/>}<span>Studio menu</span>
     </button>
     <nav id="studio-workspace-navigation" className="studio-workspace-navigation" aria-label="Workspace">
-      {changeBeginner && <div className="studio-mode-control"><button type="button" role="switch" data-testid="switch-pro-tools" aria-checked={!beginner} aria-label="Show Pro tools" onClick={() => changeBeginner(!beginner)}>Pro tools <span>{beginner ? "Off" : "On"}</span></button><small>{beginner ? "Simple view · start with an idea" : "World Sounds, Mix & Edit and Promote unlocked"}</small></div>}
+      {changeBeginner && <p className="studio-mode-note">{beginner ? "Simple view · start with an idea" : "Advanced view · Pro screens are available below"}</p>}
       <div className="simple-main-navigation">{visible.filter(i => !i.pro).map(entry)}</div>
       {!beginner && <div className="creator-secondary-nav nav-pro-group"><p className="nav-label">PRO TOOLS</p>{visible.filter(i => i.pro).map(entry)}</div>}
       <div className="studio-nav-group nav-help-group" data-active={helpOpen}>

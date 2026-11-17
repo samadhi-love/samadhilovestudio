@@ -14,6 +14,10 @@ The main navigation is **Create, My Songs, Video, Record, Explore**, with **Sett
 
 Choose an optional **Start from a recipe** template, describe the song, choose style chips and press Create. Use **Simple** for the shortest path. **Custom** opens separate lyrics, style, vocals and prompt-helper fold-outs when you want control. Language and singing-arrangement overrides are inside **Custom → Vocals**. The original detailed engine is inside **Custom → Pro production**, not another Create page; it stays mounted when folded away. Saved templates, prompts, lyric versions and drafts remain reusable.
 
+The header keeps a **Simple / Advanced** switch available on every screen; it only changes navigation and visibility, not saved work. Screen-specific help sits beside the page title. The first visit shows a short tour; reopen it later through **Settings & Help → Studio guide → Take the quick tour**. The tour explains the workflow but does not generate a song or use provider credits.
+
+Open **My prompts** in Create to search, reuse, or favorite saved lyrics and music directions. **Save this prompt** works whenever you choose; automatic saving is optional and starts **off**. When enabled, it saves the prompt only after a song is confirmed—not after a failed or abandoned request. A favorite change can be undone from its confirmation notice. These controls preserve existing saved prompt records and keep them private.
+
 Give clear language directions if Auto asks for clarification—for example: “A hopeful 45-second pop song about a fresh start. Sing in English with a warm female lead.” A regional style name alone does not always establish the language to sing. Custom → Vocals lets you choose it explicitly without changing your lyrics.
 
 Singing generation uses **ElevenLabs Music**, not Suno and not an internally trained music model. Your own account and provider permissions are required. The disconnected/sketch path is not equivalent to a finished AI-sung song. Creation must keep its existing confirmation and saving protections; changing screens is not permission to submit a paid request.
@@ -116,6 +120,8 @@ Follow [REPLIT_PRODUCTION.md](REPLIT_PRODUCTION.md) for credential sources, read
 ## Verification and limits
 
 All **23 offline command suites passed**, including the final **41/41 Studio verification groups**. Stage 2 full-workspace typecheck/build passed with PORT and BASE_PATH unset. The built-Node smoke test, six lock/config regressions, two compressed-request security tests and the patched image-adapter encode/decode check passed. Updated creator checks passed 15/15, the guided-screen checks passed 10/10, and the Simple recording/video handoff checks passed 5/5. The generated combined report is `work/studio-verification/latest.json` (generated output, not a setup instruction).
+
+The latest guided-workspace/prompt-history round also checks the persistent mode control, screen help, restartable tour, backward-compatible prompt metadata, prompt search/reuse/favorites, and opt-in autosaving after confirmed creation only. Its offline checks do not make a paid provider call.
 
 Offline checks do not establish actual song quality, genre-appropriate singing, native-speaker dialect accuracy, sung-word alignment accuracy, live durable saving or device-specific video playback. The signed-in browser end-to-end journey remains pending; Stage 2 permits offline/DOM tests only, with no testing-credit-consuming runs.
 

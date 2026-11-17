@@ -18,7 +18,7 @@ export const fields = {
 export type Field = keyof typeof fields;
 export type Version = { id: string; label: string; date: string; text: string };
 export type Mix = { id: string; name: string; notes: string; link: string; audioSongId?: string };
-export type Template = { id: string; name: string; description: string; tags: string[]; notes: Record<Field, string> };
+export type Template = { id: string; name: string; description: string; tags: string[]; notes: Record<Field, string>; favorite?: boolean };
 export const audioTypes = { mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", flac: "audio/flac", ogg: "audio/ogg", opus: "audio/ogg", webm: "audio/webm" } as const;
 export type AudioFormat = keyof typeof audioTypes;
 export const audioAccept = Object.keys(audioTypes).map(format => "." + format).join(",");
@@ -74,7 +74,7 @@ export type CustomPlaylist = { id: string; name: string; tracks: string[] };
 export type Folder = { id: string; name: string };
 export type Station = { skin: keyof typeof playerSkins; queue?: string[]; playlists?: Partial<Record<PlaylistId, string[]>>; customPlaylists?: CustomPlaylist[] };
 export type Voice = { id: string; name: string; description: string };
-export type Studio = { songs: Song[]; templates: Template[]; station?: Station; voices?: Voice[]; folders?: Folder[]; discovery?: Discovery };
+export type Studio = { songs: Song[]; templates: Template[]; station?: Station; voices?: Voice[]; folders?: Folder[]; discovery?: Discovery; autoSavePrompts?: boolean };
 
 export function songAudioUrl(id: string, audioId?: string) {
   const url = `/api/studio/audio?song=${encodeURIComponent(id)}`;

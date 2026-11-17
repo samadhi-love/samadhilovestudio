@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import React, { act, useState } from "react";
 import { JSDOM } from "jsdom";
 import { StudioErrorBoundary } from "../app/studio-error-boundary";
-import { StudioNavigation, SimpleWorkspaceTools, ScreenSections, primaryScreens } from "../app/studio-navigation";
+import { StudioNavigation, SimpleWorkspaceTools, ScreenSections, WorkspaceModeSwitch, primaryScreens } from "../app/studio-navigation";
 import { resolveView, screenHome, screenOf, screenSections, screens, sectionViews } from "../app/studio-routes";
 
 test("every old engine view resolves into the consolidated screen structure", () => {
@@ -61,7 +61,7 @@ test("beginner navigation has five destinations and Pro adds only the three requ
 test("beginner navigation opens mobile menu, routes to a workspace, and restores all tools on request",async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,getComputedStyle:dom.window.getComputedStyle,requestAnimationFrame:(fn:FrameRequestCallback)=>setTimeout(fn,0),cancelAnimationFrame:(id:number)=>clearTimeout(id),IS_REACT_ACT_ENVIRONMENT:true});
  const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);let target="";
- function Screen(){const [simple,setSimple]=useState(true);return <StudioNavigation activeView="vocal-studio" owner={false} beginner={simple} changeBeginner={setSimple} navigate={v=>{target=v;return true;}} settings={()=>{}} guide={()=>{}}/>;}
+  function Screen(){const [simple,setSimple]=useState(true);return <><WorkspaceModeSwitch beginner={simple} change={setSimple}/><StudioNavigation activeView="vocal-studio" owner={false} beginner={simple} changeBeginner={setSimple} navigate={v=>{target=v;return true;}} settings={()=>{}} guide={()=>{}}/></>;}
  dom.window.scrollTo=()=>{};
  try{await act(async()=>root.render(<Screen/>));assert.equal(document.querySelectorAll('.simple-main-navigation button').length,5);assert.equal(document.querySelectorAll('.studio-nav-group').length,1);assert.equal(document.querySelector('.simple-main-navigation .nav-active')!.textContent,"Record");
  const click=async(el:Element)=>act(async()=>{(el as HTMLButtonElement).click();});

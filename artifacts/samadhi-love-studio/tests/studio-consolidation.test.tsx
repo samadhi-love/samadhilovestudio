@@ -3,12 +3,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { act } from "react";
 import { JSDOM } from "jsdom";
-import { StudioNavigation, ScreenSections } from "../app/studio-navigation";
+import { ScreenContextHelp, StudioNavigation, ScreenSections, WorkspaceModeSwitch } from "../app/studio-navigation";
+import { StudioQuickTour } from "../app/studio-tour";
 import { QuickCreate } from "../app/quick-create";
 import { RadioSourceSwitch, RecordSwitch, SongSteps } from "../app/studio-screens";
 import { VibeLookPicker, featuredVibes, activeVibe } from "../app/vibe-look-picker";
 import type { LyricProject } from "../app/lyric-video-data";
 import { freshSong, type Template } from "../app/studio-data";
+import { isStudio } from "../app/studio-validation";
 import { legacyPageRedirect, resolveLocation, resolveView, screenOf, studioUrl } from "../app/studio-routes";
 
 const legacy: Record<string, [string, string]> = {
@@ -99,7 +101,31 @@ async function mount(node: React.ReactNode) {
   await act(async () => h.root.render(node));
   return { div: document.getElementById("root")!, unmount: () => act(() => h.root.unmount()) };
 }
+test("the workspace mode switch is available independently of screen and the quick tour is skippable",async()=>{
+  let nextMode:boolean|undefined,finished=0;
+  const mode=await mount(<WorkspaceModeSwitch beginner change={value=>{nextMode=value;}}/>);
+  const toggle=mode.div.querySelector('[data-testid="switch-workspace-mode"]') as HTMLButtonElement;
+  assert.equal(toggle.getAttribute("aria-checked"),"false");
+  await act(async()=>toggle.click());
+  assert.equal(nextMode,false);
+  await act(async()=>mode.unmount());
+  const help=await mount(<ScreenContextHelp screen="create"/>);
+  assert.ok(help.div.textContent!.includes("Create help"));
+  assert.ok(help.div.querySelector('[aria-label*="Create screen"]'));
+  await act(async()=>help.unmount());
+  const tour=await mount(<StudioQuickTour onDone={()=>{finished++;}}/>);
+  assert.ok(tour.div.textContent!.includes("1 OF 3"));
+  await act(async()=>tour.div.querySelector<HTMLButtonElement>('[data-testid="button-skip-tour"]')!.click());
+  assert.equal(finished,1);
+  await act(async()=>tour.unmount());
+});
 const recipe: Template = { id: "r-1", name: "Desert Dawn", description: "Warm oud groove", tags: ["Arabic Pop"], notes: { lyrics: "[Verse]\nSun on the sand", prompt: "Hopeful sunrise", vocals: "warm female", instruments: "oud", cover: "", video: "", promotion: "" } };
+test("prompt autosave and favorites are optional, backward-compatible account data",()=>{
+  assert.ok(isStudio({songs:[],templates:[recipe]}));
+  assert.ok(isStudio({songs:[],templates:[{...recipe,favorite:true}],autoSavePrompts:true}));
+  assert.equal(isStudio({songs:[],templates:[{...recipe,favorite:"yes" as unknown as boolean}]}),false);
+  assert.equal(isStudio({songs:[],templates:[recipe],autoSavePrompts:"yes" as unknown as boolean}),false);
+});
 const qcBase = { connected: false, saving: false, drafts: [], settings() {}, guided() {}, openDrafts() {}, generateSong: async () => undefined, saveSketch: async () => undefined };
 
 test("Create: recipe picker on top, Custom fold-outs for helpers and vocals, no Logo Creator, seed prefills without submitting", async () => {
