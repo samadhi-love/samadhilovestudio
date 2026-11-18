@@ -125,6 +125,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   },!!photo||ownLyrics&&!!lyrics.trim()||mapEnabled||!!idea.trim()||!!pendingTake||melodyTakes.length>0||adMode&&!!(adBrief.brand||adBrief.benefit||adBrief.cta));
   const [proOpen,setProOpen]=useState(seed?.panel==="pro");
   const [promptSearch,setPromptSearch]=useState(""),[favoritePromptsOnly,setFavoritePromptsOnly]=useState(false),[promptName,setPromptName]=useState("");
+  const [listenReference,setListenReference]=useState("");
   const [openPanel,setOpenPanel]=useState(seed?.panel??""),[panelKey,setPanelKey]=useState(0),[recipeId,setRecipeId]=useState("");
   function applySeed(next:QuickSeed){
     const content=!!(next.idea||next.lyrics||next.styles?.length||next.vocal||next.instruments||next.ad);
@@ -442,6 +443,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
             <div className="saved-prompt-list" data-testid="saved-prompt-list">
               {promptLibraryItems.map(prompt=><article className="saved-prompt-item" key={prompt.id} data-testid={`saved-prompt-${prompt.id}`}>
                 <div><strong>{prompt.name}</strong><p>{readStyleDNA(prompt)?"Sound + song map · ":""}{prompt.tags.join(" · ")||prompt.description}{prompt.notes.lyrics.trim()||prompt.notes.prompt.trim()?" · with words":""}</p></div>
+                {readSavedShape(prompt)?.voiceReferenceId&&<div className="saved-voice-reference"><p className="muted">Voice description plus a private reference clip, for your ears only. Using this sound applies the written description; the clip is never sent to a music provider and is not a voice clone.</p>{listenReference===prompt.id?<AudioPlayer src={`/api/studio/song-actions?voice=${encodeURIComponent(readSavedShape(prompt)!.voiceReferenceId!)}`} label={`Private voice reference for ${prompt.name}`}/>:<button type="button" className="text-button" data-testid={`button-listen-reference-${prompt.id}`} onClick={()=>setListenReference(prompt.id)}>Listen to reference</button>}</div>}
                 <div className="actions">
                   <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>useSavedPrompt(prompt)}>Use</button>
                   {favoritePrompt&&<button type="button" className="text-button" data-testid={`button-favorite-saved-prompt-${prompt.id}`} aria-pressed={!!prompt.favorite} aria-label={prompt.favorite?"Favorited":"Favorite"} disabled={busy}

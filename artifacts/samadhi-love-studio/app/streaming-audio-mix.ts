@@ -1,8 +1,9 @@
 import {assemblyDuration,assemblyGain,planAudioAssembly,protectMixPeak,type AssemblyClip} from "./audio-assembly";
+import {songEndFadeGain} from "./song-region-actions";
 export type MixSource={id:string;url?:string;blob?:Blob};
 export type AssemblyResult={blob:Blob;seconds:number;sampleRate:number;codec:string;plan:ReturnType<typeof planAudioAssembly>};
 /** One second of output PCM and at most two active decoders; no full-party PCM allocation. */
-export async function renderStreamingMix(sources:MixSource[],options:{clips?:AssemblyClip[];fade:number;limit:number;repeat?:boolean;bitrate?:96000|128000|192000;metadata?:{title?:string;comment?:string};inheritCredits?:boolean;signal:AbortSignal;progress:(fraction:number,message:string)=>void}):Promise<AssemblyResult>{
+export async function renderStreamingMix(sources:MixSource[],options:{clips?:AssemblyClip[];fade:number;fadeOut?:number;limit:number;repeat?:boolean;bitrate?:96000|128000|192000;metadata?:{title?:string;comment?:string};inheritCredits?:boolean;signal:AbortSignal;progress:(fraction:number,message:string)=>void}):Promise<AssemblyResult>{
  const media=await import("mediabunny"),task=options.signal;task.throwIfAborted();
  if(!sources.length||sources.length>96)throw new Error("Choose 1–96 authorized source tracks.");
  const sourceMap=new Map(sources.map(s=>[s.id,s])),live=new Set<InstanceType<typeof media.Input>>();
@@ -17,6 +18,7 @@ export async function renderStreamingMix(sources:MixSource[],options:{clips?:Ass
   if(clips.some(c=>!sourceMap.has(c.id)||c.to>(durations.get(c.id)??0)+.001))throw new Error("A selected section is outside its source recording.");
   if(options.repeat){const seed=clips,cycle=assemblyDuration(planAudioAssembly(seed,options.fade,7200));if(cycle<.1)throw new Error("These clips are too short to repeat.");clips=Array.from({length:Math.min(2000,Math.ceil(options.limit/Math.max(.1,cycle-options.fade))+1)},()=>seed).flat().slice(0,2000);}
   const plan=planAudioAssembly(clips,options.fade,options.limit),seconds=assemblyDuration(plan),rate=44100,total=Math.ceil(seconds*rate);
+  if(options.fadeOut!==undefined&&(!Number.isFinite(options.fadeOut)||options.fadeOut<0||options.fadeOut>seconds))throw new Error("Choose an ending fade inside the song.");
   if(!total)throw new Error("The selected file has no playable audio.");
   if(!await media.canEncodeAudio("mp3")){const{registerMp3Encoder}=await import("@mediabunny/mp3-encoder");registerMp3Encoder();}
   const parts:Blob[]=[];let bytes=0;
@@ -31,7 +33,7 @@ export async function renderStreamingMix(sources:MixSource[],options:{clips?:Ass
     for(let i=from;i<until;i++){const time=start+i/rate,sourceTime=r.first+p.from+time-p.start;while(!r.done&&(!r.part||r.part.timestamp+r.part.buffer.duration<=sourceTime)){const next=await r.iterator.next();r.done=!!next.done;r.part=next.value;}const part=r.part;if(!part||sourceTime<part.timestamp||sourceTime>=part.timestamp+part.buffer.duration)continue;const b=part.buffer,x=(sourceTime-part.timestamp)*b.sampleRate,at=Math.floor(x),fraction=x-at,a=b.getChannelData(0),c=b.getChannelData(Math.min(1,b.numberOfChannels-1)),next=Math.min(at+1,a.length-1),gain=assemblyGain(p,time);left[i]+=((a[at]??0)*(1-fraction)+(a[next]??0)*fraction)*gain;right[i]+=((c[at]??0)*(1-fraction)+(c[next]??0)*fraction)*gain;}
    }
    for(const[index,r]of readers)if(plan[index].start+plan[index].duration<=end+.00001){await r.iterator.return(undefined);close(r.input);readers.delete(index);}
-   const pcm=new Float32Array(count*2);for(let i=0;i<count;i++){const edge=Math.min(1,(offset+i)/(rate*.025),(total-offset-i)/(rate*.025));pcm[i]=protectMixPeak(left[i])*edge;pcm[count+i]=protectMixPeak(right[i])*edge;}
+   const pcm=new Float32Array(count*2);for(let i=0;i<count;i++){const edge=Math.min(1,(offset+i)/(rate*.025),(total-offset-i)/(rate*.025))*songEndFadeGain((offset+i)/rate,seconds,options.fadeOut);pcm[i]=protectMixPeak(left[i])*edge;pcm[count+i]=protectMixPeak(right[i])*edge;}
    const sample=new media.AudioSample({data:pcm,format:"f32-planar",numberOfChannels:2,sampleRate:rate,timestamp:offset/rate});try{await encoded.add(sample);}finally{sample.close();}
    options.progress(.05+.94*(offset+count)/total,`Blending ${Math.floor(end/60)}:${String(Math.floor(end%60)).padStart(2,"0")} of ${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,"0")}`);await new Promise<void>(resolve=>setTimeout(resolve,0));
   }

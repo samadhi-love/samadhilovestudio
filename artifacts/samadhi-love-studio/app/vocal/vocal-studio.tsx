@@ -11,6 +11,7 @@ import { assertAudioBudget, recordedPlacement } from "../audio-resource";
 import { projectRoot } from "../project-assets";
 import { AudioMeasurements } from "../audio-measurements-panel";
 import { MyVoicePicker } from "../my-voice-picker";
+import { LayerOverSong } from "../layer-over-song";
 import { myVoiceUrl, detectVoiceMime } from "../my-voice-data";
 import { Capture } from "./capture";
 import { EffectsPanel } from "./effects-panel";
@@ -28,6 +29,8 @@ type Props = {
   sendMix: (blob: Blob, title: string, projectId?: string) => void;
   input: { blob: Blob; title: string; role: Role; projectId?: string } | null;
   openSong: (id: string, step: "production" | "lyrics" | "video" | "release") => void;
+  /** Opens Mix & Edit with this original take and the chosen song as two tracks. */
+  layerOverSong?: (blob: Blob, title: string, songId: string) => void;
 };
 
 type AudioSource = { buffer: AudioBuffer; blob: Blob; peaks: number[] };
@@ -52,7 +55,7 @@ export function Wave({ peaks, label }: { peaks: number[]; label: string }) {
   </svg>;
 }
 
-export function VocalStudio({ active, songs, projects = songs, initialSongId, onCapture, saving, publish, sendMix, openSong, input }: Props) {
+export function VocalStudio({ active, songs, projects = songs, initialSongId, onCapture, saving, publish, sendMix, openSong, input, layerOverSong }: Props) {
   const [session, setSession] = useState<Session>(() => emptySession());
   const [past, setPast] = useState<Session[]>([]);
   const [future, setFuture] = useState<Session[]>([]);
@@ -354,6 +357,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
         })}>Save original to My Voice</button>
         {!saved&&<p className="muted">Save this vocal session to your account first; then save the original voice.</p>}{voiceStatus&&<p role="status">{voiceStatus}</p>}
       </section>}
+      {selected && layerOverSong && <LayerOverSong key={selected.source} blob={original.current.get(selected.source)?.blob} title={selected.name} songs={songs} disabled={settingsDisabled} initialSongId={session.projectSongId} layer={layerOverSong}/>}
       {selected && <Wave peaks={original.current.get(selected.source)?.peaks ?? []} label={selected.name + " waveform"}/>}
       {active && !capturing && sourceUrl && <AudioPlayer key={sourceUrl} src={sourceUrl} label="Original take playback"/>}
       {rejectedTake && !busy && <div className="actions">

@@ -85,7 +85,7 @@ async function putWorkspace(request: Request) {
     for(const song of data.songs){
       const old=previousSongs.get(song.id);
       if(song.deletedAt&&!old?.deletedAt&&request.headers.get("X-Studio-Deletion-Policy")!=="14-days-v1")
-        return Response.json({error:"The deletion policy has changed. Reload the Studio to review the 14-day recovery notice before deleting this song."},{status:409,...options});
+        return Response.json({error:"The deletion policy has changed. Reload the Studio to review the 30-day recovery notice before deleting this song."},{status:409,...options});
       if(song.deletedAt&&!old?.deletedAt&&data.songs.some(other=>!other.deletedAt&&songDependsOn(other,song)))
         return Response.json({error:"Another song uses this recording, mix or video source. Choose a replacement in that song before deleting this one."},{status:409,...options});
       if(!old&&env.DB&&await env.DB.prepare("select song_id from song_deletion_jobs where owner = ? and song_id = ?").bind(id,song.id).first())

@@ -18,7 +18,9 @@ import {productionFetch} from "./credits/client";
 import { sameGenre, uniqueGenreNames } from "./music-genres";
 import { GenrePicker } from "./genre-picker";
 import {SongCard,SongHubProvider,type SongAction} from "./song-card";
-import {duplicateSongDetails,sortSongs,type SongSort} from "./song-library";
+import {sortSongs,type SongSort} from "./song-library";
+import {SaveVoiceReference} from "./save-voice-reference";
+import type {RegionOperation} from "./song-region-actions";
 
 import { pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
@@ -101,6 +103,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const elevenLabs = useElevenLabsKey();
   const musicEngine=useMusicEngine(workspaceId);
   const [saving, setSaving] = useState(false);
+  const duplicateIntents=useRef(new Map<string,string>());
   const [creating,setCreating]=useState(false);
   const [releaseBusy,setReleaseBusy]=useState(false),[releaseLoaded,setReleaseLoaded]=useState(false),[releaseMap,setReleaseMap]=useState<Record<string,{status:string;releaseId?:string}>>({});
   const releaseRequest=useRef(0);
@@ -130,7 +133,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [vocalOpened, setVocalOpened] = useState(false);
   const [mixOpened, setMixOpened] = useState(false);
   const [workflowSong, setWorkflowSong] = useState("");
-  const [mixInput, setMixInput] = useState<{ blob: Blob; title: string; projectId?: string; kind?: "stems" } | null>(null);
+  const [mixInput, setMixInput] = useState<{ blob: Blob; title: string; projectId?: string; baseSongId?:string; kind?: "stems" } | null>(null);
   const captureActive = useRef(false);
   const [capturing, setCapturing] = useState(false);
   const [selected, setSelected] = useState("");
@@ -149,11 +152,11 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [autoCaptionRequest, setAutoCaptionRequest] = useState<{ songId: string; id: string } | null>(null);
   const [coverBusy,setCoverBusy]=useState(false);
   const [coverSongId,setCoverSongId]=useState("");
-  const [sectionInitialAction,setSectionInitialAction]=useState<"remove"|"replace"|"insert"|"trim">("remove");
+  const [sectionInitialAction,setSectionInitialAction]=useState<RegionOperation>("remove");
   const [coverVideoRequest,setCoverVideoRequest]=useState<{id:string;songId:string;asset:string;overlay:OverlayStyle}|null>(null);
   const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;audioId?:string;start?:number;seconds?:number}|null>(null);
   const [lyricSongId, setLyricSongId] = useState("");
-  const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "tour" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | null>(null);
+  const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "tour" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | "save-voice" | null>(null);
   const [undoPromptFavorite,setUndoPromptFavorite]=useState<{id:string;favorite?:boolean}|null>(null);
   const modalBusy = modal === "cover"||modal === "logo"||modal === "sections"||modal === "stems-midi"?coverBusy||saving:modal === "connections" ? elevenLabs.busy : saving;
   const [uploadForVideo, setUploadForVideo] = useState(false);
@@ -297,9 +300,19 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   }
   async function archiveSong(song:Song){
     if(!confirm(`Delete “${song.name}”? ${deletionNotice} Any Community release will be unlisted. Download anything you want to keep before deleting.`))return false;
-    const saved=await saveSong({...song,deletedAt:new Date().toISOString()},"Song deleted · recoverable for 14 days");if(saved&&songPreview===song.id)setSongPreview("");return saved;
+    const saved=await saveSong({...song,deletedAt:new Date().toISOString()},"Song deleted · recoverable for 30 days");if(saved&&songPreview===song.id)setSongPreview("");return saved;
   }
-  async function duplicateSong(song:Song){const copy=duplicateSongDetails(song,uid());return commit({...data,songs:[copy,...data.songs]},"Writing project copied to Your songs");}
+  async function duplicateSong(song:Song){
+    if(saving)return false;setSaving(true);setError("");
+    const copyId=duplicateIntents.current.get(song.id)??uid();duplicateIntents.current.set(song.id,copyId);
+    try{
+      const response=await fetch("/api/studio/song-actions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"duplicate",songId:song.id,id:copyId})});
+      const result=await response.json() as {error?:string};
+      if(!response.ok)throw new Error(result.error??"The copy could not be confirmed. Your original is safe.");
+      await load();duplicateIntents.current.delete(song.id);setToast("Audio, words and matching captions copied privately. Artwork, exported videos and hum takes stay with the original.");return true;
+    }catch(error){setError(error instanceof Error?error.message:"The copy could not save.");return false;}
+    finally{setSaving(false);}
+  }
   async function publishSong(song:Song){if(song.creationDraft&&!await saveSong({...song,creationDraft:false},"Recording ready for release review"))return;if(navigate("songs"))openSong(song.id,"Release");}
   async function unlistSong(song:Song){
     if(!confirm(`Unlist “${song.name}” from Community? Your private song and its originals remain saved.`))return false;
@@ -342,6 +355,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setModal(null);
   }
   function songAction(action:SongAction,song:Song){
+    if(action==="save-voice"){setCoverSongId(song.id);setModal("save-voice");return;}
     if(action==="sections"){setCoverSongId(song.id);setSectionInitialAction("remove");setModal("sections");return;}
     if(action==="extend"||action==="redo-part"){setCoverSongId(song.id);setSectionInitialAction(action==="extend"?"insert":"replace");setModal("sections");return;}
     if(action==="stems-midi"){setCoverSongId(song.id);setModal(action);return;}
@@ -540,7 +554,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setModal(null);
     setFirstSongRequest(true);
   }
-  const modalTitle = modal === "tour"?"Quick tour":modal === "sections"?"Edit audio · crop, cut & join":modal === "stems-midi"?"Stems & MIDI":modal === "logo"?"Logo Creator":modal === "cover"?"Create / animate cover":modal === "connections" ? "Settings" : modal === "new" ? "Start a song" : modal === "upload" ? (uploadTarget ? (uploadTarget.audioFormat ? "Replace audio" : "Attach audio") : "Upload song") : modal === "help" ? "Studio guide" : "Song template";
+  const modalTitle = modal === "save-voice"?"Save Voice":modal === "tour"?"Quick tour":modal === "sections"?"Shape · edit your song":modal === "stems-midi"?"Stems & MIDI":modal === "logo"?"Logo Creator":modal === "cover"?"Create / animate cover":modal === "connections" ? "Settings" : modal === "new" ? "Start a song" : modal === "upload" ? (uploadTarget ? (uploadTarget.audioFormat ? "Replace audio" : "Attach audio") : "Upload song") : modal === "help" ? "Studio guide" : "Song template";
   const song = data.songs.find(s => s.id === selected && !s.deletedAt);
   const library = sortSongs(data.songs.filter(s => !s.deletedAt&&(!["account-writing-simple","account-writing-custom"].includes(s.id)||!!s.audioFormat)));
   const cleanLibrary = library.filter(song => !isExplicitSong(song));
@@ -554,7 +568,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const activeSong = cleanLibrary.find(s => s.stage === "Production") ?? cleanLibrary[0];
   const comparison = data.songs.find(s => s.id === compareSong && !s.deletedAt && !isExplicitSong(s)) ?? cleanLibrary.find(s => s.mixes.length >= 2) ?? cleanLibrary[0];
 
-  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
+  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{engine:musicEngine.status.engine,simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
     <div className="cosmic-shell-sky" aria-hidden="true"><i/><i/><i/></div>
     <aside className="sidebar">
       <button className="brand cosmic-brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>VERSUAL STUDIO</strong><small>{brand.subline}</small></span></button>
@@ -583,6 +597,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         {loaded && !song && !pane && screenOf(view)==="record" && <RecordSwitch view={view} beginner={beginner} capturing={capturing} navigate={navigate}/>}
         {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
           mixTake={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
+          layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           vocalTake={(blob, title, narration, projectId) => { if (navigate("vocal-studio")) setVocalInput({ blob, title, projectId, role: narration ? "Narration" : "Lead vocal" }); }}
           saving={saving} onCapture={active => { captureActive.current = active; setCapturing(active); }}
           save={async (file, title, target, projectId, saveId) => {
@@ -598,6 +613,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           onCapture={active => { captureActive.current = active; setCapturing(active); }}
           publish={async (file, title, projectId, sessionId) => (await sendAudio(file, title, null, undefined, projectId, sessionId))?.songId}
           sendMix={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
+          layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           openSong={(id, step) => {
             const target = data.songs.find(s => s.id === id);
             if (target) openWorkflow(step === "production" ? "edit" : step, target);
@@ -606,7 +622,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         <PanelErrorBoundary resetKey={pane??(song?"songs":screenOf(view))} panel={pane??(song?"songs":screenOf(view))}>
         {pane ? null : !loaded ? <div className="empty">{error ? "Your studio is temporarily unavailable." : "Opening your studio…"}</div> : song ?
           <SongEditor key={song.id} release={<section className="panel form-panel song-release-step" data-testid="section-song-release"><h2>Export & release tools</h2><ReleaseTools initialSongId={song.id} songs={cleanLibrary} saving={saving} save={saveSong}/><h2>Artist publishing</h2><p className="muted">Nothing is published until you confirm it here.</p>{song.creationDraft?<p className="muted">Move this creation to Your songs before publishing.</p>:<ArtistConsole key={song.id} studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName} selectedRecording={song.id}/>}</section>} songs={data.songs} saveProject={saveSong} openRelated={id => { if (navigate("songs")) openSong(id); }} song={song} tab={tab} setTab={setTab} saving={saving} remix={() => remix(song)} stemsConnected={elevenLabs.connected} mixStems={archive=>{ if(navigate("multitrack")) setMixInput({blob:archive,title:song.name+" stems",projectId:projectRoot(data.songs,song).id,kind:"stems"}); }} vocalStudio={() => { if (navigate("vocal-studio")) setWorkflowSong(song.id); }} folders={folders} save={saveSong} copy={copy} back={() => navigate(song.creationDraft ? "create" : "songs", song.creationDraft)} template={editTemplate} onDirty={dirty => { hasDraft.current = dirty; }} attach={() => openUpload(song)} lyricVideo={() => { setLyricSongId(song.id); navigate("lyric-video"); }}
-            remove={async value => { if (await saveSong({ ...(value??song), deletedAt: new Date().toISOString() }, "Song deleted · recoverable for 14 days")) { hasDraft.current = false; navigate("songs"); } }}/>
+            remove={async value => { if (await saveSong({ ...(value??song), deletedAt: new Date().toISOString() }, "Song deleted · recoverable for 30 days")) { hasDraft.current = false; navigate("songs"); } }}/>
         : view === "meditative-vibes" ? <MeditativeVibes workspaceId={workspaceId} saving={saving} projects={cleanLibrary.filter(s => !s.projectId && !s.example)}
           dirty={active => { hasDraft.current = active; }} persistBusy={active => { pendingSave.current = active; setSaving(active); }}
           saveAudio={async (file, title, projectId) => !!(await sendAudio(file, title, null, undefined, projectId))}
@@ -742,7 +758,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       <PanelErrorBoundary key={modal} panel={modal==="connections"?"settings":"tools"}>
       {modal==="connections"&&<MusicEngineSettings access={musicEngine} advanced={!beginner}/>}
       {error && modal !== "connections" && <div className="notice" role="alert">{error}</div>}
-      {modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}} initialAction={sectionInitialAction}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
+      {modal==="save-voice"&&data.songs.find(s=>s.id===coverSongId)?<SaveVoiceReference key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} working={setCoverBusy} saved={async()=>{await load();setToast("Vocal idea saved privately in Your Sounds. The clip is a reference, not a clone.");setModal(null);}}/>:
+      modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} engine={musicEngine.status.engine} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}} initialAction={sectionInitialAction}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
         <fieldset disabled={saving}>
           <HelpField label="Audio file" tip="Choose a clean recording such as an MP3, WAV, or M4A. The file limit is 96 MB."><input name="audio" type="file" accept={audioAccept} aria-describedby="audio-formats" required autoFocus/></HelpField>
           <p className="muted upload-note" id="audio-formats">{audioFormatsLabel} up to 96 MB. Your audio is saved in your private workspace.</p>

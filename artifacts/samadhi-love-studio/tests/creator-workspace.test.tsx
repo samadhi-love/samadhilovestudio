@@ -92,7 +92,8 @@ test("My Songs exposes non-destructive next steps and plays a private melody ref
  const saved={...freshSong("song-next","A saved song",0),audioId:"audio-original",audioFormat:"mp3" as const,melodyReference:{assetId:"asset-reference",contentType:"audio/webm",durationSeconds:12,savedAt:"2026-01-01T00:00:00.000Z"},melodyReferences:[{assetId:"asset-reference-2",contentType:"audio/webm",durationSeconds:120,savedAt:"2026-01-01T00:00:00.000Z"},{assetId:"asset-reference-3",contentType:"audio/webm",durationSeconds:300,savedAt:"2026-01-01T00:00:00.000Z"}]};
  try{
   await act(async()=>h.root.render(<SongHubProvider value={value}><SongCard song={saved}/></SongHubProvider>));
-  for(const label of ["Make it longer","Redo a part","Make another like this","Make a Short"])await act(async()=>h.button(label).click());
+  for(const label of ["Keep Going","Redo a Part"]){await act(async()=>(document.querySelector('[aria-label="Song actions for A saved song"]') as HTMLButtonElement).click());await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(b=>b.textContent===label)!.click());}
+  for(const label of ["Make another like this","Make a Short"])await act(async()=>h.button(label).click());
   assert.deepEqual(actions,["extend","redo-part","make-like-this","short-video"]);
   const audio=document.querySelector<HTMLAudioElement>('[data-testid="melody-reference-player"]')!;
   assert.match(audio.src,/song=song-next.*asset=asset-reference/);

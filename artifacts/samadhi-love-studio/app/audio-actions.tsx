@@ -6,7 +6,8 @@ import { isExplicitSong } from "./clean-content";
 import { AudioFormatDownload } from "./audio-format-download";
 import { audioTypes, songAudioUrl, type Song } from "./studio-data";
 
-export function AudioActions({ song }: { song: Song }) {
+/** mode "all" keeps legacy callers unchanged; Your Songs uses separate Download and Share homes. */
+export function AudioActions({ song, mode = "all" }: { song: Song; mode?: "all" | "download" | "share" }) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   if (!song.audioFormat || isExplicitSong(song)) return null;
@@ -32,10 +33,11 @@ export function AudioActions({ song }: { song: Song }) {
   }
   return <>
     <div className="actions">
-      <a className="secondary small" href={url} download={filename}><Download size={15}/> Download audio</a>
-      <button type="button" className="secondary small" disabled={busy} onClick={share}><Share2 size={15}/> Share audio</button>
+      {mode !== "share" && <a className="secondary small" href={url} download={filename}><Download size={15}/> {mode === "download" ? "Original " + format.toUpperCase() : "Download audio"}</a>}
+      {mode !== "download" && <button type="button" className="secondary small" disabled={busy} onClick={share}><Share2 size={15}/> {mode === "share" ? "Send the audio file from this device" : "Share audio"}</button>}
     </div>
-    <AudioFormatDownload key={song.audioId ?? song.id} url={url} title={song.name} sourceKey={song.id + ":" + (song.audioId ?? "original")}/>
+    {mode === "download" && <p className="muted">Convert to MP3 or WAV below. Conversions are new files; your original stays as it is.</p>}
+    {mode !== "share" && <AudioFormatDownload key={song.audioId ?? song.id} url={url} title={song.name} sourceKey={song.id + ":" + (song.audioId ?? "original")}/>}
     {status && <p className="muted" role="status">{status}</p>}
   </>;
 }

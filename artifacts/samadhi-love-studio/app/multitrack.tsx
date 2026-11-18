@@ -17,7 +17,7 @@ import { maxMixSeconds, maxMixTracks, renderMix, type MixTrack } from "./multitr
 import { sampleRate, waveform } from "./recording-dsp";
 import { audioAccept, maxAudioBytes, songAudioUrl, type Song } from "./studio-data";
 
-type Input = { blob: Blob; title: string; projectId?: string; kind?: "stems" };
+type Input = { blob: Blob; title: string; projectId?: string; kind?: "stems"; baseSongId?: string };
 type Props = {
   active: boolean; songs: Song[]; input: Input | null; initialSongId: string; saving: boolean;
   save: (file: File, title: string, projectId?: string) => Promise<boolean>;
@@ -32,6 +32,28 @@ const controls = [
   ["reverb", "Reverb", 0, 1, .05, "Add the sound of space around this track, like a room or hall."],
   ["echo", "Delay amount", 0, 0.75, .05, "Blend in a delayed repeat at 280 milliseconds. Zero turns it off."],
 ] as const;
+
+/** Decodes without touching the session; nothing is committed here. */
+async function prepareTracks(items: { blob: Blob; name: string }[]): Promise<MixTrack[]> {
+  const context = new AudioContext({ sampleRate });
+  try {
+    const out: MixTrack[] = [];
+    for (const { blob, name } of items) {
+      if (!blob.size || blob.size > maxAudioBytes) throw new Error("Choose an audio file up to 96 MB.");
+      const buffer = await context.decodeAudioData(await blob.arrayBuffer()).catch(() => { throw new Error("This browser could not decode the track. Try MP3 or PCM WAV."); });
+      if (!buffer.duration || buffer.duration > 480) throw new Error("Choose a source recording up to eight minutes long.");
+      out.push({ id: crypto.randomUUID(), name: name.trim().slice(0, 100) || "Audio track", sourceBlob: blob, buffer, peaks: waveform(buffer.getChannelData(0), 80),
+        start: 0, end: Math.min(buffer.duration, maxMixSeconds), at: 0, level: 1, pan: 0, lowCut: 15, presence: 0, reverb: 0, echo: 0, compression: false, mute: false, solo: false });
+    }
+    return out;
+  } finally { await context.close(); }
+}
+/** Throws if open tracks plus every incoming layer exceed the decoded-memory budget or track limit. */
+export function assertLayerBudget(existing: { buffer: Pick<AudioBuffer, "length" | "numberOfChannels"> }[], incoming: { buffer: Pick<AudioBuffer, "length" | "numberOfChannels"> }[]) {
+  if (existing.length + incoming.length > maxMixTracks) throw new Error("Remove a track to make room for the song and this take. Nothing was replaced.");
+  const all = [...existing, ...incoming].map(t => t.buffer), last = all.pop();
+  try { assertAudioBudget(all, last); } catch (error) { throw new Error((error as Error).message + " Your current mix is unchanged."); }
+}
 
 export function Multitrack({ active, songs, input, initialSongId, saving, save, openLyrics }: Props) {
   const [stemArchive,setStemArchive]=useState<Blob>();
@@ -53,6 +75,8 @@ export function Multitrack({ active, songs, input, initialSongId, saving, save, 
   const [error, setError] = useState("");
   const seenInput = useRef<Input | null>(null);
   const pending = useRef(false);
+  /** Song audio already loaded for layering; keyed so repeat requests never add a second copy. */
+  const layeredSongs = useRef(new Map<string, string>());
   const area=useRef<HTMLDivElement>(null);
   useEffect(()=>{if(!active)area.current?.querySelectorAll("audio").forEach(audio=>{if(!audio.paused)audio.pause();});},[active]);
   const recordings = songs.filter(song => song.audioFormat);
@@ -63,23 +87,11 @@ export function Multitrack({ active, songs, input, initialSongId, saving, save, 
     catch (error) { setError(error instanceof Error ? error.message : "Audio processing failed."); }
     finally { pending.current = false; setBusy(false); }
   }
-  async function add(blob: Blob, name: string) {
+  async function add(blob: Blob, name: string): Promise<void> {
     if (tracks.length >= maxMixTracks) throw new Error("Remove a track to make room for this take.");
-    if (!blob.size || blob.size > maxAudioBytes) throw new Error("Choose an audio file up to 96 MB.");
-    const context = new AudioContext({ sampleRate });
-    try {
-      const buffer = await context.decodeAudioData(await blob.arrayBuffer()).catch(() => {
-        throw new Error("This browser could not decode the track. Try MP3 or PCM WAV.");
-      });
-      if (!buffer.duration || buffer.duration > 480) throw new Error("Choose a source recording up to eight minutes long.");
-      assertAudioBudget(tracks.map(t => t.buffer), buffer);
-      const track = {
-        id: crypto.randomUUID(), name: name.trim().slice(0,100) || "Audio track", sourceBlob: blob, buffer, peaks: waveform(buffer.getChannelData(0), 80),
-        start: 0, end: Math.min(buffer.duration, maxMixSeconds), at: 0, level: 1, pan: 0,
-        lowCut: 15, presence: 0, reverb: 0, echo: 0, compression: false, mute: false, solo: false,
-      };
-      setTracks(current => [...current, track]); setOutput(null);
-    } finally { await context.close(); }
+    const [track] = await prepareTracks([{ blob, name }]);
+    assertAudioBudget(tracks.map(t => t.buffer), track.buffer);
+    setTracks(current => [...current, track]); setOutput(null);
   }
   const recovery = useDraftRecovery("multitrack", { title, songId, projectId, sessionId, audiovisual, revision: revision.current, tracks: tracks.map(({ buffer, peaks, ...track }) => track) }, async value => {
     if (!Array.isArray(value.tracks) || value.tracks.length > maxMixTracks) throw new Error("Invalid mixer recovery.");
@@ -100,13 +112,40 @@ export function Multitrack({ active, songs, input, initialSongId, saving, save, 
     if (!input || input === seenInput.current || busy) return;
     seenInput.current = input;
     if (input.projectId) setProjectId(input.projectId);
-    if(input.kind==="stems")setStemArchive(input.blob);else void run(() => add(input.blob, input.title));
+    if(input.kind==="stems")setStemArchive(input.blob);
+    else if(input.baseSongId)void run(() => layer(input.blob, input.title, input.baseSongId!));
+    else void run(() => add(input.blob, input.title));
     // A take is consumed once, when the mixer is ready to decode it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, busy]);
   useEffect(() => {
     if (output) return () => URL.revokeObjectURL(output.url);
   }, [output]);
+  async function layer(blob: Blob, name: string, baseSongId: string) {
+    const base = songs.find(item => item.id === baseSongId && item.audioFormat);
+    if (!base) throw new Error("That song is not available to layer over. Your take is still saved in Record.");
+    const key = base.id + ":" + (base.audioId ?? "original");
+    const already = layeredSongs.current.get(key), baseLoaded = !!already && tracks.some(track => track.id === already);
+    const needed = (baseLoaded ? 0 : 1) + 1;
+    if (tracks.length + needed > maxMixTracks) throw new Error("Remove a track to make room for the song and this take. Nothing was replaced.");
+    if (tracks.length && !baseLoaded && !confirm(`Add “${base.name}” and “${name}” as new tracks to the mix that is already open? Choose Cancel to keep this mix exactly as it is.`)) {
+      setCloudStatus("Your current mix was kept unchanged. The take is still available in Record."); return;
+    }
+    const incoming: { blob: Blob; name: string }[] = [];
+    if (!baseLoaded) {
+      const response = await fetch(songAudioUrl(base.id, base.audioId), { credentials: "same-origin" });
+      if (!response.ok) throw new Error("Could not load that song from your library. Your current mix is unchanged.");
+      incoming.push({ blob: await response.blob(), name: base.name });
+    }
+    incoming.push({ blob, name });
+    const prepared = await prepareTracks(incoming);
+    // Both new tracks and every open track must fit together before anything is committed.
+    assertLayerBudget(tracks, prepared);
+    if (!baseLoaded) layeredSongs.current.set(key, prepared[0].id);
+    setTracks(current => [...current, ...prepared]); setOutput(null);
+    setProjectId(current => current || base.id);
+    setCloudStatus(`Layering “${name}” over “${base.name}”. Each is its own track; place, trim and balance them below.`);
+  }
   function patch(id: string, changes: Partial<MixTrack>) {
     setTracks(current => current.map(track => track.id === id ? { ...track, ...changes } : track));
     setOutput(null);

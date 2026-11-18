@@ -9,7 +9,7 @@
 - [Mantra recording scope](mantra-recording-direction.md) — Local voice repetition and echo belong in the existing recorder; preserve original phrases and defer automatic phrase detection.
 - [Security scanner inputs](security-scanner-inputs.md) — Publish dependency scans inspect retained alternate lockfiles, not only the dependency tree used to build.
 - [Melody reference privacy](melody-reference-privacy.md) — Keep hummed recordings private and reference-only unless melody-conditioned support and explicit consent are verified.
-- [Foundation feature freeze](foundation-freeze.md) — Work only within explicit owner approvals; visual exceptions do not lift the broader feature freeze.
+- [Development scope and Claude handoff](foundation-freeze.md) — Finish the engine only; afterward pull versual-main and verify when asked, without code edits unless explicitly requested.
 - [Per-song cutover safety](per-song-cutover.md) — Legacy backups freeze after copy; confirm sibling-app writers before live cutover and never equate local checks with production.
 - [Verified production origin](first-publish-origin.md) — Owner approved the verified deployment origin in production settings; the earlier pending-origin instruction is superseded.
 - [Large video safety](large-video-safety.md) — Full-length exports must stay disk-backed; offline codec fakes do not prove native encoding or phone playback.

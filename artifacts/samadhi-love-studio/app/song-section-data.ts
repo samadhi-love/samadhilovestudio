@@ -6,8 +6,8 @@ export function assertSongEditLength(clips:AssemblyClip[],fade:number){
  if(seconds>maxGeneratedSongSeconds)throw new Error("This edit would exceed 6:00. Choose a shorter added section; your original stays unchanged.");
  return seconds;
 }
-export type SectionEditPlan={sourceSongId:string;sourceAudioId:string;fade:number;clips:{songId:string;audioId:string;from:number;to:number}[]};
-export function isSectionEditPlan(value:unknown):value is SectionEditPlan{const v=value as SectionEditPlan,id=(s:unknown)=>typeof s==="string"&&/^[\w-]{1,100}$/.test(s);return !!v&&id(v.sourceSongId)&&id(v.sourceAudioId)&&Number.isFinite(v.fade)&&v.fade>=0&&v.fade<=2&&Array.isArray(v.clips)&&v.clips.length>0&&v.clips.length<=48&&v.clips.every(c=>c&&id(c.songId)&&id(c.audioId)&&Number.isFinite(c.from)&&Number.isFinite(c.to)&&c.from>=0&&c.to>c.from&&c.to<=7200);}
+export type SectionEditPlan={sourceSongId:string;sourceAudioId:string;fade:number;fadeOut?:number;clips:{songId:string;audioId:string;from:number;to:number}[]};
+export function isSectionEditPlan(value:unknown):value is SectionEditPlan{const v=value as SectionEditPlan,id=(s:unknown)=>typeof s==="string"&&/^[\w-]{1,100}$/.test(s);return !!v&&id(v.sourceSongId)&&id(v.sourceAudioId)&&Number.isFinite(v.fade)&&v.fade>=0&&v.fade<=2&&(v.fadeOut===undefined||Number.isFinite(v.fadeOut)&&v.fadeOut>=0&&v.fadeOut<=360)&&Array.isArray(v.clips)&&v.clips.length>0&&v.clips.length<=48&&v.clips.every(c=>c&&id(c.songId)&&id(c.audioId)&&Number.isFinite(c.from)&&Number.isFinite(c.to)&&c.from>=0&&c.to>c.from&&c.to<=7200);}
 export function editSongSection(sourceId:string,duration:number,action:"remove"|"replace"|"insert"|"trim",start:number,end:number,replacement?:AssemblyClip):AssemblyClip[]{
  if(!sourceId||!Number.isFinite(duration)||duration<=0||duration>600.1||!Number.isFinite(start)||start<0||start>duration||action!=="insert"&&(!Number.isFinite(end)||end<start||end>duration||end<=start))throw new Error("Choose a valid section inside the song.");
  if(action==="trim")return[{id:sourceId,from:start,to:end}];

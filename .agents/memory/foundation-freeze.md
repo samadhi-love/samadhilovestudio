@@ -27,6 +27,21 @@ saved data, validation and creation engines. The song sky is a view of the
 existing library, not a new store. This does not lift the freeze on other
 features, and verification stays offline unless separately approved.
 
+## Current development handoff
+
+The owner changed the plan: finish only the ACE-Step/fal.ai engine, push to
+`versual-main`, then stop. Do not continue the Create redesign or full song
+lifecycle; Claude will write those directly on GitHub. Afterward, when asked,
+pull the latest `versual-main`, run the full verification suite (typecheck,
+build and all tests), and report pass/fail with exact errors, without changing
+code unless explicitly asked.
+
+**Why:** The owner explicitly transferred further development to Claude and limited this agent to requested integration and verification.
+
+**How to apply:** Queued tasks and earlier instructions to continue are not permission to resume feature work. Preserve existing changes and report any dirty-workspace or merge conflict instead of discarding or resolving it by guessing.
+
+## Original foundation rationale
+
 **Why:** The user explicitly made Step 2 the top priority after feature work proceeded while foundation work was unfinished.
 
 **How to apply:** Complete only the specifically approved scope, then report exact results and unfinished work. Do not publish, change domains, enable billing, make paid provider calls or delete user data or files without explicit approval. Preserve the old studios bundle and R2 checkpoints.

@@ -19,7 +19,23 @@ export function carryEditedCaptions(project:LyricProject,edit:SectionEditPlan,so
   const window={start:changedStart,end:Math.max(changedStart+.001,changedEnd)};
   const inserted=edit.clips.some((_,i)=>!original(i));
   const cues:LyricCue[]=[];
-  for(let i=0;i<project.cues.length;i++){
+  const sourceClips=edit.clips.filter((_,i)=>original(i));
+  const reordered=sourceClips.some((clip,i)=>i>0&&clip.from<sourceClips[i-1].to);
+  if(reordered){
+    // Copy/move may use the same source interval twice or in a new order.
+    // Follow actual output clips; findIndex would silently lose copied lines.
+    edit.clips.forEach((clip,j)=>{
+      if(!original(j))return;
+      project.cues.forEach((cue,i)=>{
+        const end=cue.end??project.cues[i+1]?.time??p.duration;
+        const from=Math.max(cue.time,clip.from),to=Math.min(end,clip.to);
+        if(to<=from)return;
+        const shift=clips[j].start-clip.from,time=Math.max(0,from+shift),stop=Math.min(duration,to+shift);
+        const review=from!==cue.time||to!==end||time<window.end&&stop>window.start||cue.needsReview;
+        cues.push({...cue,time,end:stop,words:review?undefined:cue.words?.map(w=>({...w,time:w.time+shift})),needsReview:review||undefined});
+      });
+    });
+  }else for(let i=0;i<project.cues.length;i++){
     const cue=project.cues[i],end=cue.end??project.cues[i+1]?.time??p.duration;
     const j=edit.clips.findIndex((c,k)=>original(k)&&cue.time>=c.from&&end<=c.to);
     if(j>=0){
@@ -34,6 +50,7 @@ export function carryEditedCaptions(project:LyricProject,edit:SectionEditPlan,so
     }
     // Removed-only ranges intentionally have no corresponding caption.
   }
+  cues.sort((a,b)=>a.time-b.time);
   const review=cues.filter(c=>c.needsReview);
   // Keep unresolved earlier edits in the review window rather than silently
   // treating their approximate timing as precise after a second edit.

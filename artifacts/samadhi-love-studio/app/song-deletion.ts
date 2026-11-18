@@ -1,12 +1,12 @@
 import type {Song,Studio} from "./studio-data";
-export const songRecoveryDays=14;
+export const songRecoveryDays=30;
 export const songRecoveryMs=songRecoveryDays*24*60*60*1000;
-export const deletionNotice="Deleted songs are kept for 14 days so you can restore them. After 14 days, they are automatically permanently deleted to free storage space.";
-export function deletionDeadline(song:Pick<Song,"deletedAt"|"deleteAfter">){return song.deletedAt&&song.deleteAfter&&Number.isFinite(Date.parse(song.deleteAfter))?Date.parse(song.deleteAfter):null;}
+export const deletionNotice="Deleted songs can be restored for 30 days. Permanent cleanup remains disabled until the owner approves it.";
+export function deletionDeadline(song:Pick<Song,"deletedAt"|"deleteAfter">){if(!song.deletedAt||!song.deleteAfter||!Number.isFinite(Date.parse(song.deleteAfter)))return null;const deleted=Date.parse(song.deletedAt);return Math.max(Date.parse(song.deleteAfter),Number.isFinite(deleted)?deleted+songRecoveryMs:0);}
 export function canRestoreSong(song:Pick<Song,"deletedAt"|"deleteAfter">,now=Date.now()){const deadline=deletionDeadline(song);return !!song.deletedAt&&(deadline===null||now<deadline);}
 /** The server owns both dates. Existing archives receive a fresh, full recovery window. */
 export function normalizeSongDeletion(song:Song,previous:Song|undefined,now=Date.now()):Song {
- if(!song.deletedAt){if(previous?.deletedAt&&!canRestoreSong(previous,now))throw new Error("The 14-day recovery period has ended. This song can no longer be restored.");return {...song,deletedAt:undefined,deleteAfter:undefined};}
+ if(!song.deletedAt){if(previous?.deletedAt&&!canRestoreSong(previous,now))throw new Error("The 30-day recovery period has ended. This song can no longer be restored.");return {...song,deletedAt:undefined,deleteAfter:undefined};}
  const existing=previous?.deletedAt?deletionDeadline(previous):null;
  return {...song,deletedAt:existing!==null?previous!.deletedAt:new Date(now).toISOString(),deleteAfter:existing!==null?previous!.deleteAfter:new Date(now+songRecoveryMs).toISOString()};
 }

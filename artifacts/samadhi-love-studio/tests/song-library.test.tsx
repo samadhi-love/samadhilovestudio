@@ -31,17 +31,17 @@ async function setup(){
  const submit=()=>act(async()=>{document.querySelector("form")!.dispatchEvent(new dom.window.Event("submit",{bubbles:true,cancelable:true}));});
  return {root,button,input,submit,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
 }
-test("each song has working actions, personal likes, and 14-day deletion without automatic publication",async()=>{
+test("each song has working actions, personal likes, and 30-day deletion without automatic publication",async()=>{
  const h=await setup();let songs:Song[]=[{...freshSong("one","Sacred song",0),audioFormat:"wav",audioId:"source"},freshSong("two","Writing project",1)];let published=0,edited="";
  function Harness(){const [items,setItems]=useState(songs),[expanded,setExpanded]=useState(""),[preview,setPreview]=useState("");songs=items;const save=async(song:Song)=>{setItems(list=>list.map(s=>s.id===song.id?song:s));return true;};
  const hub:SongHub={busy:false,folders:[],stemsConnected:false,expanded,setExpanded,preview,setPreview,save,action:(_a,s)=>{edited=s.id;},archive:s=>save({...s,deletedAt:"2026-01-01T00:00:00Z"}),duplicate:async()=>true,publish:async()=>{published++;},playlist:async()=>true};
  return <SongHubProvider value={hub}>{items.map(song=><SongCard key={song.id} song={song}/>)}</SongHubProvider>;}
  try{await act(async()=>h.root.render(<Harness/>));assert.equal(document.querySelectorAll('button[aria-controls]').length,2);assert.equal(document.querySelectorAll("button button").length,0);
  await act(async()=>(document.querySelector('button[aria-label="Like Sacred song"]') as HTMLButtonElement).click());assert.equal(songs[0].favorite,true);
- await act(async()=>h.button("Song actions").click());assert(h.button("Generate new version"));await act(async()=>h.button("Edit details").click());assert.equal(edited,"one");assert.equal(published,0);
- await act(async()=>h.button("Delete song").click());assert(songs[0].deletedAt);assert.equal(songs[0].audioId,"source");assert.equal(published,0);assert(h.button("Restore to Your songs"));
+  const menu=(item:string)=>act(async()=>{(document.querySelector('[aria-label="Song actions for Sacred song"]') as HTMLButtonElement).click();});const pick=async(label:string)=>{await menu("");await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(b=>b.textContent===label)!.click());};await pick("More tools");assert(h.button("Make another like this"));assert(!h.button("Generate new version"));await act(async()=>h.button("Edit details").click());assert.equal(edited,"one");assert.equal(published,0);
+ await pick("Delete");assert(songs[0].deletedAt);assert.equal(songs[0].audioId,"source");assert.equal(published,0);assert(h.button("Restore to Your songs"));
  await act(async()=>h.button("Restore to Your songs").click());assert.equal(songs[0].deletedAt,undefined);assert.equal(songs[0].audioId,"source");assert.equal(published,0);
- await act(async()=>h.button("Publish / manage visibility").click());assert.equal(published,1);assert(!/Trash|Dislike|Archive creation/.test(document.body.textContent!));
+ await pick("Publish");assert.equal(published,1);assert(!/Trash|Dislike|Archive creation/.test(document.body.textContent!));
  }finally{await h.close();}
 });
 test("Quick Create auto-saves local audio and retries a failed save with the same creation reference",async()=>{
@@ -63,7 +63,7 @@ test("release sharing requires verified publication and shares a release URL, ne
  const originalClipboard=Object.getOwnPropertyDescriptor(navigator,"clipboard");Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async(value:string)=>{copied=value;}}});
  const hub:SongHub={busy:false,folders:[],stemsConnected:false,expanded:song.id,setExpanded:()=>{},preview:"",setPreview:()=>{},save:async()=>true,action:()=>{},archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true,releases:{mine:{status:"Published",releaseId:"release-mine"}}};
  try{await act(async()=>h.root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));assert(!h.button("Share release link"));
- await act(async()=>h.root.render(<SongHubProvider value={{...hub,releaseLoaded:true}}><SongCard song={song}/></SongHubProvider>));await act(async()=>h.button("Share release link").click());assert.equal(copied,"https://studio.test/community?song=release-mine");assert(!copied.includes("/api/studio/"));
+ await act(async()=>h.root.render(<SongHubProvider value={{...hub,releaseLoaded:true}}><SongCard song={song}/></SongHubProvider>));await act(async()=>(document.querySelector('[data-testid="song-menu"]') as HTMLButtonElement).click());await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(b=>b.textContent==="Share")!.click());await act(async()=>h.button("Share release link").click());assert.equal(copied,"https://studio.test/community?song=release-mine");assert(!copied.includes("/api/studio/"));
  }finally{if(originalClipboard)Object.defineProperty(navigator,"clipboard",originalClipboard);else delete (navigator as unknown as {clipboard?:unknown}).clipboard;await h.close();}
 });
 test("private song sharing requires a deliberate grant and offers revocation plus honest social upload links",async()=>{
@@ -81,8 +81,8 @@ test("private song sharing requires a deliberate grant and offers revocation plu
  }finally{globalThis.fetch=originalFetch;await h.close();}
 });
 
-test("Recently deleted shows the 14-day policy and disables restore after its server deadline",async()=>{
+test("Recently deleted shows the 30-day policy and disables restore after its server deadline",async()=>{
  const h=await setup(),song={...freshSong('expired','Expired song',0),deletedAt:'2000-01-01T00:00:00Z',deleteAfter:'2000-01-15T00:00:00Z'};let saves=0;
  const hub:SongHub={busy:false,folders:[],stemsConnected:false,expanded:song.id,setExpanded(){},preview:'',setPreview(){},save:async()=>{saves++;return true;},action(){},archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
- try{await act(async()=>h.root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));assert(document.body.textContent!.includes('14 days'));assert(document.body.textContent!.includes('Recovery ended'));assert(h.button('Restore to Your songs').disabled);await act(async()=>h.button('Restore to Your songs').click());assert.equal(saves,0);assert(!document.body.textContent!.includes('Archive creation'));}finally{await h.close();}
+ try{await act(async()=>h.root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));assert(document.body.textContent!.includes('30 days'));assert(document.body.textContent!.includes('Recovery ended'));assert(h.button('Restore to Your songs').disabled);await act(async()=>h.button('Restore to Your songs').click());assert.equal(saves,0);assert(!document.body.textContent!.includes('Archive creation'));}finally{await h.close();}
 });

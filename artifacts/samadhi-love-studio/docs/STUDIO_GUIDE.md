@@ -1,5 +1,21 @@
 # Versual Studio — current guide
 
+## Your songs: one action menu
+
+Use **⋯** on a song for Play, Edit in Shape, Make Video, Save Voice, Share, Publish, Download, Duplicate, Add to Project/Playlist and Delete. Supported Keep Going and Redo tools are grouped with editing. More tools keeps the remaining specialist functions. Old views/direct actions still work; there is no second song library.
+
+**Shape** is the existing waveform editor with Trim, Fade Out, Cut, Copy, Paste and Move. Preview first, then save a new version; the original is kept. Undo discards an unsaved preview, restores a selection or returns to the earlier recording without deleting the newer one. The private in-memory region clipboard lasts for the tab session. Copy/move captions use the actual crossfade assembly; changed portions need review. Pasting a different recording can require manually reviewing/replacing its words.
+
+**Duplicate** copies the owned audio into its own private R2 object, along with writing and matching captions. It is not a paid generation and does not copy public releases, cover files, exported videos or original hum takes. A save failure keeps its audio and recovery record. Both originals remain available.
+
+**Save Voice** means a private vocal idea, not identity cloning. Listen to the song, choose a position (or start/end), edit its voice description and confirm permission. A short independent clip and description save in Your Sounds; reusing the sound applies the description only. Reference clips never go to the music engine. Up to 64 private references, 30 seconds/2 MB each; nothing is deleted when the collection is full. Saved reference audio loads only after Listen is pressed.
+
+**Record → Layer over song** sends the selected private take to the existing Mix & Edit, alongside the chosen song as a second real track. Cancel or a failed combined memory/track check leaves an open mix untouched. All recorder modes and multiple takes remain available.
+
+**Download** contains original/converted MP3/WAV and other supported formats, saved videos, stems/MIDI and the release package. Private Share does not publish anything; Publish still opens the existing explicit release checks. Delete is reversible for 30 days, including older shorter windows; permanent cleanup remains disabled.
+
+**Unsupported AI controls are hidden:** native ACE-Step 1.5 repaint, cover, remaster, melody following and voice cloning are not documented for the selected endpoint. Local editing/manual replacement still works. ElevenLabs offers the existing fresh replacement/continuation passage, not audio-conditioned inpainting or a guaranteed identical singer. Edit Words with native re-singing is not falsely advertised.
+
 ## Begin a song
 
 **Just Begin:** write Your Vision, choose a singing language if needed, optionally turn on No Vocals, then press Begin. English remains the automatic default. Two takes are made by default; switch to Shape It to choose one. ElevenLabs asks before making two paid versions.

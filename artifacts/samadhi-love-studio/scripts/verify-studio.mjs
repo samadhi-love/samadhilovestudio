@@ -5,6 +5,7 @@ import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
   ["Owner-only ACE-Step, safe backup and private two-take saving", ["--test", "tests/ace-step-engine.test.mjs"]],
+  ["Song lifecycle, private duplication, voice references and region edits", ["--test", "tests/song-lifecycle.test.mjs"]],
   ["Encrypted pending provider keys, safe check logs and owner-only reachability", ["--test", "tests/elevenlabs-connection-reliability.test.mjs"]],
   ["Offline song, lyrics, caption, private video save/reopen and download journey", ["--test", "tests/core-creation-path.test.mjs"]],
   ["Bounded job polling, stalled replies and safe reconnection", ["--test", "tests/job-wait.test.mjs"]],
@@ -24,7 +25,7 @@ const checks = [
   ["Unified creator, world fusion and social-video presets", ["scripts/test-creator-workspace.mjs"]],
   ["Brand logos, musical advertisements and product footage", ["scripts/test-brand-ad-workspace.mjs"]],
   ["Party files, real 30-minute audio and non-destructive section editing", ["scripts/test-party-files.mjs"]],
-  ["Song deletion, 14-day recovery and durable cleanup", ["scripts/test-song-deletion.mjs"]],
+  ["Song deletion, 30-day recovery and durable cleanup", ["scripts/test-song-deletion.mjs"]],
   ["Song deletion API ownership and deadline validation", ["scripts/verify-song-deletion-api.mjs"]],
   ["Frequency tools and removal of guided meditations", ["scripts/test-meditative.mjs"]],
   ["Public homepage and separate private Studio", ["scripts/test-public-home.mjs"]],

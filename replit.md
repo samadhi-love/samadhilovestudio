@@ -1,4 +1,16 @@
-# Latest update — Begin a song
+# Latest update — song lifecycle
+
+Every song now has one **⋯** menu for listening, **Shape**, video, saved vocal ideas, private sharing, public release review, downloads, duplication, project/playlist organization and soft deletion. Shape reuses the waveform/streaming editor for trim, cut, copy/paste, move, ending fade and non-destructive versions with Undo. Moved/copied captions follow the actual clip order and flag changed areas for review.
+
+**Duplicate** makes an independent private audio copy with writing and matching captions; it does not call a music provider. Artwork, already-exported videos and original hum takes stay with the original song. Failed library saves retain the copied audio and the existing recovery receipt. **Save Voice** stores a private clip of up to 30 seconds plus an editable voice description in Your Sounds, not a clone; saved references play only after Listen is pressed. The reference collection is capped at 64 clips, 2 MB each, without deleting anything when full.
+
+Record's **Layer over song** opens the existing Mix & Edit with both the chosen song and take as real separate tracks. Combined track/memory checks happen before either is added; an existing mix is never silently replaced. Deleted songs can be restored for 30 days; older shorter deadlines are honored for at least 30 days. Permanent cleanup remains disabled, and no existing song, file or backup was deleted.
+
+**Honest engine limits:** the exact ACE-Step 1.5 endpoint does not document native repaint, cover, melody/voice conditioning or remastering. Those actions stay hidden; it still supports local audio-region edits and manual replacements. ElevenLabs retains its existing fresh-passage Redo/Keep Going path, explicitly not seamless inpainting or a same-singer guarantee. Native re-singing/voice cloning is not simulated. Existing legacy actions and links remain callable.
+
+**Verification:** the new private-storage/region/caption tests pass 12/12. Full offline regression, workspace typecheck and production build are being run before this milestone is delivered. No live provider calls, paid browser runs, publishing, domain/billing changes or production storage-mode changes.
+
+## Previous update — Begin a song
 
 Create now has **Just Begin** (Your Vision, language, No Vocals, Begin) and **Shape It** (editable words, grouped Sound & Soul choices, Voice, Name and folded More). Both default to two takes; Shape It can choose one. ElevenLabs still asks before a double-cost request. New song clears the form; writing still saves quietly.
 

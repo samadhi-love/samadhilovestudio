@@ -245,15 +245,17 @@ test("song sky uses only supplied real songs, connects actual versions and handl
   });
 });
 
-test("collapsed song rows reuse the existing four actions without starting any request",async()=>{
+test("one calm song menu reuses all four existing edit/creation handoffs without a repeated quick-action row",async()=>{
   const calls=[],saved=song("one","Private song","2026-01-01");
   const hub={busy:false,simple:true,folders:[],stemsConnected:false,preview:"",setPreview:noop,expanded:"",setExpanded:noop,save:async()=>true,action:action=>calls.push(action),archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
-  await mounted(el(ui.SongHubProvider,{value:hub},el(ui.SongCard,{song:saved})),async doc=>{
-    const buttons=[...doc.querySelectorAll(".song-card-quick-actions button")];
-    assert.equal(buttons.length,4);
-    for(const button of buttons)await act(async()=>button.click());
+  function Harness(){const[expanded,setExpanded]=React.useState("");return el(ui.SongHubProvider,{value:{...hub,expanded,setExpanded}},el(ui.SongCard,{song:saved}));}
+  await mounted(el(Harness),async doc=>{
+    assert.equal(doc.querySelectorAll(".song-card-quick-actions button").length,0);
+    const pick=async label=>{await act(async()=>doc.querySelector('[aria-label="Song actions for Private song"]').click());const item=[...doc.querySelectorAll('[role="menuitem"]')].find(button=>button.textContent===label);assert.ok(item,label);await act(async()=>item.click());};
+    await pick("Redo a Part");await pick("Keep Going");await pick("More tools");
+    for(const label of ["Make another like this","Make a Short"]){const button=[...doc.querySelectorAll("button")].find(button=>button.textContent===label);assert.ok(button,label);await act(async()=>button.click());}
     assert.deepEqual(calls,["redo-part","extend","make-like-this","short-video"]);
-    assert.ok(buttons[3].classList.contains("primary"));
+    assert.equal(doc.querySelectorAll('[aria-label="Song actions for Private song"]').length,1);
   });
 });
 

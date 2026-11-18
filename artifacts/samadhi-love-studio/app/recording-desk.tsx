@@ -1,4 +1,5 @@
 "use client";
+import { LayerOverSong } from "./layer-over-song";
 import { RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import { MantraRecorder } from "./mantra-recorder";
 
@@ -37,7 +38,7 @@ function useBlobUrl(blob: Blob | undefined) {
   return url;
 }
 
-export function RecordingDesk({ active, requestedMode, songs, saving, onCapture, save, open, mixTake, vocalTake, consolidated = false, advanced = true, beginSavedSong }: {
+export function RecordingDesk({ active, requestedMode, songs, saving, onCapture, save, open, mixTake, vocalTake, consolidated = false, advanced = true, beginSavedSong, layerOverSong }: {
   /** When the shell already shows a Voice/Podcast switch, hide the duplicate tab row; Voice Tune moves to an Advanced foldout. */
   consolidated?: boolean;
   advanced?: boolean;
@@ -52,6 +53,8 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
   onCapture: (active: boolean) => void;
   save: (file: File, title: string, target: Song | null, projectId?: string, saveId?: string) => Promise<SavedRecording | null>;
   open: (id: string) => void;
+  /** Opens Mix & Edit with the chosen take and song as two separate tracks. */
+  layerOverSong?: (blob: Blob, title: string, songId: string) => void;
 }) {
   const [mode, setMode] = useState<Mode>(requestedMode);
   const [lastRequestedMode, setLastRequestedMode] = useState(requestedMode);
@@ -415,6 +418,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
             else { setTakeId(""); setTitle(""); setError(""); setNotice(""); }
           }}>Remove take</button>
         </div>}
+        {take && layerOverSong && <LayerOverSong key={take.id} blob={take.blob} title={take.name} songs={songs} disabled={busy} layer={layerOverSong}/>}
         {reading && <p role="status">Reading the waveform…</p>}
         {decoded && <>
           <svg className="record-wave" viewBox="0 0 448 88" preserveAspectRatio="none" role="img" aria-label="Take waveform and selected trim range">

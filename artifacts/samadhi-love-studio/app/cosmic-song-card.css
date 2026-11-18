@@ -1,3 +1,36 @@
 .shell .song-card-quick-actions{margin:12px 16px;gap:8px;flex-wrap:wrap}
 .shell .song-reference-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 16px;color:var(--cosmic-magenta)}
 .shell .song-card-hum{border:1px dashed var(--cosmic-magenta)}
+.song-menu-wrap{position:relative}
+.song-play,.song-menu-trigger{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:999px;border:1px solid var(--cosmic-line,#a77bff44);background:var(--cosmic-well,rgba(6,5,20,.6));color:var(--cosmic-text,#eef1ff);cursor:pointer;transition:transform .2s ease,border-color .2s ease}
+.song-play[aria-pressed=true]{color:var(--cosmic-cyan);border-color:var(--cosmic-line-strong)}
+.song-menu-trigger[aria-expanded=true]{border-color:var(--cosmic-line-strong);color:var(--cosmic-cyan)}
+.song-play:hover,.song-menu-trigger:hover{transform:translateY(-1px)}
+.song-menu{position:fixed;left:var(--song-menu-left,12px);top:var(--song-menu-top,12px);z-index:1200;width:280px;min-width:236px;max-height:min(70dvh,520px);overflow:auto;display:grid;gap:2px;padding:6px;border-radius:18px;border:1px solid var(--cosmic-line-strong,#7fe9ff80);background:var(--cosmic-panel-solid,#0e0c24);color:var(--cosmic-text,#eef1ff);font-family:"Space Grotesk",sans-serif;box-shadow:0 24px 60px -20px rgba(4,3,13,.9);animation:song-menu-in .16s ease-out;transform-origin:top right}
+.song-menu [role=menuitem]{display:flex;align-items:center;gap:12px;width:100%;min-height:42px;padding:8px 12px;border:0;border-radius:12px;background:transparent;color:var(--cosmic-text,#eef1ff);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.song-menu [role=menuitem] svg{color:var(--cosmic-accent-2,#7fe9ff);flex:none}
+.song-menu [role=menuitem]:hover:not(:disabled),.song-menu [role=menuitem]:focus-visible{background:rgba(127,233,255,.1);outline:none}
+.song-menu [role=menuitem]:focus-visible{box-shadow:inset 0 0 0 2px var(--cosmic-cyan)}
+.song-menu [role=menuitem]:disabled{opacity:.4;cursor:not-allowed}
+.song-menu [role=menuitem].danger{color:#ffb3c7;border-top:1px solid var(--cosmic-line);border-radius:0 0 12px 12px;margin-top:4px}
+.song-menu [role=menuitem].danger svg{color:#ff8fae}
+.song-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.song-sheet-head h3{margin:0;font-family:"Syne",sans-serif;font-weight:800;font-size:15px;letter-spacing:.01em}
+.song-sheet{display:grid;gap:10px;margin-top:10px}
+.song-sheet h4{margin:8px 0 0;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--cosmic-muted,#a9afd8);font-weight:600}
+.song-card-restore{margin-top:12px;padding:12px 14px;border-radius:14px;border:1px dashed var(--cosmic-line)}
+@keyframes song-menu-in{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:760px){.song-menu{left:12px;right:12px;top:auto;bottom:calc(76px + env(safe-area-inset-bottom));width:auto;min-width:0;max-height:72dvh;transform-origin:bottom center}}
+@media(prefers-reduced-motion:reduce){.song-menu{animation:none}.song-play,.song-menu-trigger{transition:none}.song-play:hover,.song-menu-trigger:hover{transform:none}}
+.shape-editor .shape-head{display:grid;gap:4px;margin-bottom:6px}
+.shape-editor .shape-kicker{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cosmic-cyan,#7fe9ff)}
+.shape-editor .shape-head h3{margin:0;font-family:"Syne",sans-serif;font-weight:800;font-size:1.4rem}
+.shape-editor .shape-chips{gap:6px;flex-wrap:wrap;margin:10px 0}
+.shape-editor .shape-tool{border-radius:999px;border:1px solid var(--cosmic-line,#a77bff44);background:var(--cosmic-well,rgba(6,5,20,.6));color:inherit;padding:8px 16px;min-height:40px;cursor:pointer;transition:transform .2s ease}
+.shape-editor .shape-tool[aria-pressed=true]{background:rgba(127,233,255,.14);border-color:var(--cosmic-line-strong,#7fe9ff80);color:var(--cosmic-cyan,#7fe9ff)}
+.shape-editor .shape-tool:disabled{opacity:.4;cursor:not-allowed}
+.shape-editor .shape-tool:focus-visible{outline:2px solid var(--cosmic-cyan,#7fe9ff);outline-offset:2px}
+.shape-editor .shape-tool:hover:not(:disabled){transform:translateY(-1px)}
+.layer-over-song{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:10px}
+.layer-over-song label{flex:1 1 220px}
+@media(prefers-reduced-motion:reduce){.shape-editor .shape-tool{transition:none}.shape-editor .shape-tool:hover:not(:disabled){transform:none}}

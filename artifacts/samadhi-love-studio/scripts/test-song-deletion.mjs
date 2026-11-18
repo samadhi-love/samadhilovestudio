@@ -5,7 +5,7 @@ const{runSongRetention,normalizeSongDeletion,canRestoreSong,songRecoveryMs,fresh
 let checks=0;const check=(value,message)=>{assert(value,message);checks++;};const now=Date.now();
 const original={...freshSong("one","My song",0),audioId:"current",audioFormat:"mp3",audioHistory:[{audioId:"earlier",audioFormat:"wav",name:"Earlier",date:"2026-01-01"}]};
 const marked=normalizeSongDeletion({...original,deletedAt:"2000-01-01",deleteAfter:"2000-01-02"},original,now);
-check(Date.parse(marked.deleteAfter)===now+songRecoveryMs,"server grants exactly fourteen days and ignores supplied backdating");
+check(Date.parse(marked.deleteAfter)===now+songRecoveryMs,"server grants exactly thirty days and ignores supplied backdating");
 check(normalizeSongDeletion({...marked,deleteAfter:"2099-01-01"},marked,now+5).deleteAfter===marked.deleteAfter,"editing cannot extend recovery");
 check(canRestoreSong(marked,now+songRecoveryMs-1)&&!canRestoreSong(marked,now+songRecoveryMs),"restore cutoff is exact");assert.throws(()=>normalizeSongDeletion({...marked,deletedAt:undefined},marked,now+songRecoveryMs));
 check(normalizeSongDeletion({...marked,deletedAt:undefined},marked,now+1).deleteAfter===undefined,"restore clears the deadline");
@@ -38,7 +38,7 @@ function fixture(songs=[marked]){
  const f=fixture();f.race(()=>{const restored={...marked,deletedAt:undefined,deleteAfter:undefined};f.sql.prepare('update studios set revision=2,content=? where owner=?').run(JSON.stringify({songs:[restored],templates:[]}), 'a');});await runSongRetention(f.env,now+songRecoveryMs);check(f.get().songs.length===1&&f.objects.has('songs/a/current'),"a restore/save winning the revision race protects the original");check(f.sql.prepare('select count(*) as n from song_deletion_jobs').get().n===0,"failed revision claims cannot enqueue deletion");
 }
 {
- const legacy={...original,deletedAt:'2020-01-01'};const f=fixture([legacy]);await runSongRetention(f.env,now);check(Date.parse(f.get().songs[0].deleteAfter)===now+songRecoveryMs&&f.objects.has('songs/a/current'),"existing archives receive a full fourteen-day rollout grace window");
+ const legacy={...original,deletedAt:'2020-01-01'};const f=fixture([legacy]);await runSongRetention(f.env,now);check(Date.parse(f.get().songs[0].deleteAfter)===now+songRecoveryMs&&f.objects.has('songs/a/current'),"existing archives receive a full thirty-day rollout grace window");
 }
 {
  const b={...freshSong('dependent','Dependent',0),mixes:[{id:'mix',name:'Linked',notes:'',link:'',audioSongId:'one'}]};const f=fixture([marked,b]);await runSongRetention(f.env,now+songRecoveryMs);check(f.get().songs.length===2&&f.objects.has('songs/a/current'),"references from another retained song block destructive cleanup");
