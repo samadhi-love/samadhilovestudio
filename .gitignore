@@ -17,6 +17,28 @@ out-tsc
 # dependencies
 node_modules
 
+# Private configuration and local credentials (all workspace packages)
+.env*
+.dev.vars*
+*.pem
+*.key
+.secrets/
+.credentials/
+secrets.json
+credentials*.json
+
+# Local Cloudflare state, build products and temporary exports
+.wrangler/
+.sites-runtime/
+.vinext/
+build/
+exports/
+outputs/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
 # IDEs and editors
 /.idea
 .project
