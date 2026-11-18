@@ -10,6 +10,9 @@ export const signatureBytes = 12;
 export const notAudioMessage =
   "This file doesn't look like audio. Choose an MP3, WAV, M4A, FLAC, OGG, OPUS or WebM recording.";
 
+/** ISO-media brands that are still images, not audio. */
+const imageBrands = new Set(["avif", "avis", "heic", "heix", "heim", "heis", "hevc", "hevx", "mif1", "msf1", "jpeg", "jxl "]);
+
 const ascii = (bytes: Uint8Array, offset: number, text: string) =>
   [...text].every((char, index) => bytes[offset + index] === char.charCodeAt(0));
 
@@ -19,7 +22,11 @@ export function looksLikeAudio(head: Uint8Array): boolean {
   if (ascii(head, 0, "ID3")) return true; // MP3 (or FLAC) with tags
   if (head[0] === 0xff && (head[1] & 0xe0) === 0xe0) return true; // MP3/AAC frame sync
   if ((ascii(head, 0, "RIFF") || ascii(head, 0, "RF64")) && ascii(head, 8, "WAVE")) return true; // WAV
-  if (ascii(head, 4, "ftyp")) return true; // M4A / MP4 audio
+  if (ascii(head, 4, "ftyp")) {
+    // M4A / MP4 audio — but the same box also starts AVIF/HEIC images.
+    const brand = String.fromCharCode(...head.subarray(8, 12));
+    return !imageBrands.has(brand);
+  }
   if (ascii(head, 0, "fLaC")) return true; // FLAC
   if (ascii(head, 0, "OggS")) return true; // OGG / OPUS
   if (head[0] === 0x1a && head[1] === 0x45 && head[2] === 0xdf && head[3] === 0xa3) return true; // WebM

@@ -35,6 +35,9 @@ test("web pages, images, programs and documents are refused", () => {
     ["pdf", bytes("%PDF-1.7")],
     ["exe", bytes("MZ")],
     ["riff but not wave (avi)", bytes("RIFF", [1, 2, 3, 4], "AVI ")],
+    ["avif image", bytes([0, 0, 0, 0x1c], "ftypavif")],
+    ["heic photo", bytes([0, 0, 0, 0x18], "ftypheic")],
+    ["image collection", bytes([0, 0, 0, 0x18], "ftypmif1")],
   ]) assert.equal(looksLikeAudio(head), false, name);
 });
 
