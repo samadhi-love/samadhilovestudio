@@ -1,4 +1,40 @@
-# Production sign-in startup correction — November 17, 2026
+# Versual Studio — cosmic homepage and shared branding
+
+The app is now **Versual Studio**, with **“Your song. Your world. Your video.”**
+and **“A SAMADHI LOVE creative studio.”** The public home page has the requested
+starfield, orbital artwork, rotating quotes, sound/geometry illustrations,
+video-look previews and animated closing star. All motion stops for visitors
+who prefer reduced motion.
+
+- Discover stays at `/community`, with its existing search, artists, saved
+  items and playlists. Party Spotlight is absent from the home page; Party Mix
+  remains reachable through Explore. Signed-in visitors still go to `/creator`.
+- The release section reads only real published community releases, shows at
+  most four and uses the existing audio player. There are no invented releases
+  or audience numbers; an empty community gets an honest message.
+- `artifacts/samadhi-love-studio/brand.json` is the single product-brand source.
+  App navigation, sign-in labels, metadata and generated notices use it. Static
+  credit/vault pages receive the name during dev/build; the vault helper stays
+  fully offline. SAMADHI LOVE artist credits, defaults and saved work remain
+  unchanged.
+- **Verification:** 31/31 offline verification commands passed, including all
+  46/46 Studio verification groups and 62/62 authentication/provider tests.
+  Final targeted checks passed: 11/11 landing-page tests and 8/8 actual
+  homepage/sign-in SSR tests, including synthetic live-key coverage. Full
+  workspace typecheck/build and the final Studio build passed.
+- Desktop and small-phone previews were inspected. A genuine cross-runtime
+  rounding mismatch in decorative SVG was fixed and regression-tested; the
+  final previews had no hydration errors. No paid browser-testing run was used.
+- **Not changed or verified:** provider-managed email sender/template branding
+  and hosted OAuth branding are external settings, not this app's config.
+  This work did not change provider settings, API routes, storage, saved data,
+  domains or billing, make paid-provider calls, or publish anything.
+
+**Owner review:** Open the home page signed out (or in a private browser window)
+to see the landing page; signed-in visitors intentionally continue to Studio.
+Review before publishing yourself.
+
+## Previous production sign-in startup correction — November 17, 2026
 
 **Job A follow-up:** Library saves preserve server-owned writing revisions; successful paid-song attachment completes its recovery receipt; automatic My Songs recovery runs once per account/tab session (manual recovery stays available), with attached primary/history audio filtered before metadata reads—offline checks confirm 50 attached songs need only LIST requests, not per-song GET/HEAD requests.
 

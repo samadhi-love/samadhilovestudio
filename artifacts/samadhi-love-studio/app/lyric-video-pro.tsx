@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import {PanelErrorBoundary} from "./panel-error-boundary";
 import { MusicLanguageSummary } from "./music-language-summary";
 import {StemReactiveControls} from "./stem-reactive-controls";
@@ -1741,7 +1742,7 @@ function LyricVideoProContent(props: Props) {
       <header className="lvp-hero">
         <div>
           <span className="lvp-eyebrow">
-            <Sparkles size={16} /> SAMADHI LOVE · VISUAL PRODUCTION
+            <Sparkles size={16} /> {brand.name} · VISUAL PRODUCTION
           </span>
           <h1>
             Video &amp; <em>Shorts</em>

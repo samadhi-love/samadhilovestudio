@@ -1,4 +1,5 @@
 import {validReactiveStem,type ReactiveStem} from "./stem-reactive";
+import {brand} from "./brand";
 import {isAdPhotoStory} from "./ad-photo-story";
 import { parseLyricNotation, productionHeader } from "./lyric-notation";
 import {isAdFootage} from "./advertising-footage";
@@ -436,7 +437,7 @@ export function lrcFile(cues: LyricCue[], start: number, end: number) {
     return `${String(Math.floor(centis / 6000)).padStart(2, "0")}:${((centis % 6000) / 100).toFixed(2).padStart(5, "0")}`;
   };
   return (
-    "[re:SAMADHI LOVE Lyric Video Pro]\n" +
+    `[re:${brand.name} Lyric Video Pro]\n` +
     clipCues(cues, start, end)
       .map((c) => `[${stamp(c.time)}]` + c.text)
       .join("\n") +

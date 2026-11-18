@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "../brand";
 import {
   useCallback,
   useEffect,
@@ -342,7 +343,7 @@ export function PartyMix() {
         outputFormat: format,
         changes:
           format !== track.format
-            ? "Format converted by SAMADHI LOVE Studio"
+            ? `Format converted by ${brand.name}`
             : "Unmodified source file",
       };
       const zip = await runtime.zipFiles([
@@ -496,7 +497,7 @@ export function PartyMix() {
     <main className="party-shell">
       <header className="party-header">
         <a href="/" className="party-brand">
-          <Disc3 /> SAMADHI LOVE <span>STUDIO</span>
+          <Disc3 /> {brand.name}
         </a>
         <div className="actions">
           <a href="/community">Community</a>
@@ -1675,7 +1676,7 @@ export function PartyMix() {
       )}
       <footer className="party-footer">
         <Disc3 size={18} />
-        <span>SAMADHI LOVE · Every gathering has a frequency.</span>
+        <span>{brand.name} · Every gathering has a frequency.</span>
         <a
           href="https://creativecommons.org/share-your-work/cclicenses/"
           target="_blank"

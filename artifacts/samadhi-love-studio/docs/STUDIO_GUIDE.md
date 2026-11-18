@@ -1,4 +1,26 @@
-# SAMADHI LOVE Studio — current guide
+# Versual Studio — current guide
+
+## Public home and product identity
+
+**Your song. Your world. Your video.**
+
+**A SAMADHI LOVE creative studio**
+
+The public `/` page is now the cosmic introduction to the existing Studio.
+Discover remains at `/community`; it still contains search, genres, artists,
+following, saved music and playlists. Party Mix remains under Explore, not on
+the home page. Signed-in visitors still enter Studio directly.
+
+The home page has motion-sensitive animations, four illustrative video looks,
+and up to four genuine published community releases. It does not invent songs
+or audience numbers. Product labels come from the shared `brand.json`;
+SAMADHI LOVE artist credits and existing work are not renamed.
+
+Offline verification passed: 31/31 commands, including 46/46 Studio groups;
+11/11 landing checks and 8/8 homepage/sign-in SSR checks passed after final
+preview adjustments. Workspace typecheck/build passed. Desktop and small-phone
+previews were inspected; no paid calls, publishing or data changes were made.
+Provider-managed email/OAuth branding remains an external, unverified setting.
 
 ## Reliability safeguards — Step 3A
 

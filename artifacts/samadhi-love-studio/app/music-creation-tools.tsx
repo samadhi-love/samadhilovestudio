@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import { RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 
 import { useState } from "react";
@@ -13,7 +14,7 @@ import type { CreateSeed, Discovery } from "./music-workspace-data";
 function ToolTitle({ mode }: { mode: "prompt" | "vocal" }) {
   const [title, sub, Icon] = mode === "prompt" ? ["Creative Prompt Lab", "Build, compare, and save production directions for your next song.", FlaskConical] as const :
     ["Vocal Director", "Plan how each voice enters, answers, and supports the lead.", Mic] as const;
-  return <header className="page-title"><div className="page-title-copy"><p className="eyebrow">SAMADHI LOVE · CREATE</p><h1><Icon size={26}/> {title}</h1><p>{sub}</p></div></header>;
+  return <header className="page-title"><div className="page-title-copy"><p className="eyebrow">{brand.name} · CREATE</p><h1><Icon size={26}/> {title}</h1><p>{sub}</p></div></header>;
 }
 
 const genres = musicCatalog.filter(item => item.kind === "Genre").map(item => item.name);

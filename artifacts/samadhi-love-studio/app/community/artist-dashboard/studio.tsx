@@ -1,5 +1,6 @@
 "use client";
 
+import {brand} from "../../brand";
 import { useEffect, useRef, useState } from "react";
 import { AudioLines, Heart, Share2, Users } from "lucide-react";
 import { HelpField } from "../../help-tip";
@@ -20,7 +21,7 @@ export function ArtistConsole({ studioHref, moderator, selectedRecording }: { st
   const shares = data?.songs.reduce((sum, song) => sum + (song.stats?.shares ?? 0), 0) ?? 0;
   const appreciation = data?.songs.reduce((sum, song) => sum + total(song.stats), 0) ?? 0;
   return <main className="listener-shell community-shell">
-    <header className="listener-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><div><strong>SAMADHI LOVE</strong><small>COMMUNITY</small></div></a>
+    <header className="listener-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><div><strong>{brand.name}</strong><small>COMMUNITY</small></div></a>
       <div className="actions"><a className="secondary small" href={studioHref}>Studio</a><a className="secondary small" href="/community">Discover music</a>
       {moderator && <a className="secondary small" href="/community/moderation">Moderation</a>}</div></header>
     <section className="listener-hero community-hero"><p className="eyebrow">PRIVATE ARTIST WORKSPACE</p><h1>Artist dashboard</h1>

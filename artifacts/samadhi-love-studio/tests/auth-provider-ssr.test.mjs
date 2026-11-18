@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {mkdirSync} from "node:fs";
+import {mkdirSync,readFileSync} from "node:fs";
 import {build} from "esbuild";
 import React from "react";
 import {renderToStaticMarkup,renderToPipeableStream} from "react-dom/server";
@@ -16,11 +16,13 @@ const keys={
 const proxy="https://studio.example.test/api/__clerk";
 globalThis.__authSsr={origin:"https://studio.example.test",headers:new Headers({host:"studio.example.test"})};
 const variants={};
+const branding=JSON.parse(readFileSync(new URL("../brand.json",import.meta.url),"utf8"));
 for(const [kind,key] of Object.entries(keys)){
   await build({
     stdin:{contents:`
       export {StudioAuthProvider} from "./app/auth-provider";
       export {default as RootLayout} from "./app/layout";
+      export {metadata} from "./app/layout";
       export {default as HomePage} from "./app/page";
       export {default as SignInPage} from "./app/sign-in/[[...sign-in]]/page";
       export {authRequestHostname} from "./app/server/auth-hostname";
@@ -84,10 +86,12 @@ for(const kind of ["test","live"]){
     assert.equal(element.props.publishableKey,publishableKeyFromHost("studio.example.test",keys[kind]));
     assert.equal(element.props.proxyUrl,proxy);
     assert.equal(element.props.signInUrl,"/sign-in");assert.equal(element.props.signUpUrl,"/sign-up");
+    assert.equal(variants[kind].metadata.title,branding.name);
+    assert.ok(variants[kind].metadata.description.includes(branding.slogan));
     assert.match(renderToStaticMarkup(element),/Public content/);
   }));
   test(`${kind} key: actual homepage and sign-in page server-render inside the actual layout`,()=>offline(async()=>{
-    for(const [Page,pattern] of [[variants[kind].HomePage,/Discover your next/],[variants[kind].SignInPage,/studio-auth-note/]]){
+    for(const [Page,pattern] of [[variants[kind].HomePage,/Your soul/],[variants[kind].SignInPage,/studio-auth-note/]]){
       const layout=await variants[kind].RootLayout({children:React.createElement(Page)});
       const html=await pageHtml(layout);
       assert.match(html,/<html lang="en">/);assert.match(html,pattern);

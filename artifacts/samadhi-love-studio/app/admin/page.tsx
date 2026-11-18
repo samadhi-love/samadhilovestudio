@@ -1,3 +1,4 @@
+import {brand} from "../brand";
 import { billingReady, paymentMode } from "../billing/config";
 import { desc } from "drizzle-orm";
 import { getDb } from "../../db";
@@ -14,7 +15,7 @@ export default async function AdminPage() {
   const accounts = await getDb().select().from(creatorAccounts).orderBy(desc(creatorAccounts.createdAt)).limit(100);
   const today = new Date().toISOString().slice(0, 10);
   return <main className="listener-shell music-tools">
-    <header className="listener-hero"><p className="eyebrow">SAMADHI LOVE · OWNER</p><h1>Launch administration</h1><div className="actions"><a href="/owner">Back to the studio</a><a href="/community/moderation">Community moderation</a></div></header>
+    <header className="listener-hero"><p className="eyebrow">{brand.name} · OWNER</p><h1>Launch administration</h1><div className="actions"><a href="/owner">Back to the studio</a><a href="/community/moderation">Community moderation</a></div></header>
     <section className="section"><h2>Launch status</h2>
       <p>Creator registration: {creatorBetaEnabled() ? "Enabled for visitors allowed by Sites" : "Closed"}</p>
       <p>Billing: {billingReady() ? `${paymentMode()} integration configured; live checkout still validates each price` : "Setup pending · checkout closed"}. <a href="/members">Membership &amp; billing</a> · <a href="/credits">Credits, beta allowances &amp; production recovery</a></p>

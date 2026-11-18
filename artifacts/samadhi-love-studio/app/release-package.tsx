@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 
 import { useEffect, useRef, useState } from "react";
 import { captionFile, videoThemes } from "./lyric-video-data";
@@ -105,7 +106,7 @@ export function ReleasePackage({ song, songs, saving, save }: { song: Song; song
       text("credits.txt", [`${root.name} — ${metadata.artist}`, metadata.credits, metadata.copyright, metadata.isrc && `ISRC: ${metadata.isrc}`, metadata.upc && `UPC: ${metadata.upc}`].filter(Boolean).join("\n\n"));
       text("project.json", JSON.stringify({ schemaVersion: 1, projectId: root.id, songs: members }, null, 2));
       text("promotion.txt", [root.notes.promotion, root.releaseLinks?.spotify, root.releaseLinks?.hyperfollow].filter(Boolean).join("\n\n"));
-      text("README.txt", "SAMADHI LOVE release package\n\nReview all files, credits, and permissions before distribution. rights-review.json contains user declarations and any excerpt checks, not a license or copyright clearance. Identifiers left blank have not been issued by this Studio.\nmaster/ contains your explicitly selected recording version.\ncover.png, when included, is rendered from the project's current visual design; review it before use.\nCaptions retain the lyric-video project's source timing, which may differ from the chosen master.\nproject.json preserves project relationships and notes; this is not a full backup of every original, vocal session, or historical recording. Originals remain in your account.\nUpload and schedule the release with your chosen distributor. No publication or submission was performed.\n");
+      text("README.txt", `${brand.name} release package\n\nReview all files, credits, and permissions before distribution. rights-review.json contains user declarations and any excerpt checks, not a license or copyright clearance. Identifiers left blank have not been issued by this Studio.\nmaster/ contains your explicitly selected recording version.\ncover.png, when included, is rendered from the project's current visual design; review it before use.\nCaptions retain the lyric-video project's source timing, which may differ from the chosen master.\nproject.json preserves project relationships and notes; this is not a full backup of every original, vocal session, or historical recording. Originals remain in your account.\nUpload and schedule the release with your chosen distributor. No publication or submission was performed.\n`);
       await add(`master/${packageFileName(root.name)}.${master.format}`, master.url);
       if (originals) for (const item of members.filter(s => s.audioFormat && !(s.id === master.song.id && (s.audioId ?? s.id) === master.audioId)))
         await add(`recordings/${packageFileName(item.name)}-${item.id}.${item.audioFormat}`, songAudioUrl(item.id, item.audioId));

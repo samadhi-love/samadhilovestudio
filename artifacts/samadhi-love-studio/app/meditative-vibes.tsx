@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import { useEffect, useRef, useState } from "react";
 import { downloadFormats, type DownloadFormat } from "./audio-convert";
 import { AudioPlayer } from "./audio-player";
@@ -109,7 +110,7 @@ export function MeditativeVibes(props: Props) {
   }
   const presets = meditationPresets.filter(p => (filter === "All" || p.category === filter) && `${p.name} ${p.note}`.toLowerCase().includes(search.toLowerCase()));
   return <section className="meditative-workspace" aria-label="Meditative Vibes">
-    <header className="page-title"><div><p className="eyebrow">SAMADHI LOVE · FREQUENCY LIBRARY</p><h1>Meditative Vibes</h1><p>Original tones, spacious listening, and a blend that is yours.</p></div><span className="meditative-emblem" aria-hidden="true">✧ ♫ ✧</span></header>
+    <header className="page-title"><div><p className="eyebrow">{brand.name} · FREQUENCY LIBRARY</p><h1>Meditative Vibes</h1><p>Original tones, spacious listening, and a blend that is yours.</p></div><span className="meditative-emblem" aria-hidden="true">✧ ♫ ✧</span></header>
     <aside className="notice"><strong>Create for relaxation and artistic exploration.</strong> Frequency labels are sound parameters, not promises of healing or altered consciousness. Solfeggio meanings are traditional associations; evidence for specific benefits is limited. Higher Hz does not mean greater wellbeing. Use a comfortable low volume, stop if uncomfortable, and avoid listening while driving. Headphones are needed for binaural separation. These are original synthesized presets, unaffiliated with Hemi-Sync.</aside>
     <RecoveryPanel recovery={recovery}/>
     <div className="meditative-layout"><section className="panel meditative-catalog"><h2>Explore frequencies</h2><label>Search name or Hz<input value={search} onChange={e => setSearch(e.target.value)} placeholder="528, theta, two-tone…"/></label>

@@ -17,6 +17,10 @@ manual retry for uncertain charges only after an explicit warning that the
 retry may use credits again. Never infer a provider charge from missing
 output or replay a paid request automatically.
 
+The owner later approved a narrow exception for the public landing-page rebuild
+and product rebrand. This does not authorize unrelated features, stored-data
+changes, route changes, publishing, domain changes or billing.
+
 **Why:** The user explicitly made Step 2 the top priority after feature work proceeded while foundation work was unfinished.
 
 **How to apply:** Work in small sub-steps with existing tests after each; stop after 2D and report exact results and unfinished work. Do not publish, change domains, enable billing, or delete user data or files. Preserve the old studios bundle and R2 checkpoints unchanged during the migration.

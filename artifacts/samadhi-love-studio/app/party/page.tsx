@@ -1,3 +1,4 @@
+import {brand} from "../brand";
 import { studioAccess, privateWorkspace } from "../studio-access";
 import { redirect } from "next/navigation";
 import { legacyPageRedirect } from "../studio-routes";
@@ -10,7 +11,7 @@ export default async function PartyPage() {
   if (!access.id)
     return (
       <main className="party-shell">
-        <p className="eyebrow">SAMADHI LOVE</p>
+        <p className="eyebrow">{brand.name}</p>
         <h1>Party Mix</h1>
         <p>
           Sign in to build a set, save it to your profile, and discover parties.

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Versual landing, shared branding, public releases and reduced motion", ["--test", "tests/versual-landing.test.mjs"]],
   ["Independent song records, exact copy and two-tab saves", ["scripts/test-song-rows-api.mjs"]],
   ["Per-song storage and shared backend boundaries", ["--test", "tests/song-row-storage.test.mjs", "tests/backend-boundaries.test.mjs"]],
   ["Durable background jobs and safe interruption recovery", ["--test", "tests/background-jobs.test.mjs", "tests/durable-processing.test.mjs"]],

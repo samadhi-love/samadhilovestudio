@@ -1,5 +1,6 @@
 "use client";
 
+import {brand} from "../brand";
 import {GenrePicker} from "../genre-picker";
 import { useState } from "react";
 import { ArrowLeft, Bookmark, Disc3, Flag, Headphones, Heart, ListMusic, Share2, Sparkles } from "lucide-react";
@@ -60,7 +61,7 @@ export function Community({ songId, artistId, shareRef, signIn, signOut, studioL
 
   return <main className={`listener-shell community-shell${!songId&&!artistId?" community-space":""}`}>
     <header className="listener-nav">
-      <a className="brand" href="/community"><img src="/favicon.svg" alt=""/><div><strong>SAMADHI LOVE</strong><small>DISCOVER</small></div></a>
+      <a className="brand" href="/community"><img src="/favicon.svg" alt=""/><div><strong>{brand.name}</strong><small>DISCOVER</small></div></a>
       <div className="actions">
         <a className="secondary small" href="/plans">Plans</a><a className="secondary small" href={signOut ? "/members" : "/login"}>{signOut ? "My membership" : "Member login"}</a>
         <a className="secondary small" href="/subscriber">Listening Room</a>

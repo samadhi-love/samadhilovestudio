@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import { RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 
 import { useState } from "react";
@@ -99,7 +100,7 @@ export function InternationalMusicTent({ active, send, copy, openVocalStudio }: 
 
   return <div hidden={!active} className="music-tools music-tent"><RecoveryPanel recovery={recovery}/>
     <header className="create-banner tent-banner">
-      <p className="eyebrow"><Globe2 size={16}/> SAMADHI LOVE · WORLD MUSIC</p>
+      <p className="eyebrow"><Globe2 size={16}/> {brand.name} · WORLD MUSIC</p>
       <h1>International Music Tent</h1>
       <p>Choose a language and musical tradition, or bring several together in one original song.</p>
     </header>

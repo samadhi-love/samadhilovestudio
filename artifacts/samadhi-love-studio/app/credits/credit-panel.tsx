@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "../brand";
 import { useEffect, useState } from "react";
 import { communityRequest, useCommunityResource } from "../community/client";
 import { operationNames, plans, type CreditsData, type Plan } from "./data";
@@ -21,7 +22,7 @@ export function CreditPanel({ owner }: { owner: boolean }) {
     catch (e) { setNotice(e instanceof Error ? e.message : "The change could not save."); }
     finally { setPending(false); }
   }
-  return <main className="listener-shell credit-page"><header className="listener-hero"><p className="eyebrow">SAMADHI LOVE · YOUR ACCOUNT</p><h1>Credits &amp; Usage</h1><p>Create with a clear allowance. Your saved songs and originals remain in your private library.</p><div className="actions"><a className="secondary" href={owner ? "/owner" : "/creator"}>Back to Studio</a><button type="button" className="secondary" onClick={() => void refresh()}>Refresh usage</button></div></header>
+  return <main className="listener-shell credit-page"><header className="listener-hero"><p className="eyebrow">{brand.name} · YOUR ACCOUNT</p><h1>Credits &amp; Usage</h1><p>Create with a clear allowance. Your saved songs and originals remain in your private library.</p><div className="actions"><a className="secondary" href={owner ? "/owner" : "/creator"}>Back to Studio</a><button type="button" className="secondary" onClick={() => void refresh()}>Refresh usage</button></div></header>
     {owner && <section className="section"><h2>Owner controls</h2><label>Review an account<select value={target} onChange={event => { setTarget(event.target.value); setNotice(""); }}><option value="">My account</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label><p className="muted">Beta allowances are testing grants, not paid subscriptions. Assigning one replaces the remaining allowance for a new 30-day period. Running jobs must be resolved first.</p><div className="actions"><label>Beta plan<select value={selectedPlan} onChange={event => setSelectedPlan(event.target.value as Plan)}>{Object.entries(plans).map(([key, plan]) => <option key={key} value={key}>{plan.name} · {plan.credits} credits</option>)}</select></label><button type="button" className="secondary" disabled={pending || !data} onClick={() => { if (data && confirm(`Replace ${target ? "this creator’s" : "your"} allowance with ${plans[selectedPlan].credits} beta credits for 30 days? No payment is collected.`)) void action({ action: "assign-beta", account: target || data.account.owner, plan: selectedPlan, confirmed: true, requestId: crypto.randomUUID() }); }}>Assign beta allowance</button></div></section>}
     {error && <p role="alert" className="notice">{error}</p>}{notice && <p role="status" className="notice">{notice}</p>}
     {!data ? !error && <p role="status">Loading your allowance…</p> : <>

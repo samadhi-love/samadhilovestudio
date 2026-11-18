@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ClerkProvider } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
+import {brand} from "./brand";
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
@@ -72,8 +73,8 @@ export function StudioAuthProvider({ children,serverHostname }: { children: Reac
       signUpFallbackRedirectUrl="/creator"
       afterSignOutUrl="/"
       localization={{
-        signIn: { start: { title: "Welcome back", subtitle: "Sign in for your songs and lyric videos." } },
-        signUp: { start: { title: "Create your Studio account", subtitle: "Free to start. Write, record and release from one place." } },
+        signIn: { start: { title: "Welcome back", subtitle: `Sign in to ${brand.name} for your songs and lyric videos.` } },
+        signUp: { start: { title: `Create your ${brand.name} account`, subtitle: "Free to start. Write, record and release from one place." } },
       }}
     >
       {children}

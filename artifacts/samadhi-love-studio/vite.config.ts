@@ -7,6 +7,7 @@ import { sites } from "./scripts/vite/sites-vite-plugin";
 import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
 import { studioWorkerSecrets } from "./scripts/worker-secrets.mjs";
 import path from "node:path";
+import {syncBrandNotices} from "./scripts/brand-assets.mjs";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -41,6 +42,7 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async ({ command }) => {
+  await syncBrandNotices(process.cwd());
   configureToolEnvironment(process.cwd());
 
   // Production is an ordinary Vinext Node build. Never load Wrangler or use a Worker gateway.

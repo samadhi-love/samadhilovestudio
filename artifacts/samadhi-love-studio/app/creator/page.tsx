@@ -1,3 +1,4 @@
+import {brand} from "../brand";
 import { chatGPTSignInPath, chatGPTSignOutPath } from "../chatgpt-auth";
 import { creatorAccount, creatorBetaEnabled } from "../creator-accounts";
 import { studioAccess, ownerSetup } from "../studio-access";
@@ -15,7 +16,7 @@ export default async function CreatorPage() {
   if (open && account && !account.suspended) return <Studio creatorName={account.displayName} signOut={chatGPTSignOutPath("/creator")}/>;
 
   return <main className="listener-shell"><div className="listener-hero">
-    <p className="eyebrow">SAMADHI LOVE · CREATOR ACCOUNTS</p><h1>Your private workspace</h1>
+    <p className="eyebrow">{brand.name} · CREATOR ACCOUNTS</p><h1>Your private workspace</h1>
     {!open ? <p>Creator registration is currently closed.</p> : account?.suspended ? <p>This creator account is suspended.</p> :
       access.role === "guest" ? <><p>Sign in to start a song, make a lyric video, or return to your private projects.</p><a className="primary" href={chatGPTSignInPath("/creator")} target="_top">Sign in to My Studio</a><p><a href="/sign-up?return_to=%2Fcreator">Create a Studio account</a></p></> :
       access.role === "owner" ? <a className="primary" href="/owner">Open the owner studio</a> : <>

@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import { MusicLanguageControl } from "./music-language-control";
 import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, musicLanguages, musicDialects, type LanguageChoice } from "./music-language";
 import {playLooks,defaultPlayChoices,validPlayChoices,type PlayChoices,type PlayVisualRequest} from "./creative-play";
@@ -296,8 +297,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     <RecoveryPanel recovery={recovery}/>
     {writingStatus.status&&<small role="status">{writingStatus.status}</small>}
     {writingStatus.available&&<button type="button" className="text-button" onClick={writingStatus.open}>Open saved writing draft</button>}
-    <div className="eyebrow"><Sparkles size={15}/> SAMADHI LOVE · SONG + VIDEO CREATOR</div>
-    <h1 id="quick-create-heading">{simple?"Turn your feeling into a song.":"Your song. Your world. Your video."}</h1>
+    <div className="eyebrow"><Sparkles size={15}/> {brand.name} · SONG + VIDEO CREATOR</div>
+    <h1 id="quick-create-heading">{simple?"Turn your feeling into a song.":brand.slogan}</h1>
     <p>{simple?"Describe your song. We write the lyrics and the music.":"Write your own lyrics, set your styles and name your song."}</p>
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>

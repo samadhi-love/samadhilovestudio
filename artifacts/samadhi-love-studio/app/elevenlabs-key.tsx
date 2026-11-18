@@ -1,5 +1,6 @@
 "use client";
 
+import {brand} from "./brand";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { HelpControl, HelpField } from "./help-tip";
 import type { ElevenLabsSettings } from "./elevenlabs-settings-data";
@@ -162,7 +163,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
         <>
           <p className="eyebrow">STEP {step + 1} OF {steps.length}</p>
           <h4 ref={setupHeading} tabIndex={-1}>{steps[step]}</h4>
-          {step === 0 && <p>Sign in to ElevenLabs. In <strong>Developers → API Keys</strong>, create a restricted key named SAMADHI LOVE Studio. Enable <strong>Music</strong> and <strong>User read</strong> for credits. Copy the key while it is visible. <a href={keysUrl} target="_blank" rel="noreferrer">Open ElevenLabs API Keys ↗</a></p>}
+          {step === 0 && <p>Sign in to ElevenLabs. In <strong>Developers → API Keys</strong>, create a restricted key named {brand.name}. Enable <strong>Music</strong> and <strong>User read</strong> for credits. Copy the key while it is visible. <a href={keysUrl} target="_blank" rel="noreferrer">Open ElevenLabs API Keys ↗</a></p>}
           {step === 1 && <><p>Paste the key here to connect and store it securely in your private workspace.</p>{keyForm}</>}
           {step === 2 && <><p>Run the free account check below, then review all three feature results. Some permissions may say Not verified because ElevenLabs does not expose them in a read-only account response. No composition, alignment or stem processing runs during this check.</p>
             <div className="actions">{testButton}</div></>}

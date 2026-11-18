@@ -1,5 +1,6 @@
 "use client";
 
+import {brand} from "./brand";
 import { useState } from "react";
 import { ArrowRight, Layers3 } from "lucide-react";
 import { HelpControl, HelpField } from "./help-tip";
@@ -22,7 +23,7 @@ export function MusicWorkflow({ songs, open }: { songs: Song[]; open: (step: Wor
   const [selected, setSelected] = useState("");
   const song = songs.find(item => item.id === selected);
   return <div className="music-tools">
-    <header className="page-title"><div className="page-title-copy"><p className="eyebrow">SAMADHI LOVE · PRODUCTION</p><h1><Layers3 size={26}/> Project Workflow</h1><p>Take an idea from its first sketch through production and release. Jump to the stage you need.</p></div></header>
+    <header className="page-title"><div className="page-title-copy"><p className="eyebrow">{brand.name} · PRODUCTION</p><h1><Layers3 size={26}/> Project Workflow</h1><p>Take an idea from its first sketch through production and release. Jump to the stage you need.</p></div></header>
     <section className="section">
       <HelpField label="Working song" tip="Select a song to carry its notes or recording into compatible tools. An empty selection opens the tool on its own."><select value={selected} onChange={event => setSelected(event.target.value)}><option value="">New idea or browse tools</option>{songs.map(item => <option key={item.id} value={item.id}>{item.name}{item.creationDraft ? " · Draft" : ""}</option>)}</select></HelpField>
       <div className="music-grid">{steps.map(([id, label, tip], index) => <article key={id} className="music-card version-preview">

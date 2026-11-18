@@ -1,4 +1,6 @@
-- [Preserve the existing studio](product-direction.md) — Continue SAMADHI LOVE Studio; beginner-friendly songs and easy/advanced lyric videos, not a replacement app.
+- [Preserve the existing studio](product-direction.md) — Continue the existing app; beginner-friendly songs and easy/advanced lyric videos, not a replacement app.
+- [Product and artist branding](product-branding.md) — Product branding can change without renaming the SAMADHI LOVE artist, saved work or technical identifiers.
+- [Deterministic illustrations](deterministic-illustrations.md) — Round procedural SVG coordinates; tiny server/browser trigonometry differences can trigger hydration warnings.
 - [Browser test DOM injection](browser-test-injection.md) — Investigate injected select wrappers before treating browser-only hydration warnings as app defects.
 - [Language evidence](language-evidence.md) — Music input acceptance and text fixtures do not verify singing; Lebanese authenticity needs native-speaker listening review.
 - [Vault key continuity](vault-key-continuity.md) — Standardizing secret names must preserve the existing encryption key, not generate a replacement.

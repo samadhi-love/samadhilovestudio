@@ -1,5 +1,6 @@
 "use client";
 
+import {brand} from "./brand";
 import { useEffect, useRef, useState } from "react";
 import { PartySpotlight } from "./party/spotlight";
 import { Headphones, Radio } from "lucide-react";
@@ -33,7 +34,7 @@ export function SubscriberRoom({ signOut, ownerPreview }: { signOut: string; own
 
   return <main className="listener-shell">
     <header className="listener-nav">
-      <div className="brand"><img src="/favicon.svg" alt=""/><div><strong>SAMADHI LOVE</strong><small>THE LISTENING ROOM</small></div></div>
+      <div className="brand"><img src="/favicon.svg" alt=""/><div><strong>{brand.name}</strong><small>THE LISTENING ROOM</small></div></div>
       <div className="actions"><a className="secondary" href="/party">Party Mix</a><a className="secondary" href="/radio">Shared radio</a><a className="secondary" href="/community">Discover music</a>{ownerPreview && <a className="secondary" href="/owner">Owner studio</a>}<a className="secondary" href={signOut} target="_top">Sign out</a></div>
     </header>
     <div className="listener-hero">

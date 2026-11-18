@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import {brand,brandDescription} from "./brand";
 import { StudioErrorBoundary } from "./studio-error-boundary";
 import "./globals.css";
 import { CosmicChannel } from "./cosmic-channel";
@@ -25,8 +26,9 @@ import "./mobile-studio.css";
 import "./creative-play.css";
 
 export const metadata: Metadata = {
-  title: "SAMADHI LOVE Studio",
-  description: "A private creative workspace for original music, from first frequency to release.",
+  title: brand.name,
+  description: brandDescription,
+  openGraph:{title:brand.name,description:brandDescription,siteName:brand.name},
   icons: { icon: "/favicon.svg" },
 };
 

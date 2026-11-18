@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "./brand";
 import {MobileProjectBar} from "./mobile-project-bar";
 import {containDialogFocus} from "./dialog-focus";
 import {deletionNotice} from "./song-deletion";
@@ -547,7 +548,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
 
   return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view}>
     <aside className="sidebar">
-      <button className="brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>SAMADHI LOVE</strong><small>CREATIVE STUDIO</small></span></button>
+      <button className="brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>{brand.name}</strong><small>{brand.subline}</small></span></button>
       <p className="nav-label">WORKSPACE</p>
        <StudioNavigation activeView={song ? "songs" : view} activeScreen={pane??(song?"songs":screenOf(view))} openScreen={openScreen} activeUtility={modal === "connections" ? "settings" : modal === "help"||modal==="tour" ? "guide" : undefined}
         beginner={beginner} changeBeginner={changeBeginner} owner={!creatorName} navigate={navigate} visit={leaveStudio} settings={connectionSettings} guide={() => setModal("help")}/>

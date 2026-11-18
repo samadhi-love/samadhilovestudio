@@ -1,4 +1,5 @@
 "use client";
+import {brand} from "../brand";
 import { useState } from "react";
 import { useCommunityResource } from "../community/client";
 import { plans, type CreditsData, type Plan } from "../credits/data";
@@ -21,7 +22,7 @@ export function MemberDashboard({ selectedPlan, returned, signOut }: { selectedP
     } catch (e) { setNotice(e instanceof Error ? e.message : "Please try again."); }
     finally { setBusy(false); }
   }
-  return <main className="member-shell"><header className="member-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><strong>SAMADHI LOVE</strong></a><div className="actions"><a href="/plans">Plans</a><a href="/credits">Credits &amp; Usage</a><a href={signOut} target="_top">Sign out</a></div></header>
+  return <main className="member-shell"><header className="member-nav"><a className="brand" href="/community"><img src="/favicon.svg" alt=""/><strong>{brand.name}</strong></a><div className="actions"><a href="/plans">Plans</a><a href="/credits">Credits &amp; Usage</a><a href={signOut} target="_top">Sign out</a></div></header>
     <section className="member-hero member-account-hero"><p className="eyebrow">MY MEMBERSHIP</p><h1>Your music.<br/>Your creative home.</h1><p>{data ? `Welcome, ${data.name}. Your private workspace is ready.` : "Opening your private member account…"}</p></section>
     {error && <p role="alert" className="notice">{error} <button type="button" onClick={() => void refresh()}>Retry</button></p>}{notice && <p role="status" className="notice">{notice}</p>}
     {returned && <p className="notice">You returned from checkout. Access and credits change only after Stripe verifies a paid invoice. Refresh billing if the payment is still processing.</p>}

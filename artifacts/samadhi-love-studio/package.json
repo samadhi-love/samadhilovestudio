@@ -6,6 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "test:landing": "node --test tests/versual-landing.test.mjs",
     "test:consolidation": "node scripts/test-studio-consolidation.mjs",
     "test:mantra": "node scripts/test-mantra.mjs",
     "test:languages": "node scripts/test-music-languages.mjs",
