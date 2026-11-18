@@ -1,5 +1,6 @@
 "use client";
 import type { CreditQuote } from "./data";
+import { waitForJob } from "./job-wait";
 export async function productionFetch(url: string, init: RequestInit) {
   const input = typeof init.body === "string" ? JSON.parse(init.body) : {};
   let quoted: Response;
@@ -36,16 +37,8 @@ export async function submitProduction(url:string,init:RequestInit,input:Record<
     const queued=await response.json() as {jobId?:unknown;songId?:string};
     if(typeof queued.jobId!=="string")throw new Error("The job reference could not be confirmed.");
     window.dispatchEvent(new window.Event("samadhi-jobs-updated"));
-    while(true){
-      init.signal?.throwIfAborted();
-      await new Promise<void>(resolve=>setTimeout(resolve,1500));
-      const status=await fetch(`/api/studio/jobs?id=${encodeURIComponent(queued.jobId)}`,{signal:init.signal,cache:"no-store"});
-      if(!status.ok)throw new Error("Your saved job continues on the server. Check My Songs before trying again.");
-      const saved=await status.json() as {job?:{status:string;error_message?:string};result?:{body:unknown;status:number}};
-      if(saved.job?.status==="done"||saved.job?.status==="failed"){
-        window.dispatchEvent(new window.Event("samadhi-jobs-updated"));
-        if(saved.result)return Response.json(saved.result.body,{status:saved.result.status});
-        return Response.json({error:saved.job.error_message??"This attempt didn't finish. Your draft is saved.",songId:queued.songId},{status:502});
-      }
-    }
+    const saved=await waitForJob(()=>fetch(`/api/studio/jobs?id=${encodeURIComponent(queued.jobId as string)}`,{signal:init.signal,cache:"no-store"}),{signal:init.signal});
+    window.dispatchEvent(new window.Event("samadhi-jobs-updated"));
+    if(saved.result)return Response.json(saved.result.body,{status:saved.result.status});
+    return Response.json({error:saved.job?.error_message??"This attempt didn't finish. Your draft is saved.",songId:queued.songId},{status:502});
 }
