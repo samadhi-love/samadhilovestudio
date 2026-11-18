@@ -1,6 +1,6 @@
 import type { ElevenLabsSettings } from "../../../elevenlabs-settings-data";
 import { isSdkMusicPath, sdkMusicRequest } from "./music-sdk";
-import { providerRequest } from "../../../server/ai-provider";
+import { providerRequest,observeProviderCheck,logCheckFailure } from "../../../server/ai-provider";
 
 export const musicModel = "music_v2_5";
 
@@ -77,24 +77,17 @@ export async function elevenLabsFailureMessage(response: Response, scope: Scope)
   return (await failureFromResponse(response, scope)).message;
 }
 
-async function probe<T>(key: string, scope: Scope, path: string, timeout: number, parse: (body: unknown) => T | undefined, payload?: object): Promise<Probe<T>> {
+async function probe<T>(key: string, scope: Scope, path: string, timeout: number, parse: (body: unknown) => T | undefined, requestId?:string): Promise<Probe<T>> {
+ return observeProviderCheck(requestId,async trace=>{
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try{
+   const result=await Promise.race([
+    (async():Promise<Probe<T>>=>{
   let response: Response;
-  try {
-    response = await elevenLabsRequest(key, path, payload, timeout);
-  } catch (error) {
-    const timeoutReached = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
-    return { ok: false, failure: timeoutReached ?
-      { kind: "timeout", message: "ElevenLabs took too long to respond. Wait a moment and run Test Connection again." } :
-      { kind: "network", message: "The Studio server could not reach ElevenLabs. Retry and check the ElevenLabs status page if it persists." } };
-  }
+    response = await elevenLabsRequest(key, path, undefined, timeout);
+  trace.httpStatus=response.status;trace.phase="reading_response";
   if (!response.ok) return { ok: false, failure: await failureFromResponse(response, scope) };
-  let data: unknown;
-  try {
-    data = await response.json();
-  } catch (error) {
-    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError"))
-      return { ok: false, failure: { kind: "timeout", message: "ElevenLabs took too long to finish sending its response. Run Test Connection again." } };
-  }
+  const data:unknown=await response.json();
   const value = parse(data);
   if (value !== undefined) return { ok: true, value };
   return { ok: false, failure: {
@@ -102,6 +95,26 @@ async function probe<T>(key: string, scope: Scope, path: string, timeout: number
     message: scope === "music" ? "ElevenLabs returned no usable Music v2.5 composition plan. Retry the test and contact support if this repeats." :
       "ElevenLabs returned no usable subscription information. Check the ElevenLabs dashboard and retry.",
   } };
+    })(),
+    new Promise<never>((_,reject)=>{timer=setTimeout(()=>{const error=new Error("Account check deadline");error.name="TimeoutError";reject(error);},timeout);}),
+   ]);
+   if(!result.ok)logCheckFailure(trace);
+   return result;
+  }catch(error){
+    logCheckFailure(trace,error);
+    // Headers alone prove an authentication rejection; a slow error body must
+    // not turn a known 401/403 into permission to replace a saved credential.
+    if(trace.httpStatus===401||trace.httpStatus===403)return {ok:false,failure:{
+      kind:trace.httpStatus===401?"key":"denied",status:trace.httpStatus,
+      message:trace.httpStatus===401?"ElevenLabs rejected this key (HTTP 401). Check that it is active and belongs to your workspace.":
+        "ElevenLabs refused this key's account access (HTTP 403). Check User read permission and IP restrictions.",
+    }};
+    const name=(error as {name?:string})?.name;
+    return {ok:false,failure:name==="TimeoutError"||name==="AbortError"?
+      {kind:"timeout",message:"ElevenLabs did not answer within the 30-second account-check deadline."}:
+      {kind:"network",message:"The server could not complete the ElevenLabs account check. Try again in a moment."}};
+  }finally{clearTimeout(timer);}
+ });
 }
 
 const tiers = new Set(["free", "starter", "creator", "pro", "scale", "business", "enterprise"]);
@@ -116,7 +129,7 @@ function readSubscription(body: unknown) {
 
 /** Owner setup only: a read-only account check, with no composition or audio. */
 export async function testElevenLabsAccount(key: string) {
-  const account = await probe(key, "account", "user/subscription", 12_000, readSubscription);
+  const account = await probe(key, "account", "user/subscription", 30_000, readSubscription);
   return {
     connection: account.ok ? "connected" as const : "error" as const,
     musicAccess: account.ok && account.value.tier === "free" ? "unavailable" as const : "unknown" as const,
@@ -128,29 +141,30 @@ export async function testElevenLabsAccount(key: string) {
   };
 }
 
-export async function testElevenLabs(key: string): Promise<Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "musicMessage" | "accountMessage" | "usage" | "error" | "capabilities">> {
+export async function testElevenLabs(key: string,requestId?:string): Promise<Pick<ElevenLabsSettings, "connection" | "musicAccess" | "checkedAt" | "musicMessage" | "accountMessage" | "usage" | "error" | "capabilities">> {
   // GET only. A composition plan is processing too, not a free permission probe.
-  const account = await probe(key, "account", "user/subscription", 12_000, readSubscription);
+  const account = await probe(key, "account", "user/subscription", 30_000, readSubscription,requestId);
   const connected = account.ok;
   const free = account.ok && account.value.tier === "free";
+  const rejected = !account.ok && ["key","permission","ip","denied"].includes(account.failure.kind);
   const unavailable = !account.ok && ["key", "ip"].includes(account.failure.kind);
   const state = unavailable ? "unavailable" as const : "unknown" as const;
   const reason = account.ok
     ? "The free account check does not expose this key’s feature permissions. Check the named permission in ElevenLabs; no paid request was made."
-    : account.failure.message;
+    : "Feature permissions were not tested. Check the named permission in ElevenLabs; no paid request was made.";
   return {
-    connection: connected ? "connected" : "error",
+    connection: connected ? "connected" : rejected ? "error" : "unchecked",
     musicAccess: free || unavailable ? "unavailable" : "unknown",
     checkedAt: new Date().toISOString(),
     accountMessage: account.ok ? "ElevenLabs accepted the key for the subscription check." : account.failure.message,
     musicMessage: free ? "ElevenLabs reports a Free plan. Use a key from a paid workspace with Music API access." :
-      reason,
+      "Music permissions were not tested by this free account check. No music was generated.",
     capabilities: {
       music: { state: free ? "unavailable" : state, reason: free ? "This workspace reports the Free plan. Music API use requires an eligible paid plan and Music permission." : reason + " Enable Music access." },
       alignment: { state, reason: reason + " Enable Forced Alignment access for lyrics timing." },
       stems: { state, reason: reason + " Enable Music access for stem separation." },
     },
     usage: account.ok ? account.value.usage : undefined,
-    error: connected ? undefined : "The read-only account check could not verify the key. Check User read permission; do not generate music to test the connection.",
+    error: rejected ? account.failure.message : undefined,
   };
 }

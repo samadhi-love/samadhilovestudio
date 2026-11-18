@@ -4,6 +4,8 @@ import {brand} from "./brand";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { HelpControl, HelpField } from "./help-tip";
 import type { ElevenLabsSettings } from "./elevenlabs-settings-data";
+import {pendingKeyMessage} from "./elevenlabs-settings-data";
+import {ElevenLabsNetworkDiagnostic} from "./elevenlabs-network-diagnostic";
 
 const endpoint = "/api/studio/elevenlabs";
 const keysUrl = "https://elevenlabs.io/app/api/api-keys";
@@ -28,7 +30,7 @@ export function useElevenLabsKey() {
       const result = await response.json().catch(() => null) as ElevenLabsSettings | null;
       if (!response.ok || !result) throw new Error(result?.error ?? "Could not reach connection settings. Try again.");
       setStatus(current => ({ ...result, ...(method === "PATCH" && { usage: current.usage }) }));
-      return method === "POST" ? result.connection === "connected" :
+      return method === "PUT" ? result.saved : method === "POST" ? result.connection === "connected" :
         result.connection === "connected" || method === "DELETE" || method === "GET";
     } catch (error) {
       setError(error instanceof Error ? error.message : "Could not update the connection.");
@@ -68,7 +70,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
   const testedMusic = status.connection === "connected" && status.musicAccess !== "unavailable";
   const connectionLabel = { connected: "Connected", disconnected: "Disconnected", error: "Error", unchecked: "Saved key · test required" }[status.connection];
 
-  if (status.managed) return <section className="provider-settings"><h3>Studio-funded production</h3><p>Your current funding choice uses SAMADHI credits. No personal ElevenLabs account is required for supported production jobs. Each charge is confirmed before processing.</p><a className="secondary" href="/credits">Credits, usage &amp; funding choices</a><p className="muted">Voice design remains on the owner’s personal provider connection. To manage your personal key, switch funding in Credits &amp; Usage first.</p></section>;
+  if (status.managed) return <section className="provider-settings"><h3>Studio-funded production</h3><p>Your current funding choice uses SAMADHI credits. No personal ElevenLabs account is required for supported production jobs. Each charge is confirmed before processing.</p><a className="secondary" href="/credits">Credits, usage &amp; funding choices</a><p className="muted">Voice design remains on the owner’s personal provider connection. To manage your personal key, switch funding in Credits &amp; Usage first.</p><ElevenLabsNetworkDiagnostic owner={!!status.owner}/></section>;
 
   function goToStep(next: number) {
     setStep(next);
@@ -83,7 +85,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
     setMessage("");
     if (!await update("PUT", payload)) return;
     setReconnecting(false);
-    setMessage("ElevenLabs connected. The key was saved securely.");
+    setMessage("The key was saved securely. Review the connection status below.");
     if (step === 1) goToStep(2);
   }
 
@@ -125,10 +127,12 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
     {status.checkedAt && <p className="muted">Last tested {new Date(status.checkedAt).toLocaleString()}</p>}
     {(status.accountMessage || status.musicMessage) && <ul aria-label="Connection diagnostics">
       {status.accountMessage && <li><strong>Account check</strong> · {status.accountMessage}</li>}
-      {status.musicMessage && <li><strong>Music check</strong> · {status.musicMessage}</li>}
+      {status.musicMessage && <li><strong>Music permissions</strong> · {status.musicMessage}</li>}
     </ul>}
+    {status.saved&&status.connection==="unchecked"&&<p className="notice" role="status">{pendingKeyMessage}</p>}
     {(error || status.error) && <p className="notice" role="alert">{error || status.error}</p>}
     {message && !error && <p role="status">{message}</p>}
+    <ElevenLabsNetworkDiagnostic owner={!!status.owner}/>
     {!status.available && operation !== "GET" && <p className="notice">Secure key storage is currently unavailable. <button type="button" className="text-button" onClick={() => update("GET")} disabled={busy}>Retry</button></p>}
 
     {step === null && (!status.saved || reconnecting) && keyForm}

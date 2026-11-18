@@ -11,7 +11,7 @@ function compile(file, imports, globals = {}) {
   });
   const exports = {};
   vm.runInNewContext(outputText, {
-    exports, ...globals,
+    exports, setTimeout, clearTimeout, ...globals,
     require(name) {
       if(name.endsWith("/server/storage")&&imports["cloudflare:workers"])return vmStorage(imports["cloudflare:workers"].env);
       if(name.endsWith("/server/ai-provider")&&globals.fetch)return vmAI(globals.fetch);

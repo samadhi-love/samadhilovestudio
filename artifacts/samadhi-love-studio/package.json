@@ -35,6 +35,7 @@
     "test:upload-playback": "node --test tests/upload-and-playback-safety.test.mjs",
     "test:job-wait": "node --test tests/job-wait.test.mjs",
     "test:core-path": "node --test tests/core-creation-path.test.mjs",
+    "test:elevenlabs-connection": "node --test tests/elevenlabs-connection-reliability.test.mjs",
     "test:workflow": "node scripts/test-project-workflow.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",

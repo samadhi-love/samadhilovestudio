@@ -4,6 +4,7 @@
  * A credential is provided by the owner's existing encrypted-vault resolver.
  */
 import { retryRead } from "../../scripts/storage/retry.mjs";
+export {observeProviderCheck,logCheckFailure,diagnoseProviderConnectivity} from "./provider-check-diagnostics";
 const origin = "https://api.elevenlabs.io";
 export function elevenLabsTransport(input:RequestInfo|URL,init:RequestInit={}) {
   const url=new URL(typeof input==="string"?input:input instanceof URL?input.href:input.url);
