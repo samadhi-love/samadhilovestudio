@@ -6,6 +6,16 @@ export async function readRender(key:string){return (await recoveryStore<VideoCh
 export async function saveRender(key:string,value:VideoCheckpoint){
   await recoveryStore(key,"write",{version:1,at:new Date().toISOString(),value});
 }
+export type VideoUploadCheckpoint={owner:string;song:string;source:string;size:number;type:string;fingerprint:string;hashes:string[];upload:string};
+export function videoUploadKey(value:Pick<VideoUploadCheckpoint,"owner"|"song"|"source"|"fingerprint">){
+  return `${renderKey(value.owner,value.song)}:upload:${encodeURIComponent(value.source)}:${value.fingerprint}`;
+}
+export async function readVideoUpload(value:Parameters<typeof videoUploadKey>[0]){
+  return (await recoveryStore<VideoUploadCheckpoint>(videoUploadKey(value),"read"))?.value;
+}
+export async function saveVideoUpload(value:VideoUploadCheckpoint){
+  await recoveryStore(videoUploadKey(value),"write",{version:1,at:new Date().toISOString(),value});
+}
 export function segmentStore(key:string,token:string,format:string){
   const at=(index:number)=>`${key}:${token}:${format}:${index}`;
   return {

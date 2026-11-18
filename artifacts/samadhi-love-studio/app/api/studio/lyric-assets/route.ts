@@ -4,7 +4,7 @@ import { isExplicitSong } from "../../../clean-content";
 import { serveAudio } from "../audio-response";
 import { privateHeaders, readStudio } from "../store";
 import { recoverableRoute } from "../request-errors";
-import {maxPrivateVideoBytes,uploadVideoChunks} from "../../../server/video-upload";
+import {maxPrivateVideoBytes,uploadVideoChunks,videoUploadStatus} from "../../../server/video-upload";
 export const dynamic = "force-dynamic";
 const validId = (id: unknown): id is string =>
   typeof id === "string" && /^[\w-]{1,100}$/.test(id);
@@ -26,6 +26,8 @@ const kinds: Record<string, string[]> = {
 async function saveAsset(request: Request) {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to save project media.", 401);
+  if(request.headers.get("X-Studio-Workspace")&&request.headers.get("X-Studio-Workspace")!==access.id)
+    return problem("Your signed-in account changed. Reopen your own Studio before saving this video.",409);
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return problem("Open Studio directly to save media.", 403);
   const songId = request.headers.get("X-Song-Id"),
@@ -93,6 +95,8 @@ async function saveAsset(request: Request) {
 async function getAsset(request: Request) {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to open project media.", 401);
+  if(request.headers.get("X-Studio-Workspace")&&request.headers.get("X-Studio-Workspace")!==access.id)
+    return problem("Your signed-in account changed. Reopen your own Studio before resuming this video.",409);
   const url = new URL(request.url),
     songId = url.searchParams.get("song"),
     id = url.searchParams.get("asset"),
@@ -102,6 +106,13 @@ async function getAsset(request: Request) {
   const song = data?.songs.find((s) => s.id === songId && !s.deletedAt);
   if (!song || isExplicitSong(song))
     return problem("Project media not found.", 404);
+  if(url.searchParams.has("upload")){
+    const recording=source??song.audioId??song.id;
+    if(recording!==(song.audioId??song.id)&&!song.audioHistory?.some(a=>a.audioId===recording))
+      return problem("That source recording is unavailable.",409);
+    if(url.searchParams.get("upload")==="identity")return Response.json({workspace:access.id,source:recording},{headers:privateHeaders});
+    return videoUploadStatus(request,access.id,songId,recording);
+  }
   if (url.searchParams.get("videos") === "1") {
     const cursor = url.searchParams.get("cursor");
     if (cursor !== null && (!cursor || cursor.length > 2048)) return problem("Invalid saved-video page.", 400);

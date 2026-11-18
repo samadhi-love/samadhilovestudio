@@ -2,6 +2,7 @@ import { wavAudio, sampleRate } from "./recording-dsp";
 import { cleanVocal } from "./vocal/effects";
 import { dry } from "./vocal/session";
 import type { ProSettings } from "./lyric-pro-data";
+import {resumePrivateVideo} from "./video-upload-client";
 
 export async function decodeProjectAudio(
   source: string | Blob,
@@ -200,32 +201,13 @@ export async function uploadLyricAsset(
   signal?: AbortSignal,
   sourceAudioId?: string,
   window?: {start:number;end:number},
+  expectedOwner?: string,
 ) {
   if(!blob.size)throw new Error("This file is empty. Choose or create media with content.");
   if(blob.size>(kind==="video"?512:120)*1024*1024)throw new Error(kind==="video"?"Choose a video up to 512 MB.":"Choose project media up to 120 MB.");
   if(["background","logo"].includes(kind)&&blob.size>15*1024*1024)throw new Error("Choose an image up to 15 MB.");
   if(kind==="video"){
-    const headers={"X-Song-Id":songId,"X-Asset-Kind":kind,"X-Asset-Size":String(blob.size),"Content-Type":blob.type,...(sourceAudioId?{"X-Source-Audio-Id":sourceAudioId}:{})};
-    const send=async(path:string,body:Blob|string)=>{
-      // Replays only the same private chunk/finalization ID, never a provider call.
-      for(let attempt=0;attempt<3;attempt++){
-        signal?.throwIfAborted();
-        try{
-          const response=await fetch("/api/studio/lyric-assets?"+path,{method:"POST",headers,body,signal});
-          const result=await response.json() as {error?:string;upload:string;chunkSize:number;id?:string};
-          if(response.ok)return result;
-          if(response.status<500&&response.status!==429||attempt===2)throw Object.assign(new Error(result.error??"Your video could not save."),{terminal:true});
-        }catch(error){if(signal?.aborted||(error as {terminal?:boolean}).terminal||attempt===2)throw error;}
-        await new Promise(resolve=>setTimeout(resolve,300*(attempt+1)));
-      }
-      throw new Error("Your video could not save. Keep this tab open and retry.");
-    };
-    const session=await send("upload=init","");
-    if(typeof session.upload!=="string"||!Number.isSafeInteger(session.chunkSize)||session.chunkSize<1||session.chunkSize>8*1024*1024)throw new Error("The private upload could not start.");
-    for(let offset=0,index=0;offset<blob.size;offset+=session.chunkSize,index++)await send(`upload=${session.upload}&part=${index}`,blob.slice(offset,offset+session.chunkSize));
-    const result=await send(`upload=${session.upload}&complete=1`,"");
-    if(!result.id)throw new Error("Your video save was not confirmed.");
-    return result.id as string;
+    return resumePrivateVideo(songId,blob,signal,sourceAudioId,expectedOwner);
   }
   const response = await fetch("/api/studio/lyric-assets", {
     method: "POST",

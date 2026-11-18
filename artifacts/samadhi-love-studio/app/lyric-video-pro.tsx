@@ -1678,6 +1678,8 @@ function LyricVideoProContent(props: Props) {
             result.blob,
             task.signal,
             pro.sourceAudioId,
+            undefined,
+            owner,
           );
         } else
           setStatus(
