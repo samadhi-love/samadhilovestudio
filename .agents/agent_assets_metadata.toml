@@ -42,3 +42,17 @@ mtime_ms = 1794921194698
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/a94b354b-c676-4176-93e5-7f8b4dfb7428/b172fc8f-9485-47ac-a140-36072fad2270"
 storage_version_token = "1794921300598399"
 content_type = "text/html"
+
+[[outputs]]
+id = "PvxwQzZC0fqcteSD0w7kY"
+uri = "file://generated-artifacts/claude-upload-playback-verification/full-report.txt"
+type = "text"
+title = "Upload and playback verification report"
+description = "Complete offline verification logs, merge details and the two reproduced upload-validation gaps plus the row-storage lookup limitation."
+logical_id = "30201c67-b53a-4b1c-b439-36a9870758aa"
+content_hash = "sha256:7c256c7ea51b250d5b6b14dcf326637087f1b6140caf39bdb2ad1d3168f7c6bf"
+size = 199621
+mtime_ms = 1795008869447
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/30201c67-b53a-4b1c-b439-36a9870758aa/5cdcab82-5d17-4902-a277-e65731cc24bd"
+storage_version_token = "1795008907354570"
+content_type = "text/plain"
