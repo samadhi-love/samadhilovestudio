@@ -13,6 +13,8 @@ import { audioKey, privateHeaders, readStudio } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
 
 import { privateWorkspace } from "../../../studio-access";
+import {clipCaptionTimes} from "../../../caption-edit-continuity";
+import {saveCaptionRecovery} from "../../../server/caption-recovery";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ async function syncLyrics(request: Request) {
 
   const raw = await readBoundedText(request, 64_000);
   if (raw.length > 16_000) return problem("The lyric text is too long.", 413);
-  let input: { songId?: unknown; audioId?: unknown; mode?: unknown; text?: unknown; language?: string; duration?: number; analysisAsset?: string; sourceAudioId?: string; analysisOffset?: number } | null;
+  let input: { songId?: unknown; audioId?: unknown; mode?: unknown; text?: unknown; language?: string; duration?: number; analysisAsset?: string; sourceAudioId?: string; analysisOffset?: number; window?:{start:number;end:number} } | null;
   try { input = JSON.parse(raw); } catch { return problem("Invalid caption request.", 400); }
   let key: string | null;
   try { key = managedProviderKey(request) ?? await resolveElevenLabsKey(id); }
@@ -55,6 +57,9 @@ async function syncLyrics(request: Request) {
   if (!Number.isFinite(offset) || Math.abs(offset)>2) return problem("Check the analysis timing offset.",400);
   const bucket = env.BUCKET;
   if (!bucket) return problem("Audio storage is temporarily unavailable.", 503);
+  const window=input.window;
+  if(window&&(!Number.isFinite(window.start)||!Number.isFinite(window.end)||window.start<0||window.end<=window.start||!duration||window.end>duration||!input.analysisAsset||mode!=="align"))
+    return problem("Choose a valid changed-part excerpt to align.",400);
 
   const deadline = AbortSignal.any([request.signal, AbortSignal.timeout(240_000)]);
   try {
@@ -63,6 +68,8 @@ async function syncLyrics(request: Request) {
     if (input.analysisAsset) {
       if (!audio || !["analysis","vocal"].includes(audio.customMetadata?.kind ?? "") || audio.customMetadata?.song !== song.id || audio.customMetadata?.source !== sourceId)
         return problem("The analysis audio belongs to a different recording. Choose the original or analyze again.",409);
+      if(window&&(audio.customMetadata?.windowStart!==String(window.start)||audio.customMetadata?.windowEnd!==String(window.end)))
+        return problem("Upload only the selected changed-part audio before aligning.",409);
       const type=audio.httpMetadata?.contentType;
       format = type?.includes("wav") ? "wav" : type?.includes("mp4") ? "m4a" : type?.includes("flac") ? "flac" : type?.includes("ogg") ? "ogg" : "mp3";
     }
@@ -91,15 +98,22 @@ async function syncLyrics(request: Request) {
       confidenceAvailable: false, language: result.language_code,
     }, {headers:privateHeaders});
     if (input.analysisAsset && offset) cues = cues.map(c=>({...c,time:Math.max(0,c.time-offset),end:c.end===undefined?undefined:Math.max(.001,c.end-offset),words:c.words?.map(w=>({...w,time:Math.max(0,w.time-offset)}))}));
-    if (duration !== undefined && cues.some(c=>c.time>=duration || c.end !== undefined && c.end>duration+.25))
-      return problem("Some word times fall outside the final recording. Check the analysis offset or use the original audio.",422);
-    if (duration !== undefined) cues=cues.map(c=>({...c,end:c.end===undefined?undefined:Math.min(c.end,duration),words:c.words?.filter(w=>w.time<duration)}));
+    let clippedLines=0;
+    if(duration!==undefined){
+      try{const clipped=clipCaptionTimes(cues,window?window.end-window.start:duration);cues=clipped.cues;clippedLines=clipped.clippedLines;}
+      catch{return problem("Most caption lines fall outside this recording. Check the selected audio.",422);}
+    }
+    if(window)cues=cues.map(c=>({...c,time:c.time+window.start,end:c.end===undefined?undefined:c.end+window.start,words:c.words?.map(w=>({...w,time:w.time+window.start}))}));
     const warnings = ["Sung lyrics, overlapping voices, and dialects may be misrecognized. Review the result. Reliable word confidence scores are not available."];
+    if(clippedLines)warnings.push(`${clippedLines} caption lines were clipped to the recording end.`);
     if (duration) warnings.push(...reviewTiming(cues,duration).slice(0,20).map(f=>`Line ${f.index+1}: ${f.message}`));
-    return Response.json({ cues, language: result.language_code, languageProbability: result.language_probability,
+    const savedResult={cues,window,clippedLines,language: result.language_code, languageProbability: result.language_probability,
       confidenceAvailable: false, warnings, engine: aligning ? "ElevenLabs forced alignment" : "ElevenLabs Scribe v2",
       vocalSections: cues.map(c=>({start:c.time,end:c.end})),
-    }, { headers: privateHeaders });
+    };
+    try{await saveCaptionRecovery(id,song.id,sourceId,savedResult);}
+    catch{warnings.push("Your captions are ready, but the private recovery copy could not save. Save this project before leaving.");}
+    return Response.json(savedResult, { headers: privateHeaders });
   } catch {
     return problem("Automatic sync could not finish. Try again or adjust the captions manually.", 502);
   }

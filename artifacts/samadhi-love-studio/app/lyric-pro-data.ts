@@ -45,6 +45,7 @@ export type ProSettings = {
   name: string;
   sourceSongId: string;
   sourceAudioId: string;
+  captionEdit?: {start:number;end:number};
   soundtrackConfirmed?: string;
   beatGrid?: { source: string; bpm: number; offset: number; beats: number[]; method: "onset-grid/v1"; reviewed: boolean };
   duration: number;
@@ -186,6 +187,7 @@ function validateProSettings(value: unknown): value is ProSettings {
     smallString(p.name, 150) &&
     smallString(p.sourceSongId, 100) &&
     smallString(p.sourceAudioId, 100) &&
+    (p.captionEdit===undefined||!!p.captionEdit&&finite(p.captionEdit.start,0,p.duration)&&finite(p.captionEdit.end,p.captionEdit.start,p.duration)&&p.captionEdit.end>p.captionEdit.start) &&
     (p.soundtrackConfirmed === undefined || smallString(p.soundtrackConfirmed, 400)) &&
     finite(p.duration, 0, 600.1) &&
     (p.beatGrid === undefined || (!!p.beatGrid && smallString(p.beatGrid.source,400) && finite(p.beatGrid.bpm,40,240) && finite(p.beatGrid.offset,0,p.duration) && p.beatGrid.method === "onset-grid/v1" && typeof p.beatGrid.reviewed === "boolean" && Array.isArray(p.beatGrid.beats) && p.beatGrid.beats.length <= 2400 && p.beatGrid.beats.every((t,i,beats)=>finite(t,0,p.duration) && (i===0||t>beats[i-1])))) &&

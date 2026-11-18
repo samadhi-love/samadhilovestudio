@@ -199,6 +199,7 @@ export async function uploadLyricAsset(
   blob: Blob,
   signal?: AbortSignal,
   sourceAudioId?: string,
+  window?: {start:number;end:number},
 ) {
   if(!blob.size)throw new Error("This file is empty. Choose or create media with content.");
   if(blob.size>(kind==="video"?512:120)*1024*1024)throw new Error(kind==="video"?"Choose a video up to 512 MB.":"Choose project media up to 120 MB.");
@@ -235,6 +236,7 @@ export async function uploadLyricAsset(
       "X-Asset-Size": String(blob.size),
       "Content-Type": blob.type,
       ...(sourceAudioId ? { "X-Source-Audio-Id": sourceAudioId } : {}),
+      ...(window?{"X-Window-Start":String(window.start),"X-Window-End":String(window.end)}:{}),
     },
     body: blob,
   });

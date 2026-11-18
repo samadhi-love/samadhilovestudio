@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Caption continuity, changed-window alignment and private paid-sync recovery", ["--test", "tests/caption-edit-continuity.test.mjs"]],
   ["Cosmic Studio screens, real-song sky, accessible controls and reduced motion", ["--test", "tests/cosmic-studio.test.mjs"]],
   ["Versual landing, shared branding, public releases and reduced motion", ["--test", "tests/versual-landing.test.mjs"]],
   ["Independent song records, exact copy and two-tab saves", ["scripts/test-song-rows-api.mjs"]],

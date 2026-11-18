@@ -190,7 +190,7 @@ export function VersualLanding() {
       <section className="vl-hero">
         <div className="vl-hero-copy">
           <p className="vl-eyebrow"><Sparkles size={15}/> {brand.slogan.toUpperCase()}</p>
-          <h1 className="vl-h1"><span className="vl-headline-line">Your soul</span><span className="vl-grad vl-headline-line">has a sound.</span></h1>
+          <h1 className="vl-h1"><span className="vl-headline-line">Your soul</span>{" "}<span className="vl-grad vl-headline-line">has a sound.</span></h1>
           <p className="vl-lede">Bring the melody that lives in you down to earth. Describe it, write it, hum it — and watch it become a full song and a glowing lyric video.</p>
           <div className="vl-ctas">
             <a href="/creator" className="vl-btn vl-btn-primary" data-testid="link-create-song"><Sparkles size={17}/> Create your song</a>

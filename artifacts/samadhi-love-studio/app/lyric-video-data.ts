@@ -50,7 +50,7 @@ export type VideoTheme = keyof typeof videoThemes;
 export type VideoMotion = "drift" | "zoom" | "still";
 export type VideoFormat = "vertical" | "wide" | "square";
 export type LyricWord = { offset: number; time: number };
-export type LyricCue = { text: string; time: number; end?: number; words?: LyricWord[]; emphasis?: CaptionEmphasis; accentWords?: number[]; singer?: string; role?: "lead" | "backing" | "adlib"; language?: string; translation?: string; transliteration?: string };
+export type LyricCue = { text: string; time: number; end?: number; words?: LyricWord[]; needsReview?: boolean; emphasis?: CaptionEmphasis; accentWords?: number[]; singer?: string; role?: "lead" | "backing" | "adlib"; language?: string; translation?: string; transliteration?: string };
 export const captionFonts = Object.fromEntries(Object.entries(captionTypefaces).map(([id, face]) => [id, face.label])) as { [K in keyof typeof captionTypefaces]: string };
 export const captionColors = { pearl: "#fff7ea", gold: "#ffdda1", turquoise: "#a6fff3", lilac: "#e9d6ff" } as const;
 export const captionEffects = { fade: "Fade in", rise: "Gentle rise", still: "Still text" } as const;
@@ -138,6 +138,7 @@ function validateLyricProject(value: unknown): value is LyricProject {
   return project.cues.every((cue, index) => cue && typeof cue.text === "string" && cue.text.trim().length > 0 &&
     cue.text.length <= 180 && Number.isFinite(cue.time) && cue.time >= 0 &&
     (cue.end === undefined || (Number.isFinite(cue.end) && cue.end > cue.time)) &&
+    (cue.needsReview === undefined || typeof cue.needsReview === "boolean") &&
     (index === 0 || cue.time > project.cues[index - 1].time) &&
     ([cue.singer, cue.language].every(s => s === undefined || typeof s === "string" && s.length <= 80)) &&
     ([cue.translation, cue.transliteration].every(s => s === undefined || typeof s === "string" && s.length <= 180)) &&

@@ -60,6 +60,9 @@ async function saveAsset(request: Request) {
   const bucket = env.BUCKET;
   if (!bucket) return problem("Project media storage is unavailable.", 503);
   if(chunkUpload)return uploadVideoChunks(request,access.id,songId,source,size,type);
+  const windowStart=request.headers.get("X-Window-Start"),windowEnd=request.headers.get("X-Window-End");
+  if((windowStart!==null||windowEnd!==null)&&(kind!=="analysis"||windowStart===null||windowEnd===null||!Number.isFinite(Number(windowStart))||!Number.isFinite(Number(windowEnd))||Number(windowStart)<0||Number(windowEnd)<=Number(windowStart)||Number(windowEnd)>600.1))
+    return problem("Choose a valid audio excerpt for this alignment.",400);
   if(!request.body)return problem("Choose a non-empty project file.",400);
   if(size>120*1024*1024)return problem("Save this full-length video using the chunked video uploader.",413);
   const id = crypto.randomUUID(),
@@ -74,6 +77,7 @@ async function saveAsset(request: Request) {
           song: songId,
           kind,
           source,
+          ...(windowStart!==null&&windowEnd!==null?{windowStart,windowEnd}:{}),
           createdAt: new Date().toISOString(),
         },
       }),

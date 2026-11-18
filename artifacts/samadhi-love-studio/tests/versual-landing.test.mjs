@@ -53,7 +53,7 @@ test("shared identity comes from one config and describes the product",async()=>
 });
 test("public page renders the requested sections and shared footer",()=>{
   feed({releases:[]});const doc=parse(),text=doc.body.textContent;
-  assert.match(doc.querySelector("h1").textContent,/Your soulhas a sound\./);
+  assert.match(doc.querySelector("h1").textContent,/Your soul has a sound\./);
   for(const copy of ["Everything vibrates.","Receive. Create. Radiate.","Every song becomes a moving sky.","Rising in the cosmos","The harmonic series","The golden ratio","Music of the spheres","Where words fail, music speaks."])assert.ok(text.includes(copy),copy);
   for(const copy of Object.values(brand))assert.ok(doc.querySelector("footer").textContent.includes(copy),copy);
   assert.equal(doc.querySelectorAll(".vl-phone").length,4);

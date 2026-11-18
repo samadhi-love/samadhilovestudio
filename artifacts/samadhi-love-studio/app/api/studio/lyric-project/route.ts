@@ -1,6 +1,7 @@
 import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
-import { hasExplicitWords, isExplicitSong } from "../../../clean-content";
+import { isExplicitSong } from "../../../clean-content";
+import {changedCaptionProblem} from "../../../caption-edit-continuity";
 import { isLyricProject, type LyricProject } from "../../../lyric-video-data";
 import { type ProVersion } from "../../../lyric-pro-data";
 import { readBoundedText, recoverableRoute } from "../request-errors";
@@ -104,19 +105,7 @@ async function putProject(request: Request) {
 
   if (
     p.sourceSongId !== input.songId ||
-    !valid(p.sourceAudioId) ||
-    hasExplicitWords(
-      p.approvedLyrics,
-      p.name,
-      p.artist,
-      p.credits,
-      p.advertisement?.brand,p.advertisement?.cta,
-      ...input.project.cues.flatMap((c) => [
-        c.text,
-        c.translation,
-        c.transliteration,
-      ]),
-    )
+    !valid(p.sourceAudioId)
   )
     return problem("Check the project's lyrics and text.", 422);
   if (
@@ -132,8 +121,10 @@ async function putProject(request: Request) {
       song = current.data?.songs.find(
         (s) => s.id === input.songId && !s.deletedAt,
       );
-    if (!current.data || !song || isExplicitSong(song))
+    if (!current.data || !song || song.explicit===true)
       return problem("The source song is unavailable.", 404);
+    const flagged=changedCaptionProblem(input.project,song.lyricVideo);
+    if(flagged)return Response.json(flagged,{status:422,headers:privateHeaders});
     if (
       p.sourceAudioId !== (song.audioId ?? song.id) &&
       !song.audioHistory?.some((a) => a.audioId === p.sourceAudioId)

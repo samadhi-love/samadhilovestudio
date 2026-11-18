@@ -17,6 +17,10 @@ import {videoFormatLabels} from "./video-format-options";
 import {savedLyricsForAudio} from "./caption-ready-lyrics";
 import {artistDashboardHref} from "./community/data";
 import {productionFetch} from "./credits/client";
+import {mergeWindowCaptions} from "./caption-edit-continuity";
+import type {CaptionRecovery} from "./server/caption-recovery";
+import {wavAudio} from "./recording-dsp";
+const formatCaptionTime=(seconds:number)=>`${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,"0")}`;
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -264,6 +268,7 @@ function LyricVideoProContent(props: Props) {
     [retrySave, setRetrySave] = useState(false);
   const [captionEditRequest,setCaptionEditRequest]=useState<{id:number;index?:number}>();
   const [lyricsEditorOpen,setLyricsEditorOpen]=useState(false);
+  const [captionRecovery,setCaptionRecovery]=useState<CaptionRecovery|null>(null);
   const captionEditSequence=useRef(0);
   function openCaptionEditor(index?:number){setStep(2);setCaptionEditRequest({id:++captionEditSequence.current,index});}
   const [mobilePreview,setMobilePreview]=useState(true);
@@ -795,12 +800,24 @@ function LyricVideoProContent(props: Props) {
   }, [song?.id, p?.duration, busy]);
   const handledAutoCaption = useRef("");
   useEffect(()=>{
+    setCaptionRecovery(null);
+  },[song?.id,p?.sourceAudioId]);
+  useEffect(()=>{
     if(!song||!p?.duration||recoveryReady!==song.id||recovery||current.current?.cues.length||props.autoCaptionRequest?.songId===song.id)return;
     let active=true;
     const opened=current.current;
     if(!opened?.pro)return;
-    void fetch(`/api/studio/jobs?songId=${encodeURIComponent(song.id)}&captions=1`,{cache:"no-store"}).then(async response=>{
-      if(!response.ok)return;
+    void fetch(`/api/studio/lyric-sync/recovery?song=${encodeURIComponent(song.id)}&audio=${encodeURIComponent(p.sourceAudioId)}`,{cache:"no-store"}).then(async recoveryResponse=>{
+      if(recoveryResponse.ok){
+        const saved=await recoveryResponse.json() as {recovery?:CaptionRecovery};
+        if(saved.recovery?.cues?.length){
+          if(active&&!controller.current&&current.current===opened)setCaptionRecovery(saved.recovery);
+          return null;
+        }
+      }
+      return fetch(`/api/studio/jobs?songId=${encodeURIComponent(song.id)}&captions=1`,{cache:"no-store"});
+    }).then(async response=>{
+      if(!response?.ok)return;
       const saved=await response.json() as {captions?:SyncResponse;sourceAudioId?:string;text?:string};
       const source=opened.pro!;
       if(!active||controller.current||current.current!==opened||saved.sourceAudioId!==source.sourceAudioId||!saved.captions?.cues?.length)return;
@@ -811,7 +828,7 @@ function LyricVideoProContent(props: Props) {
       if(isLyricProject(next)){edit(next);setStatus("Recovered your timed captions. Listen and review before exporting.");}
     }).catch(()=>{});
     return()=>{active=false;};
-  },[song?.id,p?.duration,recoveryReady,recovery,props.autoCaptionRequest?.songId]);
+  },[song?.id,p?.sourceAudioId,p?.duration,recoveryReady,recovery,props.autoCaptionRequest?.songId]);
   useEffect(() => {
     const request = props.autoCaptionRequest;
     if (!request || request.id === handledAutoCaption.current || song?.id !== request.songId || !p?.duration || busy || recoveryReady !== song.id) return;
@@ -976,6 +993,38 @@ function LyricVideoProContent(props: Props) {
       patchPro({ sourceVideo: item.id });
     }
   }, [p?.sourceSongId]);
+  async function realignChangedPart(){
+    const opened=current.current,pro=opened?.pro,window=pro?.captionEdit;
+    if(!opened||!pro||!song||!window||busy)return;
+    const lines=opened.cues.filter(c=>c.needsReview||c.time<window.end&&(c.end??c.time)>window.start).map(c=>c.text);
+    if(!lines.length){setError("No lyric lines remain in this cut. Review the join manually; no provider call was made.");return;}
+    if(!confirm(`Realign only ${formatCaptionTime(window.start)}–${formatCaptionTime(window.end)}? This uses your ElevenLabs account and may cost provider credits. The Studio cost estimate will be checked before processing.`))return;
+    const task=new AbortController();controller.current=task;setOperation("Realigning the changed part");setError("");
+    try{
+      const decoded=await decodeProjectAudio(sourceUrl(pro.sourceSongId,pro.sourceAudioId),task.signal);
+      const start=Math.floor(window.start*decoded.sampleRate),end=Math.min(decoded.length,Math.ceil(window.end*decoded.sampleRate));
+      const mono=new Float32Array(end-start);
+      for(let channel=0;channel<decoded.numberOfChannels;channel++){const samples=decoded.getChannelData(channel);for(let i=0;i<mono.length;i++)mono[i]+=samples[start+i]/decoded.numberOfChannels;}
+      const excerpt=wavAudio(mono,undefined,decoded.sampleRate);
+      const asset=await uploadLyricAsset(song.id,"analysis",excerpt,task.signal,pro.sourceAudioId,window);
+      const response=await productionFetch("/api/studio/lyric-sync",{method:"POST",headers:{"Content-Type":"application/json"},signal:task.signal,body:JSON.stringify({songId:song.id,audioId:song.audioId,sourceAudioId:pro.sourceAudioId,mode:"align",text:lines.join("\n"),language:pro.language,duration:pro.duration,analysisAsset:asset,analysisOffset:0,window})});
+      const result=await response.json() as SyncResponse;
+      if(!response.ok||!result.cues?.length)throw new Error(result.error??"The changed part could not align. Your other captions are unchanged.");
+      if(current.current!==opened)throw new Error("This project changed while aligning. Restore the saved sync before repeating a paid call.");
+      edit({...opened,cues:mergeWindowCaptions(opened.cues,result.cues as LyricCue[],window),pro:{...pro,captionEdit:undefined,alignment:{engine:result.engine??"Window alignment",at:new Date().toISOString(),audioId:pro.sourceAudioId,reviewed:false,warnings:result.warnings??[]}}});
+      await persist(true,"Realigned changed part");
+      setStatus("The changed part is aligned. Captions outside it were kept.");
+    }catch(error){message(error,"The changed part could not align. Your captions are preserved.");}
+    finally{controller.current=null;setOperation("");}
+  }
+  function restoreCaptionSync(){
+    const opened=current.current;
+    if(!opened?.pro||!captionRecovery)return;
+    const restored=captionRecovery.window?mergeWindowCaptions(opened.cues,captionRecovery.cues,captionRecovery.window):captionRecovery.cues;
+    const next={...opened,cues:restored,pro:{...opened.pro,captionEdit:undefined,alignment:{engine:captionRecovery.engine??"Recovered sync",at:new Date().toISOString(),audioId:opened.pro.sourceAudioId,reviewed:false,warnings:captionRecovery.warnings??[]}}};
+    if(!isLyricProject(next)){setError("The recovered captions need a timing review before restoring.");return;}
+    edit(next);setCaptionRecovery(null);void persist(true,"Restored last caption sync");setStatus("Restored your last caption sync. No provider call was made.");
+  }
   async function generateCaptions() {
     const next = current.current;
     if (!next?.pro || !song || busy) return;
@@ -2250,6 +2299,8 @@ function LyricVideoProContent(props: Props) {
                         <span aria-hidden="true" className="obs-caption-dot"/>
                         {!project.cues.length?"No captions yet":p.alignment?.reviewed?"Captions reviewed by you":p.alignment?.engine==="Rough timing"||!p.alignment?"Rough timing · listen and adjust":`Synced draft · ${p.alignment.engine} · needs your review`}
                       </p>
+                      {p.captionEdit&&<div role="status"><p>Captions moved to your edited song. The changed part ({formatCaptionTime(p.captionEdit.start)}–{formatCaptionTime(p.captionEdit.end)}) needs a quick realign.</p><button type="button" disabled={busy} onClick={()=>void realignChangedPart()}>Realign changed part</button></div>}
+                      {!project.cues.length&&captionRecovery&&<button type="button" disabled={busy} onClick={restoreCaptionSync}>Restore your last caption sync</button>}
                       <audio
                         key={soundtrackUrl}
                         ref={audio}

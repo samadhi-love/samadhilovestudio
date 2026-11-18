@@ -11,6 +11,7 @@ import { recoverableRoute } from "../request-errors";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { stampSong } from "../../../song-library";
 import {isSectionEditPlan,type SectionEditPlan} from "../../../song-section-data";
+import {carryEditedCaptions} from "../../../caption-edit-continuity";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +109,16 @@ async function uploadAudio(request: Request) {
     song.tags = [creationPresets[instrumental.settings.preset].name];
   }
   song=stampSong(song,existing);
+  if(sectionEdit&&sourceProject?.lyricVideo?.pro){
+    if(!bucket)return problem("Private project storage is unavailable. Your original captions are unchanged.",503);
+    const old=sourceProject.lyricVideo;
+    const snapshotId=crypto.randomUUID(),at=new Date().toISOString();
+    await bucket.put(`lyric-projects/${encodeURIComponent(id)}/${sourceProject.id}/${snapshotId}.json`,JSON.stringify(old),{
+      httpMetadata:{contentType:"application/json"},
+      customMetadata:{name:"Before audio section edit",at,audioId:old.pro!.sourceAudioId},
+    });
+    song.lyricVideo=carryEditedCaptions(old,sectionEdit,song.id,song.audioId??song.id);
+  }
   const data = { ...studio, songs: existing ? studio.songs.map(item => item.id === song.id ? song : item)
     : sourceProject ? attachRenderedMix(studio.songs, sourceProject, song, sourceSession) : [song, ...studio.songs] };
   const content = JSON.stringify(data);
