@@ -1,4 +1,14 @@
-# Latest update — reliable background-job waiting (this repair is not published)
+# Latest update — Step 4 core-path tests passed offline; live owner sign-in pending
+
+Added `test:core-path` to the package commands and Studio verifier. Three connected offline tests now exercise the real creation, alignment, lyric-project and private-media routes: exact supplied lyrics, saved/reopened captions, a private video upload/download with matching bytes and ranged reads, revision-conflict recovery, account isolation and rejecting a changed recording before alignment. Provider calls and persistence use isolated fixtures. A synthetic 30-second MP4 is checked with FFprobe for H.264 video, AAC audio and duration; this is **not** proof of native browser encoding, real singing or real sung-word alignment.
+
+**Results:** **51/51 Studio groups**, **36/36 declared workspace test commands**, the additional credits-controls command, full workspace typecheck and production build passed (**40/40 commands**). Existing creation-UI tests passed **5/5**, phone-export tests **7/7**, and the new core-path tests **3/3**. Logs are under `generated-artifacts/step4-core-verification/`.
+
+**Production attempt:** the public app loaded, and `/health` returned HTTP 200 with server/database/storage OK. The browser was signed out. Its supported automatic Clerk sign-in targets the isolated development tenant, not the existing production owner. The requested owner-browser handoff timed out. No alternate identity, owner claim, provider key, setting, billing, domain or user data was changed. **Paid-call ledger: 0 song generations, 0 lyric-sync calls, 0 other paid provider calls.**
+
+**Still required:** the owner must sign in to the existing production account during a fresh test-browser handoff. Then continue the already-approved one-short-song → cloud save/reopen → caption sync → native vertical video export/save/download check. The global limit remains three song generations, with no automatic replay of an uncertain request. Real caption alignment, production song/video persistence, downloaded native-browser media and playback are **not verified** by this attempt. Step 4 is **not complete**. No runtime app bug was found in the offline portion; only test code/registration and this report changed. No publishing or deletion was performed.
+
+# Earlier update — reliable background-job waiting
 
 Fixed the nullable `RequestInit.signal` type error without changing how paid work is submitted. Job-status requests and their response bodies now have a bounded timeout, while valid progress keeps long-running songs waiting normally and temporary outages retain the two-minute reconnect budget. A stalled connection shows “Didn't finish checking your saved work” with **Try again** in Saved work status. That button only rechecks saved jobs with GET; it does not start another paid attempt or mark an uncertain job failed. Existing confirmed retries for genuinely failed server jobs remain unchanged.
 
