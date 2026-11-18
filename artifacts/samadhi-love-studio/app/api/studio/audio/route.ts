@@ -5,6 +5,8 @@ import { serveAudio } from "../audio-response";
 import { audioFormatsLabel, audioTypes, freshSong, emptyCreatorStudio, initialStudio, isAudioFormat, maxAudioBytes, validCreationReference, type Song } from "../../../studio-data";
 import { audioKey, maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "../store";
 import {preservePaidSong} from "../../../server/song-recovery";
+import {audioSignatureCheck,NotAudioError,notAudioMessage} from "../../../audio-signature";
+import {readOwnedSong} from "../../../server/song-lookup";
 
 import { privateWorkspace } from "../../../studio-access";
 import { recoverableRoute } from "../request-errors";
@@ -127,13 +129,18 @@ async function uploadAudio(request: Request) {
 
   const key = audioKey(id, song.audioId ?? song.id);
   const stream = new FixedLengthStream(size);
+  const signature = audioSignatureCheck();
   try {
     await Promise.all([
-      request.body.pipeTo(stream.writable),
+      request.body.pipeThrough(signature).pipeTo(stream.writable),
       bucket.put(key, stream.readable, { httpMetadata: { contentType: audioTypes[format] },
         customMetadata:{recoverable:"1",songId:song.id,audioId:song.audioId??song.id,audioFormat:format,title:song.name,createdAt:new Date().toISOString()} }),
     ]);
   } catch (error) {
+    if (error instanceof NotAudioError || signature.refused) {
+      await bucket.delete(key).catch(() => {});
+      return problem(notAudioMessage, 415);
+    }
     console.error("Studio audio upload failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return problem("The audio upload failed. Try again.", 502);
   }
@@ -178,8 +185,9 @@ async function getAudio(request: Request) {
   const id = access.id;
   const params = new URL(request.url).searchParams;
   const songId = params.get("song"), version = params.get("v");
-  const { data } = await readStudio(id);
-  const song = data?.songs.find(song => song.id === songId && !song.deletedAt);
+  // Reads only this song, not the whole library: players request many byte ranges.
+  const found = songId ? await readOwnedSong(id, songId) : null;
+  const song = found && !found.deletedAt ? found : undefined;
   if (!song || !song.audioFormat || !isAudioFormat(song.audioFormat)) return problem("Audio not found.", 404);
   if (isExplicitSong(song)) return problem(cleanWordsMessage, 422);
   const recording = version ?? song.audioId ?? song.id;
