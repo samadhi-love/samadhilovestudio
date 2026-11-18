@@ -1,10 +1,20 @@
 # Versual Studio — current guide
 
+## Begin a song
+
+**Just Begin:** write Your Vision, choose a singing language if needed, optionally turn on No Vocals, then press Begin. English remains the automatic default. Two takes are made by default; switch to Shape It to choose one. ElevenLabs asks before making two paid versions.
+
+**Shape It:** edit Your Words or press Write them for me to review generated lyrics first; choose Sound & Soul and Voice directions; optionally name the song. Search, See more and free text expose the full sound collection. Complete selections are kept; the first roughly twenty guide the music. More contains supported Leave Out/Spark controls, Auto length up to six minutes and dialect options. Unsupported controls are hidden rather than simulated.
+
+**Your Sounds:** the former saved prompts and Style DNA library now share one place. Save a named combination, optionally include words/vision, and apply it later. Leave Out, Spark and voice directions return with it. Existing entries remain usable. Studio tools contains the existing recipes, private melody notes, helpers, song map, musical ads and detailed production.
+
+Both takes save privately and can be compared side by side; choosing a favourite does not delete the other. New song starts a fresh form; unfinished writing is quietly kept without recovery prompts.
+
 ## Owner-only ACE-Step music
 
 In Advanced view, open Settings and choose **ACE-Step 1.5 · thinking quality**. Add the fal.ai API key as **FAL_KEY** in Replit Secrets and refresh engine status; it never belongs in chat or a client field. This checks configuration only, not paid generation. Without that key, the owner keeps ElevenLabs with a quiet explanation. Other creators continue using their own ElevenLabs keys.
 
-ACE-Step defaults to two takes in one request; turn off Make 2 versions for one. Both takes are private in Your songs and can be compared side by side; keeping a favorite never deletes the other. Auto uses Studio's duration planner (the fal endpoint does not document native Auto), with a six-minute maximum. Longer directions/lyrics are not silently cut: the app uses ElevenLabs for inputs that fal cannot accept.
+ACE-Step defaults to two takes in one request; turn off Two takes in Shape It for one. Both takes are private in Your songs and can be compared side by side; keeping a favorite never deletes the other. Auto uses Studio's duration planner (the fal endpoint does not document native Auto), with a six-minute maximum. Longer directions/lyrics are not silently cut: the app uses ElevenLabs for inputs that fal cannot accept.
 
 For a description-only vocal song, the existing ElevenLabs connection writes lyrics first. If it is disconnected, supply lyrics for ACE-Step. Automatic caption alignment stays on ElevenLabs; otherwise use the existing rough/manual timing. Private hum references are not sent to this text-only music endpoint.
 

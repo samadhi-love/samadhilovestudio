@@ -109,6 +109,11 @@ async function createMusic(request: Request) {
   if (input?.openingMode !== undefined && (typeof input.openingMode !== "string" || !Object.hasOwn(songOpenings,input.openingMode))) return problem("Choose a supported song opening.",400);
   const openingMode: SongOpening = input?.openingMode ?? "auto";
   const text = (name: string) => typeof input?.[name] === "string" ? input[name] as string : "";
+  const negativeStyle=text("negativeStyle").trim();
+  if(input?.negativeStyle!==undefined&&typeof input.negativeStyle!=="string")return problem("Describe the sounds to leave out in words.",400);
+  if(negativeStyle.length>500)return problem("Keep Leave Out to 500 characters or fewer.",400);
+  if(input?.spark!==undefined&&(typeof input.spark!=="number"||!Number.isFinite(input.spark)||input.spark<0||input.spark>2))
+    return problem("Choose a Spark setting between Familiar and Adventurous.",400);
   if (hasExplicitWords(text("title"), text("description"), text("prompt"), text("lyrics"), text("voice"), text("arrangement"),text("instruments"),text("genres"),input?.musicalAd?JSON.stringify(input.musicalAd):""))
     return problem(cleanWordsMessage, 422);
   let languageProfile: LanguageProfile | undefined;
@@ -123,6 +128,7 @@ async function createMusic(request: Request) {
   }
   const selectedEngine=input?.action==="song"?await musicEngineStatus(access):null;
   let useFal=selectedEngine?.engine==="ace-step";
+  if(input?.action==="song"&&input.spark!==undefined&&!useFal)return problem("Spark is available with ACE-Step. Your words have not been sent.",400);
   let engineNotice=selectedEngine?.notice??"";
   if(input?.versions!==undefined&&input.versions!==1&&input.versions!==2)return problem("Choose one or two takes.",400);
   // A creator cannot opt into the owner's fal key through request fields.
@@ -310,12 +316,16 @@ async function createMusic(request: Request) {
     if (Array.isArray(finalChunks)) {
       const coded = applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name));
       const styled = sectionDirections ? coded : vocalStyles(coded, voice);
-      plan = { ...plan, chunks: languageProfile ? languageStyles(styled, languageProfile) : styled };
+      const languageChunks=languageProfile ? languageStyles(styled, languageProfile) : styled;
+      plan = { ...plan, chunks: negativeStyle?languageChunks.map(chunk=>{
+        const prior=(chunk as typeof chunk&{negative_styles?:unknown}).negative_styles;
+        return {...chunk,negative_styles:[...(Array.isArray(prior)?prior.filter((style):style is string=>typeof style==="string"):[]),negativeStyle]};
+      }):languageChunks };
     }
     if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
     let falInput:FalInput|undefined;
     if(useFal){
-      try{falInput=falSongInput({prompt,lyrics:draft.notes.lyrics,voice,genres,instruments,arrangement,duration,language:languageProfile?.resolved??"en",dialect:languageProfile?.dialect?musicDialects[languageProfile.dialect]:undefined,instrumental,versions:input.versions===1?1:2});}
+      try{falInput=falSongInput({prompt,lyrics:draft.notes.lyrics,voice,genres,instruments,arrangement,duration,language:languageProfile?.resolved??"en",dialect:languageProfile?.dialect?musicDialects[languageProfile.dialect]:undefined,instrumental,versions:input.versions===1?1:2,negativeStyle,spark:input.spark});}
       catch(error){
         engineNotice=error instanceof Error?error.message:"ACE-Step cannot use these inputs. Using ElevenLabs.";
         if(!key)return problem(engineNotice+" Connect ElevenLabs for this song.",400);
@@ -407,7 +417,7 @@ async function createMusic(request: Request) {
       try{
         if(!await finishPaidAudio(id,draft))console.warn("Paid song saved; recovery receipt changed before completion.");
       }catch{console.warn("Paid song saved; recovery receipt completion is pending.");}
-      return Response.json({ ...saved, songId: draft.id,...(engineNotice?{engineNotice}:{}) }, options);
+      return Response.json({ ...saved, songId: draft.id,...(engineNotice?{engineNotice:engineNotice+(input.spark!==undefined?" Spark does not apply to the ElevenLabs backup.":"")}:{}) }, options);
     }
     return problem("Your recording is safely stored but could not be attached. Open My Songs and choose Recover unfinished songs. Do not generate it again.", 409);
   } catch {

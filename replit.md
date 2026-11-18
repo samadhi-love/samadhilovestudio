@@ -1,4 +1,12 @@
-# Latest update — owner-only ACE-Step music engine
+# Latest update — Begin a song
+
+Create now has **Just Begin** (Your Vision, language, No Vocals, Begin) and **Shape It** (editable words, grouped Sound & Soul choices, Voice, Name and folded More). Both default to two takes; Shape It can choose one. ElevenLabs still asks before a double-cost request. New song clears the form; writing still saves quietly.
+
+**Your Sounds** combines the existing saved prompts and Style DNA library, keeps complete selections and can include words/vision when requested. Only the first roughly twenty sounds guide a generation. **Write them for me** calls the existing lyric writer and displays editable lyrics before any music is made. Leave Out maps to real negative-style parameters; ACE-Step Spark maps to `lm_temperature`. Unsupported Stay True, melody-following and true voice cloning remain hidden; private recordings and existing specialist tools remain available inside Studio tools/Record.
+
+**Verification:** 53/53 Studio groups passed, including 34/34 creator/video DOM tests (8 new Begin a song cases) and 21/21 fake-engine tests. Full workspace typecheck and production build passed. The old Style DNA regression now loads saved combinations from Your Sounds and explicitly selects one take for its single-request check. The lyric writer is wired to the existing server route, receives sound/voice/language/length context, and preserves old writing on errors. Real paid audio quality, physical-phone behavior and live provider calls remain unverified. No publishing, paid provider calls, domain/billing changes or deletion of user data.
+
+## Previous update — owner-only ACE-Step music engine
 
 ACE-Step 1.5 through fal.ai is implemented behind the existing server AI boundary, in thinking mode, with two private takes by default and a one-take option. The owner chooses the engine in Settings → Advanced. Other creators still use their own ElevenLabs connection. Existing jobs, private Cloudflare storage, paid-audio recovery, captions and videos are reused.
 

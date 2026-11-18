@@ -23,7 +23,7 @@ test("Create resumes device writing without prompts, ignores older account text,
  let cloud:Record<string,unknown>={revision:0};
  window.confirm=()=>{questions++;return false;};
  globalThis.fetch=async()=>Response.json(cloud);
- const render=()=>h.root.render(<DraftRecoveryProvider scope="quiet-create-owner"><QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>{calls++;return "paid-song";}} saveSketch={async()=>undefined}/></DraftRecoveryProvider>);
+ const render=()=>h.root.render(<DraftRecoveryProvider scope="quiet-create-owner"><QuickCreate engine={{owner:true,configured:true,preferred:"ace-step",engine:"ace-step",notice:""}} connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>{calls++;return "paid-song";}} saveSketch={async()=>undefined}/></DraftRecoveryProvider>);
  const description=()=>document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
  try{
   await act(async()=>render());await h.settle();

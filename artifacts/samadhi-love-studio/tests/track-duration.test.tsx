@@ -48,6 +48,8 @@ test("Quick Create sends the displayed automatic duration instead of its old fix
   const h=await setup();let duration=0,opening="";
   try{
     await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{duration=input.duration;opening=input.openingMode??"";return undefined;}} saveSketch={async()=>undefined}/>));
+    assert.equal(document.querySelector('.track-length-control'),null,"Just Begin keeps Length folded away");
+    window.confirm=()=>true;await customCreate();
     assert((document.querySelector('.track-length-control input[type="checkbox"]') as HTMLInputElement).checked);
     assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: Auto.*Uses your ElevenLabs credits/);
     await h.input(creationIdea(),"A joyful song");await h.submit();assert.equal(duration,180,"no forced 90-second beginner limit");

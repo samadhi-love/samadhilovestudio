@@ -20,7 +20,7 @@ test("automatic lyric mode explains how the idea and styles guide the song", () 
   assert.match(source, /!instrumental&&!useOwnLyrics/);
   assert.match(source, /Write coherent original lyrics/);
   assert.match(source, /Style notes are directions, not words to sing/);
-  assert.match(source, /const prompt = simple\s*\? idea\.trim\(\)/);
+  assert.match(source, /const described = simple\s*\? idea\.trim\(\)/);
   assert.match(source, /const genre = simple\?"":/);
   assert.match(source, /const instruments = simple\?"":/);
   assert.match(source, /const code = simple\?"":/);

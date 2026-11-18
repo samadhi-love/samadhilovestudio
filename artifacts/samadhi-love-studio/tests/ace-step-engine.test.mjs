@@ -142,6 +142,26 @@ test("genre delivery, cues, language and bounded original inputs map honestly",(
   assert.match(mapped.prompt,/rapper/);assert.match(mapped.prompt,/whisper/);assert.match(mapped.prompt,/808/);assert.equal(mapped.bpm,92);assert.equal(mapped.vocal_language,"es");assert.doesNotMatch(mapped.lyrics,/[{}]/);assert.match(mapped.lyrics,/\[Verse\]/);
   assert.throws(()=>api.falSongInput({...mapped,voice:"",genres:"",instruments:"",arrangement:"",language:"en",instrumental:false,versions:2,lyrics:"a".repeat(4097)}),/4,096/);
 });
+test("Shape It Leave Out and Spark reach real fal parameters, not ignored guidance controls",async()=>{
+ const {state}=fixture();
+ const response=await api.create(request({...input,negativeStyle:"distorted drums, autotune",spark:1.35}));
+ assert.equal(response.status,200);const sent=state.fal[0].input;
+ assert.equal(sent.lm_negative_prompt,"distorted drums, autotune");assert.equal(sent.lm_temperature,1.35);
+ assert.equal("guidance_scale" in sent,false);assert.equal("reference_audio" in sent,false);
+ assert.equal(state.studio.data.songs[0].generation.compositionPlan.lm_temperature,1.35);
+});
+test("ElevenLabs Leave Out updates real negative styles; unsupported or invalid Spark makes no paid call",async()=>{
+ let f=fixture({env:{}});let response=await api.create(request({...input,negativeStyle:"distorted drums"}));
+ assert.equal(response.status,200);
+ const chunks=f.state.eleven.find(x=>x.path==="music?output_format=mp3_44100_128").payload.composition_plan.chunks;
+ assert.ok(chunks.length);assert.ok(chunks.every(chunk=>chunk.negative_styles.includes("distorted drums")));
+ for(const value of [-1,2.01,"high",null]){
+  f=fixture();response=await api.create(request({...input,spark:value}));assert.equal(response.status,400);
+  assert.equal(f.state.fal.length,0);assert.equal(f.state.eleven.length,0);
+ }
+ f=fixture({env:{}});response=await api.create(request({...input,spark:1}));
+ assert.equal(response.status,400);assert.equal(f.state.eleven.length,0);
+});
 test("bounded polling ends rather than waiting forever and persists acceptance before reading status",async()=>{
   let time=0,submitted=0,accepted=false;
   const fake={now:()=>time,wait:async ms=>{time+=ms;},media:async()=>{throw new Error("unexpected");},

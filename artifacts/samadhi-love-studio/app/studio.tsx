@@ -245,7 +245,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
       const response = await (url === "/api/studio/create" ? productionFetch : fetch)(url, { ...request, headers });
-      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string } | null;
+      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string;lyrics?:string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
       }
@@ -626,6 +626,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
           <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
+            writeLyrics={async input=>(await createRequest({...input,action:"lyric-plan"},"Your words are ready to shape",true))?.lyrics}
             promptHelpers={apply=><PromptLab seed={null} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
             vocalHelpers={apply=><VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
             proProduction={<div ref={createPane} className="qc-pro-engine"><CreateStudio projects={data.songs.filter(s => !s.deletedAt && !s.projectId && !isExplicitSong(s))} key={createSeed ? "seed-" + JSON.stringify(createSeed) : "create"}

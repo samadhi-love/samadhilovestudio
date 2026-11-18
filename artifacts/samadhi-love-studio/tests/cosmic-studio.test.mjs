@@ -160,10 +160,15 @@ test("Create renders the real guided form and truthful local/cost controls",()=>
   const doc=domOf(ui.QuickCreate,{connected:false,saving:false,drafts:[],settings:noop,guided:noop,openDrafts:noop,generateSong:async()=>undefined,saveSketch:async()=>undefined}).window.document;
   assert.equal(doc.querySelector("#quick-create-heading").textContent,"Begin a song");
   assert.ok(doc.querySelector('[data-testid="input-song-description"]'));
-  assert.match(doc.body.textContent,/Nothing is sent until you press Create/);
-  assert.match(doc.body.textContent,/Help me describe it/);
-  assert.match(doc.body.textContent,/uses double credits/);
-  assert.equal(doc.querySelector('[data-testid="checkbox-make-two-versions"]').checked,false);
+  assert.match(doc.body.textContent,/Nothing is sent until you press Begin/);
+  assert.equal(doc.querySelector('[data-testid="tab-mode-simple"]').getAttribute("aria-selected"),"true");
+  assert.match(doc.querySelector('[data-testid="tab-mode-simple"]').textContent,/Just Begin/);
+  assert.match(doc.querySelector('[data-testid="tab-mode-custom"]').textContent,/Shape It/);
+  assert.match(doc.body.textContent,/No Vocals/);
+  assert.equal(doc.querySelector('[data-testid="button-create-song"]').textContent.trim(),"Begin");
+  // Just Begin carries no helpers, cost notes or take selector; ElevenLabs consent is a confirmation at Begin.
+  assert.doesNotMatch(doc.body.textContent,/Help me describe it|double credits|ElevenLabs credits/);
+  assert.equal(doc.querySelector('[data-testid="checkbox-make-two-versions"]'),null);
 });
 
 test("Record keeps actual idle state, recorder and Advanced gating",()=>{

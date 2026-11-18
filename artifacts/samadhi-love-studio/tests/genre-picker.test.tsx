@@ -1,4 +1,4 @@
-import {customCreate,creationIdea} from "./create-controls";
+import {customCreate,creationIdea,oneTake} from "./create-controls";
 import test from "node:test";
 import assert from "node:assert/strict";
 import React, { act, useState } from "react";
@@ -70,10 +70,12 @@ test("Quick Create sends clicked genre blends into the actual generation request
     await customCreate();
     await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!,"Finding our way home through love");
     await h.language();
-    await act(async()=>h.button("Pop").click());await act(async()=>(document.querySelector('.genre-browse-toggle') as HTMLButtonElement).click());await h.family("African Styles");await act(async()=>h.button("Amapiano").click());
+    await oneTake();
+    await act(async()=>h.button("Pop").click());await h.input(document.querySelector<HTMLInputElement>('[data-testid="input-search-sounds"]')!,"amapiano");await act(async()=>h.button("Amapiano").click());
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(sent!.prompt,/^Style: Pop, Amapiano\./);assert(sent!.title.length<=100);
-    await act(async()=>(document.querySelector('[aria-label="Remove Pop"]') as HTMLButtonElement).click());
+    await h.input(document.querySelector<HTMLInputElement>('[data-testid="input-search-sounds"]')!,"");
+    await act(async()=>h.button("Pop").click());
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(sent!.prompt,/^Style: Amapiano\./);
   }finally{await h.close();}
@@ -130,7 +132,8 @@ test("Studio chooses sends a named fusion without forwarding private prompt hist
     await h.language();
     const auto=[...document.querySelectorAll('input[type="checkbox"]')].find(i=>i.parentElement?.textContent?.includes("Studio chooses")) as HTMLInputElement;
     await act(async()=>auto.click());
-    assert(document.querySelector('.genre-selected')!.textContent!.includes("Fusion"));
+    await oneTake();
+    assert(document.querySelector<HTMLInputElement>('[data-testid="input-styles"]')!.value.includes("Fusion"));
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(sent!.prompt,/Afro House/);assert.match(sent!.prompt,/Fusion/);assert(!sent!.prompt.includes("private family"));
     await act(async()=>h.button("Pop").click());assert(!auto.checked,"a manual chip selection takes back control");
@@ -165,10 +168,11 @@ test("expanded style window holds eight visible selections and releases a slot w
 
 test("pasted music direction detects eight styles and reaches Quick Create intact with or without chips",async()=>{
  const h=await setup();let sent:any;const text='Blend Jazz, Lebanese Dabke, Deep House, Trance, R&B, Afrobeats, Ambient and Gospel. Warm oud, natural singing and a spacious middle section. Without rap.';
- try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{sent=input;return undefined;}} saveSketch={async()=>undefined}/>));await customCreate();await h.input(document.querySelector('.genre-prompt textarea')!,text);assert.equal(creationIdea().value,text);
+ try{await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{sent=input;return undefined;}} saveSketch={async()=>undefined}/>));await customCreate();await oneTake();await h.input(creationIdea(),text);assert.equal(creationIdea().value,text);
  await h.language();
- await act(async()=>h.button('Use detected styles').click());assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,8);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(genreTags(sent.genres).length,8);assert.ok(sent.prompt.includes(text));
- await act(async()=>h.button('Use prompt without genre chips').click());assert.equal(document.querySelectorAll('.genre-selected .genre-pill').length,0);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.ok(sent.prompt.startsWith(text));assert.equal(sent.genres,'');assert.ok(!sent.prompt.startsWith('Genre:'));
+ const pressed=()=>document.querySelectorAll('[data-testid="group-genres"] .shape-chip[aria-pressed="true"]').length;
+ await act(async()=>h.button('Use styles from my vision · 8').click());assert.equal(pressed(),8);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(genreTags(sent.genres).length,8);assert.ok(sent.prompt.includes(text));
+ await act(async()=>h.button('Clear picks').click());assert.equal(pressed(),0);await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.ok(sent.prompt.startsWith(text));assert.equal(sent.genres,'');assert.ok(!sent.prompt.startsWith('Genre:'));
  }finally{await h.close();}
 });
 

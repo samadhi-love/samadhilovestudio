@@ -2,9 +2,11 @@ import {falRequest,falMediaRequest} from "./ai-provider";
 export const falMusicModel="fal-ai/ace-step-1.5";
 const path="/"+falMusicModel;
 export class FalRejected extends Error { constructor(public status:number){super("fal.ai rejected this request before accepting a generation.");} }
-export type FalInput={prompt:string;lyrics:string;duration:number;vocal_language:string;num_outputs:1|2;thinking:true;enable_safety_checker:true;bpm?:number};
-export function falSongInput(input:{prompt:string;lyrics:string;voice:string;genres:string;instruments:string;arrangement:string;duration:number;language:string;dialect?:string;instrumental:boolean;versions:1|2}):FalInput{
+export type FalInput={prompt:string;lyrics:string;duration:number;vocal_language:string;num_outputs:1|2;thinking:true;enable_safety_checker:true;bpm?:number;lm_negative_prompt?:string;lm_temperature?:number};
+export function falSongInput(input:{prompt:string;lyrics:string;voice:string;genres:string;instruments:string;arrangement:string;duration:number;language:string;dialect?:string;instrumental:boolean;versions:1|2;negativeStyle?:string;spark?:number}):FalInput{
   if(input.duration<10||input.duration>360)throw new Error("ACE-Step supports 0:10 to 6:00 here. Using ElevenLabs for shorter songs.");
+  if(input.negativeStyle&&input.negativeStyle.length>500)throw new Error("Keep Leave Out to 500 characters or fewer.");
+  if(input.spark!==undefined&&(!Number.isFinite(input.spark)||input.spark<0||input.spark>2))throw new Error("Spark must be between 0 and 2.");
   const lyrics=input.instrumental?"[Instrumental]":input.lyrics.replace(/\{[^{}]*\}/g,"").trim();
   if(!input.instrumental&&!lyrics)throw new Error("Add lyrics, or connect ElevenLabs to write them from your description before ACE-Step sings them.");
   if(lyrics.length>4096)throw new Error("These lyrics exceed ACE-Step's 4,096-character limit. Using ElevenLabs without shortening your words.");
@@ -19,7 +21,9 @@ export function falSongInput(input:{prompt:string;lyrics:string;voice:string;gen
   if(compact.length>512)throw new Error("These combined directions exceed ACE-Step's 512-character limit. Using ElevenLabs without dropping your directions.");
   const bpm=Number(/\b(\d{2,3})\s*bpm\b/i.exec(style)?.[1]);
   return {prompt:compact,lyrics,duration:input.duration,vocal_language:input.instrumental?"unknown":input.language,
-    num_outputs:input.versions,thinking:true,enable_safety_checker:true,...(bpm>=30&&bpm<=300?{bpm}:{})};
+    num_outputs:input.versions,thinking:true,enable_safety_checker:true,...(bpm>=30&&bpm<=300?{bpm}:{}),
+    ...(input.negativeStyle?.trim()?{lm_negative_prompt:input.negativeStyle.trim()}:{}),
+    ...(input.spark!==undefined?{lm_temperature:input.spark}:{})};
 }
 export type FalResult={audio?:{url:string};audios?:{audio:{url:string};seed?:number}[];duration?:number};
 export type FalClient={

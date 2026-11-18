@@ -1,4 +1,4 @@
-import {customCreate,creationIdea} from "./create-controls";
+import {customCreate,creationIdea,oneTake} from "./create-controls";
 import test from 'node:test';import assert from 'node:assert/strict';import React,{act,useState} from 'react';import {JSDOM} from 'jsdom';
 import {defaultSongMap,mapArrangement,mapSeconds,readStyleDNA,validSongMap} from '../app/style-dna';import {makeSavedSongPrompt} from '../app/saved-song-prompts';import {QuickCreate} from '../app/quick-create';import {stemEnvelope} from '../app/av-signals';import {stemLight,validReactiveStem} from '../app/stem-reactive';import {freshSong} from '../app/studio-data';import {newProSettings} from '../app/lyric-pro-data';import {isLyricProject} from '../app/lyric-video-data';
 test('Style DNA round trips privately without lyrics and bounded song maps serialize production-only directions',()=>{const d={...defaultSongMap,genres:['Dabke','House'],instruments:'Oud, darbuka',vocals:'Clear duet'};const t=makeSavedSongPrompt({name:'Album sound',tags:d.genres,lyrics:'',idea:'',instruments:d.instruments,vocals:d.vocals,styleDNA:d},'prompt-dna');assert.deepEqual(readStyleDNA(JSON.parse(JSON.stringify(t))),{kind:'samadhi-style-dna/v1',...d});assert.equal(t.notes.lyrics,'');assert(validSongMap(d));assert.equal(mapSeconds(d),196);assert(mapArrangement(d).includes('[Chorus]'));assert(!validSongMap({...d,sections:[{name:'Verse',seconds:361}]}));assert(!validSongMap({...d,bpm:NaN}));assert(!readStyleDNA({...t,notes:{...t.notes,promotion:'{"kind":"samadhi-style-dna/v1","sections":null}'}}));});
@@ -11,11 +11,12 @@ test('loading Style DNA leaves writing and title intact and reaches the real cre
  const template=makeSavedSongPrompt({name:'My album',tags:dna.genres,idea:'',lyrics:'',instruments:dna.instruments,vocals:dna.vocals,styleDNA:dna},'prompt-dna');
  try{
   await act(async()=>root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} savedPrompts={[template]} generateSong={async p=>{payload=p;return undefined;}} saveSketch={async()=>undefined}/>));
-  await customCreate();const area=creationIdea();
+  await customCreate();await oneTake();const area=creationIdea();
   const setIdea=async(value:string)=>act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(area),'value')!.set!.call(area,value);area.dispatchEvent(new dom.window.Event('input',{bubbles:true}));});
   await setIdea('A song about hope');
-  const select=document.querySelector('.dna-controls select') as unknown as HTMLSelectElement;
-  await act(async()=>{select.value=template.id;select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
+  const use=[...document.querySelectorAll<HTMLButtonElement>('[data-testid="saved-prompt-library"] button')].find(button=>button.textContent==="Use");
+  assert.ok(use,"legacy Style DNA is available in the consolidated Your Sounds library");
+  await act(async()=>use.click());
   assert.equal(area.value,'A song about hope');
   await act(async()=>document.querySelector('form')!.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(payload.duration,196);assert(payload.prompt.includes('123 BPM'));assert(payload.prompt.includes('A song about hope'));assert.equal(payload.voice,'Clear female lead');assert(payload.arrangement.includes('[Bridge]'));

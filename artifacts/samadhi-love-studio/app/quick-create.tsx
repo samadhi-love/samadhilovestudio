@@ -10,9 +10,11 @@ import {MusicalAdBuilder} from "./musical-ad-builder";
 import {adStyles,emptyMusicalAd,isMusicalAd,recoverMusicalAd,musicalAdPrompt,musicalAdSections,type MusicalAd} from "./musical-ad";
 import {matchVocalToSong,promptPerformer,singingArrangements} from "./vocal-matching";
 import {titlesFromLyrics} from "./song-cover";
-import {WorldMusicOptions,creatorVocalDirection,defaultCreatorVocals,type CreatorVocalOptions} from "./creator-music-options";
+import {creatorVocalDirection,defaultCreatorVocals,worldFusionRecipes,type CreatorVocalOptions} from "./creator-music-options";
+import {engineCapabilities} from "./music-engine-data";
+import {SoundSoulPicker,VoicePicker,splitPicks} from "./shape-it-controls";
 import {performanceWeight} from "./song-opening";
-import {readSavedAd,type PromptDraft} from "./saved-song-prompts";
+import {readSavedAd,readSavedShape,type PromptDraft} from "./saved-song-prompts";
 import type {Template} from "./studio-data";
 import {SongOpeningControl} from "./song-opening-control";
 import {defaultCreateChoice,recoverCreateChoice,resolveCreateMode,type CreateChoice} from "./quick-create-mode";
@@ -22,13 +24,11 @@ import { HelpField } from "./help-tip";
 import {SongCard} from "./song-card";
 import {RecoveryPanel,useDraftRecovery} from "./draft-recovery";
 import {useAccountWriting} from "./use-account-writing";
-import { GenrePicker } from "./genre-picker";
 import { genreTags } from "./music-genres";
 import { GenreAssistant } from "./genre-assistant";
 import { fusionGenres, suggestGenreFusion } from "./genre-assist";
 import { useEffect,useRef,useState, type FormEvent, type ReactNode } from "react";
-import { featuredGenres } from "./music-genres";
-import { ArrowRight, Braces, Music2, Settings2, Sparkles } from "lucide-react";
+import { ArrowRight, Braces, Music2, Settings2, Sparkles, Star } from "lucide-react";
 import { CleanLyricsChecker } from "./clean-lyrics-checker";
 import { AudioPlayer } from "./audio-player";
 import { LyricNotationPreview } from "./lyric-notation-preview";
@@ -50,11 +50,13 @@ export type QuickSeed = { id: string; idea?: string; styles?: string[]; lyrics?:
 export function seedFromTemplate(t: Template, id: string): QuickSeed {
   return { id, custom: true, title: t.name, styles: t.tags, lyrics: t.notes.lyrics, vocal: t.notes.vocals, instruments: t.notes.instruments, idea: t.notes.prompt.split("\n\nOpening:")[0], notice: `Recipe "${t.name}" loaded. Review, then Create.` };
 }
-export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
+export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn,writeLyrics }: {
+  /** User-triggered lyric writing before Begin. Returns editable lyrics; never generates music. */
+  writeLyrics?:(input:Record<string,unknown>)=>Promise<string|undefined>;
   engine?:import("./music-engine-data").MusicEngineStatus;favoriteTake?:(id:string)=>Promise<void>;
   connected: boolean; saving: boolean; drafts: Song[]; settings: () => void; guided: () => void; openDrafts: () => void;
   connectionError?: string; connectionChecking?: boolean; refreshConnection?: () => void;
-  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; versions?:1|2;openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"]; projectId?:string }) => Promise<string | {songId:string;songIds?:string[];warning?:string} | undefined>;
+  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; versions?:1|2;openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; negativeStyle?:string; spark?:number; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"]; projectId?:string }) => Promise<string | {songId:string;songIds?:string[];warning?:string} | undefined>;
   saveSketch: (file: File, title: string, prompt: string, arrangement: string, settings: Instrumental,saveId?:string) => Promise<string | undefined>;
   working?:(value:boolean)=>void;
   makeVideo?:(song:Song,short?:boolean,visual?:PlayVisualRequest)=>void|Promise<void>;
@@ -79,8 +81,11 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   const lyricInput=useRef<HTMLTextAreaElement>(null);
   function changePlay(next:PlayChoices){setPreviousChoices(playChoices);setPlayChoices(next);try{localStorage.setItem("samadhi:last-video-look:v1",playLooks[next.look].preset);}catch{}}
   const [idea, setIdea] = useState("");
-  const [makeTwoVersions,setMakeTwoVersions]=useState(false);
-  useEffect(()=>{if(falActive)setMakeTwoVersions(true);},[falActive]);
+  // Two takes is the default for every new song. ElevenLabs keeps its double-cost confirmation at Begin.
+  const [makeTwoVersions,setMakeTwoVersions]=useState(true);
+  const caps=engineCapabilities[engine?.engine??"elevenlabs"];
+  const [negativeStyle,setNegativeStyle]=useState(""),[spark,setSpark]=useState<number|null>(null),[wordsByStudio,setWordsByStudio]=useState(false);
+  const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[lyricBusy,setLyricBusy]=useState(false);
   const [melodyTakes,setMelodyTakes]=useState<MelodyReferenceTake[]>([]);
   const [melodyStatus,setMelodyStatus]=useState("");
   const [songMap,setSongMap]=useState<SongMap>(defaultSongMap),[mapEnabled,setMapEnabled]=useState(false);
@@ -104,12 +109,12 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
-  const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+  const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,negativeStyle,spark,wordsByStudio,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
     setAutoLength(value.autoLength!==false);setManualTime(typeof value.manualTime==="string"?value.manualTime:"");
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}else{setPhoto(null);setPhotoName("");}setResultId(typeof value.resultId==="string"?value.resultId:undefined);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
-    setMakeTwoVersions(value.makeTwoVersions===true);
+    setMakeTwoVersions(value.makeTwoVersions!==false);setNegativeStyle(typeof value.negativeStyle==="string"?value.negativeStyle:"");setSpark(typeof value.spark==="number"&&value.spark>=0&&value.spark<=2?value.spark:null);setWordsByStudio(value.wordsByStudio===true);
     const recoveredTakes=Array.isArray(value.melodyTakes)?[...value.melodyTakes]:[];
     const priorDraft=value as typeof value & {melodyTake?:unknown;melodyDurationSeconds?:number};
     if(typeof Blob!=="undefined"&&priorDraft.melodyTake instanceof Blob)recoveredTakes.unshift({id:`recovered-${Date.now()}`,blob:priorDraft.melodyTake,durationSeconds:priorDraft.melodyDurationSeconds??30});
@@ -128,9 +133,9 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     if(next.idea!==undefined)setIdea(next.idea.slice(0,1200));
     if(isLanguageChoice(next.languageChoice))setLanguageChoice(next.languageChoice);
     if(next.lyrics!==undefined){const words=performanceWeight(next.lyrics)>0;setLyrics(words?next.lyrics.slice(0,5000):"");setOwnLyrics(words);if(!words&&next.lyrics.trim())setCodeEdit(next.lyrics.slice(0,2000));}
-    if(next.styles?.length){setAutoGenre(false);setGenreEdit(next.styles.join(", ").slice(0,500));}
+    if(next.styles?.length){setAutoGenre(false);setGenreEdit(next.styles.join(", "));}
     if(next.vocal)setVoiceEdit(next.vocal.slice(0,1000));
-    if(next.instruments)setInstrumentsEdit(next.instruments.slice(0,180));
+    if(next.instruments)setInstrumentsEdit(next.instruments);
     if(next.title)setSongTitle(next.title.slice(0,100));
     if(next.ad){setAdMode(true);setAdBrief(next.ad);setChoice("vocals");setCodeEdit(musicalAdSections(next.ad));setOpeningMode("direct");}
     if(next.panel==="pro"){setProOpen(true);window.setTimeout(()=>document.querySelector("[data-testid=fold-pro-production]")?.scrollIntoView?.({block:"start"}),0);}
@@ -145,13 +150,16 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   const mode=resolveCreateMode(choice,connected,simple);
   const instrumental = mode.instrumental;
   const localSketch=customMode&&mode.localSketch;
-  const useOwnLyrics=customMode&&!instrumental&&!!lyrics.trim();
+  const useOwnLyrics=customMode&&!instrumental&&!wordsByStudio&&!!lyrics.trim();
   const fusion=suggestGenreFusion(idea,codeEdit??"",drafts,useHistory,fusionVariation);
   const chosenGenre=genreEdit??(autoGenre?fusionGenres(fusion,fusionName).join(", "):null);
   const blueprint = songBlueprint([chosenGenre, idea].filter(Boolean).join(", "), instrumental);
   // Simple sends only the user's own description; Custom sends only what the creator wrote or chose.
+  // Complete picks are stored and saved; only the first ~20 guide the engine prompt.
   const genre = simple?"":(chosenGenre ?? "");
   const instruments = simple?"":(instrumentsEdit ?? "");
+  const guidedPicks=splitPicks(genre,instruments);
+  const engineGenre=guidedPicks.genres.join(", "),engineInstruments=guidedPicks.instruments.join(", ");
   const mapOn=customMode&&mapEnabled&&!adActive;
   const code = simple?"":mapOn&&validSongMap(songMap)?mapArrangement(songMap):codeEdit ?? "";
   const targetBpm=mapOn?songMap.bpm:blueprint.bpm;
@@ -176,7 +184,24 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   useEffect(()=>{if(resultId){setTakeIds(ids=>[...ids.filter(id=>id!==resultId),resultId].slice(-8));setPlayStage("play");}},[resultId]);
   const covered=useRef("");
   useEffect(()=>{if(!autoCover||!result?.audioFormat||result.coverAsset||covered.current===result.id||saving||pending)return;covered.current=result.id;void autoCover(result).then(()=>setPromptNotice("Cover created automatically from your title.")).catch(()=>setPromptNotice("Song saved. Automatic cover could not save; use Create / animate cover to retry."));},[result?.id,result?.coverAsset,saving,pending,autoCover]);
-  const busy = saving || pending || promptBusy;
+  const busy = saving || pending || promptBusy || lyricBusy;
+  async function writeWordsForMe(){
+    if(!writeLyrics||lyricBusy)return;
+    if(!idea.trim()&&!genre.trim()){setLyricStatus("Add your vision first, so the words have something to say.");return;}
+    if(lyrics.trim()&&!confirm("Replace your current lyrics with newly written words? Yours are not kept after replacing."))return;
+    setLyricBusy(true);setLyricStatus("Writing your words…");
+    try{
+      const language=resolveLanguage(languageChoice,useOwnLyrics?lyrics:"",idea).resolved;
+      const prompt=["Write original lyrics for this song.",idea.trim()&&`Vision: ${idea.trim()}`,engineGenre&&`Sound and mood: ${engineGenre}`,engineInstruments&&`Instruments: ${engineInstruments}`,vocalDirection&&`Vocal delivery: ${vocalDirection}`].filter(Boolean).join("\n");
+      if(prompt.length>1600)throw new Error("Shorten the vision or sound directions before writing lyrics.");
+      const written=await writeLyrics({prompt,genres:engineGenre,instruments:engineInstruments,voice:vocalDirection,title:songTitle.trim(),language,dialect:languageChoice.dialect,duration:timing.seconds,autoLength:autoLength&&!mapOn&&!adActive});
+      if(!written?.trim()){setLyricStatus("No words came back. Your writing is unchanged; try again.");return;}
+      if(written.length>5000)throw new Error("Those words are too long to load safely. Your previous writing is unchanged.");
+      setLyrics(written);setOwnLyrics(true);setWordsByStudio(false);setCustomMode(true);if(choice==="instrumental")setChoice("vocals");setError("");
+      setLyricStatus("Words written. Edit them freely; Begin sings them as they are.");
+    }catch(cause){setLyricStatus(`Words could not be written: ${cause instanceof Error?cause.message:"try again."} Your writing is unchanged.`);}
+    finally{setLyricBusy(false);}
+  }
   async function saveMelodyReferencesToSong(songId:string){
     if(!melodyTakes.length)return;
     if(!saveMelodyReference){setMelodyStatus("The song saved. Its melody takes are still kept on this device because private song storage is unavailable.");return;}
@@ -210,33 +235,38 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     return {
       name:(promptName.trim()||(customMode?songTitle.trim():"")||idea.trim().slice(0,72)||"My saved prompt").slice(0,100),
       tags:genreTags(genre),
-      lyrics:customMode&&(!confirmedSong||useOwnLyrics)?lyrics.trim():"",
-      idea:idea.trim(),
+      lyrics:(confirmedSong||includeWords)&&customMode&&(!confirmedSong||useOwnLyrics)?lyrics.trim():"",
+      idea:confirmedSong||includeWords||simple?idea.trim():"",
       instruments:instruments.trim(),
       vocals:vocalDirection.trim(),
+      shape:{negativeStyle,...(spark!==null?{spark}:{}),delivery:vocalOptions.delivery,character:vocalOptions.character},
     };
   }
   function useSavedPrompt(preset:Template){
-    if((idea.trim()||lyrics.trim())&&!confirm("Load this saved prompt in place of your current unsaved writing?"))return;
+    const shape=readSavedShape(preset);
+    const applyShape=()=>{setNegativeStyle(shape?.negativeStyle??"");setSpark(shape?.spark??null);if(shape?.delivery||shape?.character)setVocalOptions(v=>({...v,...(shape.delivery?{delivery:shape.delivery}:{}),...(shape.character?{character:shape.character}:{})}));};
+    const dna=readStyleDNA(preset);
+    if(dna){setAutoGenre(false);setGenreEdit(dna.genres.length?dna.genres.join(", "):null);setInstrumentsEdit(dna.instruments||null);setVoiceEdit(dna.vocals||null);setSongMap({bpm:dna.bpm,sections:dna.sections});setMapEnabled(true);setCustomMode(true);applyShape();setPromptNotice(`"${preset.name}" applied: sound, voice and song map. Your words stay unchanged.`);return;}
+    const savedIdea=preset.notes.prompt.split("\n\nOpening:")[0];
+    const hasWords=!!(savedIdea.trim()||preset.notes.lyrics.trim());
+    if(hasWords&&(idea.trim()||lyrics.trim())&&!confirm("Load this saved sound with its words in place of your current unsaved writing?"))return;
     setAutoGenre(false);
-    setIdea(preset.notes.prompt.split("\n\nOpening:")[0]);
-    setLyrics(preset.notes.lyrics);
-    setOwnLyrics(performanceWeight(preset.notes.lyrics)>0);
+    if(hasWords){setIdea(savedIdea);setLyrics(preset.notes.lyrics);setOwnLyrics(performanceWeight(preset.notes.lyrics)>0);setWordsByStudio(false);}
     setGenreEdit(preset.tags.length?preset.tags.join(", "):null);
     setInstrumentsEdit(preset.notes.instruments||null);
     setVoiceEdit(preset.notes.vocals||null);
-    setSongTitle(preset.name);
+    if(hasWords)setSongTitle(preset.name);
+    applyShape();
     const ad=readSavedAd(preset.notes.promotion);
     setAdMode(!!ad);
     if(ad)setAdBrief(ad);
     setCodeEdit(ad?musicalAdSections(ad):null);
     setCustomMode(true);
-    setPromptNotice("Saved lyrics and musical directions loaded. Create makes a new song.");
+    setPromptNotice(hasWords?`"${preset.name}" loaded with its words. Begin makes a new song.`:`"${preset.name}" applied to Sound & Soul and Voice. Your words stay unchanged.`);
   }
   const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
   function startFresh(broadcast=true){
-    const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:false,melodyTakes:[],pendingTake:undefined};
-    blank.makeTwoVersions=falActive;
+    const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:true,negativeStyle:"",spark:null,wordsByStudio:false,melodyTakes:[],pendingTake:undefined};
     void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
     if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
     setPlayStage("start");setPreviousChoices(null);setError("");setPromptNotice("");setMelodyStatus("");setRecipeId("");setOpenPanel("");
@@ -246,7 +276,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     const fresh=(event:Event)=>{const detail=(event as CustomEvent).detail;if(detail?.scope===recovery.scope&&detail.source!=="quick")freshCreateRef.current();};
     window.addEventListener("versual:new-song",fresh);return()=>window.removeEventListener("versual:new-song",fresh);
   },[recovery.scope]);
-  const promptLibraryItems=savedPrompts.filter(t=>!readStyleDNA(t)&&(!favoritePromptsOnly||t.favorite)&&
+  const promptLibraryItems=savedPrompts.filter(t=>(!favoritePromptsOnly||t.favorite)&&
     (!promptSearch.trim()||[t.name,t.description,...t.tags,...Object.values(t.notes)].some(text=>text.toLowerCase().includes(promptSearch.trim().toLowerCase()))));
 
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -272,9 +302,10 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     try {
       const described = simple
         ? idea.trim()
-        : [genre.trim() ? `Style: ${genre.trim()}.` : "", idea.trim(), ...(!instrumental&&!useOwnLyrics?["Write coherent original lyrics with a memorable chorus. Style notes are directions, not words to sing."]:[]), mapOn?`Tempo: ${targetBpm} BPM.`:"", instruments.trim()?`Instruments: ${instruments.trim()}.`:""].filter(Boolean).join("\n");
+        : [engineGenre ? `Style: ${engineGenre}.` : "", idea.trim(), ...(!instrumental&&!useOwnLyrics?["Write coherent original lyrics with a memorable chorus. Style notes are directions, not words to sing."]:[]), mapOn?`Tempo: ${targetBpm} BPM.`:"", engineInstruments?`Instruments: ${engineInstruments}.`:""].filter(Boolean).join("\n");
       const prompt = described || (useOwnLyrics ? "Create an original song using the exact supplied lyrics." : "");
       if(prompt.length>1600)throw new Error("These combined directions are too long. Shorten your description or styles so everything reaches the music provider.");
+      if(customMode&&caps.negativeStyle&&negativeStyle.trim().length>500)throw new Error("Keep Leave Out to 500 characters or fewer. Your saved sound has not changed.");
       const duration = timing.seconds;
       const title = ((customMode&&songTitle.trim())||((genre.trim().split(",")[0] || "Studio") + (localSketch ? " Sketch" : instrumental ? " Instrumental" : " Song"))).slice(0,100);
       if (localSketch) {
@@ -285,7 +316,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
         const blob = await renderInstrumental(take);
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
-        const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
+        const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments:engineInstruments,genres:engineGenre,...(customMode&&caps.negativeStyle&&negativeStyle.trim()?{negativeStyle:negativeStyle.trim().slice(0,500)}:{}),...(customMode&&caps.spark&&spark!==null?{spark}:{}),autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
         const answer=await generateSong({...input,...(falActive?{versions:makeTwoVersions?2 as const:1 as const}:{})});
         const made=typeof answer==="string"?answer:answer?.songId;
         if(made){
@@ -321,7 +352,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     <span className="forge-glow" aria-hidden="true"/>
     <h1 id="quick-create-heading">Begin a song</h1>
     <button type="button" className="secondary small" disabled={busy} onClick={()=>startFresh()}>New song</button>
-    <p className="forge-sub">Describe it, write it, or hum it. Nothing is sent until you press Create.</p>
+    <p className="forge-sub">A few words are enough. Nothing is sent until you press Begin.</p>
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>
       <strong>{connectionChecking?"Checking music account…":connected?"Music account connected":"Music account not connected"}</strong>
@@ -332,150 +363,154 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     <form ref={createForm} onSubmit={create}>
       <fieldset disabled={busy}>
         <div className="forge-grid"><div className="forge-main">
-        <details className="qc-prompt-library" data-testid="saved-prompt-library">
-          <summary>My prompts <small>{savedPrompts.filter(t=>!readStyleDNA(t)).length} saved privately</small></summary>
-          <p className="muted">Find and reuse lyrics and music directions saved to your account. Prompts are never shared publicly.</p>
-          <label className="field">Search prompts
-            <input data-testid="input-search-saved-prompts" value={promptSearch} maxLength={100} placeholder="Search names, lyrics or styles" onChange={event=>setPromptSearch(event.target.value)}/>
-          </label>
-          <label className="qc-check"><input data-testid="checkbox-favorites-only-prompts" type="checkbox" checked={favoritePromptsOnly} onChange={event=>setFavoritePromptsOnly(event.target.checked)}/> Favorites only</label>
-          <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save prompts automatically after a song is confirmed</label>
-          <small className="muted">Only confirmed songs are saved automatically; failed or abandoned requests are not recorded.</small>
-          {savePrompt&&<div className="prompt-save-row">
-            <label className="field">Prompt name <span className="muted">· optional</span>
-              <input data-testid="input-saved-prompt-name" maxLength={100} value={promptName} placeholder={idea.trim().slice(0,72)||"Name this prompt"} onChange={event=>setPromptName(event.target.value)}/>
-            </label>
-            <button type="button" className="secondary small" data-testid="button-save-current-prompt" disabled={busy||!(idea.trim()||lyrics.trim()||genre.trim()||instruments.trim())}
-              onClick={()=>{void savePrompt({...currentPromptDraft(),name:promptName.trim()||songTitle.trim()||idea.trim().slice(0,72)||"My saved prompt"}).then(saved=>setPromptNotice(saved?"Prompt saved privately for reuse.":"The prompt save could not be confirmed. Your writing is still here."));}}>Save this prompt</button>
-          </div>}
-          <div className="saved-prompt-list" data-testid="saved-prompt-list">
-            {promptLibraryItems.map(prompt=><article className="saved-prompt-item" key={prompt.id} data-testid={`saved-prompt-${prompt.id}`}>
-              <div><strong>{prompt.name}</strong><p>{prompt.tags.join(" · ")||prompt.description}</p></div>
-              <div className="actions">
-                <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>useSavedPrompt(prompt)}>Use prompt</button>
-                {favoritePrompt&&<button type="button" className="text-button" data-testid={`button-favorite-saved-prompt-${prompt.id}`} aria-pressed={!!prompt.favorite} disabled={busy}
-                  onClick={()=>void favoritePrompt(prompt.id,!prompt.favorite)}>{prompt.favorite?"Favorited":"Favorite"}</button>}
-              </div>
-            </article>)}
-            {!promptLibraryItems.length&&<p className="muted">{savedPrompts.some(t=>!readStyleDNA(t))?"No prompts match this search.":"No saved prompts yet. Save a prompt here or turn on automatic saving."}</p>}
+        <div className="qc-modes" role="tablist" aria-label="How do you want to begin">
+          <button type="button" role="tab" aria-selected={simple} data-testid="tab-mode-simple" onClick={()=>switchMode(false)}>Just Begin</button>
+          <button type="button" role="tab" aria-selected={customMode} data-testid="tab-mode-custom" onClick={()=>switchMode(true)}>Shape It</button>
+        </div>
+        {simple?<div className="just-begin" data-testid="panel-just-begin">
+          <label className="field qc-field jb-vision">Your Vision
+            <textarea data-testid="input-song-description" rows={1} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
+          {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
+          <div className="jb-row">
+            <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics="" prompt={idea} disabled={busy}/>
+            <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> No Vocals</label>
           </div>
-        </details>
-        <div className="qc-modes" role="tablist" aria-label="Create mode">
-          <button type="button" role="tab" aria-selected={simple} data-testid="tab-mode-simple" onClick={()=>switchMode(false)}>Simple</button>
-          <button type="button" role="tab" aria-selected={customMode} data-testid="tab-mode-custom" onClick={()=>switchMode(true)}>Custom</button>
-        </div>
-        <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
-        {!adActive&&!mapOn&&<TrackLengthControl automatic={autoLength} onAutomatic={setAutoLength} suggested={baseTiming.seconds} reason={baseTiming.reason} manual={manualTime||formatTrackTime(baseTiming.seconds)} onManual={setManualTime}/>}
-        {simple?<>
-          <label className="field qc-field">Describe your song
-            <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="Mood, subject, style and singing language — e.g. hopeful pop about a fresh start, sung in English" onChange={e=>{setIdea(e.target.value);setError("");}}/>
-            <small className="muted">Tell us what it is about, how it should feel, the style and the language to sing.</small></label>
-          <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Description expanded with local style suggestions. Review and edit it before creating; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button><small className="muted forge-free-note">Free · runs on this device, no AI provider is called</small></div>
-          <div className="actions qc-style-chips forge-drift" role="group" aria-label="Style ideas">{featuredGenres.slice(0,8).map(g=>{const on=idea.toLowerCase().includes(g.toLowerCase());return <button type="button" key={g} className={`chip ${on?"active":""}`} aria-pressed={on} data-testid={`chip-style-${g}`} onClick={()=>{setError("");setIdea(on?idea.split(/\s*,\s*/).filter(part=>part.toLowerCase()!==g.toLowerCase()).join(", "):(idea.trim()?idea.trim()+", ":"")+g);}}>{g}</button>;})}</div>
-          {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
-          {lyrics.trim()&&<p className="qc-disclose" data-testid="text-custom-kept" role="note">Your own lyrics{songTitle.trim()?", title":""}{genreEdit?" and styles":""} are kept in Custom. Simple writes new lyrics from your description. <button type="button" className="text-button" data-testid="button-open-custom" onClick={()=>switchMode(true)}>Use them in Custom</button></p>}
-        </>:<>
-          <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Lyrics</summary>
-          <label className="field qc-field">Lyrics
-            <div className="lyric-section-chips" role="group" aria-label="Add song part">{["Intro","Verse","Pre-Chorus","Chorus","Bridge","Outro"].map(section=><button key={section} type="button" className="chip" data-testid={`chip-lyric-${section.toLowerCase().replace(/[^a-z]+/g,"-")}`} disabled={instrumental} onClick={()=>addLyricSection(section)}>[{section}]</button>)}</div>
-            <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"Instrumental is on. Your lyrics are kept for later.":"Write your own lyrics, or leave empty and lyrics are written for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setError("");}}/>
-            <small className="muted">{instrumental?"Instrumental: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Empty: lyrics are written automatically."} Your writing is kept automatically.</small></label>
-          <p className="muted lyric-section-tip">Intro sets the scene; verses tell the story; pre-chorus builds; chorus repeats the main hook; bridge adds contrast; outro closes the song.</p>
-          {useOwnLyrics && <LyricNotationPreview text={lyrics}/>}
+          {intentIssue&&<p className="muted" role="status" data-testid="text-understood-prompt">{intentIssue}</p>}
+        </div>:<div className="shape-it" data-testid="panel-shape-it">
+          <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
+          <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Your Words</summary>
+            <label className="field qc-field">Your Vision <span className="muted">· optional</span>
+              <textarea data-testid="input-song-idea" rows={2} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
+            {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
+            <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Vision expanded with local style suggestions. Review it before you Begin; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
+            <label className="field qc-field">Lyrics
+              <div className="lyric-section-chips" role="group" aria-label="Add song part">{["Intro","Verse","Pre-Chorus","Chorus","Bridge","Outro"].map(section=><button key={section} type="button" className="chip" data-testid={`chip-lyric-${section.toLowerCase().replace(/[^a-z]+/g,"-")}`} disabled={instrumental} onClick={()=>{setWordsByStudio(false);addLyricSection(section);}}>[{section}]</button>)}</div>
+              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your own sections, or choose Write them for me."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}}/>
+            </label>
+            <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
+            <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
+            {lyricStatus&&<p role="status" data-testid="text-lyric-status">{lyricStatus}</p>}
+            {useOwnLyrics && <LyricNotationPreview text={lyrics}/>}
+            <details className="qc-fold" key={"prompts"+panelKey} open={openPanel==="prompts"||undefined} data-testid="fold-prompts"><summary>Writing helpers</summary>
+              {promptHelpers?.(applySeed)??<p className="muted">Writing helpers are unavailable.</p>}
+            </details>
           </details>
-          {lyrics.trim()&&<div className="actions"><span className="muted">Title ideas:</span>{titlesFromLyrics(lyrics).map(title=><button type="button" className="chip" data-testid={`button-title-idea-${title}`} key={title} onClick={()=>setSongTitle(title)}>{title}</button>)}</div>}
-          <details className="qc-fold" key={"style"+panelKey} open={!openPanel||openPanel==="style"||openPanel==="recipes"||undefined} data-testid="fold-style"><summary>Style</summary>
-          <label className="field qc-field">Styles
-            <input data-testid="input-styles" maxLength={500} value={genreEdit??chosenGenre??""} placeholder="arabic pop, oud, warm female vocal, 120 bpm" onChange={e=>{setAutoGenre(false);setGenreEdit(e.target.value.trim()?e.target.value:null);setError("");}}/></label>
-          {hasExplicitWords(genre) && <CleanLyricsChecker lyrics={genre} change={value => setGenreEdit(value.slice(0, 500))} direction label="Clean styles"/>}
-          <GenrePicker prompt={idea} changePrompt={text=>{setIdea(text);setError("");setAutoGenre(false);}} value={chosenGenre === null ? [] : genreTags(chosenGenre)} change={next=>{setAutoGenre(false);setGenreEdit(next.join(", "));}} disabled={busy}/>
+          <details className="qc-fold" key={"style"+panelKey} open={!openPanel||openPanel==="style"||openPanel==="recipes"||undefined} data-testid="fold-style"><summary>Sound &amp; Soul</summary>
+            <SoundSoulPicker vision={idea} genre={genreEdit??chosenGenre??""} instruments={instrumentsEdit??""} changeGenre={next=>{setAutoGenre(false);setGenreEdit(next);setError("");}} changeInstruments={next=>{setInstrumentsEdit(next);setError("");}} disabled={busy}/>
+            {hasExplicitWords(genre) && <CleanLyricsChecker lyrics={genre} change={value => setGenreEdit(value)} direction label="Clean styles"/>}
+            {hasExplicitWords(instruments) && <CleanLyricsChecker lyrics={instruments} change={value => setInstrumentsEdit(value)} direction label="Clean instrument notes"/>}
           </details>
-          <details className="qc-fold" key={"vocals"+panelKey} open={openPanel==="vocals"||undefined} data-testid="fold-vocals"><summary>Vocals</summary>
-            <div className="qc-row">
-              {!instrumental&&<MusicLanguageControl detailsOnly value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
-              {!instrumental&&!localSketch&&<label className="field">Singing arrangement
-                <select data-testid="select-singing-arrangement" value={vocalOptions.delivery} onChange={e=>{setVoiceEdit(null);setVocalOptions({...vocalOptions,delivery:e.target.value});setError("");}}>
-                  {singingArrangements.map(value=><option key={value} value={value}>{value==="Studio chooses"?"Follow my description":value}</option>)}
-                </select>
-              </label>}
+          <details className="qc-fold" key={"vocals"+panelKey} open={openPanel==="vocals"||undefined} data-testid="fold-vocals"><summary>Voice</summary>
+            {instrumental?<p className="muted">No Vocals is on; voice direction is not sent. Your choices are kept.</p>:<>
+              <VoicePicker value={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);setError("");}} disabled={busy}/>
+              <p className="muted"><strong>Suggested delivery:</strong> {matchVocalToSong(idea,genre,instruments)} <button type="button" className="text-button" data-testid="button-use-vocal" onClick={()=>setVoiceEdit(matchVocalToSong(idea,genre,instruments))}>Use this</button>{voiceEdit&&<> · <button type="button" className="text-button" data-testid="button-clear-vocal" onClick={()=>setVoiceEdit(null)}>Clear</button></>}</p>
+              {voiceEdit&&<p className="muted" data-testid="text-vocal-direction">Voice direction: {voiceEdit}</p>}
+              <p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${chosenPerformer??"Singer follows your vision"}.`}</p>
+            </>}
+            {vocalHelpers&&<details className="qc-fold"><summary>Voice helper</summary>{vocalHelpers(applySeed)}</details>}
+          </details>
+          <div className="qc-fold shape-name"><label className="field qc-field">Name <span className="muted">· optional</span>
+            <input data-testid="input-song-title" maxLength={100} value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="Leave blank and it is named from the lyrics"/></label>
+            {lyrics.trim()&&<div className="actions"><span className="muted">Ideas:</span>{titlesFromLyrics(lyrics).map(title=><button type="button" className="chip" data-testid={`button-title-idea-${title}`} key={title} onClick={()=>setSongTitle(title)}>{title}</button>)}</div>}
+          </div>
+          <details className="qc-fold" data-testid="fold-more"><summary>More</summary>
+            {caps.negativeStyle&&<label className="field">Leave Out <span className="muted">· optional</span>
+              <input data-testid="input-negative-style" maxLength={500} value={negativeStyle} placeholder="heavy autotune, distorted guitars" onChange={e=>setNegativeStyle(e.target.value)}/></label>}
+            {caps.spark&&<div className="field shape-spark"><label htmlFor="qc-spark">Spark</label>
+              <input id="qc-spark" data-testid="input-spark" type="range" min={0} max={2} step={0.1} value={spark??1} aria-valuetext={spark===null?"Engine default":String(spark)} onChange={e=>setSpark(Number(e.target.value))}/>
+              <div className="shape-scale" aria-hidden="true"><span>Familiar</span><span>Adventurous</span></div>
+              <small className="muted">{spark===null?"Engine default.":`Set to ${spark.toFixed(1)}.`} {spark!==null&&<button type="button" className="text-button" data-testid="button-reset-spark" onClick={()=>setSpark(null)}>Use default</button>}</small></div>}
+            {!adActive&&!mapOn&&<TrackLengthControl automatic={autoLength} onAutomatic={setAutoLength} suggested={baseTiming.seconds} reason={baseTiming.reason} manual={manualTime||formatTrackTime(baseTiming.seconds)} onManual={setManualTime}/>}
+            <div className="quick-auto-time" role="status"><strong>{adActive?"Musical ad length":mapOn&&!songTiming.explicit?"Song map length":"Length"}</strong><span>{formatTrackTime(timing.seconds)} · {timing.reason} · up to 6:00</span></div>
+            {!instrumental&&<MusicLanguageControl detailsOnly value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
+          </details>
+          <details className="qc-fold qc-prompt-library" data-testid="saved-prompt-library"><summary>Your Sounds <small>{savedPrompts.length} saved privately</small></summary>
+            <p className="muted">Save your Sound &amp; Soul and Voice as one named sound, then bring it back with one tap. Words stay optional.</p>
+            {savePrompt&&<div className="prompt-save-row">
+              <label className="field">Name this sound
+                <input data-testid="input-saved-prompt-name" maxLength={100} value={promptName} placeholder={songTitle.trim()||"Desert night soul"} onChange={event=>setPromptName(event.target.value)}/></label>
+              <label className="qc-check"><input type="checkbox" data-testid="checkbox-include-words" checked={includeWords} onChange={e=>setIncludeWords(e.target.checked)}/> Include my words and vision</label>
+              <button type="button" className="secondary small" data-testid="button-save-current-prompt" disabled={busy||!(genre.trim()||instruments.trim()||vocalDirection.trim()||includeWords&&(idea.trim()||lyrics.trim()))}
+                onClick={()=>{void savePrompt({...currentPromptDraft(),name:promptName.trim()||songTitle.trim()||idea.trim().slice(0,72)||"My sound"}).then(saved=>setPromptNotice(saved?"Sound saved privately to Your Sounds.":"The save could not be confirmed. Your choices are still here."));}}>Save to Your Sounds</button>
+            </div>}
+            <label className="field">Search Your Sounds
+              <input data-testid="input-search-saved-prompts" value={promptSearch} maxLength={100} placeholder="Search names, words or styles" onChange={event=>setPromptSearch(event.target.value)}/></label>
+            <div className="actions">
+              <label className="qc-check"><input data-testid="checkbox-favorites-only-prompts" type="checkbox" checked={favoritePromptsOnly} onChange={event=>setFavoritePromptsOnly(event.target.checked)}/> Favorites only</label>
+              <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save each confirmed song's sound automatically</label>
             </div>
-            {!instrumental?<p className="muted"><strong>Suggested singing delivery:</strong> {matchVocalToSong(idea,genre,instruments)} <button type="button" className="text-button" data-testid="button-use-vocal" onClick={()=>setVoiceEdit(matchVocalToSong(idea,genre,instruments))}>Use this</button>{voiceEdit&&<> · <button type="button" className="text-button" data-testid="button-clear-vocal" onClick={()=>setVoiceEdit(null)}>Clear</button></>}</p>:<p className="muted">Instrumental is on; vocal direction is not sent.</p>}
-            {voiceEdit&&<p className="muted" data-testid="text-vocal-direction">Vocal direction: {voiceEdit}</p>}
-            {vocalHelpers?.(applySeed)}
+            <div className="saved-prompt-list" data-testid="saved-prompt-list">
+              {promptLibraryItems.map(prompt=><article className="saved-prompt-item" key={prompt.id} data-testid={`saved-prompt-${prompt.id}`}>
+                <div><strong>{prompt.name}</strong><p>{readStyleDNA(prompt)?"Sound + song map · ":""}{prompt.tags.join(" · ")||prompt.description}{prompt.notes.lyrics.trim()||prompt.notes.prompt.trim()?" · with words":""}</p></div>
+                <div className="actions">
+                  <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>useSavedPrompt(prompt)}>Use</button>
+                  {favoritePrompt&&<button type="button" className="text-button" data-testid={`button-favorite-saved-prompt-${prompt.id}`} aria-pressed={!!prompt.favorite} aria-label={prompt.favorite?"Favorited":"Favorite"} disabled={busy}
+                    onClick={()=>void favoritePrompt(prompt.id,!prompt.favorite)}><Star size={14} fill={prompt.favorite?"currentColor":"none"}/> {prompt.favorite?"Favorited":"Favorite"}</button>}
+                </div>
+              </article>)}
+              {!promptLibraryItems.length&&<p className="muted">{savedPrompts.length?"Nothing matches this search.":"No saved sounds yet. Shape one above and save it here."}</p>}
+            </div>
+            <p className="muted">Starter blends</p>
+            <div className="shape-chips">{worldFusionRecipes.map(r=><button type="button" key={r.name} className="chip" data-testid={`button-blend-${r.name.toLowerCase().replace(/[^a-z]+/g,"-")}`} onClick={()=>{setAutoGenre(false);setGenreEdit(r.genres.join(", "));setInstrumentsEdit(r.sounds.join(", "));if(!idea.trim())setIdea(r.idea);}}>{r.name}</button>)}</div>
           </details>
-          <details className="qc-fold" key={"prompts"+panelKey} open={openPanel==="prompts"||undefined} data-testid="fold-prompts"><summary>Prompt helpers</summary>
-            {promptHelpers?.(applySeed)??<p className="muted">Prompt helpers are unavailable.</p>}
+          <details className="qc-more" data-testid="section-advanced-options"><summary data-testid="toggle-advanced-options"><Settings2 size={15}/> Studio tools</summary>
+          <div className="qc-more-body">
+          {recipes.length>0&&<div className="qc-recipes" data-testid="section-recipes">
+            <label className="field">Start from a recipe
+              <select data-testid="select-recipe" value={recipeId} onChange={e=>setRecipeId(e.target.value)}>
+                <option value="">Choose a recipe…</option>{recipes.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+              </select></label>
+            <div className="actions">
+              <button type="button" className="secondary small" data-testid="button-use-recipe" disabled={!recipeId} onClick={()=>{const t=recipes.find(r=>r.id===recipeId);if(t)applySeed(seedFromTemplate(t,"recipe-"+t.id+"-"+Date.now()));}}>Use recipe</button>
+              {editRecipe&&<button type="button" className="text-button" data-testid="button-edit-recipe" disabled={!recipeId} onClick={()=>{const t=recipes.find(r=>r.id===recipeId);if(t)editRecipe(t);}}>Edit</button>}
+              {editRecipe&&<button type="button" className="text-button" data-testid="button-new-recipe" onClick={()=>editRecipe(null)}>New recipe</button>}
+            </div>
+            {recipeId&&<p className="muted qc-recipe-note">{recipes.find(r=>r.id===recipeId)?.description}</p>}
+          </div>}
+          <div className="forge-hum-card">
+            <p className="muted">Private melody notes are saved with the song for you. They are not sent to a music engine.</p>
+            <MelodyReferenceRecorder disabled={busy} takes={melodyTakes} onTake={(blob,seconds)=>{setMelodyTakes(current=>[...current,{id:crypto.randomUUID(),blob,durationSeconds:seconds}]);setMelodyStatus("Take recorded. It stays private and is attached to the saved song; it is not sent to a music engine.");}} onRemove={id=>{setMelodyTakes(current=>current.filter(take=>take.id!==id));setMelodyStatus("Melody take removed from this song idea.");}}/>
+            {melodyStatus&&<p role="status" data-testid="text-melody-reference-status">{melodyStatus}</p>}
+          </div>
+          {(recordVoice||uploadOwn)&&<div className="actions">{recordVoice&&<button type="button" className="secondary small" data-testid="button-record-voice" onClick={recordVoice}>Record my voice</button>}{uploadOwn&&<button type="button" className="secondary small" data-testid="button-upload-own" onClick={uploadOwn}>Use my recording</button>}</div>}
+          <div className="actions quick-options" role="group" aria-label="Output">
+            <button type="button" className={`chip ${choice==="sketch"?"active":""}`} aria-pressed={choice==="sketch"} data-testid="button-mode-sketch" onClick={()=>setChoice(choice==="sketch"?"vocals":"sketch")}>Built-in sketch · no singing, no credits</button>
+            {choice==="sketch"&&<button type="button" className="secondary small" data-testid="button-switch-to-song" onClick={()=>setChoice("vocals")}>Switch to song</button>}
+            {choice!=="sketch"&&<label className="qc-check"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> No Vocals</label>}
+          </div>
+          <div className="actions" role="group" aria-label="What to create"><button type="button" data-testid="button-kind-song" className={`chip ${!adMode?"active":""}`} aria-pressed={!adMode} onClick={()=>setAdMode(false)}>Song</button><button type="button" data-testid="button-kind-ad" className={`chip ${adMode?"active":""}`} aria-pressed={adMode} onClick={()=>setAdMode(true)}>Musical ad</button></div>
+          {adMode&&<MusicalAdBuilder value={adBrief} change={setAdBrief} disabled={busy} prepare={()=>{setIdea(musicalAdPrompt(adBrief));setSongTitle((adBrief.brand+" · Musical ad").slice(0,100));setGenreEdit(adStyles[adBrief.style].genre);setChoice("vocals");setCodeEdit(musicalAdSections(adBrief));setOpeningMode("direct");setPromptNotice(lyrics.trim()?"Ad brief prepared. Your lyrics are kept; clear them to have ad lyrics written.":"Ad brief prepared. Review, then Begin. Add product footage and your logo in Video & Shorts.");}}/>}
+          {!instrumental && <SongOpeningControl value={openingMode} change={setOpeningMode} disabled={busy}/>}
+          <GenreAssistant fusion={fusion} auto={autoGenre} setAuto={v=>{setAutoGenre(v);if(v)setGenreEdit(null);}} history={useHistory} setHistory={setUseHistory} name={fusionName} setName={setFusionName} variation={()=>setFusionVariation(v=>v+1)} apply={next=>{setAutoGenre(false);setGenreEdit(next.join(", "));}} disabled={busy} showCues={expanded}/>
+          {!adMode&&<StyleDNAControls map={songMap} change={setSongMap} enabled={mapEnabled} toggle={setMapEnabled} genres={genreTags(genre)} instruments={instruments} vocals={vocalDirection} saved={[]} disabled={busy} apply={d=>{setAutoGenre(false);setGenreEdit(d.genres.join(", "));setInstrumentsEdit(d.instruments);setVoiceEdit(d.vocals);setSongMap({bpm:d.bpm,sections:d.sections});setMapEnabled(true);}} save={savePrompt?async(name,d)=>{setPromptBusy(true);try{return !!await savePrompt({name,tags:d.genres,lyrics:"",idea:"",instruments:d.instruments,vocals:d.vocals,styleDNA:d});}finally{setPromptBusy(false);}}:undefined}/>}
+          <div className="quick-blueprint">
+          <div className="actions"><button type="button" className="secondary small" data-testid="button-edit-details" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Braces size={15}/> {expanded ? "Hide" : "Edit"} arrangement code</button></div>
+          {expanded && <div className="quick-code">
+            <HelpField label="Arrangement code" tip="Use bracketed section names such as [Verse 1] and put delivery cues such as {Male whisper} in braces. Empty sends nothing."><textarea data-testid="input-arrangement" rows={8} maxLength={2000} value={mapOn?code:codeEdit??""} disabled={mapOn} placeholder={blueprint.code} onChange={event => setCodeEdit(event.target.value||null)}/></HelpField>
+            {hasExplicitWords(code) && <CleanLyricsChecker lyrics={code} change={setCodeEdit} direction label="Clean arrangement code"/>}
+            <div className="actions"><button type="button" className="text-button" data-testid="button-use-suggested" onClick={() => { setInstrumentsEdit(blueprint.instrumentList); setCodeEdit(blueprint.code); }}>Use suggested instruments &amp; arrangement</button><button type="button" className="text-button" data-testid="button-clear-details" onClick={() => setCodeEdit(null)}>Clear</button></div>
+          </div>}
+          </div>
+          {localSketch && <p className="muted">Built-in sketches use the closest of four instrument palettes.</p>}
+          <button type="button" className="text-button" data-testid="button-open-guided" onClick={proProduction?()=>setProOpen(true):guided}>Open Pro production below</button>
+          </div>
           </details>
-          <label className="field qc-field">Title <span className="muted">· optional</span>
-            <input data-testid="input-song-title" maxLength={100} value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="Leave empty for an automatic title"/></label>
-          <label className="field qc-field">Description <span className="muted">· optional</span>
-            <textarea data-testid="input-song-idea" rows={2} maxLength={1200} value={idea} placeholder="What the song is about, if you want lyrics written for you" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
-          {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
-        </>}
-        <div className="qc-row">
-          {choice==="sketch"&&customMode?<span className="qc-mode" data-mode="sketch" data-testid="status-create-mode"><strong>{mode.label}</strong><button type="button" className="secondary small" data-testid="button-switch-to-song" onClick={()=>setChoice("vocals")}>Switch to song</button></span>:
-          <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> Instrumental</label>}
-        </div>
-        {!instrumental&&!localSketch&&<p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${chosenPerformer??"Performer follows your description"}.`}{!intentIssue&&" Singing directions guide the music model; they are not a fixed singer identity or a pronunciation guarantee."}</p>}
+        </div>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
-        {!localSketch&&<div className="version-count-control">
-          <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Make 2 versions {!falActive&&<span className="muted">(uses double credits)</span>}</label>
-          <p className="muted" data-testid="text-version-cost">{falActive?(makeTwoVersions?"Two private takes.":"One private take."):makeTwoVersions?"Two versions · 2× ElevenLabs credits.":"One version."}</p>
+        {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">
+          <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Two takes</label>
+          <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two takes, side by side. Both are kept.":"One take."}</p>
         </div>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>
-            {pending ? localSketch?"Rendering your sketch…":"Creating…" : "Create"}</button>
-          <span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&(falActive?" · Uses your fal.ai account":" · Uses your ElevenLabs credits")}</span>
+            {pending ? localSketch?"Rendering your sketch…":"Beginning…" : "Begin"}</button>
+          {customMode&&<span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&(falActive?" · Uses the studio music engine":" · Uses your ElevenLabs credits")}</span>}
         </div>
         </div>
         {promptNotice&&<p role="status" data-testid="text-prompt-notice">{promptNotice}</p>}
-        {customMode&&<details className="qc-more" data-testid="section-advanced-options"><summary data-testid="toggle-advanced-options"><Settings2 size={15}/> Advanced options</summary>
-          <div className="qc-more-body">
-          <div className="actions quick-options" role="group" aria-label="Output">
-            <button type="button" className={`chip ${choice==="sketch"?"active":""}`} aria-pressed={choice==="sketch"} data-testid="button-mode-sketch" onClick={()=>setChoice(choice==="sketch"?"vocals":"sketch")}>Built-in sketch · no singing, no credits</button>
-          </div>
-          {(recordVoice||uploadOwn)&&<div className="actions">{recordVoice&&<button type="button" className="secondary small" data-testid="button-record-voice" onClick={recordVoice}>Record my voice</button>}{uploadOwn&&<button type="button" className="secondary small" data-testid="button-upload-own" onClick={uploadOwn}>Use my recording</button>}</div>}
-          <div className="actions" role="group" aria-label="What to create"><button type="button" data-testid="button-kind-song" className={`chip ${!adMode?"active":""}`} aria-pressed={!adMode} onClick={()=>setAdMode(false)}>Song</button><button type="button" data-testid="button-kind-ad" className={`chip ${adMode?"active":""}`} aria-pressed={adMode} onClick={()=>setAdMode(true)}>Musical ad</button></div>
-          {adMode&&<MusicalAdBuilder value={adBrief} change={setAdBrief} disabled={busy} prepare={()=>{setIdea(musicalAdPrompt(adBrief));setSongTitle((adBrief.brand+" · Musical ad").slice(0,100));setGenreEdit(adStyles[adBrief.style].genre);setChoice("vocals");setCodeEdit(musicalAdSections(adBrief));setOpeningMode("direct");setPromptNotice(lyrics.trim()?"Ad brief prepared. Your lyrics are kept; clear them to have ad lyrics written.":"Ad brief prepared. Review, then Create. Add product footage and your logo in Video & Shorts.");}}/>}
-          <WorldMusicOptions expanded={false} instruments={instrumentsEdit?.split(",").map(s=>s.trim()).filter(Boolean)??[]} changeInstruments={next=>setInstrumentsEdit(next.length?next.join(", "):null)} options={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);}} disabled={busy} recipe={r=>{setAutoGenre(false);setGenreEdit(r.genres.join(", "));setInstrumentsEdit(r.sounds.join(", "));if(!idea.trim())setIdea(r.idea);}}/>
-          {!instrumental && <SongOpeningControl value={openingMode} change={setOpeningMode} disabled={busy}/>}
-          <GenreAssistant fusion={fusion} auto={autoGenre} setAuto={v=>{setAutoGenre(v);if(v)setGenreEdit(null);}} history={useHistory} setHistory={setUseHistory} name={fusionName} setName={setFusionName} variation={()=>setFusionVariation(v=>v+1)} apply={next=>{setAutoGenre(false);setGenreEdit(next.join(", "));}} disabled={busy} showCues={expanded}/>
-          {!adMode&&<StyleDNAControls map={songMap} change={setSongMap} enabled={mapEnabled} toggle={setMapEnabled} genres={genreTags(genre)} instruments={instruments} vocals={vocalDirection} saved={savedPrompts} disabled={busy} apply={d=>{setAutoGenre(false);setGenreEdit(d.genres.join(", "));setInstrumentsEdit(d.instruments);setVoiceEdit(d.vocals);setSongMap({bpm:d.bpm,sections:d.sections});setMapEnabled(true);}} save={savePrompt?async(name,d)=>{setPromptBusy(true);try{return !!await savePrompt({name,tags:d.genres,lyrics:"",idea:"",instruments:d.instruments,vocals:d.vocals,styleDNA:d});}finally{setPromptBusy(false);}}:undefined}/>}
-          <div className="quick-blueprint">
-          <div className="actions"><button type="button" className="secondary small" data-testid="button-edit-details" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><Braces size={15}/> {expanded ? "Hide" : "Edit"} instruments & arrangement</button></div>
-          {expanded && <div className="quick-code">
-            <HelpField label="Instruments" tip="List the sounds you want, such as oud, darbuka and piano. Empty sends nothing."><input data-testid="input-instruments" maxLength={180} value={instrumentsEdit??""} placeholder={blueprint.instrumentList} onChange={event => setInstrumentsEdit(event.target.value||null)}/></HelpField>
-            <HelpField label="Arrangement code" tip="Use bracketed section names such as [Verse 1] and put delivery cues such as {Male whisper} in braces. Empty sends nothing."><textarea data-testid="input-arrangement" rows={8} maxLength={2000} value={mapOn?code:codeEdit??""} disabled={mapOn} placeholder={blueprint.code} onChange={event => setCodeEdit(event.target.value||null)}/></HelpField>
-            {hasExplicitWords(instruments) && <CleanLyricsChecker lyrics={instruments} change={value => setInstrumentsEdit(value.slice(0, 180))} direction label="Clean instrument notes"/>}
-            {hasExplicitWords(code) && <CleanLyricsChecker lyrics={code} change={setCodeEdit} direction label="Clean arrangement code"/>}
-            <div className="actions"><button type="button" className="text-button" data-testid="button-use-suggested" onClick={() => { setInstrumentsEdit(blueprint.instrumentList); setCodeEdit(blueprint.code); }}>Use suggested instruments & arrangement</button><button type="button" className="text-button" data-testid="button-clear-details" onClick={() => { setInstrumentsEdit(null); setCodeEdit(null); }}>Clear</button></div>
-          </div>}
-          </div>
-          <div className="quick-auto-time" role="status"><strong>{adActive?"Musical ad length":mapOn&&!songTiming.explicit?"Song map length":"Length follows your prompt"}</strong><span>{formatTrackTime(timing.seconds)} · {timing.reason}</span></div>
-          {localSketch && <p className="muted">Built-in sketches use the closest of four instrument palettes.</p>}
-          {savePrompt&&<div className="actions"><button type="button" className="secondary" data-testid="button-save-prompt" disabled={busy||!idea.trim()&&!lyrics.trim()} onClick={async()=>{setPromptBusy(true);try{const saved=await savePrompt({name:songTitle||(genre||"My")+" prompt",tags:genreTags(genre),lyrics:useOwnLyrics?lyrics:"",idea,instruments,vocals:vocalDirection,...(adActive?{musicalAd:adBrief}:{})});setPromptNotice(saved?"Prompt saved privately with lyrics, styles, instruments and vocal directions.":"Prompt could not save. Your writing is still here; retry.");}catch(e){setPromptNotice((e as Error).message||"The prompt could not save. Retry.");}finally{setPromptBusy(false);}}}>Save prompt</button></div>}
-          <button type="button" className="text-button" data-testid="button-open-guided" onClick={proProduction?()=>setProOpen(true):guided}>Open Pro production below</button>
-          </div>
-        </details>}
         </div>
-        <aside className="forge-side" aria-label="Hum and recipes">
-          {simple&&<div className="forge-hum-card">
-          <MelodyReferenceRecorder disabled={busy} takes={melodyTakes} onTake={(blob,seconds)=>{setMelodyTakes(current=>[...current,{id:crypto.randomUUID(),blob,durationSeconds:seconds}]);setMelodyStatus("Take recorded. It stays private and will be attached to the saved song; it is not sent to ElevenLabs.");}} onRemove={id=>{setMelodyTakes(current=>current.filter(take=>take.id!==id));setMelodyStatus("Melody take removed from this song idea.");}}/>
-          {melodyStatus&&<p role="status" data-testid="text-melody-reference-status">{melodyStatus}</p>}
-          </div>}
-        {recipes.length>0&&<div className="qc-recipes" data-testid="section-recipes">
-          <label className="field">Start from a recipe
-            <select data-testid="select-recipe" value={recipeId} onChange={e=>setRecipeId(e.target.value)}>
-              <option value="">Choose a recipe…</option>{recipes.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-            </select></label>
-          <div className="actions">
-            <button type="button" className="secondary small" data-testid="button-use-recipe" disabled={!recipeId} onClick={()=>{const t=recipes.find(r=>r.id===recipeId);if(t)applySeed(seedFromTemplate(t,"recipe-"+t.id+"-"+Date.now()));}}>Use recipe</button>
-            {editRecipe&&<button type="button" className="text-button" data-testid="button-edit-recipe" disabled={!recipeId} onClick={()=>{const t=recipes.find(r=>r.id===recipeId);if(t)editRecipe(t);}}>Edit</button>}
-            {editRecipe&&<button type="button" className="text-button" data-testid="button-new-recipe" onClick={()=>editRecipe(null)}>New recipe</button>}
-          </div>
-          {recipeId&&<p className="muted qc-recipe-note">{recipes.find(r=>r.id===recipeId)?.description}</p>}
-        </div>}
+        <aside className="forge-side" aria-label="A quiet note">
           <p className="cosmic-poetic forge-poetic">Nada Brahma — the universe is sound.</p>
           <p className="muted forge-signature">{brand.slogan}</p>
         </aside></div>
@@ -486,7 +521,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
       {proProduction}
     </details>}
     {engine?.notice&&<p role="status" className="muted">{engine.notice}</p>}
-    {falActive&&takeIds.length>1&&<section className="quick-result" aria-label="Compare your takes"><h3>Your takes · both saved</h3><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,240px),1fr))",gap:"1rem"}}>{takeIds.map(id=>drafts.find(song=>song.id===id&&!song.deletedAt)).filter((song):song is Song=>!!song?.audioFormat).map(song=><article key={song.id}><h4>{song.name}</h4><AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/><button type="button" className="secondary" disabled={busy} onClick={()=>{setResultId(song.id);void favoriteTake?.(song.id);}}>Keep as favourite</button></article>)}</div></section>}
+    {takeIds.length>1&&<section className="quick-result qc-takes" aria-label="Compare your takes"><h3>Your takes · all saved</h3><div className="qc-take-grid">{takeIds.map(id=>drafts.find(song=>song.id===id&&!song.deletedAt)).filter((song):song is Song=>!!song?.audioFormat).map(song=><article key={song.id}><h4>{song.name}</h4><AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/><button type="button" className="secondary" disabled={busy} aria-pressed={!!song.favorite} data-testid={`button-favorite-take-${song.id}`} onClick={()=>{setResultId(song.id);void favoriteTake?.(song.id);}}>{song.favorite?"Favourite":"Keep as favourite"}</button></article>)}</div></section>}
     {pendingTake&&<div className="quick-result"><strong>{pendingTake.title} · Not saved yet</strong><AudioPlayer src={pendingTake.url} label="Listen to pending instrumental"/><div className="actions"><a className="secondary small" href={pendingTake.url} download={pendingTake.title+".wav"}>Download original</a><button type="button" className="primary small" disabled={busy} onClick={async()=>{setPending(true);try{await savePending(pendingTake);}finally{setPending(false);}}}>Retry save to Your songs</button><button type="button" className="secondary small" disabled={busy} onClick={()=>{if(confirm("Discard this local take? Download it first if you want a copy. No saved song will be deleted.")){setPendingTake(undefined);setError("");}}}>Discard unsaved take</button></div></div>}
     {playful&&result?.audioFormat&&playStage!=="start"&&<section className="creative-play-result" aria-label="Your creation"><p className="eyebrow">YOURS · SAVED PRIVATELY</p><h2>{result.name}</h2><AudioPlayer src={songAudioUrl(result.id,result.audioId)} label="Listen to your creation"/>
       {playStage==="play"?<><p className="muted">A new take keeps this one safe. A new take uses your same description.</p><div className="play-controls"><label>Look<select disabled={busy} value={playChoices.look} onChange={e=>changePlay({...playChoices,look:e.target.value as PlayChoices["look"]})}>{Object.entries(playLooks).map(([v,item])=><option key={v} value={v}>{item.name}</option>)}</select></label></div><div className="actions"><button type="button" className="primary" disabled={busy} onClick={()=>setPlayStage("share")}>Keep this · make it visual</button><button type="button" className="secondary" disabled={busy} onClick={()=>createForm.current?.requestSubmit()}>Try a new take</button>{previousChoices&&<button type="button" className="text-button" disabled={busy} onClick={()=>{setPlayChoices(previousChoices);setPreviousChoices(null);}}>Undo choices</button>}</div><p className="muted">New music requests can use provider credits. All takes remain in Your songs.</p>{takeIds.length>1&&<label>Listen to an earlier take<select value={result.id} disabled={busy} onChange={e=>setResultId(e.target.value)}>{takeIds.map(id=>drafts.find(s=>s.id===id&&!s.deletedAt)).filter((s):s is Song=>!!s?.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}</>:<><p>Your song is saved. Add a photo if you like, then preview your vertical video. Your photo is used as a private background; it is not sent for AI generation.</p><label className="field">My photo · optional<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;if(file.size>15*1024*1024||!["image/jpeg","image/png","image/webp"].includes(file.type)){setError("Choose a JPG, PNG or WebP photo up to 15 MB.");return;}setPhoto(file);setPhotoName(file.name);setError("");}}/></label>{photo&&<p>{photoName} <button type="button" className="text-button" disabled={busy} onClick={()=>{setPhoto(null);setPhotoName("");}}>Remove photo</button></p>}{makeVideo&&<button type="button" className="primary" disabled={busy} onClick={async()=>{setPromptBusy(true);setError("");try{await makeVideo(result,true,{look:playLooks[playChoices.look].preset,...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{})});}catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}finally{setPromptBusy(false);}}}>Make my video</button>}<details><summary>Save audio instead</summary><AudioFormatDownload url={songAudioUrl(result.id,result.audioId)} title={result.name} sourceKey={result.audioId??result.id}/></details><p className="muted">Review lyric timing and the video, then download or use your device’s share options. Nothing is posted automatically.</p></>}
