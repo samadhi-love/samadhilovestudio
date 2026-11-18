@@ -3,6 +3,7 @@ import { privateWorkspace } from "../studio-access";
 import { privateHeaders, readStudio } from "../api/studio/store";
 import { readBoundedText } from "../api/studio/request-errors";
 import { creditPrice, type CreditQuote, type Operation } from "./data";
+import { creationDuration, isTrackDuration } from "../track-duration";
 import { CreditError, ensureCreditAccount, managedAvailable, reserveJob, settleJob } from "./account-ledger";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const jobExecution=new WeakMap<Request,{owner:string;role:"owner"|"creator";songId:string;providerStarted:boolean}>();
@@ -18,8 +19,8 @@ export async function productionDescription(owner: string, route: string, input:
     else if (input.action === "lyric-plan") operation = "lyrics";
     else if (input.action === "preview-voice" || input.action === "save-voice") operation = "voice";
     else throw new CreditError("Choose a production action.", 400);
-    seconds = operation === "voice" ? 0 : Number(input.duration);
-    if (operation !== "voice" && (!Number.isFinite(seconds) || seconds < 3 || seconds > 600)) throw new CreditError("Choose a song length from 3 to 600 seconds.", 400);
+    seconds = operation === "voice" ? 0 : creationDuration(input);
+    if (operation !== "voice" && !isTrackDuration(seconds)) throw new CreditError("Choose Auto or a song length from 0:03 to 6:00.", 400);
   } else {
     if (route.endsWith("/lyric-sync") && ["auto", "align", "audit", "transcribe"].includes(String(input.mode))) operation = "captions";
     else if (route.endsWith("/stems") && ["two_stems_v1", "six_stems_v1"].includes(String(input.mode))) operation = "stems";

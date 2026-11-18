@@ -70,7 +70,7 @@ test("Quick Create sends clicked genre blends into the actual generation request
     await customCreate();
     await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!,"Finding our way home through love");
     await h.language();
-    await act(async()=>h.button("Pop").click());await act(async()=>(document.querySelector('[role="switch"]') as HTMLButtonElement).click());await h.family("African Styles");await act(async()=>h.button("Amapiano").click());
+    await act(async()=>h.button("Pop").click());await act(async()=>(document.querySelector('.genre-browse-toggle') as HTMLButtonElement).click());await h.family("African Styles");await act(async()=>h.button("Amapiano").click());
     await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
     assert.match(sent!.prompt,/^Style: Pop, Amapiano\./);assert(sent!.title.length<=100);
     await act(async()=>(document.querySelector('[aria-label="Remove Pop"]') as HTMLButtonElement).click());

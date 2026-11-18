@@ -14,7 +14,7 @@ import { stampSong } from "../../../song-library";
 import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords } from "../../../clean-content";
 import { freshSong, emptyCreatorStudio, initialStudio, type Studio } from "../../../studio-data";
-import { isTrackDuration } from "../../../track-duration";
+import { isTrackDuration, creationDuration } from "../../../track-duration";
 import { elevenLabsFailureMessage, elevenLabsRequest, musicModel as model } from "../elevenlabs/provider";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { audioKey, maxStudioBytes, privateHeaders, readStudio, writeStudio } from "../store";
@@ -172,8 +172,8 @@ async function createMusic(request: Request) {
     }
 
     if (input?.action === "lyric-plan") {
-      const prompt = text("prompt").trim(), duration = Number(input.duration);
-      if (!prompt || prompt.length > 1600 || !isTrackDuration(duration)) return problem("Describe the song and choose a length from 3 to 600 seconds.",400);
+      const prompt = text("prompt").trim(), duration = creationDuration(input);
+      if (!prompt || prompt.length > 1600 || !isTrackDuration(duration)) return problem("Describe the song and choose Auto or a length from 0:03 to 6:00.",400);
       if (access.role === "creator" && !managedProviderKey(request) && !await reserveCreatorGeneration(id)) return problem("This account reached its daily provider attempt limit.",429);
       const response=await call("music/plan",{model_id:model,prompt:singingDirection(languageProfile!)+"\nCreate original clean lyrics with explicit section headings. Keep sung phrasing clear, leave breath spaces, and follow the requested language or dialect exactly. "+songOpenings[openingMode].direction+" "+prompt,music_length_ms:duration*1000});
       if(!response.ok)return problem(await elevenLabsFailureMessage(response,"music"),502);
@@ -196,7 +196,7 @@ async function createMusic(request: Request) {
     const arrangement = text("arrangement").trim();
     const instruments=text("instruments").trim(),genres=text("genres").trim();
     const readLyricStyles = input?.readLyricStyles !== false;
-    const duration = Number(input?.duration);
+    const duration = creationDuration(input ?? {});
     if (input?.action !== "song" || title.length > 100 || !prompt || prompt.length > 1600 ||
       suppliedLyrics.length > 5000 || instruments.length>500 || genres.length>600 || voice.length > 1000 || arrangement.length > 2000 || !isTrackDuration(duration))
       return problem("Check the song prompt, lyrics and length.", 400);
@@ -354,6 +354,8 @@ export const POST = recoverableRoute(async (request: Request) => {
   let input;
   try { input = JSON.parse(await readBoundedText(request.clone() as unknown as Request, 80_000)); }
   catch { return problem("Invalid creation request.", 400); }
+  if((input?.action==="song"||input?.action==="lyric-plan")&&!isTrackDuration(creationDuration(input)))
+    return problem("Choose Auto or a song length from 0:03 to 6:00.",400);
   if (input?.action === "lyric-plan" || input?.action === "song" && input?.instrumental !== true) {
     try { resolveLanguage({language: input.language ?? defaultLanguageChoice.language, dialect: input.dialect ?? "", selected: input.selected ?? (input.language ? undefined : false)}, typeof input.lyrics === "string" ? input.lyrics : "", typeof input.languagePrompt === "string" ? input.languagePrompt.slice(0,1600) : typeof input.prompt === "string" ? input.prompt : ""); }
     catch (error) { return problem((error as Error).message, 400); }

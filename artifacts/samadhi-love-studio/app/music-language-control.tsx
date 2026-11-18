@@ -37,7 +37,6 @@ export function MusicLanguageControl({ value, change, lyrics = "", prompt = "", 
         ({ lyricWriting: "Lyric writing", sungAudio: "Sung audio", dialectFidelity: "Dialect fidelity", transcriptionAlignment: "Transcription / alignment", captionRendering: "Caption rendering" } as Record<string, string>)[key]}: {status}</li>)}</ul>}
       <p>No singing language has been listening-tested here. Lebanese authenticity requires a native-speaker listening review. Speech voice IDs and speech pronunciation dictionaries do not control song generation.</p>
       <p>Mixed Arabic/Latin captions use full-line emphasis rather than potentially misplaced word highlights. Font availability varies by device; review the preview and exported video for missing glyphs and correct joining.</p>
-      <p>Provider planning and singing may use credits. There is no free audition here and no automatic retry. Use an explicitly chosen short song in the detailed editor for a paid audition; review the quoted cost before proceeding.</p>
       <a href={musicCapabilityRegistry.sources[1]} target="_blank" rel="noreferrer">Official music controls</a>
     </details>
     </details>

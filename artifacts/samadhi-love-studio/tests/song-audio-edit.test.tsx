@@ -29,10 +29,11 @@ test("the visible editor crops, previews, blocks stale saves and saves a new ver
  }finally{await act(async()=>root.unmount());dom.window.close();}
 });
 
-test("Make it longer starts after the saved recording and asks before requesting another passage",async()=>{
+test("Make it longer starts after the saved recording and submits once without a repeated cost prompt",async()=>{
  const fixture=(globalThis as any).__audioEdit;fixture.renders=[];fixture.uploads=[];
  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
- let confirmation="";dom.window.confirm=(message:string)=>{confirmation=message;return false;};
+ let confirmation="",submitted=0;const oldFetch=globalThis.fetch;dom.window.confirm=(message:string)=>{confirmation=message;return false;};
+ globalThis.fetch=async(url,init)=>{if(String(url).endsWith("/credits"))return Response.json({funding:"own",credits:0,enabled:true});submitted++;const body=JSON.parse(String(init?.body));assert.equal((body.input??body).duration,15);return Response.json({error:"Offline fixture did not generate audio."},{status:503});};
  const{createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
  const song={...freshSong("original","My creation",0),audioId:"original-recording",audioFormat:"mp3" as const};
  const button=(label:string)=>[...document.querySelectorAll<HTMLButtonElement>("button")].find(item=>item.textContent===label)!;
@@ -48,9 +49,9 @@ test("Make it longer starts after the saved recording and asks before requesting
   await act(async()=>{prompt.open=true;});
   const field=prompt.querySelector("textarea")!;await act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(field),"value")!.set!.call(field,"Add a gentle closing chorus");field.dispatchEvent(new dom.window.Event("input",{bubbles:true}));});
   await act(async()=>button("Generate replacement section").click());
-  assert.match(confirmation,/one 15-second replacement passage/);assert.match(confirmation,/original recording stays saved/i);
-  assert.equal((globalThis as any).__audioEdit.renders.length,0);assert.equal((globalThis as any).__audioEdit.uploads.length,0);
- }finally{await act(async()=>root.unmount());dom.window.close();}
+   assert.equal(confirmation,"");assert.equal(submitted,1);assert.match(document.body.textContent!,/Offline fixture/);
+   assert.equal((globalThis as any).__audioEdit.renders.length,0);assert.equal((globalThis as any).__audioEdit.uploads.length,0);
+ }finally{globalThis.fetch=oldFetch;await act(async()=>root.unmount());dom.window.close();}
 });
 
 test("section generation exposes saved language, editable choices for legacy songs and an instrumental bypass",async()=>{

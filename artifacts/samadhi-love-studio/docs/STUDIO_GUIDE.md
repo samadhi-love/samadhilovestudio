@@ -4,6 +4,12 @@
 
 Create shows a small **Language** selector in both Simple and Custom, initially **Auto · English by default**. Priority is: **your dropdown choice → a language or dialect named in your description → clearly non-English lyrics → English**. The description matcher uses the same complete language/dialect names as the selector, including world-music languages such as Yoruba and aliases such as Brazilian Portuguese. Mood, genre and instrumental directions still shape the music. A quiet line always explains the result, for example **Singing in Spanish (from your description) · change**. Selecting English or any other listed language pins your choice; return to Auto to follow the description again. Short or uncertain text and conflicting descriptions never require resolving a language error. Your words are not translated. Dialect controls remain inside Custom → Vocals; provider pronunciation and dialect quality remain unverified, not guaranteed.
 
+## Song length and credits
+
+**Length: Auto** is the starting choice in Create. Your lyrics and song sections set a natural length. If you only describe a song, the composition planner uses about three minutes because it requires a numeric target. A specific time in your description is respected; turn Auto off to pick your own length. New songs, presets and **Make it longer** stay between **0:03 and 6:00**; crossfades count toward an extension's final length. Existing longer recordings remain saved.
+
+Your personal ElevenLabs key pays for generation. A quiet line near Create says **Uses your ElevenLabs credits**; **Make 2 versions** still asks you to confirm double usage. Failed/uncertain paid attempts keep their separate recovery protections and are never automatically replayed.
+
 ## Writing returns automatically
 
 Create quietly keeps your description, lyrics and choices. Returning to the screen opens the last writing without a restore/dismiss question. **New song** clears the form immediately, including the folded detailed-production form; returning again keeps it clear. Previous private device copies and saved songs are retained, not deleted.

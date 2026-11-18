@@ -21,6 +21,10 @@ test('loading Style DNA leaves writing and title intact and reaches the real cre
   assert.equal(payload.duration,196);assert(payload.prompt.includes('123 BPM'));assert(payload.prompt.includes('A song about hope'));assert.equal(payload.voice,'Clear female lead');assert(payload.arrangement.includes('[Bridge]'));
   await setIdea('An eight-minute song about hope');
   await act(async()=>document.querySelector('form')!.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));
-  assert.equal(payload.duration,480,'explicit prompt duration takes priority over saved song-map length');
+  assert.equal(payload.duration,196,'an over-limit prompt does not send another generation');
+  assert.match(document.body.textContent!,/up to 6:00/);
+  await setIdea('A five-minute song about hope');
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(payload.duration,300,'a valid explicit duration takes priority over saved song-map length');
  }finally{await act(async()=>root.unmount());dom.window.close();}
 });

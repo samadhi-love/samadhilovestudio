@@ -1,8 +1,9 @@
-import { performanceLines, productionHeader } from "./lyric-notation";
+import { productionHeader } from "./lyric-notation";
+import { performanceWeight } from "./song-opening";
 export const minTrackSeconds = 3;
 // Local synthesized sketches retain their tested six-minute memory budget.
 export const maxTrackSeconds = 6 * 60;
-export const maxGeneratedSongSeconds = 10 * 60;
+export const maxGeneratedSongSeconds = 6 * 60;
 // Production also accepts existing eight-minute recordings and rendered tails.
 export const maxProductionSeconds = 8 * 60;
 export const trackLengthPresets = [30, 60, 120, 180, 240, 300, maxTrackSeconds] as const;
@@ -53,27 +54,25 @@ export function autoTrackTime({ vocals, lyrics, bpm, cinematic, prompt="", templ
 }) {
   const hints=promptTimes(prompt),maximums=hints.filter(h=>h.maximum).map(h=>h.seconds);
   const limit=Math.max(minTrackSeconds,Math.floor(Math.min(maxGeneratedSongSeconds,...maximums)));
-  const finish=(seconds:number,reason:string,explicit=false)=>({seconds:Math.max(minTrackSeconds,Math.min(limit,Math.round(seconds))),explicit,overLimit:seconds>maxGeneratedSongSeconds,reason:reason+(seconds>limit?` Limited to ${formatTrackTime(limit)}.`:"")});
+  const finish=(seconds:number,reason:string,explicit=false)=>({seconds:Math.max(minTrackSeconds,Math.min(limit,Math.round(seconds))),explicit,overLimit:explicit&&seconds>maxGeneratedSongSeconds,reason:reason+(seconds>limit?` Limited to ${formatTrackTime(limit)}.`:"")});
   const requested=hints.find(h=>!h.maximum);
   if(requested)return finish(requested.seconds,"Based on the duration requested in your prompt.",true);
-  if(typeof templateSeconds==="number"&&Number.isFinite(templateSeconds)&&templateSeconds>0)return finish(templateSeconds,"Based on your template’s target duration.");
-  const sung=performanceLines(lyrics).join(" ");
-  const words=vocals?(sung.match(/[\p{L}\p{M}\p{N}]+/gu)?.length??0):0;
+  const words=vocals?performanceWeight(lyrics):0;
   const lyricSections=lyrics.split(/\r?\n/).filter(line=>productionHeader(line)).length;
   const sections=Math.max(Number.isFinite(sectionCount)?sectionCount:0,lyricSections||(prompt.match(/\[(?:intro|verse[^\]]*|chorus|bridge|drop|outro|finale)\]/gi)??[]).length);
   if(words)return finish(Math.round((30+words*60/110+Math.min(30,sections*3))/5)*5,"Based on your lyric length and section structure, with intro/outro space.");
+  if(isTrackDuration(templateSeconds))return finish(templateSeconds,"Based on your template’s target duration.");
   if(/\b(?:short|teaser|promo|jingle|stinger|loop)\b/i.test(prompt))return finish(vocals?60:30,"A short format requested in your prompt.");
-  const extended=/\b(?:extended|long[- ]form|full[- ]length|long build)\b/i.test(prompt);
-  const spacious=cinematic||/\b(?:cinematic|slow build|gradual build|meditation|ambient)\b/i.test(prompt);
-  if(vocals){
-    const promptBpm=/\b(\d{2,3})\s*BPM\b/i.exec(prompt);
-    const tempo=promptBpm?Math.max(40,Math.min(240,Number(promptBpm[1]))):Number.isFinite(bpm)&&bpm>0?Math.max(40,Math.min(240,bpm)):120;
-    const verseCount=(prompt.match(/\bverse(?:s)?\b/gi)??[]).length;
-    const chorusCount=(prompt.match(/\bchorus(?:es)?\b|\bhook\b/gi)??[]).length;
-    const bridge=/\bbridge\b/i.test(prompt)?8:0;
-    const bars=sections?Math.max(16,sections*12):extended?160:spacious?112:Math.max(64,40+Math.max(2,Math.min(4,verseCount))*16+Math.max(2,Math.min(4,chorusCount))*8+bridge);
-    return finish(Math.round(bars*4*60/tempo/5)*5,"Request estimate from your prompt’s pacing, tempo and song structure. The generated performance may vary.");
-  }
-  const safeBpm=Number.isFinite(bpm)&&bpm>0?bpm:120,bars=Math.max(extended?128:spacious?96:64,sections*8);
-  return finish(Math.round(bars*4*60/safeBpm/5)*5,`About ${bars} bars at ${safeBpm} BPM, following your arrangement.`);
+  // Composition plans require a numeric duration; use a natural three-minute
+  // target rather than forcing a short beginner demo or a tempo-derived limit.
+  return finish(180,"Auto length: a natural three-minute target when no lyrics or specific length are supplied.");
+}
+
+/** The same duration is used by quoting and generation; Auto never bypasses the cap. */
+export function creationDuration(input: Record<string,unknown>): number {
+  if(input.duration !== undefined && input.duration !== "auto" && !isTrackDuration(Number(input.duration)))return NaN;
+  if(input.autoLength !== true && input.duration !== undefined && input.duration !== "auto")return Number(input.duration);
+  const timing=autoTrackTime({vocals:input.instrumental!==true,lyrics:typeof input.lyrics==="string"?input.lyrics:"",
+    bpm:120,cinematic:false,prompt:typeof input.languagePrompt==="string"?input.languagePrompt:typeof input.prompt==="string"?input.prompt:""});
+  return timing.overLimit ? NaN : timing.seconds;
 }

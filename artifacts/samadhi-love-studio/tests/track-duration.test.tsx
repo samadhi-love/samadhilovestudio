@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import React,{act} from "react";
 import {JSDOM} from "jsdom";
 import { customCreate, creationIdea, englishCreation } from "./create-controls";
-import {autoTrackTime,isTrackDuration} from "../app/track-duration";
+import {autoTrackTime,isTrackDuration,creationDuration,parseTrackTime,trackLengthPresets} from "../app/track-duration";
+import {assertSongEditLength,editSongSection} from "../app/song-section-data";
 import {QuickCreate} from "../app/quick-create";
 import {CreateStudio} from "../app/create-studio";
 import {CaptionReadyCreate} from "../app/lyric-pro-create";
@@ -11,21 +12,23 @@ import type {ElevenLabsKey} from "../app/elevenlabs-key";
 
 const base={vocals:true,lyrics:"",beginner:true,bpm:120,cinematic:false};
 test("Auto follows whole-song prompt durations and treats maximums as limits",()=>{
-  for(const [prompt,expected] of [["A four-minute song",240],["An eight minute song",480],["A 3:47 song",227],["3 minutes 30 seconds",210],["A 90-second jingle",90],["A six-minute song",360],["A 30-second intro then a 4-minute song",240],["Intro lasts 30 seconds. Make the whole song 3:30",210],["Duration 3.5 min",210]] as const)assert.equal(autoTrackTime({...base,prompt}).seconds,expected,prompt);
-  assert.equal(autoTrackTime({...base,prompt:"A song up to six minutes"}).seconds,175);
+  for(const [prompt,expected] of [["A four-minute song",240],["An eight minute song",360],["A 3:47 song",227],["3 minutes 30 seconds",210],["A 90-second jingle",90],["A six-minute song",360],["A 30-second intro then a 4-minute song",240],["Intro lasts 30 seconds. Make the whole song 3:30",210],["Duration 3.5 min",210]] as const)assert.equal(autoTrackTime({...base,prompt}).seconds,expected,prompt);
+  assert.equal(autoTrackTime({...base,prompt:"A song up to six minutes"}).seconds,180);
   assert.equal(autoTrackTime({...base,prompt:"A 5-minute song, maximum 4 minutes"}).seconds,240);
   assert.equal(autoTrackTime({...base,prompt:"Maximum 1.11 minutes"}).seconds,66);
-  assert.equal(autoTrackTime({...base,prompt:"A dance song at 140 BPM"}).seconds,150);
-  assert.notEqual(autoTrackTime({...base,prompt:"A dance song at 90 BPM"}).seconds,autoTrackTime({...base,prompt:"A dance song at 140 BPM"}).seconds);
-  assert.equal(autoTrackTime({...base,prompt:"A ten-minute song"}).seconds,600);
+  assert.equal(autoTrackTime({...base,prompt:"A dance song at 140 BPM"}).seconds,180);
+  assert.equal(autoTrackTime({...base,prompt:"A ten-minute song"}).seconds,360);
+  assert(autoTrackTime({...base,prompt:"An eight-minute song"}).overLimit);
 });
 test("Auto uses template targets and lyric structure without counting production instructions",()=>{
   assert.equal(autoTrackTime({...base,templateSeconds:278}).seconds,278);
   assert.equal(autoTrackTime({...base,prompt:"A 2-minute song",templateSeconds:278}).seconds,120);
   const words="Love and light together";
   assert.equal(autoTrackTime({...base,lyrics:words}).seconds,autoTrackTime({...base,lyrics:"{genre: "+"House ".repeat(120)+"}\n"+words}).seconds);
-  assert.equal(autoTrackTime({...base,lyrics:"love ".repeat(1200)}).seconds,600);
-  assert(autoTrackTime({...base,prompt:"An extended dance song"}).seconds>autoTrackTime(base).seconds);
+  assert.equal(autoTrackTime({...base,lyrics:"love ".repeat(1200)}).seconds,360);
+  assert.equal(autoTrackTime({...base,prompt:"An extended dance song"}).seconds,180);
+  assert.equal(autoTrackTime({...base,lyrics:words,templateSeconds:300}).seconds,autoTrackTime({...base,lyrics:words}).seconds);
+  assert(autoTrackTime({...base,lyrics:"extraordinarily ".repeat(40)}).seconds>autoTrackTime({...base,lyrics:"love ".repeat(40)}).seconds,"use the composition planner's performed-text weights, not just whitespace word counts");
   assert.equal(autoTrackTime({...base,prompt:"A short teaser"}).seconds,60);
   assert.equal(autoTrackTime({...base,beginner:false}).seconds,autoTrackTime(base).seconds);
   for(const bpm of [NaN,0,1,50,120,180,1000])for(const cinematic of [true,false])for(const vocals of [true,false])assert(isTrackDuration(autoTrackTime({...base,bpm,cinematic,vocals}).seconds));
@@ -45,10 +48,17 @@ test("Quick Create sends the displayed automatic duration instead of its old fix
   const h=await setup();let duration=0,opening="";
   try{
     await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{duration=input.duration;opening=input.openingMode??"";return undefined;}} saveSketch={async()=>undefined}/>));
-    await h.select("direct");await h.input(creationIdea(),"A four-minute joyful song");await h.submit();assert.equal(duration,240);assert.equal(opening,"direct");assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/4:00/);
-    await h.input(creationIdea(),"An eight-minute joyful song");await h.submit();assert.equal(duration,480);assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/8:00/);
+    assert((document.querySelector('.track-length-control input[type="checkbox"]') as HTMLInputElement).checked);
+    assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: Auto.*Uses your ElevenLabs credits/);
+    await h.input(creationIdea(),"A joyful song");await h.submit();assert.equal(duration,180,"no forced 90-second beginner limit");
+    await h.select("direct");await h.input(creationIdea(),"A four-minute joyful song");await h.submit();assert.equal(duration,240);assert.equal(opening,"direct");assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: Auto/);
+    await h.input(creationIdea(),"An eight-minute joyful song");await h.submit();assert.equal(duration,240);assert.match(document.body.textContent!,/up to 6:00/);
     await h.input(creationIdea(),"A 30-second joyful hook");await h.submit();assert.equal(duration,30);
-    await h.input(creationIdea(),"A 20-minute joyful song");await h.submit();assert.equal(duration,30,"unsupported requests are blocked before generation instead of silently shortened");assert(document.body.textContent!.includes("more than ten minutes"));
+    await h.input(creationIdea(),"A 20-minute joyful song");await h.submit();assert.equal(duration,30,"unsupported requests are blocked before generation instead of silently shortened");assert(document.body.textContent!.includes("up to 6:00"));
+    await act(async()=>(document.querySelector('.track-length-control input[type="checkbox"]') as HTMLInputElement).click());
+    assert.equal(document.querySelector('.track-length-control input[type="range"]')!.getAttribute("max"),"360");
+    await act(async()=>h.button("6:00").click());await h.submit();assert.equal(duration,360);
+    assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: 6:00/);
   }finally{await h.close();}
 });
 test("Guided Auto honors prompt timing while retaining manual duration control",async()=>{
@@ -57,10 +67,29 @@ test("Guided Auto honors prompt timing while retaining manual duration control",
     await act(async()=>h.root.render(<CreateStudio seed={{idea:"A 4:45 joyful song",seconds:120,instrumental:false}} voiceDesignAllowed={false} elevenLabs={{connected:true,defaultProvider:true,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async input=>{duration=Number(input.duration);opening=String(input.openingMode);return true;}} saveDraft={async()=>true} saveInstrumental={async()=>true} move={async()=>true} open={()=>{}} remix={()=>{}}/>));
     await act(async()=>[...document.querySelectorAll("button")].find(b=>b.querySelector("strong")?.textContent==="Beginner")!.click());
     const auto=document.querySelector('.track-length-control input[type="checkbox"]') as HTMLInputElement;
-    assert.equal(auto.checked,false);await h.select("short");await h.submit();assert.equal(duration,120);assert.equal(opening,"short");
-    await act(async()=>auto.click());await h.submit();assert.equal(duration,285);
+    assert.equal(auto.checked,true);await h.select("short");await h.submit();assert.equal(duration,285);assert.equal(opening,"short");
     await act(async()=>auto.click());await act(async()=>h.button("2:00").click());await h.submit();assert.equal(duration,120);
   }finally{await h.close();}
+});
+test("server duration resolution shares the six-minute cap and natural Auto target",()=>{
+  for(const seconds of [3,30,180,360])assert(isTrackDuration(seconds));
+  for(const seconds of [0,2,361,480,600,NaN]){assert(!isTrackDuration(seconds));assert(Number.isNaN(creationDuration({duration:seconds})));}
+  assert.equal(parseTrackTime("6:00"),360);assert.equal(parseTrackTime("6:01"),null);
+  assert(trackLengthPresets.every(seconds=>seconds<=360));
+  assert.equal(creationDuration({prompt:"An uplifting song"}),180);
+  assert.equal(creationDuration({duration:"auto",prompt:"A slow full-length anthem"}),180);
+  const lyrics="[Verse]\n"+("Carry the light with me\n".repeat(12))+"[Chorus]\nWe rise together";
+  const natural=autoTrackTime({...base,lyrics}).seconds;
+  assert.equal(creationDuration({autoLength:true,duration:180,lyrics}),natural);
+  assert.equal(creationDuration({autoLength:false,duration:240,lyrics,prompt:"A 30-second song"}),240);
+  assert(Number.isNaN(creationDuration({autoLength:true,duration:180,prompt:"An eight-minute song"})));
+});
+test("extension and replacement use a six-minute untruncated crossfaded timeline",()=>{
+  const clips=(added:number)=>editSongSection("source",350,"insert",350,350,{id:"added",from:0,to:added});
+  assert.equal(assertSongEditLength(clips(12),2),360);
+  assert.throws(()=>assertSongEditLength(clips(13),2),/exceed 6:00/);
+  assert.equal(assertSongEditLength(editSongSection("source",360,"replace",345,360,{id:"part",from:0,to:15}),0),360);
+  assert.equal(assertSongEditLength(editSongSection("legacy",480,"trim",0,360),0),360,"older saved audio remains usable");
 });
 test("caption-ready lyric drafting and audio creation use the same prompt-based duration",async()=>{
   const h=await setup(),oldFetch=globalThis.fetch;let draftDuration=0,createdDuration=0,approved="",draftOpening="",createdOpening="";

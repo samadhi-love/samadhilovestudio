@@ -38,7 +38,7 @@ test("Create help is local, lyric chips insert at the cursor, and two versions r
   await act(async()=>h.button("Help me describe it").click());
   assert.match(idea.value,/coherent, singable lyrics/);assert.equal(requests.length,0);
   const versions=document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!;
-  assert.equal(versions.checked,false);assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/one music request/);
+  assert.equal(versions.checked,false);assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/One version/);
   await act(async()=>versions.click());assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/2×/);
   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(requests.length,0);

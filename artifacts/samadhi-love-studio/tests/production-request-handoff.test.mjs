@@ -22,6 +22,9 @@ function compile(file, imports) {
 
 function fixture(metered) {
   const settled = [];
+  const notation=compile("../app/lyric-notation.ts",{});
+  const opening=compile("../app/song-opening.ts",{"./lyric-notation":notation});
+  const duration=compile("../app/track-duration.ts",{"./lyric-notation":notation,"./song-opening":opening});
   const requests = compile("../app/api/studio/request-errors.ts", { "./store": { privateHeaders: {} } });
   class CreditError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
   const api = compile("../app/credits/production.ts", {
@@ -30,6 +33,7 @@ function fixture(metered) {
     "../api/studio/store": { privateHeaders: {}, readStudio: async () => ({ data: { songs: [] } }) },
     "../api/studio/request-errors": requests,
     "./data": { creditPrice: () => 0 },
+    "../track-duration": duration,
     "./account-ledger": {
       CreditError, managedAvailable: () => false,
       ensureCreditAccount: async () => ({ funding: "own" }),

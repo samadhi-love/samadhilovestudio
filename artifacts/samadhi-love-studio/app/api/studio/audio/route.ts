@@ -12,7 +12,7 @@ import { privateWorkspace } from "../../../studio-access";
 import { recoverableRoute } from "../request-errors";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { stampSong } from "../../../song-library";
-import {isSectionEditPlan,type SectionEditPlan} from "../../../song-section-data";
+import {isSectionEditPlan,assertSongEditLength,type SectionEditPlan} from "../../../song-section-data";
 import {carryEditedCaptions} from "../../../caption-edit-continuity";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +88,7 @@ async function uploadAudio(request: Request) {
   const sourceProject = projectId ? studio.songs.find(s => s.id === projectId && !s.deletedAt && !isExplicitSong(s)) : undefined;
   let sectionEdit:SectionEditPlan|undefined;const rawEdit=request.headers.get("X-Section-Edit-Plan");
   if(rawEdit){try{const candidate=JSON.parse(decodeURIComponent(rawEdit));if(rawEdit.length>24000||!isSectionEditPlan(candidate)||partySource!=="mix"||candidate.sourceSongId!==projectId||candidate.sourceAudioId!==(sourceProject?.audioId??sourceProject?.id)||!candidate.clips.every(c=>studio.songs.some(s=>s.id===c.songId&&!s.deletedAt&&!isExplicitSong(s)&&(s.audioId??s.id)===c.audioId)))return problem("The section edit must use current audio from your private library.",400);sectionEdit=candidate;}catch{return problem("Check the section edit recipe.",400);}}
+  if(sectionEdit){try{assertSongEditLength(sectionEdit.clips.map(c=>({id:c.audioId,from:c.from,to:c.to})),sectionEdit.fade);}catch(error){return problem((error as Error).message,400);}}
   if (projectId && (!sourceProject || target)) return problem("Choose an available project for this production mix.", 400);
   if (sourceSession && !/^[\w-]{1,100}$/.test(sourceSession)) return problem("Invalid source session.", 400);
   if (sourceProject && isExplicitSong(projectRoot(studio.songs, sourceProject))) return problem(cleanWordsMessage, 422);

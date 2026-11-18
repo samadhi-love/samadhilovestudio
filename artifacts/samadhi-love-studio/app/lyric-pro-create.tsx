@@ -46,8 +46,8 @@ export function CaptionReadyCreate({
   const timing=autoTrackTime({vocals:true,lyrics,bpm:120,cinematic:false,prompt:idea,templateSeconds});
   const seconds=autoLength?timing.seconds:parseTrackTime(manualTime);
   async function draft() {
-    if(autoLength&&timing.overLimit){setError("Request a song up to ten minutes, or assemble a longer mix in Party Files.");return;}
-    if(seconds===null){setError("Choose a song length from 0:03 to 10:00.");return;}
+    if(autoLength&&timing.overLimit){setError("Songs can be up to 6:00. Choose a shorter length.");return;}
+    if(seconds===null){setError("Choose Auto or a song length from 0:03 to 6:00.");return;}
     try { resolveLanguage(languageChoice, ""); } catch (e) { setError((e as Error).message); return; }
     setBusy(true);
     setError("");
@@ -79,8 +79,8 @@ export function CaptionReadyCreate({
     }
   }
   async function create() {
-    if(autoLength&&timing.overLimit){setError("Request a song up to ten minutes, or assemble a longer mix in Party Files.");return;}
-    if(seconds===null){setError("Choose a song length from 0:03 to 10:00.");return;}
+    if(autoLength&&timing.overLimit){setError("Songs can be up to 6:00. Choose a shorter length.");return;}
+    if(seconds===null){setError("Choose Auto or a song length from 0:03 to 6:00.");return;}
     try { resolveLanguage(languageChoice, lyrics); } catch (e) { setError((e as Error).message); return; }
     setBusy(true);
     setError("");
@@ -233,7 +233,7 @@ export function CaptionReadyCreate({
         <button type="button" className="secondary small" disabled={busy} onClick={() => { setAutoLength(false); setManualTime("0:15"); }}>
           Set 15-second paid audition
         </button>
-        <p className="lvp-note">This only sets the length. Drafting and generating can cost credits; review the quote and start generation yourself. No free audition or automatic retry.</p>
+        <p className="lvp-note">Auto fits your lyrics and sections. Turn it off to choose a length up to 6:00.</p>
         <label className="lvp-check">
           <input
             type="checkbox"
@@ -259,7 +259,7 @@ export function CaptionReadyCreate({
           transcription request)
         </label>
         <p className="lvp-note">
-          Generate uses your ElevenLabs music credits, then automatically
+          Uses your ElevenLabs credits. Generating then automatically
           requests lyric alignment. Optional recognized-word checking is a
           separate paid request. The provider's music response supplies audio
           rather than word timestamps, so Studio aligns the completed

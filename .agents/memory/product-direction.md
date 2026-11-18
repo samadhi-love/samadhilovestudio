@@ -91,3 +91,15 @@ Singing defaults to Auto with English fallback, with a visible language selector
 **Why:** The owner reported English lyrics being blocked by uncertain detection and no visible Simple-mode override, and explicitly chose this easier setup.
 
 **How to apply:** Match the full shared language/dialect catalog, including existing world-music language names. Preserve explicit user choices (including English and dialects) over conflicting descriptions, keep dialect depth in Custom → Vocals, and fall back to English rather than asking beginners to resolve detection. Use the creator's original description, not automatically appended style hints, so the screen and server agree and a genre chip alone cannot unexpectedly change the singing language.
+
+Song length defaults to Auto: fit supplied lyrics and sections naturally; for description-only creation use a natural provider length, or about three minutes when the production pipeline requires a number. Keep a manual choice, the existing minimum, and a six-minute maximum for new songs and extensions.
+
+**Why:** The owner explicitly chose natural song length instead of short beginner demos and set a six-minute ceiling.
+
+**How to apply:** Apply the same limit to controls, presets, quote validation, creation and the untruncated crossfaded extension timeline. Preserve existing longer saved recordings; never truncate or delete them to enforce a new-request limit.
+
+Keep normal personal-key Create wording quiet: at most one small “Uses your ElevenLabs credits” line; retain double-cost confirmation for “Make 2 versions”.
+
+**Why:** The owner says users are responsible for their own ElevenLabs credits and finds repeated credit warnings unnecessary.
+
+**How to apply:** Do not reintroduce repeated normal-generation warnings. Preserve accounting, paid-result recovery and explicit consent before replaying an uncertain paid attempt; this wording decision is not permission to bypass those safeguards.

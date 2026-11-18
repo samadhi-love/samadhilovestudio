@@ -97,7 +97,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
   const [languageChoice,setLanguageChoice] = useState<LanguageChoice>(defaultLanguageChoice);
   const [voice, setVoice] = useState(seed?.vocal ?? "");
   const seedDuration = sourceSettings?.seconds ?? seed?.seconds;
-  const [autoLength, setAutoLength] = useState(!isTrackDuration(seedDuration));
+  const [autoLength, setAutoLength] = useState(true);
   const [manualTime, setManualTime] = useState<string | null>(isTrackDuration(seedDuration) ? formatTrackTime(seedDuration) : null);
   const [presetOverride, setPreset] = useState<Preset | null>(sourceSettings?.preset ?? null);
   const [tempo, setTempo] = useState(sourceSettings ? String(sourceSettings.bpm) : seed?.bpm ?? "");
@@ -166,7 +166,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
   const suggestedLength = autoTrackTime({
     vocals: type === "vocals", lyrics: currentLyrics, beginner: level === "beginner",
     bpm: validTempo ? bpm : suggestedTempo, cinematic: pro && shape === "cinematic",
-    prompt: [idea,pro&&direction].filter(Boolean).join("\n"), templateSeconds: seedDuration, sectionCount: sectionDirections?.length,
+    prompt: [idea,pro&&direction].filter(Boolean).join("\n"), sectionCount: sectionDirections?.length,
   });
   const displayedTime = manualTime ?? formatTrackTime(suggestedLength.seconds);
   const length = autoLength ? suggestedLength.seconds : parseTrackTime(displayedTime);
@@ -214,8 +214,8 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
 
   async function create(alternate = false) {
     if (busy || !idea.trim() || length === null || !validateIdea()) return;
-    if(autoLength&&suggestedLength.overLimit){setError("This prompt exceeds the ten-minute generation request limit. Request a shorter song or use Party Files for a longer set.");return;}
-    if(isLocal&&length>360){setError("Local sketches support six minutes; use connected generation for a longer song.");return;}
+    if(autoLength&&suggestedLength.overLimit){setError("Songs can be up to 6:00. Choose a shorter length.");return;}
+    if(length>360){setError("Choose a song length up to 6:00.");return;}
     const prompt = buildPrompt(alternate);
     if (prompt.length > 1600) { setError("The complete music direction exceeds 1600 characters. Shorten it before creating this take; nothing has been sent."); return; }
     const songTitle = title.trim() || (isLocal ? preset.name + " Sketch" : "Untitled song");
@@ -425,11 +425,11 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
             {formError && <p className="notice" role="alert">{formError}</p>}
             {!isLocal && elevenLabs.connected && <p className="muted creation-note">ElevenLabs may use plan credits. Your finished track saves automatically to Your songs.</p>}
             <div className="actions guide-generate">
-              <HelpControl subject="Generate track" tip="Make audio from your current settings. ElevenLabs generation may use plan credits."><button type="submit" className="primary" disabled={!canCreate}><Sparkles size={16}/>{generating ? "Creating your track…" : isLocal ? "Create instrumental" : "Generate track"}</button></HelpControl>
+              <HelpControl subject="Generate track" tip="Make audio from your current settings."><button type="submit" className="primary" disabled={!canCreate}><Sparkles size={16}/>{generating ? "Creating your track…" : isLocal ? "Create instrumental" : "Generate track"}</button></HelpControl>
               {pro && <HelpControl subject="Make an alternate take" tip="Generate another interpretation of the current idea so you can compare takes."><button type="button" className="secondary" disabled={!canCreate} onClick={() => create(true)}>Make an alternate take</button></HelpControl>}
             </div>
             <p className="muted creation-note">{isLocal ? "Studio instruments turn your selected palette and arrangement into audio in this browser." :
-              "Generation sends your prompt and any lyrics to the connected music provider and can use plan credits."}</p>
+              `Length: ${autoLength?"Auto":formatTrackTime(length??0)} · Uses your ElevenLabs credits`}</p>
             {generating && <p role="status" className="muted creation-note">Keep this tab open while the track renders.</p>}
           </fieldset>
         </form>

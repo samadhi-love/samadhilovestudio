@@ -38,7 +38,8 @@ import { type Instrumental } from "./creation-guide";
 import { renderInstrumental } from "./instrumental";
 import { songBlueprint } from "./song-blueprint";
 import { songAudioUrl, type Song } from "./studio-data";
-import { autoTrackTime, formatTrackTime } from "./track-duration";
+import { autoTrackTime, formatTrackTime, parseTrackTime, maxGeneratedSongSeconds } from "./track-duration";
+import { TrackLengthControl } from "./track-length-control";
 import { expandSongDescription, insertLyricSection } from "./creation-shortcuts";
 import { MelodyReferenceRecorder, type MelodyReferenceTake } from "./melody-reference-recorder";
 import "./cosmic-views.css";
@@ -85,6 +86,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const [vocalOptions,setVocalOptions]=useState<CreatorVocalOptions>(defaultCreatorVocals);
   const [ownLyrics,setOwnLyrics]=useState(false),[lyrics,setLyrics]=useState("");
   const [languageChoice,setLanguageChoice]=useState<LanguageChoice>(defaultLanguageChoice);
+  const [autoLength,setAutoLength]=useState(true),[manualTime,setManualTime]=useState("");
   const [openingMode,setOpeningMode]=useState<SongOpening>("auto");
   const [choice, setChoice] = useState<CreateChoice>(defaultCreateChoice);
   const [genreEdit, setGenreEdit] = useState<string | null>(null);
@@ -98,7 +100,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
-  const recovery=useDraftRecovery("quick-create",{languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+  const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+    setAutoLength(value.autoLength!==false);setManualTime(typeof value.manualTime==="string"?value.manualTime:"");
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}else{setPhoto(null);setPhotoName("");}setResultId(typeof value.resultId==="string"?value.resultId:undefined);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
@@ -164,7 +167,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   }
   const songTiming=autoTrackTime({vocals:!instrumental,lyrics:useOwnLyrics?lyrics:"",bpm:blueprint.bpm,cinematic:false,prompt:idea,sectionCount:code.match(/^\s*\[[^\]\r\n]+\]\s*$/gm)?.length});
   const baseTiming=adActive?{seconds:adBrief.seconds,reason:"Based on your musical advertisement length."}:mapOn&&validSongMap(songMap)&&!songTiming.explicit?{seconds:mapSeconds(songMap),reason:"Based on your song map targets."}:songTiming;
-  const timing=playful&&!songTiming.explicit?{...baseTiming,seconds:Math.min(90,Math.max(45,baseTiming.seconds)),reason:"A short first creation; change the length in Custom."}:baseTiming;
+  const timing=!autoLength&&!adActive&&!mapOn?{...baseTiming,seconds:parseTrackTime(manualTime||formatTrackTime(baseTiming.seconds))??0}:baseTiming;
   const result = drafts.find(song => song.id === resultId && !song.deletedAt);
   useEffect(()=>{if(resultId){setTakeIds(ids=>[...ids.filter(id=>id!==resultId),resultId].slice(-8));setPlayStage("play");}},[resultId]);
   const covered=useRef("");
@@ -228,7 +231,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   }
   const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
   function startFresh(broadcast=true){
-    const blank:Parameters<typeof recovery.reset>[0]={languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:false,melodyTakes:[],pendingTake:undefined};
+    const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:false,melodyTakes:[],pendingTake:undefined};
     void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
     if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
     setPlayStage("start");setPreviousChoices(null);setError("");setPromptNotice("");setMelodyStatus("");setRecipeId("");setOpenPanel("");
@@ -248,7 +251,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     if (simple&&!idea.trim()) { setError("Describe your song first: what it is about, plus any genre, mood or language you want."); return; }
     if (customMode&&!idea.trim()&&!useOwnLyrics&&!genre.trim()) { setError("Add lyrics, styles or a short description before creating."); return; }
     if(mapOn&&!validSongMap(songMap)){setError("Check the song map tempo and section durations before creating.");return;}
-    if(!adActive&&(!mapOn||songTiming.explicit)&&songTiming.overLimit){setError("This prompt needs more than ten minutes in one generation. Request a shorter song or assemble a longer set in Party Files.");return;}
+    if(!adActive&&autoLength&&(!mapOn||songTiming.explicit)&&songTiming.overLimit){setError("Songs can be up to 6:00. Choose a shorter length.");return;}
+    if(timing.seconds<3||timing.seconds>maxGeneratedSongSeconds){setError("Choose Auto or a length from 0:03 to 6:00.");return;}
     if(localSketch&&timing.seconds>360){setError("Local instrument sketches support six minutes. Choose a shorter length.");return;}
     if(adActive&&!isMusicalAd(adBrief)){setError("Complete the product name, benefit and call to action before creating your ad.");return;}
     if (useOwnLyrics && parseLyricNotation(lyrics).errors.length) { setError(parseLyricNotation(lyrics).errors[0]); return; }
@@ -258,7 +262,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
       try { resolveLanguage(languageChoice, useOwnLyrics ? lyrics : "",idea); if(intentIssue)throw new Error(intentIssue); }
       catch (error) { setError((error as Error).message); return; }
     }
-    if(makeTwoVersions&&!localSketch&&!window.confirm(`Make two versions of this song?\n\nThis sends two separate music-generation requests and costs 2× the provider usage (or 2× the Studio credits). The exact Studio-credit amount is confirmed before each request. If the second request fails, the first version stays saved.`))return;
+    if(makeTwoVersions&&!localSketch&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
     setError(""); setPending(true);
     try {
       const described = simple
@@ -276,7 +280,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         const blob = await renderInstrumental(take);
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
-        const input={title,prompt,languagePrompt:idea,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
+        const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
         const made=await generateSong(input);
         if(made){
           const madeIds=[made];setResultId(made);
@@ -313,7 +317,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>
       <strong>{connectionChecking?"Checking music account…":connected?"Music account connected":"Music account not connected"}</strong>
-      <span className="muted" role={connectionError?"alert":undefined}>{connectionError||(connectionChecking?"Checking your saved connection. No music is being generated.":connected?"Your key is saved. Music permissions and credits are checked when you create.":"Singing needs a connected music account.")}</span>
+      <span className="muted" role={connectionError?"alert":undefined}>{connectionError||(connectionChecking?"Checking your saved connection.":connected?"Your key is saved.":"Singing needs a connected music account.")}</span>
       {!connected&&refreshConnection&&<button type="button" className="secondary small" disabled={busy||connectionChecking} onClick={refreshConnection}>Refresh connection</button>}
       {!connected&&<button type="button" className="primary small" data-testid="button-connect-music" disabled={busy} onClick={settings}><Settings2 size={15}/> Connect music account</button>}
     </div>
@@ -353,6 +357,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
           <button type="button" role="tab" aria-selected={customMode} data-testid="tab-mode-custom" onClick={()=>switchMode(true)}>Custom</button>
         </div>
         <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
+        {!adActive&&!mapOn&&<TrackLengthControl automatic={autoLength} onAutomatic={setAutoLength} suggested={baseTiming.seconds} reason={baseTiming.reason} manual={manualTime||formatTrackTime(baseTiming.seconds)} onManual={setManualTime}/>}
         {simple?<>
           <label className="field qc-field">Describe your song
             <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="Mood, subject, style and singing language — e.g. hopeful pop about a fresh start, sung in English" onChange={e=>{setIdea(e.target.value);setError("");}}/>
@@ -408,12 +413,12 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         <div className="forge-launch">
         {!localSketch&&<div className="version-count-control">
           <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Make 2 versions <span className="muted">(uses double credits)</span></label>
-          <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two separate music requests · 2× provider usage / Studio credits. Exact Studio credits are confirmed before each request.":"Off by default · one music request. Turn on to make two versions together."}</p>
+          <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two versions · 2× ElevenLabs credits.":"One version."}</p>
         </div>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>
             {pending ? localSketch?"Rendering your sketch…":"Creating…" : "Create"}</button>
-          <span className="muted" data-testid="text-create-summary">{localSketch?"Built-in sketch · no credits":adActive?"Musical ad":instrumental?"Instrumental":"Song with singing"} · about {formatTrackTime(timing.seconds)}.{!localSketch&&" Uses music-provider credits."}</span>
+          <span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&" · Uses your ElevenLabs credits"}</span>
         </div>
         </div>
         {promptNotice&&<p role="status" data-testid="text-prompt-notice">{promptNotice}</p>}

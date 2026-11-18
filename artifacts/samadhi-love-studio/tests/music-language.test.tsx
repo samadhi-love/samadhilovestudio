@@ -245,6 +245,17 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
       method: "POST", headers: { Origin: "https://studio.test", "Content-Type": "application/json" }, body: JSON.stringify(input),
     })) as Promise<Response> };
 }
+test("song and lyric-plan API reject lengths over six minutes before accounting",async()=>{
+ for(const action of ["song","lyric-plan"])for(const seconds of [2,361,480,600]){
+  const h=routeHarness(),r=await h.post({action,title:"Boundary",prompt:"A joyful song",duration:seconds,language:"en"});
+  assert.equal(r.status,400);assert.match(await r.text(),/0:03 to 6:00/);
+  assert.equal(h.paidEntries(),0);assert.equal(h.calls.length,0);
+ }
+ const h=routeHarness(),r=await h.post({action:"song",title:"Auto",prompt:"A joyful song",lyrics:"Together we rise",duration:"auto",language:"en"});
+ assert.equal(r.status,200,await r.clone().text());
+ const chunks=h.calls[0].payload.composition_plan.chunks;
+ assert.equal(chunks.reduce((sum:number,c:any)=>sum+c.duration_ms,0),duration.creationDuration({duration:"auto",lyrics:"Together we rise"})*1000);
+});
 test("unsupported and incompatible selections stop before accounting or provider requests", async () => {
   for (const choice of [{ language: "en", dialect: "ar-LB" }, { language: "xx", dialect: "" }]) {
     const h = routeHarness();
@@ -373,7 +384,7 @@ test("accessible selectors default to English, allow overrides, clear incompatib
     assert.equal(selects[0].value, "fr"); assert.equal(selects[1].value, "");
     assert(selects[1].disabled);
     assert.match(document.body.textContent!, /No singing language has been listening-tested/);
-    assert.match(document.body.textContent!, /no free audition/i);
+    assert.doesNotMatch(document.body.textContent!, /no free audition|paid audition|may use credits/i);
     assert.match(document.body.textContent!, /full-line emphasis/);
   } finally { await act(async () => root.unmount()); dom.window.close(); }
 });
