@@ -56,3 +56,17 @@ mtime_ms = 1795008869447
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/30201c67-b53a-4b1c-b439-36a9870758aa/5cdcab82-5d17-4902-a277-e65731cc24bd"
 storage_version_token = "1795008907354570"
 content_type = "text/plain"
+
+[[outputs]]
+id = "jJkzU4TEIr3yduDCVYVKk"
+uri = "file://generated-artifacts/claude-job-wait-verification/full-report.txt"
+type = "text"
+title = "Claude job-wait verification results"
+description = "Complete logs for all 13 checks, including the full TypeScript/build failure and the stalled-poll timeout probe."
+logical_id = "185eeaff-bdb9-4ad2-b5ae-9ca672a43351"
+content_hash = "sha256:c2332d205b6870bf17935a4376827b0960a358fdd02adc364399d69232faa29d"
+size = 127077
+mtime_ms = 1795010746191
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/185eeaff-bdb9-4ad2-b5ae-9ca672a43351/71382683-3c5b-48d6-965f-672e496d19e3"
+storage_version_token = "1795010777991921"
+content_type = "text/plain"
