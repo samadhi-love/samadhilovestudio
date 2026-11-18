@@ -4,6 +4,7 @@ import { creationPresets, isInstrumental, type Instrumental } from "../../../cre
 import { serveAudio } from "../audio-response";
 import { audioFormatsLabel, audioTypes, freshSong, emptyCreatorStudio, initialStudio, isAudioFormat, maxAudioBytes, validCreationReference, type Song } from "../../../studio-data";
 import { audioKey, maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "../store";
+import {preservePaidSong} from "../../../server/song-recovery";
 
 import { privateWorkspace } from "../../../studio-access";
 import { recoverableRoute } from "../request-errors";
@@ -77,7 +78,8 @@ async function uploadAudio(request: Request) {
     if(receipt.name!==title||receipt.audioFormat!==format||JSON.stringify(receipt.instrumental)!==JSON.stringify(instrumental?.settings))return problem("This creation is already saved with different settings. Open My Songs before retrying.",409);
     return Response.json({...previous,data:studio,songId:receipt.id},{headers:privateHeaders});
   }
-  if (previous.revision !== revision) return saveConflict();
+  const independentUpload=!target&&!request.headers.get("X-Project-Song-Id");
+  if (previous.revision !== revision&&!independentUpload) return saveConflict();
   const projectId = request.headers.get("X-Project-Song-Id");
   const sourceSession = request.headers.get("X-Source-Session-Id") ?? undefined;
   const sourceProject = projectId ? studio.songs.find(s => s.id === projectId && !s.deletedAt && !isExplicitSong(s)) : undefined;
@@ -117,7 +119,8 @@ async function uploadAudio(request: Request) {
   try {
     await Promise.all([
       request.body.pipeTo(stream.writable),
-      bucket.put(key, stream.readable, { httpMetadata: { contentType: audioTypes[format] } }),
+      bucket.put(key, stream.readable, { httpMetadata: { contentType: audioTypes[format] },
+        customMetadata:{recoverable:"1",songId:song.id,audioId:song.audioId??song.id,audioFormat:format,title:song.name,createdAt:new Date().toISOString()} }),
     ]);
   } catch (error) {
     console.error("Studio audio upload failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
@@ -125,11 +128,27 @@ async function uploadAudio(request: Request) {
   }
 
   try {
-    const saved = await writeStudio(id, revision, content);
+    const saved = await writeStudio(id, independentUpload?previous.revision:revision, content);
     if (saved) return Response.json({ ...await readStudio(id), songId: song.id }, { headers: privateHeaders });
+    if(independentUpload){
+      for(let attempt=0;attempt<3;attempt++){
+        const latest=await readStudio(id),library=latest.data??emptyCreatorStudio;
+        const completed=library.songs.find(s=>s.id===song.id);
+        if(completed){
+          if(completed.deletedAt)break;
+          if((completed.audioId??completed.id)!==(song.audioId??song.id))await bucket.delete(key);
+          return Response.json({...latest,songId:completed.id},{headers:privateHeaders});
+        }
+        if(await env.DB?.prepare("SELECT song_id FROM song_deletion_jobs WHERE owner=? AND song_id=?").bind(id,song.id).first())break;
+        const merged=JSON.stringify({...library,songs:[song,...library.songs]});
+        if(new TextEncoder().encode(merged).length>maxStudioBytes)break;
+        if(await writeStudio(id,latest.revision,merged))return Response.json({...await readStudio(id),songId:song.id},{headers:privateHeaders});
+      }
+    }
   } catch (error) {
+    try{await preservePaidSong(id,song);}catch{/* The private audio metadata also tracks this orphan for recovery. */}
     console.error("Studio upload save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
-    return problem("The studio could not confirm the upload. Reload your library before trying again.", 503);
+    return problem("Your audio reached private storage, but its library save was not confirmed. Open My Songs and choose Recover unfinished songs before uploading again.", 503);
   }
   if(creationId||uploadId){
     const latest=await readStudio(id),completed=latest.data?.songs.find(s=>s.id===(creationId??uploadId));
@@ -138,8 +157,8 @@ async function uploadAudio(request: Request) {
       return Response.json({...latest,songId:completed.id},{headers:privateHeaders});
     }
   }
-  await bucket.delete(key).catch(error => console.error("Could not remove an unsaved audio upload", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()}));
-  return saveConflict();
+  try{await preservePaidSong(id,song);}catch{/* Metadata remains a recovery index when receipt storage fails. */}
+  return problem("Your uploaded audio is safely stored, but another edit won the save. Open My Songs and choose Recover unfinished songs.",409);
 }
 
 async function getAudio(request: Request) {

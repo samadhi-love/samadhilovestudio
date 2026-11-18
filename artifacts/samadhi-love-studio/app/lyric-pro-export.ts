@@ -1,6 +1,7 @@
 import type { VideoFormat } from "./lyric-video-data";
 import { exportShort } from "./short-export";
 import {videoFrameSize} from "./video-format-options";
+import {createVideoFile,assertVideoDuration,codecCompatibility} from "./video-export-storage";
 
 export const proVideoSize=videoFrameSize;
 export type ProExportResult = {
@@ -57,6 +58,7 @@ export async function exportProVideo(
         "This browser needs the real-time exporter. Set intro and outro to zero, or use a browser with H.264/AAC WebCodecs support.",
       );
     const localCancel = new AbortController();
+    const recordingFile=await createVideoFile();
     let hidden = false;
     const visibility = () => {
       if (document.visibilityState !== "visible") {
@@ -76,10 +78,11 @@ export async function exportProVideo(
           signal: AbortSignal.any([signal, localCancel.signal]),
           frameSize: size,
           paint: (ctx, t) => options.paint(ctx, t - start),
+          sink:recordingFile,
         },
         progress,
       );
-      const codec = await inspectVideo(blob);
+      const codec = codecCompatibility(await inspectVideo(blob,end-start));
       return {
         blob,
         extension: blob.type.includes("mp4") ? "mp4" : "webm",
@@ -87,6 +90,7 @@ export async function exportProVideo(
         engine: "Browser MediaRecorder · real time",
       };
     } catch (error) {
+      await recordingFile.dispose();
       if (hidden)
         throw new Error(
           "Export stopped because the page was hidden. The project is saved; retry with this page visible.",
@@ -101,9 +105,10 @@ export async function exportProVideo(
   canvas.height = size.height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("The video canvas could not open.");
+  const file=await createVideoFile();
   const output = new media.Output({
-    format: new media.Mp4OutputFormat({ fastStart: "in-memory" }),
-    target: new media.BufferTarget(),
+    format: new media.Mp4OutputFormat({ fastStart: false }),
+    target: new media.StreamTarget(file.stream,{chunked:true,chunkSize:1024*1024}),
   });
   let videoCodec = "avc",
     audioCodec = "aac";
@@ -126,19 +131,8 @@ export async function exportProVideo(
   output.addVideoTrack(packetVideo??video, { frameRate: 30 });
   output.addAudioTrack(sound);
   const total = intro + (end - start) + outro;
-  const trimmed = new AudioBuffer({
-    numberOfChannels: Math.min(2, audio.numberOfChannels),
-    sampleRate: audio.sampleRate,
-    length: Math.ceil(total * audio.sampleRate),
-  });
   const from = Math.round(start * audio.sampleRate),
     until = Math.min(audio.length, Math.round(end * audio.sampleRate));
-  for (let c = 0; c < trimmed.numberOfChannels; c++)
-    trimmed.copyToChannel(
-      audio.getChannelData(c).subarray(from, until),
-      c,
-      Math.round(intro * audio.sampleRate),
-    );
   let hidden = false;
   const visibility = () => {
     if (document.visibilityState !== "visible") hidden = true;
@@ -151,7 +145,19 @@ export async function exportProVideo(
   try {
     signal.throwIfAborted();
     await output.start();
-    const soundTask = sound.add(trimmed).then(() => sound.close());
+    // Keep the decoded source, but never duplicate the complete song. Encode
+    // one second at a time, including only the needed intro/outro silence.
+    const soundTask=(async()=>{
+      const length=Math.ceil(total*audio.sampleRate),lead=Math.round(intro*audio.sampleRate);
+      for(let offset=0;offset<length;offset+=audio.sampleRate){
+        signal.throwIfAborted();
+        const chunk=new AudioBuffer({numberOfChannels:Math.min(2,audio.numberOfChannels),sampleRate:audio.sampleRate,length:Math.min(audio.sampleRate,length-offset)});
+        const first=Math.max(offset,lead),last=Math.min(offset+chunk.length,lead+until-from);
+        if(last>first)for(let channel=0;channel<chunk.numberOfChannels;channel++)chunk.copyToChannel(audio.getChannelData(channel).subarray(from+first-lead,from+last-lead),channel,first-offset);
+        await sound.add(chunk);
+      }
+      sound.close();
+    })();
     void soundTask.catch(() => {});
     const frames = Math.ceil(total * 30);
     const checkVisible=()=>{
@@ -216,18 +222,18 @@ export async function exportProVideo(
     await soundTask;
     signal.throwIfAborted();
     await output.finalize();
-    if (!output.target.buffer?.byteLength)
-      throw new Error("The encoder returned no video data.");
-    const blob = new Blob([output.target.buffer], { type: "video/mp4" });
+    const blob = await file.finish();
+    const codec=await inspectVideo(blob,total);
     progress(1);
     return {
       blob,
       extension: "mp4",
-      codec: await inspectVideo(blob),
+      codec,
       engine: "WebCodecs · 30 fps · deterministic frame timing",
     };
   } catch (error) {
     await output.cancel().catch(() => {});
+    await file.dispose();
     throw error;
   } finally {
     document.removeEventListener("visibilitychange", visibility);
@@ -236,7 +242,7 @@ export async function exportProVideo(
 }
 
 /** Parse the finished container rather than inferring codecs from its extension. */
-export async function inspectVideo(blob: Blob) {
+export async function inspectVideo(blob: Blob,expectedDuration?:number) {
   const { Input, BlobSource, ALL_FORMATS } = await import("mediabunny");
   const input = new Input({
     source: new BlobSource(blob),
@@ -252,6 +258,12 @@ export async function inspectVideo(blob: Blob) {
     const duration = await input.computeDuration();
     if (!Number.isFinite(duration) || duration <= 0)
       throw new Error("The encoded file has no playable duration.");
+    if(expectedDuration!==undefined){
+      assertVideoDuration(duration,expectedDuration);
+      // A full audio track must not hide a truncated video track (or vice versa).
+      assertVideoDuration(await video.computeDuration(),expectedDuration);
+      assertVideoDuration(await audio.computeDuration(),expectedDuration);
+    }
     return `${(await video.getCodecParameterString()) ?? (await video.getCodec())} + ${(await audio.getCodecParameterString()) ?? (await audio.getCodec())}`;
   } finally {
     input.dispose();

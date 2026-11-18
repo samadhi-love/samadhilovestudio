@@ -4,6 +4,7 @@ import { isExplicitSong } from "../../../clean-content";
 import { serveAudio } from "../audio-response";
 import { privateHeaders, readStudio } from "../store";
 import { recoverableRoute } from "../request-errors";
+import {maxPrivateVideoBytes,uploadVideoChunks} from "../../../server/video-upload";
 export const dynamic = "force-dynamic";
 const validId = (id: unknown): id is string =>
   typeof id === "string" && /^[\w-]{1,100}$/.test(id);
@@ -31,15 +32,18 @@ async function saveAsset(request: Request) {
     kind = request.headers.get("X-Asset-Kind") ?? "",
     type = (request.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
   const size = Number(request.headers.get("X-Asset-Size"));
+  const query=new URL(request.url).searchParams;
+  const chunkUpload=kind==="video"&&query.has("upload");
+  const metadataOnly=chunkUpload&&(query.get("upload")==="init"||query.get("complete")==="1");
   if (
     !validId(songId) ||
     !kinds[kind]?.includes(type) ||
     !Number.isSafeInteger(size) ||
     size < 1 ||
-    size > 120 * 1024 * 1024 ||
-    !request.body
+    size > (kind==="video"?maxPrivateVideoBytes:120 * 1024 * 1024) ||
+    (!request.body&&!metadataOnly)
   )
-    return problem("Choose a supported project file up to 120 MB.", 400);
+    return problem("Choose a supported file: videos up to 512 MB, other media up to 120 MB.", 400);
   if (["background", "logo"].includes(kind) && size > 15 * 1024 * 1024)
     return problem("Choose an image up to 15 MB.", 413);
   const { data } = await readStudio(access.id);
@@ -55,6 +59,9 @@ async function saveAsset(request: Request) {
     return problem("That source recording is unavailable.", 409);
   const bucket = env.BUCKET;
   if (!bucket) return problem("Project media storage is unavailable.", 503);
+  if(chunkUpload)return uploadVideoChunks(request,access.id,songId,source,size,type);
+  if(!request.body)return problem("Choose a non-empty project file.",400);
+  if(size>120*1024*1024)return problem("Save this full-length video using the chunked video uploader.",413);
   const id = crypto.randomUUID(),
     key = lyricAssetKey(access.id, songId, id),
     stream = new FixedLengthStream(size);

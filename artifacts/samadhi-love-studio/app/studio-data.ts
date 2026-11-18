@@ -36,6 +36,7 @@ export function isAudioFormat(value: string): value is AudioFormat {
 }
 
 export type Song = {
+  writingRevision?:number;
   id: string; name: string; summary: string; tags: string[]; stage: string; art: number; example: boolean;
   notes: Record<Field, string>; versions: Record<"lyrics" | "prompt", Version[]>;
   audioFormat?: AudioFormat;

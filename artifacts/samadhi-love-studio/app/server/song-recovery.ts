@@ -20,9 +20,15 @@ export async function recoverPaidSongs(owner:string){
     const media=await bucket.list({prefix:`songs/${encodeURIComponent(owner)}/`,limit:100,cursor:mediaCursor,include:["customMetadata"]} as R2ListOptions);
     for(const item of media.objects){
       const metadata=item.customMetadata;
-      if(metadata?.recoverable!=="1"||!metadata.songId||item.key!==audioKey(owner,metadata.songId))continue;
-      if(await bucket.head(prefix(owner)+metadata.songId+".json"))continue;
-      const song={...freshSong(metadata.songId,metadata.title||"Recovered song",0),audioFormat:"mp3" as const,creationDraft:false};
+      if(metadata?.recoverable!=="1"||!metadata.songId||item.key!==audioKey(owner,metadata.audioId??metadata.songId))continue;
+      const prior=await bucket.get(prefix(owner)+metadata.songId+".json");
+      const receipt=prior?await prior.json<Receipt>():undefined;
+      if(receipt&&(receipt.done||await bucket.head(receipt.audioKey)))continue;
+      const formats=["mp3","wav","m4a","flac","ogg","opus","webm"];
+      const song={...(receipt?.song??freshSong(metadata.songId,metadata.title||"Recovered song",0)),
+        ...(metadata.audioId&&metadata.audioId!==metadata.songId?{audioId:metadata.audioId}:{}),
+        ...(receipt?.song.generation?{generation:{...receipt.song.generation,audioId:metadata.audioId??metadata.songId}}:{}),
+        audioFormat:(formats.includes(metadata.audioFormat??"")?metadata.audioFormat:"mp3") as Song["audioFormat"],creationDraft:false};
       await preservePaidSong(owner,song);
     }
     mediaCursor=media.truncated?media.cursor:undefined;
@@ -51,7 +57,7 @@ export async function recoverPaidSongs(owner:string){
         }
         const tombstone=await env.DB?.prepare("SELECT song_id FROM song_deletion_jobs WHERE owner=? AND song_id=?").bind(owner,song.id).first();
         if(tombstone)break;
-        const restored=existing?{...existing,audioFormat:song.audioFormat,audioId:song.audioId,generation:song.generation,creationDraft:false,updatedAt:new Date().toISOString()}:song;
+        const restored=existing?{...existing,audioFormat:song.audioFormat,audioId:song.audioId,generation:song.generation??(existing.generation?{...existing.generation,audioId:song.audioId??song.id,status:"complete" as const}:undefined),creationDraft:false,updatedAt:new Date().toISOString()}:song;
         const next={...data,songs:existing?data.songs.map(s=>s.id===song.id?restored:s):[restored,...data.songs]};
         if(await writeStudio(owner,current.revision,JSON.stringify(next))){attached=true;recovered++;}
       }

@@ -10,13 +10,18 @@ async function revision(owner:string,id:string){
   const row=await env.DB!.prepare("SELECT revision,removed FROM studio_songs WHERE owner=? AND id=?").bind(owner,id).first<{revision:number;removed:number}>();
   return row?.removed?-1:row?.revision??0;
 }
+async function draftRevision(owner:string,id:string,current:Awaited<ReturnType<typeof readStudio>>){
+  if(env.STUDIO_ROW_STORAGE==="verified")return current.data?._storage?.songs[id]?.revision??await revision(owner,id);
+  const song=current.data?.songs.find(s=>s.id===id);
+  return song?.deletedAt?-1:song?.writingRevision??0;
+}
 export const GET=recoverableRoute(async(request:Request)=>{
   const owner=(await privateWorkspace())?.id,id=draftId(new URL(request.url).searchParams.get("kind"));
   if(!owner)return reply({error:"Sign in to save writing."},401);
   if(!id)return reply({error:"Choose a draft."},400);
   const current=await readStudio(owner);
   const song=current.data?.songs.find(s=>s.id===id&&!s.deletedAt);
-  return reply({revision:current.data?._storage?.songs[id]?.revision??await revision(owner,id),writing:song?{title:song.name,prompt:song.notes.prompt,lyrics:song.notes.lyrics,voice:song.notes.vocals}:undefined});
+  return reply({revision:await draftRevision(owner,id,current),writing:song?{title:song.name,prompt:song.notes.prompt,lyrics:song.notes.lyrics,voice:song.notes.vocals}:undefined});
 },"Your account draft could not load.");
 export const PUT=recoverableRoute(async(request:Request)=>{
   const owner=(await privateWorkspace())?.id;
@@ -30,13 +35,14 @@ export const PUT=recoverableRoute(async(request:Request)=>{
   if(hasExplicitWords(w.title,w.prompt,w.lyrics,w.voice))return reply({error:cleanWordsMessage},422);
   const current=await readStudio(owner);
   const old=current.data?.songs.find(s=>s.id===id);
-  const rev=current.data?._storage?.songs[id]?.revision??await revision(owner,id);
+  const rev=await draftRevision(owner,id,current);
   if(rev!==input.revision||rev<0||old&&(old.deletedAt||!old.creationDraft||old.audioFormat))
     return reply({error:"This writing draft changed in another tab. Your device copy is safe; reload before editing again."},409);
   const data=current.data??emptyCreatorStudio;
   const draft=old??freshSong(id,"Writing draft",data.songs.length);
   const next={...draft,name:w.title.trim()||"Writing draft",creationDraft:true,notes:{...draft.notes,prompt:w.prompt,lyrics:w.lyrics,vocals:w.voice}};
   if(old&&JSON.stringify(old)===JSON.stringify(next))return reply({revision:rev});
+  if(env.STUDIO_ROW_STORAGE!=="verified")next.writingRevision=rev+1;
   try{
     const saved=await writeStudio(owner,current.revision,JSON.stringify({...data,songs:old?data.songs.map(s=>s.id===id?next:s):[next,...data.songs]}));
     if(!saved)return reply({error:"Another tab saved first. Your device copy is safe; reload before editing again."},409);

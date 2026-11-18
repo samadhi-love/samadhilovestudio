@@ -7,7 +7,7 @@ import { performanceWeight, songOpenings, type SongOpening } from "../../../song
 import { withProductionUsage, managedProviderKey, jobExecution } from "../../../credits/production";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { isExplicitSong } from "../../../clean-content";
-import {preservePaidSong} from "../../../server/song-recovery";
+import {storePaidAudio} from "../../../server/audio-storage";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
 import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
 import { stampSong } from "../../../song-library";
@@ -221,7 +221,7 @@ async function createMusic(request: Request) {
     const queuedId=execution?.songId;
     if(queuedId&&!before.data?.songs.some(song=>song.id===queuedId&&song.creationDraft&&!song.deletedAt))
       return problem("This writing draft changed. No generation was started.",409);
-    const draft = stampSong(freshSong(queuedId||crypto.randomUUID(), title || "Untitled song", (before.data ?? starter).songs.length));
+    let draft = stampSong(freshSong(queuedId||crypto.randomUUID(), title || "Untitled song", (before.data ?? starter).songs.length));
     if (sourceProject) draft.projectId = projectRoot(before.data!.songs, sourceProject).id;
     if(input?.musicalAd){draft.musicalAd=input.musicalAd;draft.notes.promotion=JSON.stringify({kind:"musical-ad/v1",...input.musicalAd});}
     draft.stage = "Production";
@@ -324,17 +324,12 @@ async function createMusic(request: Request) {
     draft.creationDraft=false;
     draft.updatedAt=new Date().toISOString();
 
-    const object = audioKey(id, draft.id);
-    // Write a recovery receipt BEFORE storing paid audio. A failed final
-    // workspace save must never orphan or delete a provider result.
-    try{await preservePaidSong(id,draft);}
-    catch{console.error("Paid recording recovery receipt unavailable",{songId:draft.id,requestId:request.headers.get("X-Production-Id")});}
-    await bucket.put(object, audio, { httpMetadata: { contentType: "audio/mpeg" },
-      customMetadata:{recoverable:"1",songId:draft.id,title:draft.name,createdAt:draft.updatedAt,requestId:request.headers.get("X-Production-Id")??""} });
+    try{draft=await storePaidAudio(id,draft,audio);}
+    catch{return preservedProblem("ElevenLabs returned your recording, but it could not be stored. Check ElevenLabs history before generating again. Open My Songs and Recover unfinished songs to check for a stored copy.",502);}
     const saved = await saveCreation(id, starter, studio => {
       const source = draft.projectId && studio.songs.find(s => s.id === draft.projectId && !s.deletedAt);
       const completed = studio.songs.find(s => s.id === draft.id);
-      const audioSong = completed ? { ...completed, audioFormat: draft.audioFormat, generation: draft.generation,creationDraft:false,updatedAt:draft.updatedAt } : draft;
+      const audioSong = completed ? { ...completed, audioFormat: draft.audioFormat,audioId:draft.audioId, generation: draft.generation,creationDraft:false,updatedAt:draft.updatedAt } : draft;
       return { ...studio, songs: source ? attachRenderedMix(studio.songs, source, audioSong) : completed ? studio.songs.map(s => s.id === draft.id ? audioSong : s) : [draft, ...studio.songs] };
     });
     if (saved) return Response.json({ ...saved, songId: draft.id }, options);

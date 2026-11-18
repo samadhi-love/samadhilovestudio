@@ -6,7 +6,7 @@ import {sqliteD1} from "../scripts/storage/sqlite-fixture.mjs";
 import {readFileSync,readdirSync} from "node:fs";
 mkdirSync("generated-artifacts/tests/foundation",{recursive:true});
 globalThis.__foundation={env:{}};
-await build({entryPoints:["app/server/song-recovery.ts","app/server/save-safety.ts","app/changed-clean-fields.ts","app/api/studio/route.ts","app/server/jobs.ts"],outdir:"generated-artifacts/tests/foundation",outExtension:{".js":".mjs"},bundle:true,platform:"node",format:"esm",plugins:[{name:"offline-foundation",setup(b){
+await build({entryPoints:["app/server/song-recovery.ts","app/server/audio-storage.ts","app/server/video-upload.ts","app/video-export-storage.ts","app/api/studio/writing-draft/route.ts","app/api/studio/audio/route.ts","app/api/studio/lyric-assets/route.ts","app/server/save-safety.ts","app/changed-clean-fields.ts","app/api/studio/route.ts","app/server/jobs.ts"],outdir:"generated-artifacts/tests/foundation",outExtension:{".js":".mjs"},bundle:true,platform:"node",format:"esm",plugins:[{name:"offline-foundation",setup(b){
   b.onResolve({filter:/storage$|\/store$|song-sharing$|studio-access$/},a=>{
     if(a.path.endsWith("/storage")||a.path==="./storage")return {path:"storage",namespace:"fixture"};
     if(a.path.endsWith("/store")||a.path==="./store")return {path:"store",namespace:"fixture"};
@@ -17,7 +17,7 @@ await build({entryPoints:["app/server/song-recovery.ts","app/server/save-safety.
     storage:"export const serverStorage=globalThis.__foundation.env;",
     store:`export const privateHeaders={};export const maxStudioBytes=32*1024*1024;export const audioKey=(owner,id)=>'songs/'+encodeURIComponent(owner)+'/'+id;
       export const readStudio=async()=>structuredClone(globalThis.__foundation.current);
-      export async function writeStudio(owner,revision,content){const s=globalThis.__foundation;if(s.failWrite||revision!==s.current.revision)return undefined;s.current={data:JSON.parse(content),revision:revision+1};s.writes++;return {revision:revision+1};}
+      export async function writeStudio(owner,revision,content){const s=globalThis.__foundation;if(s.throwWrite)throw new Error('offline write');if(s.conflicts>0){s.conflicts--;s.current.revision++;return undefined;}if(s.failWrite||revision!==s.current.revision)return undefined;const data=JSON.parse(content);if(s.env.STUDIO_ROW_STORAGE==='verified'){data._storage={songs:{}};for(const song of data.songs)data._storage.songs[song.id]={revision:(s.current.data?._storage?.songs[song.id]?.revision??0)+1};}s.current={data,revision:revision+1};s.writes++;return {revision:revision+1};}
       export const saveConflict=()=>Response.json({error:'conflict'},{status:409});`,
     sharing:"export const revokeSongShare=async(...args)=>{globalThis.__foundation.revocations.push(args);if(globalThis.__foundation.failRevoke)throw new Error('offline');};",
     access:"export async function privateWorkspace(){return {id:'owner',role:'owner'};}",
@@ -28,6 +28,12 @@ const safety=await import("../generated-artifacts/tests/foundation/server/save-s
 const clean=await import("../generated-artifacts/tests/foundation/changed-clean-fields.mjs");
 const route=await import("../generated-artifacts/tests/foundation/api/studio/route.mjs");
 const jobs=await import("../generated-artifacts/tests/foundation/server/jobs.mjs");
+const paidStorage=await import("../generated-artifacts/tests/foundation/server/audio-storage.mjs");
+const writing=await import("../generated-artifacts/tests/foundation/api/studio/writing-draft/route.mjs");
+const upload=await import("../generated-artifacts/tests/foundation/api/studio/audio/route.mjs");
+const assets=await import("../generated-artifacts/tests/foundation/api/studio/lyric-assets/route.mjs");
+const videoSafety=await import("../generated-artifacts/tests/foundation/video-export-storage.mjs");
+globalThis.FixedLengthStream=class extends TransformStream {constructor(){super();}};
 // Load real domain constructors without introducing storage bindings.
 await build({entryPoints:["app/studio-data.ts"],outfile:"generated-artifacts/tests/foundation/data.mjs",bundle:true,platform:"node",format:"esm"});
 const {freshSong,emptyCreatorStudio}=await import("../generated-artifacts/tests/foundation/data.mjs");
@@ -36,18 +42,123 @@ function fixture(){
   for(const name of readdirSync("drizzle").filter(f=>f.endsWith(".sql")).sort())db.sql.exec(readFileSync("drizzle/"+name,"utf8"));
   const objects=new Map();
   const env=globalThis.__foundation.env??={};
-  Object.assign(globalThis.__foundation,{current:{data:structuredClone(emptyCreatorStudio),revision:0},objects,revocations:[],failWrite:false,failRevoke:false,writes:0});
+  Object.assign(globalThis.__foundation,{current:{data:structuredClone(emptyCreatorStudio),revision:0},objects,revocations:[],failWrite:false,failRevoke:false,throwWrite:false,conflicts:0,writes:0});
   env.DB=db;env.STUDIO_ROW_STORAGE="legacy";
   env.BUCKET={
-    async put(key,value,options={}){const prior=objects.get(key);if(options.onlyIf?.etagMatches&&options.onlyIf.etagMatches!==prior?.etag)return null;const item={value:typeof value==="string"?value:new TextDecoder().decode(value),etag:crypto.randomUUID(),customMetadata:options.customMetadata??{},httpMetadata:options.httpMetadata??{}};objects.set(key,item);return item;},
+    async put(key,value,options={}){const prior=objects.get(key);if(options.onlyIf?.etagMatches&&options.onlyIf.etagMatches!==prior?.etag||options.onlyIf?.etagDoesNotMatch==="*"&&prior)return null;const text=typeof value==="string"?value:value instanceof ReadableStream?await new Response(value).text():new TextDecoder().decode(value);const item={value:text,size:new TextEncoder().encode(text).length,etag:crypto.randomUUID(),customMetadata:options.customMetadata??{},httpMetadata:options.httpMetadata??{}};objects.set(key,item);return item;},
     async head(key){const v=objects.get(key);return v?{...v,key}:null;},
-    async get(key){const v=objects.get(key);return v?{...v,json:async()=>JSON.parse(v.value)}:null;},
+    async get(key){const v=objects.get(key);return v?{...v,body:new Response(v.value).body,json:async()=>JSON.parse(v.value)}:null;},
+    async delete(key){objects.delete(key);},
     async list({prefix}){return {objects:[...objects].filter(([k])=>k.startsWith(prefix)).map(([key,v])=>({key,...v})),truncated:false};}
   };
   const song=freshSong("song","Original",0);
   globalThis.__foundation.current.data.songs=[song];
   return {state:globalThis.__foundation,db,song,bucket:env.BUCKET};
 }
+test("paid storage retries bytes three times without replaying AI; a separate key remains recoverable",async()=>{
+  const {state,db,song,bucket}=fixture();
+  try{
+    const original=bucket.put.bind(bucket);let primary=0,fallback=0,receipts=0;
+    bucket.put=async(key,value,options)=>{if(key==="songs/owner/song"){primary++;throw new TypeError("offline");}if(key.startsWith("private/recovery/")&&++receipts===2)throw new TypeError("receipt response lost");if(key.startsWith("songs/"))fallback++;return original(key,value,options);};
+    const stored=await paidStorage.storePaidAudio("owner",{...song,audioFormat:"mp3",generation:{audioId:song.id,approvedLyrics:"Keep the original words"}},new TextEncoder().encode("paid").buffer,async()=>{});
+    assert.equal(primary,3);assert.equal(fallback,1);assert.notEqual(stored.audioId,song.id);
+    assert.equal(stored.generation.audioId,stored.audioId);assert.equal(stored.generation.approvedLyrics,"Keep the original words");
+    assert.equal((await recovery.recoverPaidSongs("owner")).recovered,1);
+    assert.equal(state.current.data.songs[0].audioId,stored.audioId);
+    assert.equal(state.current.data.songs[0].generation.audioId,stored.audioId);
+  }finally{db.sql.close();}
+});
+test("total storage outage says to check ElevenLabs history; ambiguous completed puts are not duplicated",async()=>{
+  const {db,song,bucket}=fixture();
+  try{
+    const original=bucket.put.bind(bucket);
+    bucket.put=async()=>{throw new TypeError("offline");};
+    await assert.rejects(paidStorage.storePaidAudio("owner",song,new ArrayBuffer(4),async()=>{}),/ElevenLabs history/);
+    let writes=0;
+    bucket.put=async(key,value,options)=>{const result=await original(key,value,options);if(key.startsWith("songs/")){writes++;throw new TypeError("response lost");}return result;};
+    assert.equal((await paidStorage.storePaidAudio("owner",song,new TextEncoder().encode("paid").buffer,async()=>{})).id,song.id);
+    assert.equal(writes,1);
+  }finally{db.sql.close();}
+});
+const writingRequest=(revision,title)=>new Request("https://studio.test/api/studio/writing-draft",{method:"PUT",headers:{origin:"https://studio.test","X-Studio-Workspace":"owner"},body:JSON.stringify({kind:"simple",revision,writing:{title,prompt:"A song",lyrics:"First line",voice:"Warm"}})});
+test("legacy account writing saves twice, reloads and saves again; stale second tab conflicts",async()=>{
+  const {state,db}=fixture();
+  try{
+    for(let revision=0;revision<2;revision++){
+      const result=await writing.PUT(writingRequest(revision,"Draft "+revision));assert.equal(result.status,200);assert.equal((await result.json()).revision,revision+1);
+    }
+    const loaded=await (await writing.GET(new Request("https://studio.test/api/studio/writing-draft?kind=simple"))).json();
+    assert.equal(loaded.revision,2);
+    assert.equal((await writing.PUT(writingRequest(loaded.revision,"After reload"))).status,200);
+    assert.equal((await writing.PUT(writingRequest(2,"Stale tab"))).status,409);
+    assert.equal(state.current.data.songs.find(s=>s.id==="account-writing-simple").name,"After reload");
+  }finally{db.sql.close();}
+});
+test("verified account writing keeps row revisions and does not add legacy counters",async()=>{
+  const {state,db}=fixture();
+  try{
+    state.env.STUDIO_ROW_STORAGE="verified";
+    assert.equal((await writing.PUT(writingRequest(0,"Row draft"))).status,200);
+    const loaded=await (await writing.GET(new Request("https://studio.test/api/studio/writing-draft?kind=simple"))).json();
+    assert.equal(loaded.revision,1);
+    assert.equal((await writing.PUT(writingRequest(1,"Row draft two"))).status,200);
+    assert.equal(state.current.data.songs.find(s=>s.id==="account-writing-simple").writingRevision,undefined);
+  }finally{db.sql.close();}
+});
+const audioRequest=()=>new Request("https://studio.test/api/studio/audio",{method:"POST",headers:{origin:"https://studio.test","X-Studio-Workspace":"owner","X-Studio-Revision":"0","X-Studio-Clean-Audio":"1","X-Song-Title":"Uploaded idea","X-Audio-Format":"wav","X-Audio-Size":"4"},body:"wave"});
+test("an independent upload rebases library conflicts without deleting bytes or other edits",async()=>{
+  const {state,db,song}=fixture();
+  try{
+    state.conflicts=2;state.current.data.songs[0].notes.lyrics="Keep other edits";
+    const result=await upload.POST(audioRequest());assert.equal(result.status,200);
+    assert.equal(state.current.data.songs.length,2);assert.equal(state.current.data.songs.find(s=>s.id===song.id).notes.lyrics,"Keep other edits");
+    assert.equal([...state.objects.keys()].filter(k=>k.startsWith("songs/")).length,1);
+  }finally{db.sql.close();}
+});
+test("an upload with an uncertain library write is indexed and recoverable",async()=>{
+  const {state,db}=fixture();
+  try{
+    state.throwWrite=true;assert.equal((await upload.POST(audioRequest())).status,503);
+    assert.equal([...state.objects.keys()].filter(k=>k.startsWith("songs/")).length,1);
+    assert.equal([...state.objects.keys()].filter(k=>k.startsWith("private/recovery/")).length,1);
+    state.throwWrite=false;assert.equal((await recovery.recoverPaidSongs("owner")).recovered,1);
+    assert.equal(state.current.data.songs.find(s=>s.name==="Uploaded idea").audioFormat,"wav");
+  }finally{db.sql.close();}
+});
+const chunkRequest=(query,size,body=undefined,type="video/mp4;codecs=avc1.42001f,mp4a.40.2")=>new Request("https://studio.test/api/studio/lyric-assets?"+query,{method:"POST",headers:{origin:"https://studio.test","X-Song-Id":"song","X-Asset-Kind":"video","X-Asset-Size":String(size),"Content-Type":type},body});
+test("private video chunks assemble, reject changed retries and complete idempotently",async()=>{
+  const {state,db}=fixture();
+  try{
+    const size=8*1024*1024+4;
+    const init=await assets.POST(chunkRequest("upload=init",size));assert.equal(init.status,200);
+    const {upload:id}=await init.json();
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&complete=1`,size))).status,409);
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&part=0`,size,"a".repeat(8*1024*1024)))).status,200);
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&part=1`,size,"tail"))).status,200);
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&part=1`,size,"edit"))).status,409);
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&complete=1`,size))).status,200);
+    const key=`lyric-assets/owner/song/${id}`,saved=state.objects.get(key);
+    assert.equal(saved.size,size);assert.equal(saved.httpMetadata.contentType,"video/mp4");assert.equal(saved.customMetadata.source,"song");
+    assert.equal((await assets.POST(chunkRequest(`upload=${id}&complete=1`,size))).status,200);
+    assert.equal([...state.objects.keys()].filter(k=>/\/\d+$/.test(k)).length,0);
+  }finally{db.sql.close();}
+});
+test("350 MB videos may start chunked uploads; private limits and song authorization still apply",async()=>{
+  const {db,state}=fixture();
+  try{
+    assert.equal((await assets.POST(chunkRequest("upload=init",350*1024*1024))).status,200);
+    assert.equal((await assets.POST(chunkRequest("upload=init",513*1024*1024))).status,400);
+    state.current.data.songs=[];
+    assert.equal((await assets.POST(chunkRequest("upload=init",350*1024*1024))).status,404);
+  }finally{db.sql.close();}
+});
+test("duration checks reject truncated audio/video and codec labels warn about incompatible fallback",()=>{
+  videoSafety.assertVideoDuration(600.05,600);
+  assert.throws(()=>videoSafety.assertVideoDuration(599.8,600),/not saved or offered/);
+  assert.throws(()=>videoSafety.assertVideoDuration(NaN,600),/retry/i);
+  assert.match(videoSafety.codecCompatibility("vp8 + opus"),/may not play on iPhone/);
+  assert.equal(videoSafety.codecCompatibility("avc1.42001f + mp4a.40.2"),"avc1.42001f + mp4a.40.2");
+});
 test("paid audio survives a failed save, recovery keeps edited lyrics and is idempotent",async()=>{
   const {state,db,song,bucket}=fixture();
   try{

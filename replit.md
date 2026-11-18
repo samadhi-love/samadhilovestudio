@@ -1,4 +1,40 @@
-# Approved foundation repairs — November 17, 2026
+# Storage, draft-sync and full-song export safeguards — November 17, 2026
+
+- Paid audio storage now tries the same private R2 key up to three times, then
+  a separate recovery key. This never repeats the ElevenLabs request. If
+  neither can be confirmed, the error says to check ElevenLabs history before
+  generating again. Recovery discovers both receipts and stored-file metadata.
+- Independent audio uploads merge/retry library revision conflicts. Uncertain
+  saves retain indexed audio instead of leaving an untracked file.
+- Account writing drafts keep their own revision counter in legacy saving.
+  Repeated saves and reloads work; stale tabs still conflict. Verified row-mode
+  behavior is unchanged.
+- Full video exports use a disk-backed browser file and streaming MP4 output,
+  with one-second audio chunks instead of a second full-length audio buffer.
+  Private video saves use 8 MiB chunks, up to 512 MiB; image limits remain
+  15 MiB. The final file is assembled as a stream through the existing private
+  R2 adapter. Interrupted uploads retain their private temporary chunks.
+- Encoded container, video and audio durations must each match the requested
+  intro + excerpt + outro within 0.1 seconds before download/save. Incomplete
+  cached exports are rebuilt. Real-time fallback shows actual codecs and warns
+  when they are not H.264/AAC.
+
+**Verification:** all 45 Studio verification groups and all 27 individual
+offline suite commands passed (overlapping coverage). The expanded
+durable-processing group passed 24/24 tests; the actual creation/media API
+fixture passed 102 checks. After the final recovery-key/lyrics linkage
+adjustment, the affected tests and full workspace typecheck/build passed again.
+Native 10-minute encoding, device storage quotas and iPhone/social playback
+are not verified by offline fixtures. Safe exports require writable browser
+storage; the original decoded soundtrack still occupies memory. No live
+storage checks, paid calls, publishing, domain or billing changes were run.
+
+**Separate deployment observation:** logs for an earlier attempt at 00:30 UTC
+on November 18 report `Host must not be empty` during server rendering.
+This request did not trigger a publish or diagnose that separate error;
+passing offline checks do not establish that a new deployment will start.
+
+# Earlier approved foundation repairs — November 17, 2026
 
 The owner confirmed **restore legacy workspace saving**. Production now uses
 the `studios` workspace, not verified per-song saving. No song copy or data

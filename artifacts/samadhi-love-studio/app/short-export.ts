@@ -2,6 +2,7 @@ type ShortOptions = {
   audio?: string; video?: string; title: string; hook: string; start: number; length: number; signal: AbortSignal;
   frameSize?: { width: number; height: number };
   paint?: (context: CanvasRenderingContext2D, audioTime: number) => void;
+  sink?:{write:(blob:Blob)=>Promise<void>;finish:(type:string)=>Promise<Blob>};
 };
 
 const width = 720;
@@ -65,7 +66,7 @@ function waitFor(media: HTMLMediaElement, event: "loadedmetadata" | "seeked", si
   });
 }
 
-export async function exportShort({ audio, video, title, hook, start, length, signal, frameSize, paint }: ShortOptions, progress: (value: number) => void) {
+export async function exportShort({ audio, video, title, hook, start, length, signal, frameSize, paint, sink }: ShortOptions, progress: (value: number) => void) {
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream)
     throw new Error("Use a current version of Chrome or Edge to export your clip.");
 
@@ -113,8 +114,12 @@ export async function exportShort({ audio, video, title, hook, start, length, si
     const chunks: Blob[] = [];
     const capture = recorder;
     const finished = new Promise<Blob>((resolve, reject) => {
-      capture.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
-      capture.onstop = () => resolve(new Blob(chunks, { type: capture.mimeType }));
+      let pending=Promise.resolve();
+      capture.ondataavailable = event => { if (event.data.size){
+        if(sink){pending=pending.then(()=>sink.write(event.data));void pending.catch(error=>{reject(error);if(capture.state!=="inactive")capture.stop();});}
+        else chunks.push(event.data);
+      }};
+      capture.onstop = () => {void pending.then(()=>sink?sink.finish(capture.mimeType):new Blob(chunks, { type: capture.mimeType })).then(resolve,reject);};
       capture.onerror = () => reject(new Error("The browser could not encode this video."));
     });
     // Keep errors observed if playback fails before awaiting the recording.

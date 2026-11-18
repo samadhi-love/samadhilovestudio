@@ -96,7 +96,8 @@ import {
   type LyricVisualTemplate,
 } from "./lyric-visual-template";
 import { drawProFrame } from "./lyric-pro-render";
-import { exportProVideo, proVideoSize } from "./lyric-pro-export";
+import { exportProVideo, proVideoSize,inspectVideo } from "./lyric-pro-export";
+import {codecCompatibility} from "./video-export-storage";
 import {readRender,renderKey,saveRender,segmentStore,videoJob,type VideoCheckpoint} from "./video-render-recovery";
 import {
   VideoPublishing,
@@ -1574,8 +1575,10 @@ function LyricVideoProContent(props: Props) {
         const format = formats[i];
         setOperation(`Rendering ${formatLabels[format]}`);
         const segments=segmentStore(recoveryKey,checkpoint.token,format);
-        const finalBlob=localRecovery?await segments.read(-1):undefined;
-        const result = finalBlob?{blob:finalBlob,extension:finalBlob.type.includes("mp4")?"mp4" as const:"webm" as const,codec:"Recovered on this device",engine:"Recovered finished video"}:await exportProVideo(
+        let finalBlob=localRecovery?await segments.read(-1):undefined,cachedCodec="";
+        if(finalBlob)try{cachedCodec=codecCompatibility(await inspectVideo(finalBlob,pro.intro+pro.range.end-pro.range.start+pro.outro));}
+        catch{finalBlob=undefined;setStatus("The saved export was incomplete. Rebuilding it from the saved project.");}
+        const result = finalBlob?{blob:finalBlob,extension:finalBlob.type.includes("mp4")?"mp4" as const:"webm" as const,codec:cachedCodec,engine:"Recovered finished video"}:await exportProVideo(
           {
             audio: decoded,
             audioUrl: soundtrackUrl,
@@ -1615,7 +1618,7 @@ function LyricVideoProContent(props: Props) {
         setOutputs([...finished]);
         if(localRecovery&&!finalBlob)await segments.write(-1,result.blob).catch(()=>{});
         let asset: string | undefined;
-        if (result.blob.size <= 120 * 1024 * 1024) {
+        if (result.blob.size <= 512 * 1024 * 1024) {
           setOperation("Saving the finished video privately");
           asset = await uploadLyricAsset(
             pro.sourceSongId,
@@ -1626,7 +1629,7 @@ function LyricVideoProContent(props: Props) {
           );
         } else
           setStatus(
-            "The finished video exceeds the 120 MB cloud-file limit. Download it from this tab; its editable project is saved.",
+            "The finished video exceeds the 512 MB private-video limit. Choose 720p or a shorter excerpt.",
           );
         if (asset) {
           item.savedUrl = assetUrl(pro.sourceSongId, asset);

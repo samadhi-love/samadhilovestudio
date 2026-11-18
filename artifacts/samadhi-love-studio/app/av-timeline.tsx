@@ -132,7 +132,7 @@ export function AVTimeline({ active, tracks, settings, change, patchTrack, songs
         const output = await exportProVideo({ audio, audioUrl, start, end, intro: 0, outro: 0, format, resolution, signal: task.signal,
           paint: (ctx, elapsed) => drawProFrame(ctx, start + elapsed, drawing, title, images.current, { clean, signal: visualSignal(start + elapsed, snapshot, mix, envelopes), separateVocals: true }) }, fraction => setProgress((i + fraction) / formats.length));
         totalBytes += output.blob.size;
-        if (totalBytes > 180 * 1024 * 1024) throw new Error("These results exceed the 180 MiB preview-download budget. Download completed files, then export remaining formats separately or choose a shorter excerpt.");
+        if (totalBytes > 1024 * 1024 * 1024) throw new Error("These disk-backed downloads exceed 1 GiB. Download completed files, clear the list, then export remaining formats.");
         resultBytes.current = totalBytes;
         const url = URL.createObjectURL(output.blob); urls.current.push(url);
         if (alive.current) setResults(items => [...items, { url, name: `${title.replace(/[\\/:*?"<>|]/g, "-")}-${format}.${output.extension}`, codec: output.codec }]);
