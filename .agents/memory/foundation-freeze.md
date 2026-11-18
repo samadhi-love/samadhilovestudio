@@ -29,14 +29,11 @@ features, and verification stays offline unless separately approved.
 
 ## Current development handoff
 
-The owner changed the plan: finish only the ACE-Step/fal.ai engine, push to
-`versual-main`, then stop. Do not continue the Create redesign or full song
-lifecycle; Claude will write those directly on GitHub. Afterward, when asked,
-pull the latest `versual-main`, run the full verification suite (typecheck,
-build and all tests), and report pass/fail with exact errors, without changing
-code unless explicitly asked.
+At Samadhi's request: Claude writes and tests all code on GitHub. Replit only
+pulls, verifies and publishes when Claude asks. Make no other code changes
+unless Samadhi asks directly.
 
-**Why:** The owner explicitly transferred further development to Claude and limited this agent to requested integration and verification.
+**Why:** The owner explicitly transferred code development and testing to Claude on GitHub to keep the work in one place.
 
 **How to apply:** Queued tasks and earlier instructions to continue are not permission to resume feature work. Preserve existing changes and report any dirty-workspace or merge conflict instead of discarding or resolving it by guessing.
 
