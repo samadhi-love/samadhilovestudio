@@ -52,7 +52,7 @@ export type Song = {
   audioHistory?: { audioId: string; audioFormat: AudioFormat; date: string; name: string; sectionEdit?:import("./song-section-data").SectionEditPlan }[];
   explicit?: boolean;
   lyricVideo?: LyricProject;
-  generation?: { requestId?:string; provider: string; model: string; audioId?: string; status?: "generating" | "complete" | "incomplete"; approvedLyrics: string; compositionPlan: unknown; createdAt: string; captionReady: boolean; timingSource: string; languageProfile?: LanguageProfile };
+  generation?: { requestId?:string; providerRequestId?:string; outputIds?:string[]; outputIndex?:number; provider: string; model: string; audioId?: string; status?: "generating" | "complete" | "incomplete"; approvedLyrics: string; compositionPlan: unknown; createdAt: string; captionReady: boolean; timingSource: string; languageProfile?: LanguageProfile };
   creationDraft?: boolean;
   instrumental?: Instrumental;
   creationKind?: "instrumental";

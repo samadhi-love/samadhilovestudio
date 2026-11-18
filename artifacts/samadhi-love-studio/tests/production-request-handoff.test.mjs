@@ -20,8 +20,9 @@ function compile(file, imports) {
   return exports;
 }
 
-function fixture(metered) {
+function fixture(metered,fal=false,role="owner") {
   const settled = [];
+  const reservations=[];
   const notation=compile("../app/lyric-notation.ts",{});
   const opening=compile("../app/song-opening.ts",{"./lyric-notation":notation});
   const duration=compile("../app/track-duration.ts",{"./lyric-notation":notation,"./song-opening":opening});
@@ -29,7 +30,8 @@ function fixture(metered) {
   class CreditError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
   const api = compile("../app/credits/production.ts", {
     "cloudflare:workers": { env: { STUDIO_CREDITS_ENABLED: metered ? "1" : undefined } },
-    "../studio-access": { privateWorkspace: async () => ({ id: "fixture-owner", role: "owner" }) },
+    "../studio-access": { privateWorkspace: async () => ({ id: "fixture-owner", role }) },
+    "../server/music-engine":{musicEngineStatus:async()=>({engine:fal?"ace-step":"elevenlabs"})},
     "../api/studio/store": { privateHeaders: {}, readStudio: async () => ({ data: { songs: [] } }) },
     "../api/studio/request-errors": requests,
     "./data": { creditPrice: () => 0 },
@@ -37,12 +39,27 @@ function fixture(metered) {
     "./account-ledger": {
       CreditError, managedAvailable: () => false,
       ensureCreditAccount: async () => ({ funding: "own" }),
-      reserveJob: async () => ({ id: "fixture-job", funding: "own", credits: 0 }),
+      reserveJob: async (...args) => {reservations.push(args);return { id: "fixture-job", funding: "own", credits: 0 };},
       settleJob: async (...args) => { settled.push(args); },
     },
   });
-  return { ...api, settled };
+  return { ...api, settled,reservations };
 }
+
+test("owner-funded fal never reserves or settles ElevenLabs/Studio credits",async()=>{
+  const api=fixture(true,true);
+  const handler=api.withProductionUsage(async request=>{assert.equal(request.headers.get("X-Samadhi-Production-Funding"),"own");return Response.json({ok:true});});
+  assert.equal((await handler(wrappedRequest(JSON.stringify({action:"song",duration:30})))).status,200);
+  assert.equal(api.reservations.length,0);assert.equal(api.settled.length,0);
+  const quote=await api.quoteProduction("fixture-owner","/api/studio/create",{action:"song",duration:30});
+  assert.equal(quote.funding,"own");assert.equal(quote.credits,0);
+});
+test("a creator cannot bypass accounting by asking for fal",async()=>{
+  const api=fixture(true,true,"creator");
+  const handler=api.withProductionUsage(async()=>Response.json({ok:true}));
+  assert.equal((await handler(wrappedRequest(JSON.stringify({action:"song",duration:30,engine:"ace-step"})))).status,200);
+  assert.equal(api.reservations.length,1);assert.equal(api.settled.length,1);
+});
 
 function wrappedRequest(body, extraHeaders = {}) {
   const native = new Request("https://studio.test/api/studio/create", {

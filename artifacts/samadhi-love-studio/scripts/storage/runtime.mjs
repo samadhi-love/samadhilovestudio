@@ -49,7 +49,7 @@ export async function initializeRuntime(source = process.env, adapters) {
   // Production cannot silently activate project-funded generation or billing.
   const env = { DB, BUCKET, STUDIO_ROW_STORAGE: "legacy", STUDIO_OWNER_EMAIL: source.STUDIO_OWNER_EMAIL,
     STUDIO_ELEVENLABS_VAULT_KEY: config.vault, STUDIO_PUBLIC_ORIGIN: config.publicOrigin,
-    STUDIO_CREATOR_BETA: "1" };
+    STUDIO_CREATOR_BETA: "1", FAL_KEY: source.FAL_KEY };
   globalThis[Symbol.for("samadhi.node.bindings")] = env;
   if (!globalThis.FixedLengthStream) globalThis.FixedLengthStream = class extends TransformStream {
     constructor(expected) {

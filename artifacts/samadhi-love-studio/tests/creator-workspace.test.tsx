@@ -59,6 +59,28 @@ test("lyrics chips appear in Custom mode and insert a part at the cursor",async(
   assert.equal(lyrics.value,"First\n\n[Verse]\n\n line");
  }finally{await h.close();}
 });
+test("owner ACE-Step requests two takes once, compares both, and keeps a favourite without a double-cost dialog",async()=>{
+ const h=await setup(),requests:any[]=[],favourites:string[]=[];
+ h.dom.window.confirm=()=>{throw new Error("ACE-Step must not show the ElevenLabs double-cost dialog.");};
+ function Harness(){
+  const [songs,setSongs]=useState<any[]>([]);
+  return <QuickCreate engine={{owner:true,configured:true,preferred:"ace-step",engine:"ace-step",notice:""}} connected={false} saving={false} drafts={songs} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} simpleExperience
+    favoriteTake={async id=>{favourites.push(id);}}
+    generateSong={async input=>{requests.push(input);setSongs(["one","two"].map(id=>({...freshSong(id,id,0),audioFormat:"flac",creationDraft:false})));return {songId:"one",songIds:["one","two"]};}} saveSketch={async()=>undefined}/>;
+ }
+ try{
+  await act(async()=>h.root.render(<Harness/>));
+  assert.equal(document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!.checked,true);
+  await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!,"A hopeful piano soul song in English");
+  await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
+  assert.equal(requests.length,1);assert.equal(requests[0].versions,2);
+  assert.equal(document.querySelectorAll('[aria-label="Compare your takes"] article').length,2);
+  await act(async()=>[...document.querySelectorAll<HTMLButtonElement>("button")].find(button=>button.textContent==="Keep as favourite")!.click());
+  assert.deepEqual(favourites,["one"]);
+  await act(async()=>h.button("New song").click());
+  assert.equal(document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!.checked,true);
+ }finally{await h.close();}
+});
 test("My Songs exposes non-destructive next steps and plays a private melody reference",async()=>{
  const h=await setup(),actions:SongAction[]=[];
  const value:SongHub={busy:false,simple:true,folders:[],stemsConnected:false,preview:"",setPreview(){},expanded:"song-next",setExpanded(){},save:async()=>true,action:action=>actions.push(action),archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};

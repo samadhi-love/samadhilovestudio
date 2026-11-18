@@ -139,7 +139,7 @@ test("Try again shows the uncertainty warning and canceling sends no retry reque
     const button=document.querySelector("button");
     assert.equal(button?.textContent,"Try again");
     await React.act(async()=>button.click());
-    assert.deepEqual(warnings,["This may use credits again, because the last attempt may have reached ElevenLabs. Try again?"]);
+    assert.deepEqual(warnings,["This may use credits again, because the last attempt may have reached your music provider. Try again?"]);
     assert.deepEqual(requests,[]);
     confirm=true;
     await React.act(async()=>button.click());

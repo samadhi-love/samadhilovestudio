@@ -50,10 +50,11 @@ export type QuickSeed = { id: string; idea?: string; styles?: string[]; lyrics?:
 export function seedFromTemplate(t: Template, id: string): QuickSeed {
   return { id, custom: true, title: t.name, styles: t.tags, lyrics: t.notes.lyrics, vocal: t.notes.vocals, instruments: t.notes.instruments, idea: t.notes.prompt.split("\n\nOpening:")[0], notice: `Recipe "${t.name}" loaded. Review, then Create.` };
 }
-export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
+export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn }: {
+  engine?:import("./music-engine-data").MusicEngineStatus;favoriteTake?:(id:string)=>Promise<void>;
   connected: boolean; saving: boolean; drafts: Song[]; settings: () => void; guided: () => void; openDrafts: () => void;
   connectionError?: string; connectionChecking?: boolean; refreshConnection?: () => void;
-  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"]; projectId?:string }) => Promise<string | undefined>;
+  generateSong: (input: { title: string; prompt: string; arrangement: string; duration: number; versions?:1|2;openingMode?: SongOpening; lyrics?:string; voice?:string; instruments?:string; genres?:string; autoTitle?:boolean; instrumental?:boolean; musicalAd?:MusicalAd; language?:LanguageChoice["language"]; dialect?:LanguageChoice["dialect"]; projectId?:string }) => Promise<string | {songId:string;songIds?:string[];warning?:string} | undefined>;
   saveSketch: (file: File, title: string, prompt: string, arrangement: string, settings: Instrumental,saveId?:string) => Promise<string | undefined>;
   working?:(value:boolean)=>void;
   makeVideo?:(song:Song,short?:boolean,visual?:PlayVisualRequest)=>void|Promise<void>;
@@ -68,6 +69,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   proProduction?:ReactNode;
   promptHelpers?:(apply:(seed:QuickSeed)=>void)=>ReactNode; vocalHelpers?:(apply:(seed:QuickSeed)=>void)=>ReactNode;
 }) {
+  const falActive=engine?.owner===true&&engine.engine==="ace-step";
+  connected=connected||falActive;
   const [playStage,setPlayStage]=useState<"start"|"play"|"share">("start");
   const [playChoices,setPlayChoices]=useState<PlayChoices>(defaultPlayChoices),[previousChoices,setPreviousChoices]=useState<PlayChoices|null>(null);
   const [photo,setPhoto]=useState<Blob|null>(null),[photoName,setPhotoName]=useState("");
@@ -77,6 +80,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   function changePlay(next:PlayChoices){setPreviousChoices(playChoices);setPlayChoices(next);try{localStorage.setItem("samadhi:last-video-look:v1",playLooks[next.look].preset);}catch{}}
   const [idea, setIdea] = useState("");
   const [makeTwoVersions,setMakeTwoVersions]=useState(false);
+  useEffect(()=>{if(falActive)setMakeTwoVersions(true);},[falActive]);
   const [melodyTakes,setMelodyTakes]=useState<MelodyReferenceTake[]>([]);
   const [melodyStatus,setMelodyStatus]=useState("");
   const [songMap,setSongMap]=useState<SongMap>(defaultSongMap),[mapEnabled,setMapEnabled]=useState(false);
@@ -232,6 +236,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
   function startFresh(broadcast=true){
     const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:false,melodyTakes:[],pendingTake:undefined};
+    blank.makeTwoVersions=falActive;
     void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
     if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
     setPlayStage("start");setPreviousChoices(null);setError("");setPromptNotice("");setMelodyStatus("");setRecipeId("");setOpenPanel("");
@@ -262,7 +267,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
       try { resolveLanguage(languageChoice, useOwnLyrics ? lyrics : "",idea); if(intentIssue)throw new Error(intentIssue); }
       catch (error) { setError((error as Error).message); return; }
     }
-    if(makeTwoVersions&&!localSketch&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
+    if(makeTwoVersions&&!localSketch&&!falActive&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
     setError(""); setPending(true);
     try {
       const described = simple
@@ -281,13 +286,16 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
         const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
-        const made=await generateSong(input);
+        const answer=await generateSong({...input,...(falActive?{versions:makeTwoVersions?2 as const:1 as const}:{})});
+        const made=typeof answer==="string"?answer:answer?.songId;
         if(made){
-          const madeIds=[made];setResultId(made);
+          const madeIds=typeof answer==="object"&&answer.songIds?.length?[...answer.songIds]:[made];setResultId(made);
+          if(typeof answer==="object"&&answer.warning)setError(answer.warning);
           if(melodyTakes.length)await saveMelodyReferencesToSong(made);
-          if(makeTwoVersions){
+          if(makeTwoVersions&&!falActive){
             try{
-              const second=await generateSong({...input,title:(title+" · Version 2").slice(0,100),projectId:seed?.projectId??made});
+              const secondAnswer=await generateSong({...input,title:(title+" · Version 2").slice(0,100),projectId:seed?.projectId??made});
+              const second=typeof secondAnswer==="string"?secondAnswer:secondAnswer?.songId;
               if(second)madeIds.push(second);
               else setError("Version 1 is saved. Version 2 was not confirmed; check Your songs and provider history before retrying.");
             }catch(cause){setError(`Version 1 is saved. Version 2 was not confirmed: ${cause instanceof Error?cause.message:"check Your songs before retrying."}`);}
@@ -412,13 +420,13 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
         {!localSketch&&<div className="version-count-control">
-          <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Make 2 versions <span className="muted">(uses double credits)</span></label>
-          <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two versions · 2× ElevenLabs credits.":"One version."}</p>
+          <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Make 2 versions {!falActive&&<span className="muted">(uses double credits)</span>}</label>
+          <p className="muted" data-testid="text-version-cost">{falActive?(makeTwoVersions?"Two private takes.":"One private take."):makeTwoVersions?"Two versions · 2× ElevenLabs credits.":"One version."}</p>
         </div>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>
             {pending ? localSketch?"Rendering your sketch…":"Creating…" : "Create"}</button>
-          <span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&" · Uses your ElevenLabs credits"}</span>
+          <span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&(falActive?" · Uses your fal.ai account":" · Uses your ElevenLabs credits")}</span>
         </div>
         </div>
         {promptNotice&&<p role="status" data-testid="text-prompt-notice">{promptNotice}</p>}
@@ -477,6 +485,8 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
       <summary>Pro production · sections, instrumentals and voices</summary>
       {proProduction}
     </details>}
+    {engine?.notice&&<p role="status" className="muted">{engine.notice}</p>}
+    {falActive&&takeIds.length>1&&<section className="quick-result" aria-label="Compare your takes"><h3>Your takes · both saved</h3><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,240px),1fr))",gap:"1rem"}}>{takeIds.map(id=>drafts.find(song=>song.id===id&&!song.deletedAt)).filter((song):song is Song=>!!song?.audioFormat).map(song=><article key={song.id}><h4>{song.name}</h4><AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/><button type="button" className="secondary" disabled={busy} onClick={()=>{setResultId(song.id);void favoriteTake?.(song.id);}}>Keep as favourite</button></article>)}</div></section>}
     {pendingTake&&<div className="quick-result"><strong>{pendingTake.title} · Not saved yet</strong><AudioPlayer src={pendingTake.url} label="Listen to pending instrumental"/><div className="actions"><a className="secondary small" href={pendingTake.url} download={pendingTake.title+".wav"}>Download original</a><button type="button" className="primary small" disabled={busy} onClick={async()=>{setPending(true);try{await savePending(pendingTake);}finally{setPending(false);}}}>Retry save to Your songs</button><button type="button" className="secondary small" disabled={busy} onClick={()=>{if(confirm("Discard this local take? Download it first if you want a copy. No saved song will be deleted.")){setPendingTake(undefined);setError("");}}}>Discard unsaved take</button></div></div>}
     {playful&&result?.audioFormat&&playStage!=="start"&&<section className="creative-play-result" aria-label="Your creation"><p className="eyebrow">YOURS · SAVED PRIVATELY</p><h2>{result.name}</h2><AudioPlayer src={songAudioUrl(result.id,result.audioId)} label="Listen to your creation"/>
       {playStage==="play"?<><p className="muted">A new take keeps this one safe. A new take uses your same description.</p><div className="play-controls"><label>Look<select disabled={busy} value={playChoices.look} onChange={e=>changePlay({...playChoices,look:e.target.value as PlayChoices["look"]})}>{Object.entries(playLooks).map(([v,item])=><option key={v} value={v}>{item.name}</option>)}</select></label></div><div className="actions"><button type="button" className="primary" disabled={busy} onClick={()=>setPlayStage("share")}>Keep this · make it visual</button><button type="button" className="secondary" disabled={busy} onClick={()=>createForm.current?.requestSubmit()}>Try a new take</button>{previousChoices&&<button type="button" className="text-button" disabled={busy} onClick={()=>{setPlayChoices(previousChoices);setPreviousChoices(null);}}>Undo choices</button>}</div><p className="muted">New music requests can use provider credits. All takes remain in Your songs.</p>{takeIds.length>1&&<label>Listen to an earlier take<select value={result.id} disabled={busy} onChange={e=>setResultId(e.target.value)}>{takeIds.map(id=>drafts.find(s=>s.id===id&&!s.deletedAt)).filter((s):s is Song=>!!s?.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}</>:<><p>Your song is saved. Add a photo if you like, then preview your vertical video. Your photo is used as a private background; it is not sent for AI generation.</p><label className="field">My photo · optional<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;if(file.size>15*1024*1024||!["image/jpeg","image/png","image/webp"].includes(file.type)){setError("Choose a JPG, PNG or WebP photo up to 15 MB.");return;}setPhoto(file);setPhotoName(file.name);setError("");}}/></label>{photo&&<p>{photoName} <button type="button" className="text-button" disabled={busy} onClick={()=>{setPhoto(null);setPhotoName("");}}>Remove photo</button></p>}{makeVideo&&<button type="button" className="primary" disabled={busy} onClick={async()=>{setPromptBusy(true);setError("");try{await makeVideo(result,true,{look:playLooks[playChoices.look].preset,...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{})});}catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}finally{setPromptBusy(false);}}}>Make my video</button>}<details><summary>Save audio instead</summary><AudioFormatDownload url={songAudioUrl(result.id,result.audioId)} title={result.name} sourceKey={result.audioId??result.id}/></details><p className="muted">Review lyric timing and the video, then download or use your device’s share options. Nothing is posted automatically.</p></>}

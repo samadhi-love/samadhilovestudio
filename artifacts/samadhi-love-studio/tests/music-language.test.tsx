@@ -206,6 +206,9 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "cloudflare:workers": { env: { BUCKET: { put: async () => {}, delete: async () => {} } } },
     "../../../studio-data": songData,
     "../../../server/audio-storage": {storePaidAudio: async (_owner:string,song:unknown) => song,finishPaidAudio:async()=>true},
+    "../../../server/music-engine": {musicEngineStatus:async()=>({engine:"elevenlabs",notice:""}),falKey:()=>""},
+    "../../../server/fal-music": {FalRejected:class extends Error{}},
+    "../../../server/job-runner": {saveJobDocument:async()=>{throw new Error("This language fixture must not start fal jobs.");}},
     "../../../track-duration": duration,
     "../elevenlabs/provider": {
       musicModel: "music_v2_5", elevenLabsFailureMessage: async () => "Fixture error",

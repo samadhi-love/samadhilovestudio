@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Owner-only ACE-Step, safe backup and private two-take saving", ["--test", "tests/ace-step-engine.test.mjs"]],
   ["Encrypted pending provider keys, safe check logs and owner-only reachability", ["--test", "tests/elevenlabs-connection-reliability.test.mjs"]],
   ["Offline song, lyrics, caption, private video save/reopen and download journey", ["--test", "tests/core-creation-path.test.mjs"]],
   ["Bounded job polling, stalled replies and safe reconnection", ["--test", "tests/job-wait.test.mjs"]],

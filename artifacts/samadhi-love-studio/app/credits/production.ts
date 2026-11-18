@@ -5,8 +5,9 @@ import { readBoundedText } from "../api/studio/request-errors";
 import { creditPrice, type CreditQuote, type Operation } from "./data";
 import { creationDuration, isTrackDuration } from "../track-duration";
 import { CreditError, ensureCreditAccount, managedAvailable, reserveJob, settleJob } from "./account-ledger";
+import {musicEngineStatus} from "../server/music-engine";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-export const jobExecution=new WeakMap<Request,{owner:string;role:"owner"|"creator";songId:string;providerStarted:boolean}>();
+export const jobExecution=new WeakMap<Request,{id?:string;owner:string;role:"owner"|"creator";songId:string;providerStarted:boolean}>();
 export const productionIdValid = (id: unknown): id is string => typeof id === "string" && uuid.test(id);
 export function managedProviderKey(request: Request) {
   return request.headers.get("X-Samadhi-Production-Funding") === "studio" && managedAvailable() ? env.STUDIO_MANAGED_ELEVENLABS_KEY! : null;
@@ -43,6 +44,9 @@ export async function productionDescription(owner: string, route: string, input:
 export async function quoteProduction(owner: string, route: string, input: Record<string, unknown>): Promise<CreditQuote> {
   const account = await ensureCreditAccount(owner);
   const description = await productionDescription(owner, route, input);
+  const access=await privateWorkspace();
+  if(access?.id===owner&&access.role==="owner"&&description.operation==="music"&&(await musicEngineStatus(access)).engine==="ace-step")
+    return {...description,funding:"own",credits:0,available:account.balance,enabled:true,message:"Uses the owner's fal.ai account. No Studio credits are deducted."};
   const funding = description.operation === "voice" ? "own" : account.funding;
   const credits = funding === "studio" ? creditPrice(description.operation, description.seconds) : 0;
   const enabled = funding === "own" || managedAvailable() && ["beta", "active"].includes(account.status) && account.period_end > Date.now() && account.balance >= credits;
@@ -81,6 +85,10 @@ export function withProductionUsage(handler: (request: Request) => Promise<Respo
       let input;
       try { input = JSON.parse(await readBoundedText(request.clone() as unknown as Request, 80000)); } catch { throw new CreditError("Check the production request.", 400); }
       if (!input || typeof input !== "object" || Array.isArray(input)) throw new CreditError("Check the production request.", 400);
+      // Owner-funded fal is not billed against an ElevenLabs credit reservation.
+      // The route still verifies engine access; callers cannot supply this choice.
+      if(workspace.role==="owner"&&input.action==="song"&&(await musicEngineStatus(workspace)).engine==="ace-step")
+        return handler(await processingRequest(request,headers));
       const description = await productionDescription(owner, new URL(request.url).pathname, input);
       const requestId = request.headers.get("X-Production-Id") ?? crypto.randomUUID();
       if (!productionIdValid(requestId)) throw new CreditError("Invalid production reference.", 400);

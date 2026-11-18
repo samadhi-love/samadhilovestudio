@@ -56,7 +56,7 @@ async function runWork(owner:string,id:string,songId:string,work:SavedWork,execu
     if(work.accepted!==null)headers.set("X-Studio-Credits-Accepted",work.accepted);
     else headers.delete("X-Studio-Credits-Accepted");
     const request=new Request(new URL(work.route,source.url),{method:"POST",headers,body:JSON.stringify(work.input)});
-    const execution={owner,role,songId,providerStarted:false};
+    const execution={id,owner,role,songId,providerStarted:false};
     jobExecution.set(request,execution);
     const response=await execute(request);
     const raw=await response.json() as Record<string,unknown>;

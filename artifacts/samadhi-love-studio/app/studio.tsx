@@ -33,6 +33,7 @@ import { audioAccept, audioFormatsLabel, artNames, emptyNotes, fields, freshSong
 
 import { StudioWelcome } from "./studio-welcome";
 import { ElevenLabsSettingsPanel, useElevenLabsKey } from "./elevenlabs-key";
+import {MusicEngineSettings,useMusicEngine} from "./music-engine-settings";
 import { isInstrumental, type Instrumental } from "./creation-guide";
 import { InstrumentalExports, SeparatedStems } from "./production-exports";
 import { artistDashboardHref,type ArtistDashboard } from "./community/data";
@@ -98,6 +99,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [loaded, setLoaded] = useState(false);
   const [workspaceId, setWorkspaceId] = useState("");
   const elevenLabs = useElevenLabsKey();
+  const musicEngine=useMusicEngine(workspaceId);
   const [saving, setSaving] = useState(false);
   const [creating,setCreating]=useState(false);
   const [releaseBusy,setReleaseBusy]=useState(false),[releaseLoaded,setReleaseLoaded]=useState(false),[releaseMap,setReleaseMap]=useState<Record<string,{status:string;releaseId?:string}>>({});
@@ -243,7 +245,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
       const response = await (url === "/api/studio/create" ? productionFetch : fetch)(url, { ...request, headers });
-      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;warning?:string } | null;
+      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
       }
@@ -277,6 +279,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       body: JSON.stringify(payload),
     }, message, undefined, throwOnError);
     if(!result)retryAutomaticSongRecovery(workspaceId);
+    if(result?.engineNotice)setToast(result.engineNotice);
     return result;
     }catch(error){retryAutomaticSongRecovery(workspaceId);throw error;}
   }
@@ -622,7 +625,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             persisted={(next,nextRevision)=>{dataRef.current=next;setData(next);revisionRef.current=nextRevision;setRevision(nextRevision);}}
             persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
-          <QuickCreate seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
+          <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
             promptHelpers={apply=><PromptLab seed={null} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
             vocalHelpers={apply=><VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
             proProduction={<div ref={createPane} className="qc-pro-engine"><CreateStudio projects={data.songs.filter(s => !s.deletedAt && !s.projectId && !isExplicitSong(s))} key={createSeed ? "seed-" + JSON.stringify(createSeed) : "create"}
@@ -647,7 +650,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
              simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} favoritePrompt={favoriteReusablePrompt} autoSavePrompts={data.autoSavePrompts===true} setAutoSavePrompts={enabled=>{void setPromptAutoSave(enabled);}} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
             makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
             connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
-            generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to Your songs", true))?.songId}
+            generateSong={async input => {const result=await createRequest({ ...input, action: "song" }, "Song saved privately to Your songs", true);return result?.songId?{songId:result.songId,songIds:result.songIds,warning:result.warning}:undefined;}}
              saveMelodyReference={saveMelodyReference}
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
@@ -736,6 +739,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     {modal && modal!=="tour" && <div className="modal-shade" onClick={e => { if (e.target === e.currentTarget && !modalBusy) setModal(null); }}><div className={modal === "connections" ? "modal settings-modal" : modal === "new" ? "modal song-start-modal" : "modal"} role="dialog" aria-modal="true" aria-label={modalTitle}>
       <div className="modal-head"><h2>{modalTitle}</h2><button className="icon-button" aria-label="Close" onClick={() => setModal(null)} disabled={modalBusy}><X size={20}/></button></div>
       <PanelErrorBoundary key={modal} panel={modal==="connections"?"settings":"tools"}>
+      {modal==="connections"&&<MusicEngineSettings access={musicEngine} advanced={!beginner}/>}
       {error && modal !== "connections" && <div className="notice" role="alert">{error}</div>}
       {modal === "sections"&&data.songs.find(s=>s.id===coverSongId)?<SongSectionEditor key={coverSongId} song={data.songs.find(s=>s.id===coverSongId)!} songs={cleanLibrary} owner={workspaceId} working={setCoverBusy} saved={async()=>{await load();}} initialAction={sectionInitialAction}/>:modal === "stems-midi"&&data.songs.find(s=>s.id===coverSongId)?<section><p className="muted">Export real audio stems or MIDI available for this recording. Originals stay intact.</p>{isInstrumental(data.songs.find(s=>s.id===coverSongId)!.instrumental)?<InstrumentalExports working={setCoverBusy} settings={data.songs.find(s=>s.id===coverSongId)!.instrumental!} title={data.songs.find(s=>s.id===coverSongId)!.name}/>:<><SeparatedStems working={setCoverBusy} songId={coverSongId} audioId={data.songs.find(s=>s.id===coverSongId)!.audioId} title={data.songs.find(s=>s.id===coverSongId)!.name} connected={elevenLabs.connected}/><p className="muted">This recording has no stored editable MIDI notes. The cue-map export below contains tempo and section markers, not inferred instrument notes.</p></>}<button type="button" className="secondary" onClick={()=>{const source=data.songs.find(s=>s.id===coverSongId)!;downloadBlob(sectionCueMidi(source,source.lyricVideo?.bpm??source.instrumental?.bpm??120),source.name+" - section cues.mid");}}>Download section cue-map MIDI</button><p className="muted">Cue-map tempo uses the saved BPM or 120 BPM when unspecified. MIDI note/trigger import remains available in Audio + Visual Studio.</p></section>:modal === "logo"?<BrandLogoDesigner key={coverSongId||"standalone"} working={setCoverBusy} name={creatorName??"SAMADHI LOVE"} initial={data.songs.find(s=>s.id===coverSongId)?.logoDesign} save={coverSongId?async(blob,design)=>{const asset=await uploadLyricAsset(coverSongId,"logo",blob);const source=data.songs.find(s=>s.id===coverSongId);if(!source)throw new Error("Choose an available song before saving the logo.");const next={...source,logoAsset:asset,logoDesign:design,...(source.lyricVideo?.pro?{lyricVideo:{...source.lyricVideo,pro:{...source.lyricVideo.pro,logo:asset}}}:{})};if(!await saveSong(next,"Logo saved privately"))throw new Error("Logo upload finished, but the project save could not be confirmed. Retry.");}:undefined}/>:modal === "cover"&&data.songs.find(s=>s.id===coverSongId)?<SongCoverDesigner working={setCoverBusy} key={coverSongId} title={data.songs.find(s=>s.id===coverSongId)!.name} artist={creatorName??"SAMADHI LOVE"} save={async blob=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);const song=data.songs.find(s=>s.id===coverSongId)!;if(!await saveSong({...song,coverAsset:asset},"Cover saved privately"))throw new Error("Cover uploaded, but the song save could not be confirmed. Retry.");}} animate={data.songs.find(s=>s.id===coverSongId)?.audioFormat?async (blob,overlay)=>{const asset=await uploadLyricAsset(coverSongId,"background",blob);setModal(null);if(navigate("lyric-video")){setLyricSongId(coverSongId);setCoverVideoRequest({id:uid(),songId:coverSongId,asset,overlay});}}:undefined}/>:modal === "connections" ? <ElevenLabsSettingsPanel access={elevenLabs} firstSong={openFirstSong}/> : modal === "new" ? <NewSongForm templates={songTemplates} savedTemplateIds={data.templates.map(t=>t.id)} initialTemplateId={chosenTemplate} saving={saving} create={createSong}/> : modal === "upload" ? <form onSubmit={uploadSong} aria-busy={saving}>
         <fieldset disabled={saving}>

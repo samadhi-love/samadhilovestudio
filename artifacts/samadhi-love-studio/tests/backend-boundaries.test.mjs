@@ -41,3 +41,15 @@ test("one AI transport accepts explicit owner keys and rejects foreign destinati
   assert.throws(()=>api.providerMediaRequest("https://foreign.test/private"),/Unexpected/);
   assert.equal(calls.length,2);
 });
+test("fal transport never replays a paid POST and never sends a key to media URLs",async()=>{
+  const calls=[],api=vmAI(async(url,options)=>{calls.push({url,options});return new Response("",{status:503});});
+  assert.equal((await api.falRequest("offline-fixture","/fal-ai/ace-step-1.5",{method:"POST",body:"{}"})).status,503);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].options.headers.get("Authorization"),"Key offline-fixture");
+  assert.equal(calls[0].options.redirect,"manual");
+  assert.throws(()=>api.falRequest("dummy","/fal-ai/ace-step-1.5/../../other"),/Unexpected/);
+  assert.throws(()=>api.falMediaRequest("https://fal.media.evil.test/a"),/Unexpected/);
+  assert.throws(()=>api.falMediaRequest("http://fal.media/a"),/Unexpected/);
+  const media=vmAI(async(url,options)=>{assert.equal(options.headers,undefined);assert.equal(options.redirect,"manual");return new Response("fLaC");});
+  await media.falMediaRequest("https://fal.media/test.flac");
+});

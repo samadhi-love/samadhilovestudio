@@ -1,5 +1,17 @@
 # Versual Studio — current guide
 
+## Owner-only ACE-Step music
+
+In Advanced view, open Settings and choose **ACE-Step 1.5 · thinking quality**. Add the fal.ai API key as **FAL_KEY** in Replit Secrets and refresh engine status; it never belongs in chat or a client field. This checks configuration only, not paid generation. Without that key, the owner keeps ElevenLabs with a quiet explanation. Other creators continue using their own ElevenLabs keys.
+
+ACE-Step defaults to two takes in one request; turn off Make 2 versions for one. Both takes are private in Your songs and can be compared side by side; keeping a favorite never deletes the other. Auto uses Studio's duration planner (the fal endpoint does not document native Auto), with a six-minute maximum. Longer directions/lyrics are not silently cut: the app uses ElevenLabs for inputs that fal cannot accept.
+
+For a description-only vocal song, the existing ElevenLabs connection writes lyrics first. If it is disconnected, supply lyrics for ACE-Step. Automatic caption alignment stays on ElevenLabs; otherwise use the existing rough/manual timing. Private hum references are not sent to this text-only music endpoint.
+
+If a request may already have reached fal.ai, Studio stops rather than automatically spending again. Check fal.ai history and Your songs before confirming Try again. Accepted queue references remain private in the saved job. A definite rejected fal submission can use ElevenLabs; that backup saves one take and does not automatically spend on a second.
+
+The current checks are offline fixtures, not proof of live musical quality, dialect fidelity, provider billing, or playback on a real phone.
+
 ## Singing language starts with English
 
 Create shows a small **Language** selector in both Simple and Custom, initially **Auto · English by default**. Priority is: **your dropdown choice → a language or dialect named in your description → clearly non-English lyrics → English**. The description matcher uses the same complete language/dialect names as the selector, including world-music languages such as Yoruba and aliases such as Brazilian Portuguese. Mood, genre and instrumental directions still shape the music. A quiet line always explains the result, for example **Singing in Spanish (from your description) · change**. Selecting English or any other listed language pins your choice; return to Auto to follow the description again. Short or uncertain text and conflicting descriptions never require resolving a language error. Your words are not translated. Dialect controls remain inside Custom → Vocals; provider pronunciation and dialect quality remain unverified, not guaranteed.

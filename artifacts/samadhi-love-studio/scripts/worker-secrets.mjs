@@ -13,6 +13,7 @@ export function studioWorkerSecrets(command, localBindings = {}, source = proces
   if (source.STUDIO_OWNER_EMAIL?.trim()) {
     names.add("STUDIO_OWNER_EMAIL");
     if (source.ELEVENLABS_API_KEY !== undefined) names.add("ELEVENLABS_API_KEY");
+    if (source.FAL_KEY !== undefined) names.add("FAL_KEY");
   }
   return { required: [...names] };
 }

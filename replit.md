@@ -1,4 +1,16 @@
-# Latest update — Auto song length and quieter credit wording
+# Latest update — owner-only ACE-Step music engine
+
+ACE-Step 1.5 through fal.ai is implemented behind the existing server AI boundary, in thinking mode, with two private takes by default and a one-take option. The owner chooses the engine in Settings → Advanced. Other creators still use their own ElevenLabs connection. Existing jobs, private Cloudflare storage, paid-audio recovery, captions and videos are reused.
+
+**Owner setup:** create a fal.ai account, add its API key as **FAL_KEY** in Replit Secrets, then refresh the engine settings. No key was supplied or paid fal request made during implementation. With no FAL_KEY, the app uses the owner's existing ElevenLabs connection and explains why. This is not a verified live fal connection.
+
+**Honest limits:** fal's current 1.5 endpoint has no documented Auto-duration parameter; Studio plans a natural numeric duration, capped at six minutes. Requests below ten seconds or beyond fal's prompt/lyric limits use ElevenLabs without silently cutting text. Description-only vocal songs use the existing ElevenLabs lyric writer before ACE-Step sings; with no lyric-writing connection, supply your own lyrics. Precise captions still need the existing ElevenLabs alignment connection; rough/manual timing remains available. No melody following, fixed singer identity or word timing is claimed for this endpoint.
+
+**Payment safety:** one fal submission requests both takes. Missing configuration or a definite rejected submission can use ElevenLabs; ambiguous/network/accepted failures never automatically start another paid request. Each accepted queue reference and output identity is preserved, and successful private recordings keep recovery receipts until attached. A backup ElevenLabs call saves one take, not an unconfirmed second charge.
+
+**Verification:** 53/53 Studio verification groups and 41/41 named checks passed, including every declared workspace test command, full workspace typecheck and full workspace production build. The dedicated fake-fal suite passed 19/19; the final creator/video DOM run passed 26/26. Regression fixtures were updated for the new shared engine dependency and provider-neutral retry wording. The running preview and public page were also checked. No paid calls, live fal verification, publishing, domain changes, billing changes or user-data deletion occurred.
+
+## Previous update — Auto song length and quieter credit wording
 
 New song forms start on **Length: Auto**. Supplied lyrics and section headings determine a natural duration; description-only songs use a three-minute target because this app's composition/quoting pipeline needs a number. An explicit duration in the description still works, or turn Auto off and pick a precise time. New song requests, lyric-plan requests, presets and section extensions are limited to **0:03–6:00**. Extensions check the complete crossfaded timeline before generating or rendering; the audio-save route independently checks section-edit plans. Existing longer recordings and saved data remain intact and playable/editable down to the new limit.
 

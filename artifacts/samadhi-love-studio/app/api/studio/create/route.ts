@@ -1,5 +1,5 @@
 import {isMusicalAd} from "../../../musical-ad";
-import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, type LanguageProfile } from "../../../music-language";
+import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, musicDialects,type LanguageProfile } from "../../../music-language";
 import { vocalStyles } from "../../../vocal-matching";
 import {titlesFromLyrics} from "../../../song-cover";
 import {genreTags} from "../../../music-genres";
@@ -13,7 +13,7 @@ import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyl
 import { stampSong } from "../../../song-library";
 import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords } from "../../../clean-content";
-import { freshSong, emptyCreatorStudio, initialStudio, type Studio } from "../../../studio-data";
+import { freshSong, emptyCreatorStudio, initialStudio, type Studio, type Song } from "../../../studio-data";
 import { isTrackDuration, creationDuration } from "../../../track-duration";
 import { elevenLabsFailureMessage, elevenLabsRequest, musicModel as model } from "../elevenlabs/provider";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
@@ -21,6 +21,9 @@ import { audioKey, maxStudioBytes, privateHeaders, readStudio, writeStudio } fro
 
 import { privateWorkspace } from "../../../studio-access";
 import { reserveCreatorGeneration } from "../../../creator-accounts";
+import {musicEngineStatus,falKey} from "../../../server/music-engine";
+import {falSongInput,generateFal,downloadFalAudio,FalRejected,falMusicModel,type FalInput} from "../../../server/fal-music";
+import {saveJobDocument} from "../../../server/job-runner";
 import { readBoundedText, recoverableRoute } from "../request-errors";
 
 export const dynamic = "force-dynamic";
@@ -118,13 +121,23 @@ async function createMusic(request: Request) {
       }, text("lyrics"), typeof input.languagePrompt === "string" ? input.languagePrompt.slice(0,1600) : text("prompt"));
     } catch (error) { return problem((error as Error).message, 400); }
   }
+  const selectedEngine=input?.action==="song"?await musicEngineStatus(access):null;
+  let useFal=selectedEngine?.engine==="ace-step";
+  let engineNotice=selectedEngine?.notice??"";
+  if(input?.versions!==undefined&&input.versions!==1&&input.versions!==2)return problem("Choose one or two takes.",400);
+  // A creator cannot opt into the owner's fal key through request fields.
+  if(access.role!=="owner"&&(input?.engine==="ace-step"||input?.versions===2))return problem("ACE-Step is currently owner-only.",403);
   let key: string | null;
   try { key = managedProviderKey(request) ?? await resolveElevenLabsKey(id); }
-  catch { return problem("Could not read the saved ElevenLabs key. Update it in Settings → AI Music Providers.", 503); }
-  if (!key) return problem("Open Settings → AI Music Providers to connect ElevenLabs.", 400);
+  catch {
+    if(!useFal)return problem("Could not read the saved ElevenLabs key. Update it in Settings → AI Music Providers.",503);
+    key=null;engineNotice="Your ElevenLabs connection could not be read. ACE-Step can still sing supplied lyrics.";
+  }
+  if (!key&&!useFal) return problem("Open Settings → AI Music Providers to connect ElevenLabs.", 400);
   const execution=jobExecution.get(request);
   const call = (path: string, payload: object) => {
     if(execution)execution.providerStarted=true;
+    if(!key)throw new Error("Connect ElevenLabs to write lyrics from a description, or supply your own words for ACE-Step.");
     return elevenLabsRequest(key, path, payload, 300_000);
   };
   let pendingCreationId: string | null = null;
@@ -259,6 +272,7 @@ async function createMusic(request: Request) {
     if (suppliedLyrics.trim()) {
       draft.notes.lyrics = suppliedLyrics;
     } else if (!instrumental) {
+      if(!key)return problem("ACE-Step can sing your supplied lyrics. Connect ElevenLabs for automatic lyric writing, or add your own lyrics first.",400);
       const arrangementGuide = arrangement
         ? "\nFollow this section order and keep the indicated performers and delivery. Directions in braces are production cues. Keep spoken and whispered passages distinct from sung lyrics.\n" + (readLyricStyles?arrangement:applyChunkStyleCues([{text:arrangement}],false)[0].text)
         : "";
@@ -299,7 +313,17 @@ async function createMusic(request: Request) {
       plan = { ...plan, chunks: languageProfile ? languageStyles(styled, languageProfile) : styled };
     }
     if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
-    draft.generation = { ...(request.headers.get("X-Production-Id")&&/^[a-f0-9-]{36}$/i.test(request.headers.get("X-Production-Id")!)?{requestId:request.headers.get("X-Production-Id")!}:{}),provider: "ElevenLabs", model, audioId: draft.id, status:"generating", approvedLyrics: draft.notes.lyrics, compositionPlan: plan,
+    let falInput:FalInput|undefined;
+    if(useFal){
+      try{falInput=falSongInput({prompt,lyrics:draft.notes.lyrics,voice,genres,instruments,arrangement,duration,language:languageProfile?.resolved??"en",dialect:languageProfile?.dialect?musicDialects[languageProfile.dialect]:undefined,instrumental,versions:input.versions===1?1:2});}
+      catch(error){
+        engineNotice=error instanceof Error?error.message:"ACE-Step cannot use these inputs. Using ElevenLabs.";
+        if(!key)return problem(engineNotice+" Connect ElevenLabs for this song.",400);
+        useFal=false;
+      }
+    }
+    const outputIds=useFal&&falInput?.num_outputs===2?[draft.id,crypto.randomUUID()]:[draft.id];
+    draft.generation = { ...(request.headers.get("X-Production-Id")&&/^[a-f0-9-]{36}$/i.test(request.headers.get("X-Production-Id")!)?{requestId:request.headers.get("X-Production-Id")!}:{}),provider: useFal?"fal.ai":"ElevenLabs", model:useFal?falMusicModel:model, ...(useFal?{outputIds}:{}),audioId: draft.id, status:"generating", approvedLyrics: draft.notes.lyrics, compositionPlan: useFal?falInput:plan,
       createdAt: new Date().toISOString(), captionReady, timingSource: "not-provided", languageProfile };
     // Preserve every approved writing/arrangement draft before the audio request.
     {
@@ -310,6 +334,50 @@ async function createMusic(request: Request) {
       });
       if (!writing) return problem("The approved writing draft could not save. Generation was not started.",409);
       pendingCreationId = draft.id;
+    }
+    if(useFal&&falInput){
+      try{
+        if(execution)execution.providerStarted=true;
+        const {requestId,result}=await generateFal(falKey(),falInput,async providerRequestId=>{
+          draft.generation={...draft.generation!,providerRequestId};
+          // This is private, durable queue provenance, not an instruction to
+          // replay. Startup recovery may mark the app job failed, never resubmit.
+          if(execution?.id)await saveJobDocument(id,execution.id,"provider",{provider:"fal.ai",model:falMusicModel,providerRequestId,outputIds});
+          const saved=await saveCreation(id,starter,studio=>({...studio,songs:studio.songs.map(song=>song.id===draft.id?{...song,generation:draft.generation}:song)}));
+          if(!saved)throw new Error("ACE-Step accepted your song but its reference could not save. Check fal.ai history before trying again.");
+        });
+        const files=Array.isArray(result.audios)&&result.audios.length?result.audios.map(item=>item.audio):result.audio?[result.audio]:[];
+        const savedIds:string[]=[];let warning="";
+        for(let index=0;index<Math.min(files.length,outputIds.length);index++){
+          try{
+            const downloaded=await downloadFalAudio(files[index].url);
+            let take:Song={...structuredClone(draft),id:outputIds[index],audioId:outputIds[index],name:index?`${draft.name.slice(0,88)} · Take 2`:draft.name,
+              ...(index?{projectId:draft.projectId??draft.id}:{}),audioFormat:downloaded.format,creationDraft:false,updatedAt:new Date().toISOString(),
+              generation:{...draft.generation!,providerRequestId:requestId,outputIndex:index,audioId:outputIds[index],status:"complete" as const}};
+            take=await storePaidAudio(id,take,downloaded.audio);
+            const attached=await saveCreation(id,starter,studio=>{
+              const existing=studio.songs.find(s=>s.id===take.id);
+              return {...studio,songs:existing?studio.songs.map(s=>s.id===take.id?{...s,...take,notes:{...s.notes,...take.notes}}:s):[take,...studio.songs]};
+            });
+            if(!attached)throw new Error("Your recording is stored privately. My Songs recovery can attach it; do not generate it again.");
+            savedIds.push(take.id);
+            try{await finishPaidAudio(id,take);}catch{console.warn("Paid fal recording saved; receipt completion is pending.");}
+          }catch(error){warning=error instanceof Error?error.message:"A take could not be stored. Check fal.ai history and My Songs recovery.";}
+        }
+        if(savedIds.length!==outputIds.length)warning=warning||"ACE-Step returned fewer takes than requested. Saved takes are safe; no replacement was generated.";
+        if(!savedIds.length)return preservedProblem(warning||"ACE-Step returned no usable recordings. Check fal.ai history before trying again.",502);
+        return Response.json({...await readStudio(id),songId:savedIds[0],songIds:savedIds,...(warning?{warning}:{}),...(engineNotice?{engineNotice}:{})},options);
+      }catch(error){
+        console.warn("ACE-Step attempt did not complete normally",{
+          requestId:draft.generation?.requestId??crypto.randomUUID(),
+          errorType:error instanceof Error?error.name:"Error",
+          ...(error instanceof FalRejected?{httpStatus:error.status}:{}),
+        });
+        if(error instanceof FalRejected&&key){
+          engineNotice="ACE-Step could not accept this song. Using your ElevenLabs connection instead.";
+          draft.generation={...draft.generation!,provider:"ElevenLabs",model,compositionPlan:plan,outputIds:undefined};
+        }else return preservedProblem(error instanceof Error?error.message:"ACE-Step could not finish. Check fal.ai history before confirming Try again; no backup was started.",502);
+      }
     }
     const response = await call("music?output_format=mp3_44100_128", instrumental
       ? { model_id: model, prompt: [songOpenings[openingMode].direction, prompt].join("\n"), music_length_ms: durationMs, force_instrumental: true }
@@ -339,7 +407,7 @@ async function createMusic(request: Request) {
       try{
         if(!await finishPaidAudio(id,draft))console.warn("Paid song saved; recovery receipt changed before completion.");
       }catch{console.warn("Paid song saved; recovery receipt completion is pending.");}
-      return Response.json({ ...saved, songId: draft.id }, options);
+      return Response.json({ ...saved, songId: draft.id,...(engineNotice?{engineNotice}:{}) }, options);
     }
     return problem("Your recording is safely stored but could not be attached. Open My Songs and choose Recover unfinished songs. Do not generate it again.", 409);
   } catch {

@@ -1,7 +1,7 @@
 import {serverStorage as env} from "./storage";
 import {audioKey} from "../api/studio/store";
 import {preservePaidSong} from "./song-recovery";
-import type {Song} from "../studio-data";
+import {audioTypes,type Song} from "../studio-data";
 export {finishPaidSong as finishPaidAudio} from "./song-recovery";
 
 /** Retries only replayable bytes at a unique storage key; never calls AI. */
@@ -12,9 +12,9 @@ export async function storePaidAudio(owner:string,song:Song,audio:ArrayBuffer,wa
     const key=audioKey(owner,candidate.audioId??candidate.id);
     for(let attempt=0;attempt<attempts;attempt++){
       try{
-        await bucket.put(key,audio,{httpMetadata:{contentType:"audio/mpeg"},customMetadata:{
+        await bucket.put(key,audio,{httpMetadata:{contentType:audioTypes[candidate.audioFormat??"mp3"]},customMetadata:{
           recoverable:"1",songId:candidate.id,audioId:candidate.audioId??candidate.id,
-          audioFormat:"mp3",title:candidate.name,createdAt:candidate.updatedAt??new Date().toISOString(),
+          audioFormat:candidate.audioFormat??"mp3",title:candidate.name,createdAt:candidate.updatedAt??new Date().toISOString(),
         }});
         return true;
       }catch{
@@ -34,5 +34,6 @@ export async function storePaidAudio(owner:string,song:Song,audio:ArrayBuffer,wa
     try{await preservePaidSong(owner,fallback);}catch{/* Recovery also discovers this private object by its metadata. */}
     return fallback;
   }
-  throw new Error("ElevenLabs returned your recording, but it could not be stored. Check ElevenLabs history before generating again; Recover unfinished songs can find any copy that reached storage.");
+  const provider=song.generation?.provider==="fal.ai"?"fal.ai":"ElevenLabs";
+  throw new Error(`${provider} returned your recording, but it could not be stored. Check ${provider} history before generating again; Recover unfinished songs can find any copy that reached storage.`);
 }

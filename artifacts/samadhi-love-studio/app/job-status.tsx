@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {useRecoveryScope} from "./draft-recovery";
 import {lostConnectionMessage,readJobReply} from "./credits/job-wait";
 type Job={id:string;type:string;status:string;song_id:string;error_message?:string};
-const uncertainWarning="This may use credits again, because the last attempt may have reached ElevenLabs. Try again?";
+const uncertainWarning="This may use credits again, because the last attempt may have reached your music provider. Try again?";
 export function JobStatus({completed}:{completed:()=>void}){
   const workspace=useRecoveryScope();
   const [jobs,setJobs]=useState<Job[]>([]),[error,setError]=useState(""),[busy,setBusy]=useState("");
