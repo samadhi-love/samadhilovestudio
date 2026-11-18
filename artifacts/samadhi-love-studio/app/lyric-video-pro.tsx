@@ -1,6 +1,8 @@
 "use client";
+import {cosmicScrollBehavior} from "./cosmic-motion";
 import {brand} from "./brand";
 import {PanelErrorBoundary} from "./panel-error-boundary";
+import "./cosmic-views.css";
 import { MusicLanguageSummary } from "./music-language-summary";
 import {StemReactiveControls} from "./stem-reactive-controls";
 import {releaseKit} from "./lyric-release-kit";
@@ -401,14 +403,14 @@ function LyricVideoProContent(props: Props) {
       requestAnimationFrame(() =>
         document
           .getElementById("lyric-look-controls")
-          ?.scrollIntoView({ block: "start", behavior: "smooth" }),
+          ?.scrollIntoView({ block: "start", behavior: cosmicScrollBehavior() }),
       );
     } else {
       setMode("start");
       requestAnimationFrame(() =>
         document
           .getElementById("lyric-visual-library")
-          ?.scrollIntoView({ block: "start", behavior: "smooth" }),
+          ?.scrollIntoView({ block: "start", behavior: cosmicScrollBehavior() }),
       );
     }
   }
@@ -1729,6 +1731,7 @@ function LyricVideoProContent(props: Props) {
     <div
       className={mode === "classic" ? "lvp-classic-host" : "lyric-video-pro"}
       data-skin={workspaceSkin}
+      data-observatory="true"
       onPlayCapture={(event) => {
         const active = event.target;
         if (active instanceof HTMLMediaElement)
@@ -1745,9 +1748,9 @@ function LyricVideoProContent(props: Props) {
             <Sparkles size={16} /> {brand.name} · VISUAL PRODUCTION
           </span>
           <h1>
-            Video &amp; <em>Shorts</em>
+            Make your <em>video</em>
           </h1>
-          <p>Turn a song into a full lyric video or a social moment. Choose a look, review the words, then export.</p>
+          <p>Pick a vibe. Your lyrics light up in time with your voice.</p>
           <details className="lvp-quick-guide"><summary>How to make a lyric video</summary><ol><li>Choose a Studio song, create one, or upload your authorized recording.</li><li>Choose Auto lyric video. Saved lyrics guide synchronization; uploads can use supplied lyrics or transcription.</li><li>Open Caption editor to correct words and timing.</li><li>Choose a background and lyric style, then YouTube widescreen or upright Shorts / Reels.</li><li>Export the video file, play it, then download or share it for upload.</li></ol><p>Automatic alignment and transcription use the connected provider and applicable credits. Review sung words, dialects and pauses before exporting.</p></details>
           <span className="lvp-feature-badge">
             Sacred backgrounds · Cosmic scenes · Animated lyric styles
@@ -1850,7 +1853,7 @@ function LyricVideoProContent(props: Props) {
                   requestAnimationFrame(() =>
                     document
                       .getElementById("lyric-song-upload")
-                      ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+                      ?.scrollIntoView({ behavior: cosmicScrollBehavior(), block: "center" }),
                   );
                 }}
               >
@@ -1872,7 +1875,7 @@ function LyricVideoProContent(props: Props) {
                 <Music2 />
                 <strong>Use an Existing Song</strong>
                 <span>
-                  Open My Songs or My Originals, reuse saved lyrics, or import
+                  Open Your songs or My Originals, reuse saved lyrics, or import
                   your authorized media.
                 </span>
               </button>
@@ -1918,7 +1921,7 @@ function LyricVideoProContent(props: Props) {
                           .getElementById("lyric-source-picker")
                           ?.scrollIntoView({
                             block: "center",
-                            behavior: "smooth",
+                            behavior: cosmicScrollBehavior(),
                           }),
                       );
                     }}
@@ -2024,7 +2027,7 @@ function LyricVideoProContent(props: Props) {
                       onChange={(e) => void chooseSong(e.target.value)}
                     >
                       <option value="">Choose a recording…</option>
-                      <optgroup label="My Songs">
+                      <optgroup label="Your songs">
                         {tracks
                           .filter((s) => !s.creationDraft)
                           .map((s) => (
@@ -2243,6 +2246,10 @@ function LyricVideoProContent(props: Props) {
                           aria-label="Synchronized lyric video preview"
                         />
                       </div>
+                      <p className="obs-caption-status" role="status" data-testid="status-caption-timing" data-state={!project.cues.length?"none":p.alignment?.reviewed?"reviewed":p.alignment?.engine==="Rough timing"||!p.alignment?"rough":"draft"}>
+                        <span aria-hidden="true" className="obs-caption-dot"/>
+                        {!project.cues.length?"No captions yet":p.alignment?.reviewed?"Captions reviewed by you":p.alignment?.engine==="Rough timing"||!p.alignment?"Rough timing · listen and adjust":`Synced draft · ${p.alignment.engine} · needs your review`}
+                      </p>
                       <audio
                         key={soundtrackUrl}
                         ref={audio}
@@ -2319,7 +2326,9 @@ function LyricVideoProContent(props: Props) {
                           {p.soundtrackConfirmed === soundtrackIdentity(project) ? "Soundtrack version confirmed" : "Confirm this soundtrack version"}
                         </button>
                       </div>
-                      <div className="lvp-actions lvp-caption-shortcut"><button type="button" className="lvp-primary" disabled={busy||!p.duration} onClick={()=>openCaptionEditor(Math.max(0,project.cues.findLastIndex(c=>c.time<=time)))}>Edit captions · words &amp; timing</button></div>
+                      <div className="lvp-actions lvp-caption-shortcut"><button type="button" className="lvp-primary" disabled={busy||!p.duration} onClick={()=>openCaptionEditor(Math.max(0,project.cues.findLastIndex(c=>c.time<=time)))} title="Open the caption editor at the current line to correct words and timing">Edit words</button>
+                        <button type="button" data-testid="button-review-timing" disabled={busy||!p.duration||!project.cues.length} onClick={()=>openCaptionEditor(Math.max(0,project.cues.findLastIndex(c=>c.time<=time)))}>Realign a part manually</button></div>
+                      <p className="lvp-note obs-realign-note">To fix one part, move its lines in the caption editor. Automatic re-sync covers the whole song and may use provider credits.</p>
                       <a
                         className="lvp-original-download"
                         href={originalUrl}
@@ -3447,8 +3456,9 @@ function LyricVideoProContent(props: Props) {
                             }
                             onClick={exportVideo}
                           >
-                            <Film size={17} /> {resumeVideo?"Resume export":cleanExport?"Export clean video":"Export lyric video"}
+                            <Film size={17} /> {resumeVideo?"Resume export":cleanExport?"Create clean video":"Create video"}
                           </button>
+                          <p className="lvp-note obs-keep-open">Keep this screen open while it renders.</p>
                           <button type="button" disabled={busy||!project.cues.length} onClick={()=>void downloadReleaseKit()}><Download size={15}/> Download release kit · ZIP</button>
                           <p className="lvp-note">Includes full-song and selected-video SRT/VTT/LRC, approved lyrics, metadata and editable project data. Download your audio and finished videos separately. No distributor submission, loudness mastering or Spotify Canvas loop is performed.</p>
                           <div className="lvp-actions">

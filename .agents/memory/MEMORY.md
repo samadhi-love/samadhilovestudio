@@ -1,7 +1,7 @@
 - [Preserve the existing studio](product-direction.md) — Continue the existing app; beginner-friendly songs and easy/advanced lyric videos, not a replacement app.
 - [Product and artist branding](product-branding.md) — Product branding can change without renaming the SAMADHI LOVE artist, saved work or technical identifiers.
 - [Deterministic illustrations](deterministic-illustrations.md) — Round procedural SVG coordinates; tiny server/browser trigonometry differences can trigger hydration warnings.
-- [Browser test DOM injection](browser-test-injection.md) — Investigate injected select wrappers before treating browser-only hydration warnings as app defects.
+- [Browser test DOM injection](browser-test-injection.md) — Investigate injected markup before treating preview-only hydration warnings as app defects.
 - [Language evidence](language-evidence.md) — Music input acceptance and text fixtures do not verify singing; Lebanese authenticity needs native-speaker listening review.
 - [Vault key continuity](vault-key-continuity.md) — Standardizing secret names must preserve the existing encryption key, not generate a replacement.
 - [Provider key ownership](provider-key-ownership.md) — Project-key setup was approved for the verified owner only, not public creator funding or automatic paid tests.
@@ -9,7 +9,7 @@
 - [Mantra recording scope](mantra-recording-direction.md) — Local voice repetition and echo belong in the existing recorder; preserve original phrases and defer automatic phrase detection.
 - [Security scanner inputs](security-scanner-inputs.md) — Publish dependency scans inspect retained alternate lockfiles, not only the dependency tree used to build.
 - [Melody reference privacy](melody-reference-privacy.md) — Keep hummed recordings private and reference-only unless melody-conditioned support and explicit consent are verified.
-- [Foundation feature freeze](foundation-freeze.md) — Finish Step 2 only; preserve Stage 3 and flag feature requests until owner approval.
+- [Foundation feature freeze](foundation-freeze.md) — Work only within explicit owner approvals; visual exceptions do not lift the broader feature freeze.
 - [Per-song cutover safety](per-song-cutover.md) — Legacy backups freeze after copy; confirm sibling-app writers before live cutover and never equate local checks with production.
 - [Verified production origin](first-publish-origin.md) — Owner approved the verified deployment origin in production settings; the earlier pending-origin instruction is superseded.
 - [Large video safety](large-video-safety.md) — Full-length exports must stay disk-backed; offline codec fakes do not prove native encoding or phone playback.

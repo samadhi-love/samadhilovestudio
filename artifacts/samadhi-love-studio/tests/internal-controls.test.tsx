@@ -51,7 +51,7 @@ test("an unexpected tool render error shows recovery instructions instead of a b
 
 
 test("beginner navigation has five destinations and Pro adds only the three requested screens",()=>{
- assert.deepEqual(primaryScreens.filter(item=>!item.pro).map(item=>item.label),["Create","My Songs","Video","Record","Explore"]);
+ assert.deepEqual(primaryScreens.filter(item=>!item.pro).map(item=>item.label),["Create","Your songs","Video","Record","Explore"]);
  assert.deepEqual(primaryScreens.filter(item=>item.pro).map(item=>item.label),["World Sounds","Mix & Edit","Promote"]);
  assert.equal(screens.length,9);
  for(const screen of screens){

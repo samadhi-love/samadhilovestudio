@@ -67,10 +67,11 @@ import { InternationalMusicTent } from "./international-music-tent";
 import { PromptLab, VocalDirector } from "./music-creation-tools";
 import { emptyDiscovery, type CreateSeed } from "./music-workspace-data";
 
-import { StudioNavigation, ScreenContextHelp, ScreenSections, WorkspaceModeSwitch, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
+import { StudioNavigation, ScreenContextHelp, ScreenSections, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
 import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from "./studio-routes";
 import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
 import { StudioQuickTour } from "./studio-tour";
+import { SongSky, SongSkyToggle } from "./song-sky";
 
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
@@ -139,6 +140,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [archiveView, setArchiveView] = useState(false);
   const [songSort,setSongSort]=useState<SongSort>("newest"),[draftsOnly,setDraftsOnly]=useState(false),[songPreview,setSongPreview]=useState(""),[songExpanded,setSongExpanded]=useState("");
   const [folderFilter, setFolderFilter] = useState("");
+  const [libraryMode,setLibraryMode]=useState<"sky"|"list">("sky");
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const folders = data.folders ?? [];
   const songTemplates = availableSongTemplates(data.templates);
@@ -246,7 +248,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
       }
       if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
-        ? "The production result could not be confirmed. Keep this tab open and check My Songs and your provider history before generating again to avoid a duplicate charge."
+        ? "The production result could not be confirmed. Keep this tab open and check Your songs and your provider history before generating again to avoid a duplicate charge."
         : "The save could not be confirmed. Keep this tab open and retry."));
       const savedData = result.data ?? next;
       if (savedData) {dataRef.current=savedData;setData(savedData);}
@@ -282,7 +284,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const assetId=await uploadLyricAsset(songId,"reference",blob,undefined,before.audioId??before.id);
     const latest=dataRef.current;
     const song=latest.songs.find(item=>item.id===songId&&!item.deletedAt);
-    if(!song)throw new Error("The song changed before its private reference could be saved. Check My Songs.");
+    if(!song)throw new Error("The song changed before its private reference could be saved. Check Your songs.");
     const contentType=(blob.type||"audio/webm").split(";")[0].toLowerCase();
     const melodyReference={assetId,contentType,durationSeconds:Math.max(1,Math.min(300,Math.round(durationSeconds))),savedAt:new Date().toISOString()};
     return commit({...latest,songs:latest.songs.map(item=>item.id===songId?{...item,melodyReferences:[...(item.melodyReferences??[]),melodyReference]}:item)},"Private melody reference saved");
@@ -291,7 +293,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     if(!confirm(`Delete “${song.name}”? ${deletionNotice} Any Community release will be unlisted. Download anything you want to keep before deleting.`))return false;
     const saved=await saveSong({...song,deletedAt:new Date().toISOString()},"Song deleted · recoverable for 14 days");if(saved&&songPreview===song.id)setSongPreview("");return saved;
   }
-  async function duplicateSong(song:Song){const copy=duplicateSongDetails(song,uid());return commit({...data,songs:[copy,...data.songs]},"Writing project copied to My Songs");}
+  async function duplicateSong(song:Song){const copy=duplicateSongDetails(song,uid());return commit({...data,songs:[copy,...data.songs]},"Writing project copied to Your songs");}
   async function publishSong(song:Song){if(song.creationDraft&&!await saveSong({...song,creationDraft:false},"Recording ready for release review"))return;if(navigate("songs"))openSong(song.id,"Release");}
   async function unlistSong(song:Song){
     if(!confirm(`Unlist “${song.name}” from Community? Your private song and its originals remain saved.`))return false;
@@ -501,7 +503,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         ...(instrumental && { "X-Studio-Instrumental": encodeURIComponent(JSON.stringify(instrumental)) }),
       },
       body: file,
-    }, instrumental ? "Instrumental saved to My Songs" : target ? "Recording saved" : "Song uploaded");
+    }, instrumental ? "Instrumental saved to Your songs" : target ? "Recording saved" : "Song uploaded");
   }
   function editTemplate(template: Template | null, song?: Song) {
     setTemplateEdit(template ?? { id: uid(), name: song ? song.name + " Template" : "", description: song?.summary ?? "", tags: song?.tags ?? [], notes: song?.notes ?? { ...emptyNotes } });
@@ -546,17 +548,17 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const activeSong = cleanLibrary.find(s => s.stage === "Production") ?? cleanLibrary[0];
   const comparison = data.songs.find(s => s.id === compareSong && !s.deletedAt && !isExplicitSong(s)) ?? cleanLibrary.find(s => s.mixes.length >= 2) ?? cleanLibrary[0];
 
-  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view}>
+  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
+    <div className="cosmic-shell-sky" aria-hidden="true"><i/><i/><i/></div>
     <aside className="sidebar">
-      <button className="brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>{brand.name}</strong><small>{brand.subline}</small></span></button>
-      <p className="nav-label">WORKSPACE</p>
+      <button className="brand cosmic-brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>VERSUAL STUDIO</strong><small>{brand.subline}</small></span></button>
        <StudioNavigation activeView={song ? "songs" : view} activeScreen={pane??(song?"songs":screenOf(view))} openScreen={openScreen} activeUtility={modal === "connections" ? "settings" : modal === "help"||modal==="tour" ? "guide" : undefined}
         beginner={beginner} changeBeginner={changeBeginner} owner={!creatorName} navigate={navigate} visit={leaveStudio} settings={connectionSettings} guide={() => setModal("help")}/>
       <div className="sidebar-bottom"><p className="studio-motto">From the silence<br/>comes the light.</p><div className="private"><div className="avatar">S</div><div><strong>{creatorName ?? "Samadhi"}</strong><small>{creatorName ? "Private creator workspace" : "Owner workspace"}</small></div><LockKeyhole size={13}/></div><a className="owner-signout" href={signOut} target="_top">Sign out</a></div>
     </aside>
     <main>
       <header className="topbar"><div className="breadcrumb"><span>Studio</span><ChevronRight size={14}/><strong>{song ? song.name : pane==="plan-credits" ? "Plan & Credits" : workspaceNavigation.find(n => n.id === view)?.label}</strong><ScreenContextHelp screen={pane??(song?"songs":screenOf(view))}/></div>
-        <div className="topbar-actions"><WorkspaceModeSwitch beginner={beginner} change={changeBeginner}/><CreditBadge/><button type="button" className="secondary small" onClick={connectionSettings} aria-label="Settings"><Settings2 size={16}/><span>Settings</span></button>
+        <div className="topbar-actions"><CreditBadge/><button type="button" className="secondary small" onClick={connectionSettings} aria-label="Settings"><Settings2 size={16}/><span>Settings</span></button>
           <button className="primary" disabled={!loaded || saving} onClick={() => beginner ? navigate("overview") : newSong()}><Plus size={17}/> {beginner ? "Create music" : "New song"}</button></div></header>
       <MobileProjectBar songs={cleanLibrary} currentId={song?.id??""} disabled={!loaded||saving||creating} select={id=>{if(navigate("songs"))openSong(id);}}/>
       <div className="content">
@@ -573,7 +575,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             save={station => commit({ ...data, station }, "Station updated")}/>
         </PanelErrorBoundary>}
         {loaded && !song && !pane && screenOf(view)==="record" && <RecordSwitch view={view} beginner={beginner} capturing={capturing} navigate={navigate}/>}
-        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary}
+        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
           mixTake={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           vocalTake={(blob, title, narration, projectId) => { if (navigate("vocal-studio")) setVocalInput({ blob, title, projectId, role: narration ? "Narration" : "Lead vocal" }); }}
           saving={saving} onCapture={active => { captureActive.current = active; setCapturing(active); }}
@@ -597,7 +599,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         {loaded && tentOpened && <PanelErrorBoundary panel="world-sounds" visible={view==="international-tent"&&!song&&!pane}><InternationalMusicTent active={view === "international-tent" && !song} send={seed => seed.sectionDirections?.length&&!beginner ? navigate("create", false, seed) : sendToCreate(seed)} copy={copy} openVocalStudio={() => navigate("vocal-studio")}/></PanelErrorBoundary>}
         <PanelErrorBoundary resetKey={pane??(song?"songs":screenOf(view))} panel={pane??(song?"songs":screenOf(view))}>
         {pane ? null : !loaded ? <div className="empty">{error ? "Your studio is temporarily unavailable." : "Opening your studio…"}</div> : song ?
-          <SongEditor key={song.id} release={<section className="panel form-panel song-release-step" data-testid="section-song-release"><h2>Export & release tools</h2><ReleaseTools initialSongId={song.id} songs={cleanLibrary} saving={saving} save={saveSong}/><h2>Artist publishing</h2><p className="muted">Nothing is published until you confirm it here.</p>{song.creationDraft?<p className="muted">Move this creation to My Songs before publishing.</p>:<ArtistConsole key={song.id} studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName} selectedRecording={song.id}/>}</section>} songs={data.songs} saveProject={saveSong} openRelated={id => { if (navigate("songs")) openSong(id); }} song={song} tab={tab} setTab={setTab} saving={saving} remix={() => remix(song)} stemsConnected={elevenLabs.connected} mixStems={archive=>{ if(navigate("multitrack")) setMixInput({blob:archive,title:song.name+" stems",projectId:projectRoot(data.songs,song).id,kind:"stems"}); }} vocalStudio={() => { if (navigate("vocal-studio")) setWorkflowSong(song.id); }} folders={folders} save={saveSong} copy={copy} back={() => navigate(song.creationDraft ? "create" : "songs", song.creationDraft)} template={editTemplate} onDirty={dirty => { hasDraft.current = dirty; }} attach={() => openUpload(song)} lyricVideo={() => { setLyricSongId(song.id); navigate("lyric-video"); }}
+          <SongEditor key={song.id} release={<section className="panel form-panel song-release-step" data-testid="section-song-release"><h2>Export & release tools</h2><ReleaseTools initialSongId={song.id} songs={cleanLibrary} saving={saving} save={saveSong}/><h2>Artist publishing</h2><p className="muted">Nothing is published until you confirm it here.</p>{song.creationDraft?<p className="muted">Move this creation to Your songs before publishing.</p>:<ArtistConsole key={song.id} studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName} selectedRecording={song.id}/>}</section>} songs={data.songs} saveProject={saveSong} openRelated={id => { if (navigate("songs")) openSong(id); }} song={song} tab={tab} setTab={setTab} saving={saving} remix={() => remix(song)} stemsConnected={elevenLabs.connected} mixStems={archive=>{ if(navigate("multitrack")) setMixInput({blob:archive,title:song.name+" stems",projectId:projectRoot(data.songs,song).id,kind:"stems"}); }} vocalStudio={() => { if (navigate("vocal-studio")) setWorkflowSong(song.id); }} folders={folders} save={saveSong} copy={copy} back={() => navigate(song.creationDraft ? "create" : "songs", song.creationDraft)} template={editTemplate} onDirty={dirty => { hasDraft.current = dirty; }} attach={() => openUpload(song)} lyricVideo={() => { setLyricSongId(song.id); navigate("lyric-video"); }}
             remove={async value => { if (await saveSong({ ...(value??song), deletedAt: new Date().toISOString() }, "Song deleted · recoverable for 14 days")) { hasDraft.current = false; navigate("songs"); } }}/>
         : view === "meditative-vibes" ? <MeditativeVibes workspaceId={workspaceId} saving={saving} projects={data.songs.filter(s => !s.deletedAt && !s.projectId && !s.example && !isExplicitSong(s))}
           dirty={active => { hasDraft.current = active; }} persistBusy={active => { pendingSave.current = active; setSaving(active); }}
@@ -642,14 +644,14 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
              simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} favoritePrompt={favoriteReusablePrompt} autoSavePrompts={data.autoSavePrompts===true} setAutoSavePrompts={enabled=>{void setPromptAutoSave(enabled);}} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
             makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
             connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
-            generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to My Songs", true))?.songId}
+            generateSong={async input => (await createRequest({ ...input, action: "song" }, "Song saved privately to Your songs", true))?.songId}
              saveMelodyReference={saveMelodyReference}
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
           <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted">Turn your music into a lyric video, animated cover or social short. Choose cosmic and sacred scenes, cinematic backgrounds and animated lyric templates in the same studio.</p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
           {!beginner && <section className="studio-shortcuts" aria-label="Studio quick actions">
             {([{ label: "Music Creation", target: "overview", icon: Sparkles, hint: "Start with an idea" },
-              { label: "My Songs", target: "songs", icon: ListMusic, hint: "Upload and organize" },
+              { label: "Your songs", target: "songs", icon: ListMusic, hint: "Upload and organize" },
               { label: "Record Studio", target: "recording", icon: Mic, hint: "Capture and tune takes" },
               { label: "Use My Voice", target: "vocal-studio", icon: Mic, hint: "Sing over your own music" },
               { label: "Playlists", target: "radio", icon: Radio, hint: "Set your rotation" },
@@ -680,7 +682,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             <GenrePicker label="Explore genres" value={tag ? [tag] : []} single allowCustom={false} extraOptions={allTags} change={next=>{setTag(next[0]??"");setQuery("");setStage("");navigate("songs");}}/>
           </Section>}
         </> : view === "songs" ? <>
-          <PageTitle icon={<ListMusic/>} title="My Songs" subtitle="Your songs, recordings and writing projects save here privately. Each creation has its own Song actions panel." action={<div className="actions">{uploadButton}<button type="button" disabled={recoveringSongs||saving} onClick={()=>void recoverUnfinishedSongs()}>{recoveringSongs?"Recovering…":"Recover unfinished songs"}</button></div>}/>
+          <PageTitle icon={<ListMusic/>} title="Your songs" subtitle="Every song you make becomes a star. Private until you choose to share." action={<div className="actions">{uploadButton}<button type="button" disabled={recoveringSongs||saving} onClick={()=>void recoverUnfinishedSongs()}>{recoveringSongs?"Recovering…":"Recover unfinished songs"}</button></div>}/>
           <div className="chips library-scope">
             <button className={`chip ${!explicitView && !archiveView ? "active" : ""}`} aria-pressed={!explicitView && !archiveView} onClick={() => { setExplicitView(false); setArchiveView(false); setTag(""); }}>Active creations</button>
             <HelpControl subject="Needs cleanup" tip="View songs flagged by the clean-content check so you can review and edit them."><button className={`chip ${explicitView && !archiveView ? "active" : ""}`} aria-pressed={explicitView && !archiveView} onClick={() => { setExplicitView(true); setArchiveView(false); setTag(""); }}>Needs review</button></HelpControl>
@@ -692,7 +694,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             <select aria-label="Filter by stage" value={stage} onChange={e => setStage(e.target.value)}><option value="">All stages</option>{stages.map(s => <option key={s}>{s}</option>)}</select></div>
           <div className="actions library-organization">
             <button className={`chip ${draftsOnly?"active":""}`} aria-pressed={draftsOnly} onClick={()=>setDraftsOnly(!draftsOnly)}>Writing &amp; unfinished</button>
-            <label>Sort<select aria-label="Sort My Songs" value={songSort} onChange={e=>setSongSort(e.target.value as SongSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="liked">Liked songs</option></select></label>
+            <label>Sort<select aria-label="Sort Your songs" value={songSort} onChange={e=>setSongSort(e.target.value as SongSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="liked">Liked songs</option></select></label>
             <select aria-label="Filter by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="">All folders</option>{folders.map(folder => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select>
             <button className="secondary small" onClick={() => setEditingFolder({ id: "", name: "" })}>New folder</button>
             {folders.some(folder => folder.id === folderFilter) && <button className="secondary small" onClick={() => setEditingFolder(folders.find(folder => folder.id === folderFilter) ?? null)}>Rename folder</button>}
@@ -705,12 +707,13 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             const folder = { id: editingFolder.id || uid(), name };
             const next = editingFolder.id ? folders.map(item => item.id === folder.id ? folder : item) : [...folders, folder];
             if (await commit({ ...data, folders: next }, "Folder saved")) setEditingFolder(null);
-          }}><HelpField label={<>Folder name</>} subject="Folder" tip="Place the song in a folder so it is easier to find in My Songs."><input required maxLength={80} value={editingFolder.name} onChange={e => setEditingFolder({ ...editingFolder, name: e.target.value })}/></HelpField>
+          }}><HelpField label={<>Folder name</>} subject="Folder" tip="Place the song in a folder so it is easier to find in Your songs."><input required maxLength={80} value={editingFolder.name} onChange={e => setEditingFolder({ ...editingFolder, name: e.target.value })}/></HelpField>
             <div className="actions"><button className="primary" disabled={saving}>Save folder</button><button className="secondary" type="button" onClick={() => setEditingFolder(null)}>Cancel</button></div>
           </form>}
           <GenrePicker label="Filter by genre" value={tag ? [tag] : []} single allowCustom={false} extraOptions={allTags} change={next=>setTag(next[0]??"")}/>
           <details className="panel form-panel artist-dashboard-fold" data-testid="fold-artist-dashboard" open={artistOpen||undefined} onToggle={e=>setArtistOpen((e.currentTarget as HTMLDetailsElement).open)}><summary>Artist Dashboard · releases and listening</summary>{artistOpen&&<ArtistConsole studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName}/>}</details>
-          <p className="count">{filtered.length} {filtered.length === 1 ? "song" : "songs"}</p>
+          <div className="song-sky-bar"><p className="count">{filtered.length} {filtered.length === 1 ? "song" : "songs"}</p><SongSkyToggle mode={libraryMode} change={setLibraryMode}/></div>
+          {libraryMode==="sky"&&<SongSky songs={filtered} allSongs={data.songs} open={id=>openSong(id)}/>}
           <div className="song-list">{filtered.map(s => <div className="song-row-steps" key={s.id}><SongRow song={s} open={() => openSong(s.id)}/><SongSteps song={s} busy={saving||creating} listening={songPreview===s.id} listen={()=>{setSongExpanded(s.id);setSongPreview(songPreview===s.id?"":s.id);}} fix={()=>songAction("sections",s)} video={()=>songAction("video",s)} release={()=>{if(canNavigate("songs"))openSong(s.id,"Release");}}/></div>)}{!filtered.length && <div className="empty">No songs match these filters.</div>}</div>
           </>}
         </> : view === "templates" ? <>
@@ -843,7 +846,7 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
   }
   const note = (field: Field, placeholder: string) => <label className="field" key={field}>{fields[field]}<textarea rows={6} placeholder={placeholder} value={draft.notes[field]} onChange={e => edit(field, e.target.value)}/></label>;
   return <div className="editor"><RecoveryPanel recovery={recovery}/>
-    <button className="text-button back" onClick={back}><ArrowLeft size={15}/> {song.creationDraft ? "Back to saved creations" : "Back to My Songs"}</button>
+    <button className="text-button back" onClick={back}><ArrowLeft size={15}/> {song.creationDraft ? "Back to saved creations" : "Back to Your songs"}</button>
     <div className="editor-top"><Artwork art={draft.art}/><div><div className="eyebrow">{song.example ? "EXAMPLE SONG" : "SAMADHI LOVE ORIGINAL"}</div><h1>{song.name}</h1><Badge stage={song.stage}/></div><div className="editor-save"><button className="secondary small" aria-pressed={draft.favorite === true} onClick={() => patch({ favorite: !draft.favorite })}>{draft.favorite ? "♥ Liked" : "♡ Like"}</button><span aria-live="polite">{saving ? "Saving…" : dirty ? "Unsaved changes" : "Saved"}</span><button className="primary" disabled={saving || !draft.name.trim()} onClick={() => persist()}><Check size={16}/> Save song</button></div></div>
     <section className="panel form-panel song-recording">
       <div className="section-head"><h2>Recording</h2><HelpControl subject="Attach or replace audio" tip="Attach an audio file to this song, or replace the file already attached."><button className="secondary small" disabled={saving} onClick={attach}><Upload size={15}/>{song.audioFormat ? "Replace audio" : "Attach audio"}</button></HelpControl></div>
@@ -871,7 +874,7 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
           <HelpField label="Stage" tip="Track whether this song is an idea, in writing or production, ready to release, or released."><select value={draft.stage} onChange={e => patch({ stage: e.target.value })}>{stages.map(s => <option key={s}>{s}</option>)}</select></HelpField>
           <HelpField label="Creative direction" tip="Write the mood, meaning, or direction you want to remember for this song."><input value={draft.summary} onChange={e => patch({ summary: e.target.value })} placeholder="What do you want this song to make someone feel?"/></HelpField>
           <HelpField label="Artwork palette" tip="Choose the color scheme of the song card inside the Studio."><select value={draft.art} onChange={e => patch({ art: Number(e.target.value) })}>{artNames.map((art, i) => <option key={art} value={i}>{art}</option>)}</select></HelpField>
-          <HelpField label="Folder" tip="Place the song in a folder so it is easier to find in My Songs."><select value={draft.folderId ?? ""} onChange={e => patch({ folderId: e.target.value || undefined })}><option value="">Unfiled</option>{folders.map(folder => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select></HelpField>
+          <HelpField label="Folder" tip="Place the song in a folder so it is easier to find in Your songs."><select value={draft.folderId ?? ""} onChange={e => patch({ folderId: e.target.value || undefined })}><option value="">Unfiled</option>{folders.map(folder => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select></HelpField>
         </div><HelpField label="Style tags, separated by commas" tip="Add style labels to make this song easier to find or use in a playlist."><input value={tagText} onChange={e => setTagText(e.target.value)} placeholder="Arabian Euro House, Spiritual Dance"/></HelpField>
           <GenrePicker label="Song genre tags" value={tagsFrom(tagText)} maxSelected={32} disabled={saving} change={next=>setTagText(next.join(", "))}/>
         </div>

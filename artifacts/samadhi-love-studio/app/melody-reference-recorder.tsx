@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Mic, Square } from "lucide-react";
 
 export const melodyReferenceLimitSeconds = 5 * 60;
 export type MelodyReferenceTake = { id: string; blob: Blob; durationSeconds: number };
@@ -110,13 +111,14 @@ export function MelodyReferenceRecorder({
   }
 
   return (
-    <section className="melody-reference" aria-label="Sing or hum your idea">
-      <h3>Sing or hum your idea · optional</h3>
+    <section className="melody-reference" aria-label="Sing or hum your idea" data-recording={recording}>
+      <span className="melody-private-tag">Private · optional</span>
+      <h3>Sing or hum your idea</h3>
       <p className="muted">Record a full melody up to 5 minutes and keep several takes. They stay private and are saved with your song as references; they are not sent to ElevenLabs.</p>
       <p className="melody-recording-timer" role="status" aria-live="polite" data-testid="melody-recording-timer">{recording ? "Recording" : takes.length ? `${takes.length} take${takes.length === 1 ? "" : "s"} ready` : "Ready"} · {formatMelodyTimer(elapsedSeconds)} / {formatMelodyTimer(melodyReferenceLimitSeconds)}</p>
       {recording
-        ? <button type="button" className="primary melody-record-button" data-testid="button-stop-melody-reference" onClick={stop}>Stop recording</button>
-        : <button type="button" className="primary melody-record-button" data-testid="button-record-melody-reference" disabled={disabled || !supported} onClick={() => void start()}>{takes.length ? "Record another take" : "Record a melody idea"}</button>}
+        ? <button type="button" className="primary melody-record-button" data-testid="button-stop-melody-reference" onClick={stop}><span className="melody-orb" aria-hidden="true"><span className="melody-ring"/><span className="melody-ring melody-ring-late"/><Square size={18}/></span><span>Stop recording</span></button>
+        : <button type="button" className="primary melody-record-button" data-testid="button-record-melody-reference" disabled={disabled || !supported} onClick={() => void start()}><span className="melody-orb" aria-hidden="true"><Mic size={20}/></span><span>{takes.length ? "Record another take" : "Record a melody idea"}</span></button>}
       {!supported && <p className="muted">Microphone recording is not available in this browser.</p>}
       {!!takes.length && <div className="melody-reference-takes" aria-label="Recorded melody takes">{takes.map((take,index)=><MelodyTakePreview key={take.id} take={take} index={index} disabled={disabled} onRemove={onRemove}/>)}</div>}
       {error && <p role="alert" className="notice">{error}</p>}

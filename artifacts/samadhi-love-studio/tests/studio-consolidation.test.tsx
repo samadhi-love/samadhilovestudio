@@ -52,17 +52,18 @@ test("canonical URLs keep the base path and round-trip", () => {
 });
 async function setup() {
   const dom = new JSDOM('<div id="root"></div>', { url: "https://studio.test" });
+  dom.window.scrollTo=()=>{};
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
   const { createRoot } = await import("react-dom/client");
   return { dom, root: createRoot(document.getElementById("root")!) };
 }
-test("Simple shows five screens; Pro adds World Sounds, Mix & Edit and Promote; Plan & Credits sits under Settings & Help", async () => {
+test("Simple shows five screens; Pro adds World Sounds, Mix & Edit and Promote; Plan & Credits stays accessible in the sidebar", async () => {
   const h = await setup(); const opened: string[] = [];
   const props = { activeView: "overview" as const, owner: false, navigate: () => true, openScreen: (s: string) => { opened.push(s); return true; }, settings: () => {}, guide: () => {} };
   await act(async () => h.root.render(<StudioNavigation {...props} beginner/>));
   for (const id of ["create", "songs", "lyric-video", "record", "explore"]) assert(document.querySelector(`[data-testid="nav-${id}"]`), id);
   for (const id of ["world-sounds", "mix-edit", "promote"]) assert.equal(document.querySelector(`[data-testid="nav-${id}"]`), null);
-  assert.equal(document.querySelector('[data-testid="nav-plan-credits"]'), null);
+  assert.ok(document.querySelector('[data-testid="nav-plan-credits"]'));
   await act(async () => (document.querySelector('[data-testid="toggle-settings-help"]') as HTMLElement).click());
   await act(async () => (document.querySelector('[data-testid="nav-plan-credits"]') as HTMLElement).click());
   assert.deepEqual(opened, ["plan-credits"]);

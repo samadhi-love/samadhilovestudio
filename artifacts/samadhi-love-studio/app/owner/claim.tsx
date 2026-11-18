@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
+import "../explore-cosmos.css";
 export function ClaimOwner({ blocked, storageAvailable }: { blocked: boolean; storageAvailable: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  return <main className="listener-shell"><section className="listener-hero">
-    <p className="eyebrow">ONE-TIME OWNER SETUP</p>
+  return <main className="listener-shell cosmic-claim" data-cosmic-screen="owner-claim"><span className="claim-orbit" aria-hidden="true"/><section className="listener-hero claim-card">
+    <p className="eyebrow">ONE-TIME OWNER SETUP · VERIFIED EMAIL ONLY</p>
     <h1>Claim your private Studio</h1>
+    <p className="claim-poem">The keys to this little universe, for one verified owner.</p>
     <p>Your verified sign-in email matches the owner email set in this project’s Secrets.
       Press Claim owner to link owner access to this signed-in account. This does not publish anything, start billing or generate music.</p>
     {blocked ? <p role="alert">This workspace has already been claimed by a different verified account. Sign in with that account. No access has been changed.</p> :

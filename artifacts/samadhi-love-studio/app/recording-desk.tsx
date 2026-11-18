@@ -6,6 +6,8 @@ import { allowMicrophone, MicrophoneInput, microphoneError, useMicrophoneInputs 
 import { HelpControl, HelpField } from "./help-tip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioLines, Download, Mic, Pause, Play, Podcast, Save, Square, Upload } from "lucide-react";
+import "./cosmic-views.css";
+import { FlowerOfLife } from "./cosmic-flower-of-life";
 import { decodeTake, maxTakeSeconds, noteNames, podcastCleanup, sampleRate, tuneVoice, wavAudio, waveform, type Scale } from "./recording-dsp";
 import { maxAudioBytes, songAudioUrl, type Song } from "./studio-data";
 
@@ -35,7 +37,12 @@ function useBlobUrl(blob: Blob | undefined) {
   return url;
 }
 
-export function RecordingDesk({ active, requestedMode, songs, saving, onCapture, save, open, mixTake, vocalTake }: {
+export function RecordingDesk({ active, requestedMode, songs, saving, onCapture, save, open, mixTake, vocalTake, consolidated = false, advanced = true, beginSavedSong }: {
+  /** When the shell already shows a Voice/Podcast switch, hide the duplicate tab row; Voice Tune moves to an Advanced foldout. */
+  consolidated?: boolean;
+  advanced?: boolean;
+  /** Opens Create prefilled from an already-saved recording. Never submits and never sends audio. */
+  beginSavedSong?: (id: string) => void;
   active: boolean;
   requestedMode: "record" | "podcast";
   mixTake: (blob: Blob, title: string, projectId?: string) => void;
@@ -337,25 +344,38 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
     if (saved) setSaved(saved);
   }
 
-  return <div hidden={!active}><RecoveryPanel recovery={recovery}/>
-    <div className="create-banner"><span className="eyebrow"><AudioLines size={16}/> AUDIO PRODUCTION</span>
-      <h1>Recording Desk</h1><p>Capture a vocal, tune a take, or mix a podcast. Preview your work before saving it to the Song Library.</p>
+  return <div hidden={!active} className="resonance-chamber" data-transport={transport}><RecoveryPanel recovery={recovery}/>
+    <div className="create-banner chamber-banner"><span className="chamber-glow" aria-hidden="true"/><span className="eyebrow"><AudioLines size={16}/> THE RESONANCE CHAMBER</span>
+      <h1>Record</h1><p>Your voice, your hum, your podcast. Every take stays private.</p>
+      <p className="cosmic-poetic chamber-poetic">Breathe. Let it come through.</p>
     </div>
     <MantraRecorder active={active} disabled={transport!=="idle"||reading||progress!==null||saving} device={microphone.device}
       onCapture={value=>{setMantraBusy(value);onCapture(value);}} save={save} open={open}/>
     <div className="create-layout recording-layout">
       <section className="panel form-panel">
-        <div className="tabs recording-tabs" aria-label="Recording mode">{tools.map(({ id, name, Icon }) =>
+        {!consolidated ? <div className="tabs recording-tabs" aria-label="Recording mode">{tools.map(({ id, name, Icon }) =>
           <button key={id} aria-pressed={mode === id} className={mode === id ? "tab-active" : ""} disabled={busy} onClick={() => {
             setMode(id); settingsChanged();
-          }}><Icon size={16}/> {name}</button>)}</div>
+          }}><Icon size={16}/> {name}</button>)}</div> :
+          (advanced||mode==="tune")&&<details className="chamber-advanced" data-testid="details-recording-advanced" open={mode === "tune" || undefined}>
+            <summary>Advanced · Voice Tune</summary>
+            <p className="muted">Correct the pitch of a recorded vocal. Your take and its original stay as they are.</p>
+            {mode === "tune"
+              ? <button type="button" className="secondary small" data-testid="button-return-voice" disabled={busy} onClick={() => { setMode(requestedMode); settingsChanged(); }}>Back to {requestedMode === "podcast" ? "Podcast" : "Voice"}</button>
+              : <button type="button" className="secondary small" data-testid="button-open-voice-tune" aria-pressed={false} disabled={busy} onClick={() => { setMode("tune"); settingsChanged(); }}><AudioLines size={15}/> Open Voice Tune</button>}
+          </details>}
         <fieldset disabled={busy}>
           <MicrophoneInput microphone={microphone}/>
           <button type="button" className="secondary small" disabled={!microphone.supported} onClick={allowInput}>Allow microphone</button>
         </fieldset>
         {inputMessage && <p className="muted" role="status">{inputMessage}</p>}
         <p className="mobile-context-note">Allow microphone access, then record a short test and listen back. Keep this page open while recording. Stop and save your take before locking the phone or switching apps; calls and backgrounding can interrupt capture.</p>
-        <div className="record-transport">
+        <div className="record-transport chamber-stage">
+          <FlowerOfLife className="chamber-flower"/>
+          <div className="chamber-orb-wrap" aria-hidden="true">
+            {transport === "recording" && <><span className="chamber-ripple"/><span className="chamber-ripple chamber-ripple-2"/><span className="chamber-ripple chamber-ripple-3"/></>}
+            <span className="chamber-orb" style={{ transform: `scale(${(1 + (transport === "recording" ? level : 0) * 0.18).toFixed(3)})` }}><Mic size={30}/></span>
+          </div>
           <div className="record-clock"><span className={transport === "recording" ? "record-live" : ""}>{transport === "recording" ? "● RECORDING" : transport === "paused" ? "● PAUSED" : "INPUT"}</span>
             <strong>{clock(elapsed)}</strong></div>
           <meter aria-label="Microphone input level" min={0} max={1} value={level}/>
@@ -367,6 +387,14 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
               </> : <p role="status">{transport === "opening" ? "Waiting for microphone access…" : "Finishing take…"}</p>}
           </div>
         </div>
+        {takes.length > 0 && <section className="chamber-takes" aria-label="Tonight's takes">
+          <h3>Tonight's takes</h3>
+          <ul>{takes.map(item => <li key={item.id} data-active={item.id === takeId}>
+            <span>{item.name}</span>
+            <button type="button" className="secondary small" disabled={busy || item.id === takeId} aria-pressed={item.id === takeId} onClick={() => chooseTake(item)}><Play size={14}/> {item.id === takeId ? "Open below" : "Listen"}</button>
+          </li>)}</ul>
+        </section>}
+        <p className="muted creation-note chamber-pro-note">Pro vocal tools — Voice Tune, podcast mix, trim and mixer handoff — open in Advanced view.</p>
         <p className="muted creation-note">Up to 8 minutes per take. The microphone opens when you press Start recording. Takes stay in this tab until you save or download them.</p>
         <HelpField label={<><Upload size={14}/> Import audio</>} subject="Import audio" tip="Bring in an existing audio file to trim, tune, or mix as a take."><input type="file" accept=".mp3,.wav,.m4a,.aac,.webm,.ogg,.flac,audio/*" disabled={busy || takes.length >= 3} onChange={event => {
           const file = event.target.files?.[0]; event.target.value = "";
@@ -458,6 +486,10 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
             {processedUrl && result && <a className="secondary" href={processedUrl} download={filename(title)}><Download size={16}/> Download WAV</a>}
           </div>
           {saved && <p role="status">Saved to Song Library. <button className="text-button" onClick={() => open(saved.id)}>Open {saved.name}</button></p>}
+          {beginSavedSong && <div className="actions chamber-begin">
+            <button type="button" className="chamber-begin-button" data-testid="button-begin-song-from-take" disabled={!saved || busy} onClick={() => { if (saved) beginSavedSong(saved.id); }}>Begin a song</button>
+            <small className="muted">{saved ? "Opens Create with this recording's details. Nothing is sent until you press Create; your audio is not uploaded to a music provider." : "Save this take first, then begin a song from it."}</small>
+          </div>}
           {!result && mode !== "record" && <p className="muted creation-note">Apply the effect to preview it and enable WAV export.</p>}
         </div>
       </section>

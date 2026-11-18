@@ -8,11 +8,11 @@ Continue the existing SAMADHI LOVE Studio rather than building a replacement.
 
 **How to apply:** Preserve the imported screens, features, assets, and data model. Make targeted hosting and compatibility changes before redesigning.
 
-Keep the Cloudflare backend for production rather than converting the app to a Node-compatible backend.
+Keep Cloudflare D1 and private R2 for production storage; this does not require Cloudflare Worker hosting.
 
-**Why:** The user explicitly chose “Keep Cloudflare backend” when asked how to resolve the production-runtime mismatch.
+**Why:** The user chose “Keep Cloudflare backend” and subsequently approved Replit Node hosting with server-only D1/R2 adapters. The storage choice was not a requirement to keep a Worker gateway.
 
-**How to apply:** Preserve D1/R2 and the Worker runtime. Preparing the connection is not permission to deploy, provision resources, migrate data, or replace encryption keys.
+**How to apply:** Preserve D1/private R2 and the currently approved hosting approach, not a PostgreSQL replacement or a newly introduced gateway. Preparing a connection is not permission to deploy, provision resources, migrate data or replace encryption keys.
 
 The goal is a unique, affordable app for young enthusiasts, especially beginners, with easy song creation and both easy and advanced visual/lyric-video tools.
 
@@ -73,3 +73,9 @@ Consolidate tools by the beginner's task. Simple and Pro should share the same s
 **Why:** The user repeated: "if anything exists in several options that makes the same function take it out" and "professionals know where they can go beginners needs to hold a solid hand".
 
 **How to apply:** Reuse existing engines when combining related tools, keep a clear next step, and preserve old entry points through compatibility routing. Merely renaming tabs or grouping unchanged duplicate pages is not sufficient.
+
+Community presentation should emphasise kind reactions without public popularity rankings or listen/like counts. The owner can still see their own statistics.
+
+**Why:** The owner explicitly requested “Only kind reactions — no rankings, no noise” and said to keep the underlying data while hiding public metrics.
+
+**How to apply:** Do not reintroduce public competitive scores as decoration or delete the underlying statistics to achieve a simpler presentation.

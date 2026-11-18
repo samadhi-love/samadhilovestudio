@@ -238,7 +238,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
       if (type === "vocals") resolveLanguage(languageChoice, currentLyrics);
       if (await send({ action: "song", ...languageChoice, ...(projectId && { projectId }), title: resultTitle, prompt, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
         duration: length, openingMode, ...(lyricsMode==="auto" && !performanceWeight(lyrics) && lyrics.trim() && {arrangement:lyrics.slice(0,2000)}), instrumental: type === "instrumental", readLyricStyles,
-        ...(type === "vocals" && sectionDirections && { sectionDirections: JSON.stringify(sectionDirections) }) }, "Song saved privately to My Songs")) goToResult();
+        ...(type === "vocals" && sectionDirections && { sectionDirections: JSON.stringify(sectionDirections) }) }, "Song saved privately to Your songs")) goToResult();
     } catch (error) {
       setError(error instanceof Error ? error.message : "The track could not render. Try a shorter length.");
     } finally { setGenerating(false); }
@@ -483,7 +483,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
     }}>
       <div className="guide-heading"><span className="eyebrow">03 / LISTEN & SAVE</span>
         <h2 id="creation-results" ref={resultHeading} tabIndex={-1}><Headphones size={23}/> Your saved creations</h2>
-        <p className="muted">Every saved creation is already in My Songs. Open Song actions to edit, remix, organize, share, or archive it.</p>
+        <p className="muted">Every saved creation is already in Your songs. Open Song actions to edit, remix, organize, share, or archive it.</p>
       </div>
       {step === 3 && formError && <p className="notice" role="alert">{formError}</p>}
       {localPreviews.map(localPreview => <article className="guide-draft guide-preview" key={localPreview.url}>
@@ -493,12 +493,12 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
           const { blob, title, prompt, settings } = localPreview;
           setError("");
           if (await saveInstrumental(new File([blob], "studio-instrumental.wav", { type: "audio/wav" }), title, prompt, settings, projectId || undefined,localPreview.saveId)) discardPreview(localPreview.url);
-        }}>Retry save to My Songs <ArrowRight size={15}/></button>
+        }}>Retry save to Your songs <ArrowRight size={15}/></button>
           <a className="secondary small" download={localPreview.title + ".wav"} href={localPreview.url}><Download size={15}/> Download WAV</a>
         </div>
         <InstrumentalExports settings={localPreview.settings} title={localPreview.title} disabled={busy}/>
       </article>)}
-      {!drafts.length && !localPreviews.length && <div className="empty"><Library size={20}/> Your saved songs and instrumentals will appear here and in My Songs.</div>}
+      {!drafts.length && !localPreviews.length && <div className="empty"><Library size={20}/> Your saved songs and instrumentals will appear here and in Your songs.</div>}
       <div className="guide-draft-grid">
         {drafts.map(song => <SongCard key={song.id} song={song} onReuse={reuse}/>)}
       </div>

@@ -3,18 +3,25 @@
 import {brand} from "../brand";
 import {GenrePicker} from "../genre-picker";
 import { useState } from "react";
-import { ArrowLeft, Bookmark, Disc3, Flag, Headphones, Heart, ListMusic, Share2, Sparkles } from "lucide-react";
+import { ArrowLeft, Bookmark, Disc3, Flag, Heart, ListMusic, Search, Share2, Sparkles, Star } from "lucide-react";
+import "../explore-cosmos.css";
 import { HelpField } from "../help-tip";
 import { communityRequest, useCommunityResource } from "./client";
-import { artistHref, communityApi, discoveryCategories, reactions, reportReasons, songHref, type CommunityData, type DiscoveryCategory, type Reaction, type Release } from "./data";
+import { artistHref, communityApi, discoveryCategories, reportReasons, songHref, type CommunityData, type DiscoveryCategory, type Reaction, type Release } from "./data";
 import { PartySpotlight } from "../party/spotlight";
 import { CommunityPlayer } from "./player";
 
 const number = (value: number) => value.toLocaleString();
 const countLabel = (count: number, single: string) => number(count) + " " + single + (count === 1 ? "" : "s");
+/** Display-only labels: request keys and API reaction IDs stay unchanged. */
+const categoryLabel: Record<DiscoveryCategory, string> = {
+  "Most Loved": "Warmly received", "Trending Songs": "Heard this week", "New Releases": "New in the sky", "Hidden Gems": "Quiet stars", "Inspirational Music": "Uplifting",
+};
+const reactionOrder: Reaction[] = ["like", "love", "inspired"];
+const reactionView: Record<Reaction, [string, typeof Heart]> = { like: ["Felt this", Sparkles], love: ["Love", Heart], inspired: ["Inspired", Star] };
 const roomText: Record<DiscoveryCategory, [string, string]> = {
-  "Most Loved": ["The songs listeners are sending the most love.", "Songs appear here as listeners send their first Loves."],
-  "Trending Songs": ["Ranked by distinct listeners over the last seven UTC days.", "The chart opens up as people listen this week."],
+  "Most Loved": ["Songs listeners have been sending love to.", "Songs appear here as listeners send their first Loves."],
+  "Trending Songs": ["Songs people have been listening to over the last seven days.", "Songs appear here as people listen this week."],
   "New Releases": ["Fresh music from across the community.", "The first releases will appear here."],
   "Hidden Gems": ["A daily rotation that gives quieter releases and newer artists more room.", "There are no releases to spotlight yet."],
   "Inspirational Music": ["Uplifting releases selected by their artists.", "There are no inspirational releases yet."],
@@ -32,19 +39,21 @@ function ReleaseCard({ release }: { release: Release }) {
       <a className="community-track" href={songHref(release.id)}>{release.title}</a>
       <a className="muted community-artist" href={artistHref(release.artist.id)}>{release.artist.name}</a>
     </div>
-    {release.instruments&&<p className="muted">{release.instruments}</p>}<div className="chips">{release.tags.slice(0,3).map(tag=><span className="chip" key={tag}>{tag}</span>)}</div><div className="community-card-meta"><span><Headphones size={14}/> {countLabel(release.stats.listens, "listen")}</span><span>👍 {number(release.stats.reactions.like)} likes</span><span><Heart size={14}/> {number(release.stats.reactions.love)}</span></div><a className="secondary small" href={songHref(release.id)}>Listen</a>
+    {release.instruments&&<p className="muted">{release.instruments}</p>}<div className="chips">{release.tags.slice(0,3).map(tag=><span className="chip" key={tag}>{tag}</span>)}</div><a className="secondary small" href={songHref(release.id)}>Listen</a>
   </article>;
 }
 
-export function Community({ songId, artistId, shareRef, signIn, signOut, studioLink }: {
+export function Community({ songId, artistId, shareRef, signIn, signOut, studioLink, initialTab }: {
   songId: string | null; artistId: string | null; shareRef?: string; signIn: string; signOut?: string; studioLink?: string;
+  /** Optional presentation-only starting section (used by Explore's Following tab). */
+  initialTab?: "discover" | "following";
 }) {
   const [genre,setGenre]=useState("");
   const [catalogPage, setCatalogPage] = useState(1), [search, setSearch] = useState(""), [searchDraft, setSearchDraft] = useState("");
   const endpoint = communityApi + (songId ? "?song=" + encodeURIComponent(songId) : artistId ? "?artist=" + encodeURIComponent(artistId) : "?page=" + catalogPage + "&search=" + encodeURIComponent(search)+"&genre="+encodeURIComponent(genre));
   const resource = useCommunityResource<CommunityData>(endpoint);
   const { data, error, notice, refresh, update, busy } = resource;
-  const [tab, setTab] = useState<"Discover" | "Saved & playlists" | "Following">("Discover");
+  const [tab, setTab] = useState<"Discover" | "Saved & playlists" | "Following">(initialTab === "following" ? "Following" : "Discover");
   const [category, setCategory] = useState<DiscoveryCategory>("New Releases");
   const [playlist, setPlaylist] = useState("");
   const [playlistName, setPlaylistName] = useState("");
@@ -72,8 +81,9 @@ export function Community({ songId, artistId, shareRef, signIn, signOut, studioL
     </header>
     {songId || artistId ? <a className="text-button community-back" href="/community"><ArrowLeft size={15}/> Back to discovery</a> :
       <section className="listener-hero community-hero">
-        <span className="eyebrow"><Sparkles size={15}/> POSITIVE MUSIC COMMUNITY</span>
-        <h1>Discover your next favorite sound.</h1>
+        <span className="eyebrow"><Sparkles size={15}/> THE GALAXY MAP</span>
+        <h1>Explore</h1>
+        <p className="galaxy-poem">Music shared by the community. Only kind reactions — no rankings, no noise.</p>
         <p>Listen to published songs from our creators—no account needed. Create your own music and lyric videos in My Studio.</p><p className="muted">Publishing is always your choice. Private projects and unlisted links stay out of this public feed.</p>
       </section>}
     {error && <p role="alert" className="notice">{error} <button className="text-button" type="button" onClick={() => void refresh()}>Refresh</button></p>}
@@ -84,7 +94,7 @@ export function Community({ songId, artistId, shareRef, signIn, signOut, studioL
       artistId ? data.artist ? <>
         <section className="section community-profile"><CommunityArt/><div><p className="eyebrow">ARTIST PROFILE</p><h1>{data.artist.name}</h1>
           {data.artist.bio && <p>{data.artist.bio}</p>}
-          <p className="muted">{countLabel(data.artist.listens, "listen")} · {countLabel(data.artist.followers, "follower")} · {number(data.artist.releases.reduce((sum, release) => sum + release.stats.reactions.like, 0))} likes</p>
+          <p className="muted">{countLabel(data.artist.releases.length, "published song")}</p>
           {!ownArtist(artistId) && (data.canEngage ? <button type="button" className="primary small" aria-pressed={data.following.includes(artistId)} disabled={busy} onClick={() => void follow(artistId)}>{data.following.includes(artistId) ? "Following · Unfollow" : "Follow Artist"}</button> :
             <a className="primary small" href={signIn} target="_top">Sign in to follow</a>)}</div></section>
         <section className="community-section"><h2>Releases</h2><div className="community-grid">{data.artist.releases.map(release => <ReleaseCard key={release.id} release={release}/>)}</div></section>
@@ -95,12 +105,12 @@ export function Community({ songId, artistId, shareRef, signIn, signOut, studioL
         {tab === "Discover" ? <section className="community-section" aria-labelledby="discovery-heading">
           <GenrePicker label="Browse by genre or style" value={genre?[genre]:[]} single allowCustom={false} change={next=>{setGenre(next[0]??"");setCatalogPage(1);}}/>
           {(genre||search)&&<button type="button" className="text-button" onClick={()=>{setGenre("");setSearch("");setSearchDraft("");setCatalogPage(1);}}>Clear filters · all published songs</button>}
-          {!genre&&!search&&<><div className="chips community-categories" aria-label="Discovery categories">{discoveryCategories.map(item => <button type="button" className={`chip ${category === item ? "active" : ""}`} aria-pressed={category === item} key={item} onClick={() => setCategory(item)}>{item}</button>)}</div>
-          <div><h2 id="discovery-heading">{category}</h2><p className="muted">{roomText[category][0]}</p></div>
+          {!genre&&!search&&<><div className="chips community-categories" aria-label="Discovery categories">{discoveryCategories.map(item => <button type="button" className={`chip ${category === item ? "active" : ""}`} aria-pressed={category === item} key={item} onClick={() => setCategory(item)}>{categoryLabel[item]}</button>)}</div>
+          <div><h2 id="discovery-heading">{categoryLabel[category]}</h2><p className="muted">{roomText[category][0]}</p></div>
           {discovery.length ? <div className="community-grid">{discovery.map(release => <ReleaseCard key={release.id} release={release}/>)}</div> : <p className="empty">{roomText[category][1]}</p>}
-          {!!data.artists?.length && <section className="community-section"><h2>Published artists</h2><p className="muted">Each artist’s public page gathers their published songs. Private recordings stay in their own Studio.</p><div className="community-grid">{data.artists.map(artist => <article className="community-card section" key={artist.id}><CommunityArt art={artist.art} cover={artist.coverRelease?"/api/community?cover="+encodeURIComponent(artist.coverRelease):undefined}/><div><a className="community-track" href={artistHref(artist.id)}>{artist.name}</a><p className="muted">{countLabel(artist.songs, "published song")} · {countLabel(artist.listens, "play")} · {countLabel(artist.likes, "like")} · {countLabel(artist.followers??0,"follower")}</p>{!ownArtist(artist.id)&&(data.canEngage?<button type="button" className="secondary small" disabled={busy} aria-pressed={data.following.includes(artist.id)} onClick={()=>void follow(artist.id)}>{data.following.includes(artist.id)?"Following · Unfollow":"Follow artist"}</button>:<a className="secondary small" href={signIn} target="_top">Sign in to follow</a>)}</div></article>)}</div></section>}
+          {!!data.artists?.length && <section className="community-section"><h2>Published artists</h2><p className="muted">Each artist’s public page gathers their published songs. Private recordings stay in their own Studio.</p><div className="community-grid">{data.artists.map(artist => <article className="community-card section" key={artist.id}><CommunityArt art={artist.art} cover={artist.coverRelease?"/api/community?cover="+encodeURIComponent(artist.coverRelease):undefined}/><div><a className="community-track" href={artistHref(artist.id)}>{artist.name}</a><p className="muted">{countLabel(artist.songs, "published song")}</p>{!ownArtist(artist.id)&&(data.canEngage?<button type="button" className="secondary small" disabled={busy} aria-pressed={data.following.includes(artist.id)} onClick={()=>void follow(artist.id)}>{data.following.includes(artist.id)?"Following · Unfollow":"Follow artist"}</button>:<a className="secondary small" href={signIn} target="_top">Sign in to follow</a>)}</div></article>)}</div></section>}
           </>}
-          {data.catalog && <section className="community-section"><h2>{genre?genre+" · published songs":"All published songs"}</h2><form className="music-inline" onSubmit={event => { event.preventDefault(); setCatalogPage(1); setSearch(searchDraft.trim()); }}><label>Artist, song, genre or instrument<input placeholder="Try oud, jazz, Dabke or an artist name…" value={searchDraft} maxLength={80} onChange={event => setSearchDraft(event.target.value)}/></label><button type="submit" className="secondary small">Search</button></form><p className="muted">{countLabel(data.catalog.total, "release")}</p><div className="community-grid">{data.catalog.releases.map(release => <ReleaseCard key={release.id} release={release}/>)}</div><div className="actions"><button type="button" className="secondary small" disabled={data.catalog.page <= 1} onClick={() => setCatalogPage(Math.max(1, data.catalog!.page - 1))}>Previous</button><span>Page {data.catalog.page} of {data.catalog.pages}</span><button type="button" className="secondary small" disabled={data.catalog.page >= data.catalog.pages} onClick={() => setCatalogPage(data.catalog!.page + 1)}>Next</button></div></section>}
+          {data.catalog && <section className="community-section"><h2>{genre?genre+" · published songs":"All published songs"}</h2><form className="music-inline" onSubmit={event => { event.preventDefault(); setCatalogPage(1); setSearch(searchDraft.trim()); }}><label className="galaxy-search"><span className="sr-only">Search artists, songs, styles</span><Search size={16} aria-hidden="true"/><input type="search" aria-label="Search artists, songs, styles" placeholder="Search artists, songs, styles" value={searchDraft} maxLength={80} onChange={event => setSearchDraft(event.target.value)}/></label><button type="submit" className="secondary small">Search</button></form><div className="community-grid">{data.catalog.releases.map(release => <ReleaseCard key={release.id} release={release}/>)}</div><div className="actions"><button type="button" className="secondary small" disabled={data.catalog.page <= 1} onClick={() => setCatalogPage(Math.max(1, data.catalog!.page - 1))}>Previous</button><span>Page {data.catalog.page} of {data.catalog.pages}</span><button type="button" className="secondary small" disabled={data.catalog.page >= data.catalog.pages} onClick={() => setCatalogPage(data.catalog!.page + 1)}>Next</button></div></section>}
           {category === "Hidden Gems" && <p className="muted">Discovery limits each artist to two spots per category and rotates lesser-heard songs daily.</p>}
         </section> : !data.canEngage ? <p className="empty"><a href={signIn} target="_top">Sign in</a> to save music, build playlists, and follow artists.</p> :
           tab === "Saved & playlists" ? <section className="community-section">
@@ -164,13 +174,13 @@ function ReleaseDetail({ release, data, resource, shareRef, signIn }: {
         <p className="eyebrow">{release.inspirational ? "INSPIRATIONAL RELEASE" : "COMMUNITY RELEASE"}</p>
         <h1>{release.title}</h1>
         <a className="community-artist" href={artistHref(release.artist.id)}>{release.artist.name}</a>
-        <p className="muted">{countLabel(release.stats.listens, "listen")} · {new Date(release.releasedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</p>
+        <p className="muted">{new Date(release.releasedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</p>
         {!!release.tags.length && <div className="chips">{[...new Set(release.tags)].map(tag => <span className="chip" key={tag}>{tag}</span>)}</div>}
         <CommunityPlayer key={release.id} song={release} countable={!own} shareRef={shareRef} refresh={refresh}/>
         <div className="community-reactions actions" aria-label="Song appreciation">
-          {(Object.keys(reactions) as Reaction[]).map(item => <button className="chip" type="button" key={item}
+          {reactionOrder.map(item => <button className="chip" type="button" key={item}
             aria-pressed={reaction === item} disabled={!data.canEngage || own || busy} onClick={() => void update({ action: "reaction", id: release.id, value: reaction === item ? null : item })}>
-            {reactions[item]} <strong>{number(release.stats.reactions[item])}</strong>
+            {(() => { const [label, Icon] = reactionView[item]; return <><Icon size={14} aria-hidden="true"/> {label}</>; })()}
           </button>)}
         </div>
         <div className="actions community-track-actions">
@@ -182,7 +192,7 @@ function ReleaseDetail({ release, data, resource, shareRef, signIn }: {
         {!data.canEngage && <p className="muted"><a href={signIn} target="_top">Sign in</a> to react, follow, and save songs.</p>}
       </div>
     </section>
-    {share && <section className="section community-section"><h2>Share this release</h2><p className="muted">Share totals count distinct accounts or browser listeners who play from your link long enough to qualify.</p>
+    {share && <section className="section community-section"><h2>Share this release</h2><p className="muted">Send this link to anyone you think would feel it.</p>
       <HelpField label="Song link" tip="Copy this link to share this release with anyone."><input readOnly value={share} onFocus={event => event.target.select()}/></HelpField>
       <div className="actions">
         <button type="button" className="secondary small" onClick={async () => {

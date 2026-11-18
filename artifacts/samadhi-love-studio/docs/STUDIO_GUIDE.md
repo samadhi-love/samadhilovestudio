@@ -1,5 +1,56 @@
 # Versual Studio — current guide
 
+## Cosmic Studio — current screen names
+
+The existing tools now share the landing page's cosmic theme. Desktop and
+phone navigation has **Create, Your songs, Video, Record and Explore**.
+Settings, Plan & credits, Studio Guide and the Simple/Advanced switch remain
+available; Advanced reveals World Sounds, Mix & Edit and Promote. Existing
+links, saved work, validations, account access and creation engines are unchanged.
+
+- **Create / The Nebula Forge:** the existing Simple/Custom form, local
+  description helper, style/section chips, recipe picker and private hum
+  recorder. The two-version option still warns about double provider use.
+- **Your songs / Your Song Sky:** Sky adds an accessible map of the actual
+  filtered songs above the existing list. List hides the map. A line joins
+  actual versions of the same project; it is not a popularity ranking.
+  The existing song actions, recovery, filters and releases are still here.
+- **Video / The Observatory:** existing favourite looks, Phone / YouTube
+  shapes, caption editor, real preview, rendering, private saves and downloads.
+  “Realign a part manually” opens the existing timing editor. Automatic sync
+  remains whole-song; it was not replaced with a new section-sync engine.
+- **Record / The Resonance Chamber:** real input level, timer and take list.
+  After saving a take, Begin a song opens Create using the existing prefill
+  action; it does not submit or send microphone audio to ElevenLabs.
+  Voice Tune lives in the Advanced foldout. General takes retain their
+  existing eight-minute cap; hum references retain their five-minute cap.
+- **Explore / The Galaxy Map:** Discover, Radio, Party Mix and Following;
+  Listening Room is a secondary entry. Public reactions are kind and public
+  popularity metrics are hidden. Owners retain their Artist dashboard stats.
+- **The Portal:** the existing Clerk sign-in and sign-up methods in the new
+  theme. Continue and verification buttons keep their accurate default labels.
+  Claim owner remains a verified-email-only, explicit action.
+
+All decorative motion honours reduced-motion preferences. Hum recordings are
+still private references attached to songs, not melody-conditioned provider
+inputs or a new standalone hum library.
+
+For provider-owned app name/icon, open Replit's **Users & Auth → Configure →
+App info** and check the appropriate Development/Production environment.
+Verification-email sender branding was not changed: managed dashboard access
+currently requires an active personal Replit Pro subscription.
+
+Verification passed: **33/33 commands**, including **47/47 Studio groups**,
+all 29 standalone offline test commands, dependency-lock/API security checks,
+and whole-workspace typecheck/build. The new cosmic screen suite passed
+**15/15** tests and the provider/auth group passed **64/64**. Static desktop
+sign-in and 390px phone sign-up previews were inspected; phone form clipping
+was fixed. Signed-in browser journeys, paid generation and native downloaded
+video playback were deliberately not run. Refresh the preview before reviewing.
+The full results and remaining branding/setup limits are at the top of `replit.md`.
+No publishing, paid calls, billing/domain changes or saved-data changes were
+part of this redesign.
+
 ## Public home and product identity
 
 **Your song. Your world. Your video.**

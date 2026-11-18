@@ -301,14 +301,14 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
     } finally { if(timer)clearInterval(timer);pending.current = null; setProgress(null); }
   }
 
-  return <>
-    <RecoveryPanel recovery={recovery}/><div className="create-banner"><span className="eyebrow"><Film size={16}/> VISUAL PRODUCTION</span>
-      <h1>Lyric Videos</h1><p>Give every line its moment. Sync your lyrics to the recording, choose an animated background, and export the finished video.</p><HelpControl subject="Upload song for video" tip="Add an audio file to the library and open it in the lyric video editor."><button className="secondary" onClick={upload} disabled={busy}>Upload song for video</button></HelpControl></div>
+  return <section data-observatory="simple">
+    <RecoveryPanel recovery={recovery}/><div className="create-banner obs-banner"><span className="eyebrow"><Film size={16}/> THE OBSERVATORY</span>
+      <h1>Make your video</h1><p>Pick a vibe. Your lyrics light up in time with your voice.</p><HelpControl subject="Upload song for video" tip="Add an audio file to the library and open it in the lyric video editor."><button className="secondary" onClick={upload} disabled={busy}>Upload song for video</button></HelpControl></div>
     {!song ? <div className="panel form-panel"><h2>Find your visual voice</h2><p>Try all 14 caption templates below. Upload a recording to apply one to your lyrics and export a finished video.</p>
       <CaptionTemplateDemo project={project}/><CaptionTemplatePicker value={captionTemplate} choose={chooseCaptionTemplate} disabled={busy}/></div> :
     <div className="create-layout lyric-layout">
       <section className="panel form-panel">
-        <HelpField label="Recording" tip="Choose a clean audio track from My Songs. Studio uses it for preview and caption timing."><select value={song.id} disabled={busy} onChange={event => setSongId(event.target.value)}>
+        <HelpField label="Recording" tip="Choose a clean audio track from Your songs. Studio uses it for preview and caption timing."><select value={song.id} disabled={busy} onChange={event => setSongId(event.target.value)}>
           {tracks.map(track => <option key={track.id} value={track.id}>{track.name}</option>)}</select></HelpField>
         <div className="lyric-preview">
           <canvas ref={canvas} width={size.width} height={size.height} aria-label="Animated lyric-video preview"/>
@@ -475,5 +475,5 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
         </div>}
       </section>
     </div>}
-  </>;
+  </section>;
 }

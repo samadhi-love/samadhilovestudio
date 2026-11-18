@@ -81,6 +81,14 @@ test("preview derives a real hostname without a port; missing/unsafe hosts fail 
     assert.throws(()=>resolve(new Headers({host})),/hostname is unavailable/);
 });
 for(const kind of ["test","live"]){
+  test(`${kind} key: auth cards fit narrow screens without fixed-width children`,()=>{
+    const provider=variants[kind].StudioAuthProvider({serverHostname:"studio.example.test",children:null});
+    for(const key of ["cardBox","card"]){
+      assert.equal(provider.props.appearance.elements[key].width,"100%");
+      assert.equal(provider.props.appearance.elements[key].maxWidth,"100%");
+      assert.equal(provider.props.appearance.elements[key].minWidth,0);
+    }
+  });
   test(`${kind} key: provider renders without window and preserves proxy and routes`,()=>offline(()=>{
     const element=variants[kind].StudioAuthProvider({serverHostname:"studio.example.test",children:React.createElement("p",null,"Public content")});
     assert.equal(element.props.publishableKey,publishableKeyFromHost("studio.example.test",keys[kind]));

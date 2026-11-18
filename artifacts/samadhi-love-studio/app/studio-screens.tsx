@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Film, Headphones, Megaphone, Mic, Scissors, Send, Sparkles, Video } from "lucide-react";
+import { Film, Headphones, Lock, Megaphone, Mic, Scissors, Send, Sparkles, Video } from "lucide-react";
 import type { QuickSeed } from "./quick-create";
 import type { SectionView } from "./studio-routes";
 import { BrandLogoDesigner } from "./brand-logo-designer";
@@ -15,6 +15,7 @@ import { MemberDashboard } from "./members/member-dashboard";
 import { PlanCards } from "./plans/plan-cards";
 import { CreditPanel } from "./credits/credit-panel";
 import type { Song } from "./studio-data";
+import "./explore-cosmos.css";
 
 export type ExploreTab = "radio" | "discover" | "party" | "listening-room";
 export type PlanTab = "membership" | "plans" | "credits";
@@ -25,11 +26,24 @@ function Tabs<T extends string>({ label, value, change, items }: { label: string
   </div>;
 }
 
-/** Explore: the real Discover/Community, Radio, Party Mix and Subscriber Listening Room components. */
+/** Explore: the real Discover/Community, Radio, Party Mix and Subscriber Listening Room components.
+ * "Following" is a presentation-only view of Discover (route tab stays "discover"); the Listening Room
+ * keeps its existing route tab and is reachable from the secondary tool link. */
 export function ExploreScreen({ tab, setTab, signOut, owner }: { tab: ExploreTab; setTab: (t: ExploreTab) => void; signOut: string; owner: boolean }) {
-  return <section className="explore-screen" data-testid="screen-explore">
-    <Tabs label="Explore" value={tab} change={setTab} items={[["radio", "Radio"], ["party", "Party Mix"], ["discover", "Discover"], ["listening-room", "Listening Room"]]}/>
-    {tab === "discover" && <div className="explore-embed"><Community songId={null} artistId={null} signIn="/login" signOut={signOut}/></div>}
+  const [following, setFollowing] = useState(false);
+  const view = tab === "discover" && following ? "following" : tab;
+  const pick = (next: ExploreTab | "following") => { if (next === "following") { setFollowing(true); setTab("discover"); } else { setFollowing(false); setTab(next); } };
+  return <section className="explore-screen galaxy-map" data-testid="screen-explore" data-cosmic-screen="explore">
+    <header className="galaxy-head">
+      <p className="eyebrow">THE GALAXY MAP</p>
+      <h1>Explore</h1>
+      <p className="galaxy-poem">Music shared by the community. Only kind reactions — no rankings, no noise.</p>
+    </header>
+    <div className="galaxy-tabbar">
+      <Tabs<ExploreTab | "following"> label="Explore" value={view} change={pick} items={[["discover", "Discover"], ["radio", "Radio"], ["party", "Party Mix"], ["following", "Following"]]}/>
+      <button type="button" className="galaxy-tool" data-testid="tab-listening-room" aria-pressed={tab === "listening-room"} onClick={() => pick("listening-room")}><Lock size={14}/> Listening Room</button>
+    </div>
+    {tab === "discover" && <div className="explore-embed"><Community key={view} initialTab={following ? "following" : "discover"} songId={null} artistId={null} signIn="/login" signOut={signOut}/></div>}
     {tab === "party" && <div className="explore-embed"><PartyMix/></div>}
     {tab === "listening-room" && <div className="explore-embed"><SubscriberRoom signOut={signOut} ownerPreview={owner}/></div>}
   </section>;

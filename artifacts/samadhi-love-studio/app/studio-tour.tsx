@@ -8,7 +8,7 @@ const tourSteps = [
   },
   {
     title: "Listen and keep your favourite",
-    text: "Make one version, or choose two for two separate music requests and twice the provider usage. Both versions stay together in My Songs; listen and favorite the one you prefer.",
+    text: "Make one version, or choose two for two separate music requests and twice the provider usage. Both versions stay together in Your songs; listen and favorite the one you prefer.",
   },
   {
     title: "Make a video",

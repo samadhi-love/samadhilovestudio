@@ -6,6 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "test:cosmic-studio": "node --test tests/cosmic-studio.test.mjs",
     "test:landing": "node --test tests/versual-landing.test.mjs",
     "test:consolidation": "node scripts/test-studio-consolidation.mjs",
     "test:mantra": "node scripts/test-mantra.mjs",

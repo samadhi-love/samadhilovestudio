@@ -39,7 +39,7 @@ test("catalog combines layers, saves and reopens private recipes, and offers rec
     const duration=[...document.querySelectorAll("select")].find(s=>s.options[0]?.textContent==="5 seconds")!;
     await act(async()=>{duration.value="5";duration.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});
     const wait=async(done:()=>boolean)=>{for(let i=0;i<300&&!done();i++)await act(async()=>{await new Promise(r=>setTimeout(r,5));});assert.ok(done(),"render completed");};
-    await act(async()=>button("Save audio to My Songs").click());await wait(()=>!!audioFile);
+    await act(async()=>button("Save audio to Your songs").click());await wait(()=>!!audioFile);
     assert.equal(audioFile!.type,"audio/wav");assert.equal(audioFile!.size,44+44100*5*4);
     await act(async()=>button("Send to Audio + Visual Studio").click());await wait(()=>!!mixBlob);assert.equal(mixBlob!.size,audioFile!.size);
     await act(async()=>button("Prepare preview (up to 10s)").click());await wait(()=>!!document.querySelector("audio"));

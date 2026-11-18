@@ -2,7 +2,7 @@
 name: Step 2 feature freeze
 description: Restrict work to the foundation fixes until the owner approves completion.
 ---
-Finish Step 2 (secrets, per-song saving with verified copy, shared backend helpers, durable jobs) before any new features or UI changes. Keep Stage 3 intact. Flag feature requests to the user rather than implementing them until the user approves Step 2.
+Keep the foundation feature freeze outside the owner's explicitly approved work. Preserve existing Stage 3 features. Flag unrelated feature requests rather than treating an approved follow-up as permission for a new phase.
 
 After the approved fresh-start Step 2 completion, the owner approved Step 3
 self-healing Part A only (safe retries, health/recovery, error boundaries,
@@ -21,6 +21,12 @@ The owner later approved a narrow exception for the public landing-page rebuild
 and product rebrand. This does not authorize unrelated features, stored-data
 changes, route changes, publishing, domain changes or billing.
 
+The owner also explicitly approved the inside-the-studio cosmic redesign:
+presentation and labels only, preserving the existing functions, routes,
+saved data, validation and creation engines. The song sky is a view of the
+existing library, not a new store. This does not lift the freeze on other
+features, and verification stays offline unless separately approved.
+
 **Why:** The user explicitly made Step 2 the top priority after feature work proceeded while foundation work was unfinished.
 
-**How to apply:** Work in small sub-steps with existing tests after each; stop after 2D and report exact results and unfinished work. Do not publish, change domains, enable billing, or delete user data or files. Preserve the old studios bundle and R2 checkpoints unchanged during the migration.
+**How to apply:** Complete only the specifically approved scope, then report exact results and unfinished work. Do not publish, change domains, enable billing, make paid provider calls or delete user data or files without explicit approval. Preserve the old studios bundle and R2 checkpoints.

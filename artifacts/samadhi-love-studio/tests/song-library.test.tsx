@@ -39,23 +39,23 @@ test("each song has working actions, personal likes, and 14-day deletion without
  try{await act(async()=>h.root.render(<Harness/>));assert.equal(document.querySelectorAll('button[aria-controls]').length,2);assert.equal(document.querySelectorAll("button button").length,0);
  await act(async()=>(document.querySelector('button[aria-label="Like Sacred song"]') as HTMLButtonElement).click());assert.equal(songs[0].favorite,true);
  await act(async()=>h.button("Song actions").click());assert(h.button("Generate new version"));await act(async()=>h.button("Edit details").click());assert.equal(edited,"one");assert.equal(published,0);
- await act(async()=>h.button("Delete song").click());assert(songs[0].deletedAt);assert.equal(songs[0].audioId,"source");assert.equal(published,0);assert(h.button("Restore to My Songs"));
- await act(async()=>h.button("Restore to My Songs").click());assert.equal(songs[0].deletedAt,undefined);assert.equal(songs[0].audioId,"source");assert.equal(published,0);
+ await act(async()=>h.button("Delete song").click());assert(songs[0].deletedAt);assert.equal(songs[0].audioId,"source");assert.equal(published,0);assert(h.button("Restore to Your songs"));
+ await act(async()=>h.button("Restore to Your songs").click());assert.equal(songs[0].deletedAt,undefined);assert.equal(songs[0].audioId,"source");assert.equal(published,0);
  await act(async()=>h.button("Publish / manage visibility").click());assert.equal(published,1);assert(!/Trash|Dislike|Archive creation/.test(document.body.textContent!));
  }finally{await h.close();}
 });
 test("Quick Create auto-saves local audio and retries a failed save with the same creation reference",async()=>{
  const h=await setup();const ids:(string|undefined)[]=[];let attempts=0;
  try{await act(async()=>h.root.render(<QuickCreate connected={false} saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async(_file,_title,_prompt,_code,_take,id)=>{ids.push(id);return ++attempts===1?undefined:"saved";}}/>));
- await act(async()=>h.button("Custom").click());await act(async()=>h.button("Built-in sketch · no singing, no credits").click());await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!,"A 3-second instrumental");await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to My Songs"));assert(document.querySelector('a[download]'));
- await act(async()=>h.button("Retry save to My Songs").click());assert.equal(attempts,2);assert.equal(ids[0],ids[1]);assert(ids[0]);assert(!h.button("Retry save to My Songs"));
+ await act(async()=>h.button("Custom").click());await act(async()=>h.button("Built-in sketch · no singing, no credits").click());await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!,"A 3-second instrumental");await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to Your songs"));assert(document.querySelector('a[download]'));
+ await act(async()=>h.button("Retry save to Your songs").click());assert.equal(attempts,2);assert.equal(ids[0],ids[1]);assert(ids[0]);assert(!h.button("Retry save to Your songs"));
  }finally{await h.close();}
 });
 test("Guided instrumental creation saves automatically and preserves a failed original for retry",async()=>{
  const h=await setup();const ids:(string|undefined)[]=[];let attempts=0;
  try{await act(async()=>h.root.render(<CreateStudio seed={{idea:"A 3-second instrumental",instrumental:true}} voiceDesignAllowed={false} elevenLabs={{connected:false,defaultProvider:false,busy:false} as ElevenLabsKey} connectionSettings={()=>{}} drafts={[]} voices={[]} saving={false} operationError="" startAtDrafts={false} firstSongRequest={false} finishFirstSongRequest={()=>{}} openVocalStudio={()=>{}} send={async()=>false} saveDraft={async()=>true} saveInstrumental={async(_file,_title,_prompt,_settings,_project,id)=>{ids.push(id);return ++attempts>1;}} move={async()=>true} open={()=>{}} remix={()=>{}}/>));
- await act(async()=>[...document.querySelectorAll("button")].find(b=>b.querySelector("strong")?.textContent==="Beginner")!.click());await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to My Songs"));
- await act(async()=>h.button("Retry save to My Songs").click());assert.equal(attempts,2);assert.equal(ids[0],ids[1]);assert(ids[0]);assert(!h.button("Retry save to My Songs"));
+ await act(async()=>[...document.querySelectorAll("button")].find(b=>b.querySelector("strong")?.textContent==="Beginner")!.click());await h.submit();assert.equal(attempts,1);assert(h.button("Retry save to Your songs"));
+ await act(async()=>h.button("Retry save to Your songs").click());assert.equal(attempts,2);assert.equal(ids[0],ids[1]);assert(ids[0]);assert(!h.button("Retry save to Your songs"));
  }finally{await h.close();}
 });
 test("release sharing requires verified publication and shares a release URL, never a private media endpoint",async()=>{
@@ -84,5 +84,5 @@ test("private song sharing requires a deliberate grant and offers revocation plu
 test("Recently deleted shows the 14-day policy and disables restore after its server deadline",async()=>{
  const h=await setup(),song={...freshSong('expired','Expired song',0),deletedAt:'2000-01-01T00:00:00Z',deleteAfter:'2000-01-15T00:00:00Z'};let saves=0;
  const hub:SongHub={busy:false,folders:[],stemsConnected:false,expanded:song.id,setExpanded(){},preview:'',setPreview(){},save:async()=>{saves++;return true;},action(){},archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
- try{await act(async()=>h.root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));assert(document.body.textContent!.includes('14 days'));assert(document.body.textContent!.includes('Recovery ended'));assert(h.button('Restore to My Songs').disabled);await act(async()=>h.button('Restore to My Songs').click());assert.equal(saves,0);assert(!document.body.textContent!.includes('Archive creation'));}finally{await h.close();}
+ try{await act(async()=>h.root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));assert(document.body.textContent!.includes('14 days'));assert(document.body.textContent!.includes('Recovery ended'));assert(h.button('Restore to Your songs').disabled);await act(async()=>h.button('Restore to Your songs').click());assert.equal(saves,0);assert(!document.body.textContent!.includes('Archive creation'));}finally{await h.close();}
 });

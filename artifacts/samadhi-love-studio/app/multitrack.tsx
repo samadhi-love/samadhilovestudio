@@ -212,10 +212,10 @@ export function Multitrack({ active, songs, input, initialSongId, saving, save, 
             <HelpControl key={key} subject={label} tip={tip}><label className="checkline"><input type="checkbox" checked={track[key]} onChange={event => patch(track.id, { [key]: event.target.checked })}/>{label}</label></HelpControl>)}</div>
         </section>)}
         <HelpField label="Project for this mix" tip="Keep this render with its original lyrics, mixes, videos, and release plan."><select value={projectId} onChange={event => setProjectId(event.target.value)}><option value="">New standalone project</option>{songs.map(song => <option key={song.id} value={song.id}>{song.name}</option>)}</select></HelpField>
-        <HelpField label="Mix title" tip="Names the exported WAV and the recording if you save it to My Songs."><input value={title} maxLength={100} onChange={event => setTitle(event.target.value)}/></HelpField>
+        <HelpField label="Mix title" tip="Names the exported WAV and the recording if you save it to Your songs."><input value={title} maxLength={100} onChange={event => setTitle(event.target.value)}/></HelpField>
         <div className="actions"><HelpControl subject="Render mix" tip="Combine the active tracks and their settings into one stereo preview and WAV download."><button className="primary" disabled={!tracks.length} onClick={() => run(async () => { const blob = await renderMix(tracks); setOutput({ blob, url: URL.createObjectURL(blob) }); })}>Render mix</button></HelpControl>
           {output && <><a className="secondary" href={output.url} download={filename}>Download stereo WAV</a>
-            <HelpControl subject="Save mix to My Songs" tip="Add the rendered mix to your library as a new recording."><button className="secondary" disabled={!title.trim()} onClick={() => save(new File([output.blob], filename, { type: "audio/wav" }), title.trim(), projectId || undefined)}>Save mix to My Songs</button></HelpControl></>}</div>
+            <HelpControl subject="Save mix to Your songs" tip="Add the rendered mix to your library as a new recording."><button className="secondary" disabled={!title.trim()} onClick={() => save(new File([output.blob], filename, { type: "audio/wav" }), title.trim(), projectId || undefined)}>Save mix to Your songs</button></HelpControl></>}</div>
       </fieldset>
       {busy && <p role="status">Processing audio…</p>}
       {error && <p className="notice" role="alert">{error}</p>}

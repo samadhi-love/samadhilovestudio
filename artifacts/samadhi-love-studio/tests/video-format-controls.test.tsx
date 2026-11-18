@@ -20,10 +20,10 @@ test("the two primary video shapes preserve source, caption timing, excerpt and 
  function Screen(){const[p,setP]=useState(original);return<VideoFormatPicker value={p.format} change={format=>{latest=applyVideoShape(p,format);setP(latest);}}/>;}
  try{await act(async()=>h.root.render(<Screen/>));assert.equal(document.querySelectorAll('.video-shape-options button').length,2);assert(document.body.textContent!.includes('1920 × 1080'));assert(document.body.textContent!.includes('1080 × 1920'));
    const more=document.querySelector<HTMLDetailsElement>('details')!;assert(more.querySelector('summary')!.textContent!.includes("More looks"));assert.equal(more.open,false);assert(more.querySelector('button')!.textContent!.includes("Square"));
-   await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('.video-shape-options button')].find(b=>b.querySelector('strong')!.textContent==='Phone video')!.click());
+   await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('.video-shape-options button')].find(b=>b.querySelector('strong')!.textContent==='Phone · Reels & Shorts')!.click());
   assert.equal(latest.format,"vertical");assert.deepEqual(latest.pro!.range,original.pro!.range);assert.deepEqual(latest.cues,original.cues);assert.equal(latest.pro!.sourceAudioId,"original");assert(latest.pro!.formatLooks!.vertical!.safe);
    await act(async()=>{more.open=true;more.querySelector<HTMLButtonElement>('button')!.click();});assert.equal(latest.format,"square");assert.deepEqual(latest.cues,original.cues);assert.deepEqual(latest.pro!.range,original.pro!.range);assert.equal(latest.pro!.sourceAudioId,"original");assert.equal(document.querySelectorAll('.video-shape-options button').length,2);
-  await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('.video-shape-options button')].find(b=>b.querySelector('strong')!.textContent==='YouTube video')!.click());assert.deepEqual(latest.pro!.formatLooks!.wide,original.pro!.formatLooks!.wide);assert(isLyricProject(latest));
+  await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('.video-shape-options button')].find(b=>b.querySelector('strong')!.textContent==='YouTube')!.click());assert.deepEqual(latest.pro!.formatLooks!.wide,original.pro!.formatLooks!.wide);assert(isLyricProject(latest));
  }finally{await h.close();}
 });
 test("caption editor opens a requested line, shifts its word times, corrects text and adds a caption without changing approved lyrics",async()=>{

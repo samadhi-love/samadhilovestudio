@@ -1,4 +1,63 @@
-# Versual Studio — cosmic homepage and shared branding
+# Latest update — the cosmic Studio (owner review; not published)
+
+The existing Studio now matches the space-themed home page. This was a
+presentation and wording update, not a replacement app or a new music engine.
+
+- **Navigation:** Create, Your songs, Video, Record and Explore are the five
+  main destinations on desktop and phone. Settings, Plan & credits, Studio
+  Guide and the Simple/Advanced switch remain available; Advanced retains
+  World Sounds, Mix & Edit and Promote. Old links and view IDs are unchanged.
+- **Distinct screens:** violet Nebula Forge for Create, blue Song Sky for
+  Your songs, teal Observatory for Video, pink Resonance Chamber for Record,
+  gold/violet Galaxy Map for Explore, and a three-ring Portal for sign-in
+  and sign-up. Settings, credits, Guide and Claim owner use the same theme.
+  Reduced-motion preferences stop decorative animation and smooth navigation.
+- **Your songs:** Sky/List uses the actual filtered library. Stars open the
+  existing song; lines join actual project versions. The existing list and
+  editing/recovery/release tools remain below it. Common next-step buttons
+  are visible without first opening Song actions.
+- **Create/Record/Video:** real forms, microphone levels, timers, recorders,
+  look pickers, preview renderers and exports were restyled, not replaced.
+  A saved recording can open the existing Create prefill without submitting
+  anything. The existing limits remain: five minutes for a hum reference,
+  eight minutes for a general Recording Desk take.
+- **Community:** “Felt this” still uses the existing positive reaction.
+  Public listening/reaction/follower metrics are hidden, not deleted;
+  the owner's Artist dashboard still shows its statistics. Following uses
+  the existing Discover view; Listening Room remains reachable.
+- **Honest limits:** “Realign a part manually” opens the existing caption
+  editor; automatic re-sync still covers the whole song and may use credits.
+  Existing private hum references stay attached to their songs; no separate
+  hum-only song store or automatic melody-following engine was added.
+  Clerk keeps its accurate Continue/verification button labels rather than
+  misleadingly calling every verification step “Enter the studio”.
+- **Provider branding:** app-rendered screens use the shared `brand.json`.
+  For managed application name/icon, the owner can open Replit's **Users &
+  Auth → Configure → App info**, select Development or Production as
+  appropriate, and use “Versual Studio” and the app icon. External email sender
+  branding is unchanged; current managed-dashboard access requires an active
+  personal Replit Pro subscription. No auth credentials or transport changed.
+- **Verification:** all **33/33 verification commands passed**, including
+  **47/47 Studio verification groups**, all 29 standalone offline test commands,
+  dependency-lock and API security checks, and whole-workspace typecheck/build.
+  The new cosmic screen suite passed **15/15** tests; the provider/auth group
+  passed **64/64**. Old navigation/button-label assertions were updated while
+  retaining their save, retry, conflict, restore and navigation checks.
+  Static desktop sign-in and 390px phone sign-up previews were inspected.
+  Phone form clipping was corrected, with regression tests for both auth-key
+  modes; custom Clerk styling now uses its appearance API rather than
+  structural CSS selectors. Detailed command results are in
+  `generated-artifacts/cosmic-studio-verification/results.json`.
+- **Preview note:** the open development tab reported a head hydration
+  mismatch involving Replit's injected devtools script during restart.
+  Fresh auth-page captures did not reproduce it; no hydration errors were
+  suppressed. Refresh the preview before reviewing the new screens.
+- **Safety:** no publishing, domain changes, billing changes, paid provider
+  calls or changes/deletion of saved user data. Real-account recording,
+  provider generation and native downloaded-video playback were not tested
+  in a browser, in keeping with the offline-only instruction.
+
+# Earlier update — cosmic homepage and shared branding
 
 The app is now **Versual Studio**, with **“Your song. Your world. Your video.”**
 and **“A SAMADHI LOVE creative studio.”** The public home page has the requested

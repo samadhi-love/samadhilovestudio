@@ -1,0 +1,180 @@
+/* Create · Record · Video presentation layer. Scoped; never touches canvas pixels. */
+
+/* ---------- shared pieces ---------- */
+.nebula-forge, .resonance-chamber, [data-observatory] {
+  --cv-glass: var(--cosmic-panel, rgba(14,12,36,.7));
+  --cv-line: rgba(201,205,240,.14);
+  --cv-text: var(--cosmic-text, #eef1ff);
+  --cv-muted: var(--cosmic-muted, #a9afd8);
+  --cv-cyan: var(--cosmic-cyan, #7fe9ff);
+  --cv-violet: var(--cosmic-violet, #a77bff);
+  --cv-magenta: var(--cosmic-magenta, #ff5fd2);
+  --cv-gold: var(--cosmic-gold, #ffe9a8);
+  --cv-grad: linear-gradient(120deg, var(--cv-violet), var(--cv-magenta) 55%, #ff9fb8);
+}
+.nebula-forge h1, .chamber-banner h1, [data-observatory] .lvp-hero h1, .obs-banner h1 {
+  font-family: "Syne", var(--font-display, sans-serif); font-weight: 800; letter-spacing: -.02em;
+  font-size: clamp(2.3rem, 6vw, 4.4rem); line-height: .98; color: var(--cv-text);
+}
+.forge-poetic, .chamber-poetic {
+  font-family: "Cormorant Garamond", serif; font-style: italic; font-size: 1.25rem; color: var(--cv-gold); opacity: .9;
+}
+
+/* ---------- CREATE · The Nebula Forge ---------- */
+.nebula-forge { position: relative; isolation: isolate; overflow: hidden; border-radius: 30px;
+  font-family: "Space Grotesk", var(--font-body, sans-serif); color: var(--cv-text); }
+.forge-glow { position: absolute; z-index: -1; top: -18%; right: -12%; width: min(620px, 80vw); aspect-ratio: 1;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(167,123,255,.42), rgba(255,95,210,.12) 45%, transparent 70%);
+  animation: cv-breathe 9s ease-in-out infinite; }
+.forge-sub { color: var(--cosmic-secondary, #c9cdf0); max-width: 46ch; font-size: 1.05rem; }
+.forge-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
+.forge-main, .forge-side { min-width: 0; display: grid; gap: 16px; }
+.forge-side { position: sticky; top: 16px; }
+
+.nebula-forge .qc-modes { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: rgba(4,3,13,.55); border: 1px solid var(--cv-line); width: fit-content; }
+.nebula-forge .qc-modes button { border-radius: 999px; padding: 8px 20px; background: transparent; color: var(--cv-muted); border: 0; font-weight: 600; }
+.nebula-forge .qc-modes button[aria-selected="true"] { background: var(--cv-grad); color: #0b0820; }
+
+.nebula-forge textarea, .nebula-forge input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .nebula-forge select {
+  background: rgba(8,6,24,.72); color: var(--cv-text); border: 1px solid var(--cv-line); border-radius: 18px;
+  transition: border-color .25s ease, box-shadow .25s ease; }
+.nebula-forge textarea:focus, .nebula-forge input:focus, .nebula-forge select:focus { outline: none; border-color: rgba(127,233,255,.6); box-shadow: 0 0 0 4px rgba(127,233,255,.1); }
+.nebula-forge [data-testid="input-song-description"] { min-height: 150px; padding: 18px 20px; font-size: 1.05rem;
+  border-color: rgba(167,123,255,.45); box-shadow: 0 0 40px -12px rgba(167,123,255,.55), inset 0 0 30px rgba(167,123,255,.06); }
+
+.forge-help-row { align-items: center; gap: 12px; flex-wrap: wrap; }
+.nebula-forge .forge-gold-pill { border-radius: 999px; background: rgba(255,233,168,.1); color: var(--cv-gold);
+  border: 1px solid rgba(255,233,168,.45); padding: 8px 16px; }
+.nebula-forge .forge-gold-pill:hover:not(:disabled) { background: rgba(255,233,168,.18); }
+.forge-free-note { font-size: .8rem; }
+
+.forge-drift { gap: 10px; flex-wrap: wrap; }
+.forge-drift .chip { border-radius: 999px; padding: 7px 15px; background: rgba(167,123,255,.1); border: 1px solid rgba(167,123,255,.28); color: var(--cosmic-secondary, #c9cdf0);
+  animation: cv-drift 7s ease-in-out infinite; }
+.forge-drift .chip:nth-child(2n) { animation-delay: -2.3s; animation-duration: 8.5s; }
+.forge-drift .chip:nth-child(3n) { animation-delay: -4.1s; animation-duration: 6.4s; }
+.forge-drift .chip.active { background: var(--cv-grad); color: #0b0820; border-color: transparent; }
+.nebula-forge .lyric-section-chips .chip { border-radius: 999px; background: transparent; color: var(--cv-cyan); border: 1px solid rgba(127,233,255,.5); }
+.nebula-forge .lyric-section-chips .chip:hover:not(:disabled) { background: rgba(127,233,255,.1); }
+.nebula-forge .qc-fold, .nebula-forge .qc-more, .nebula-forge .qc-prompt-library { border: 1px solid var(--cv-line); border-radius: 20px; background: rgba(14,12,36,.45); padding: 10px 16px; }
+
+.forge-launch { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding: 18px; border-radius: 24px;
+  border: 1px solid var(--cv-line); background: rgba(14,12,36,.55); }
+.forge-launch .quick-submit { order: -1; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 0; }
+.forge-launch .version-count-control { flex: 1 1 220px; margin: 0; }
+.forge-launch .version-count-control p { font-size: .8rem; margin: 4px 0 0; }
+.nebula-forge .qc-create { border-radius: 999px; padding: 16px 38px; font-size: 1.15rem; font-weight: 700; border: 0;
+  background: var(--cv-grad); color: #0b0820; box-shadow: 0 14px 40px -14px rgba(255,95,210,.7); transition: transform .2s ease; }
+.nebula-forge .qc-create:hover:not(:disabled) { transform: translateY(-2px); }
+
+.forge-hum-card { position: relative; border-radius: 26px; padding: 4px; background: linear-gradient(160deg, rgba(255,95,210,.35), rgba(167,123,255,.15) 50%, rgba(127,233,255,.12)); }
+.forge-hum-card > .melody-reference { border-radius: 23px; background: rgba(10,8,28,.92); padding: 22px; }
+.forge-side .qc-recipes { border: 1px solid var(--cv-line); border-radius: 22px; padding: 16px; background: var(--cv-glass); }
+
+/* melody recorder (shared component) */
+.melody-reference { text-align: center; display: grid; justify-items: center; gap: 10px; }
+.melody-reference h3 { font-family: "Syne", sans-serif; font-weight: 800; font-size: 1.3rem; margin: 0; }
+.melody-private-tag { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--cosmic-magenta, #ff5fd2); }
+.melody-reference .melody-recording-timer { font-variant-numeric: tabular-nums; color: var(--cosmic-cyan, #7fe9ff); margin: 0; }
+.melody-reference .melody-record-button { display: grid; justify-items: center; gap: 12px; background: transparent !important; border: 0; box-shadow: none; color: var(--cosmic-text, #eef1ff); padding: 8px; }
+.melody-orb { position: relative; width: 104px; height: 104px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: radial-gradient(circle at 35% 30%, #ffb3ec, var(--cosmic-magenta, #ff5fd2) 45%, var(--cosmic-violet, #a77bff) 100%);
+  box-shadow: 0 0 46px -6px rgba(255,95,210,.75), inset 0 -10px 24px rgba(60,10,90,.45); transition: transform .25s ease; }
+.melody-record-button:hover:not(:disabled) .melody-orb { transform: scale(1.04); }
+.melody-record-button:disabled .melody-orb { filter: grayscale(.6); opacity: .55; }
+.melody-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255,95,210,.6); animation: cv-ring 2.2s ease-out infinite; }
+.melody-ring-late { animation-delay: 1.1s; }
+.melody-reference-takes { width: 100%; display: grid; gap: 8px; text-align: left; }
+.melody-reference-take { border: 1px solid rgba(201,205,240,.14); border-radius: 16px; padding: 10px 12px; display: grid; gap: 6px; }
+.melody-reference-take audio { width: 100%; }
+
+/* ---------- RECORD · The Resonance Chamber ---------- */
+.resonance-chamber { font-family: "Space Grotesk", sans-serif; color: var(--cv-text); }
+.chamber-banner { position: relative; overflow: hidden; isolation: isolate; border-radius: 30px; }
+.chamber-glow { position: absolute; z-index: -1; top: -30%; left: 50%; width: min(700px, 90vw); aspect-ratio: 1; translate: -50% 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,95,210,.36), rgba(167,123,255,.1) 50%, transparent 70%); animation: cv-breathe 10s ease-in-out infinite; }
+.resonance-chamber .panel { border-radius: 26px; border: 1px solid var(--cv-line); background: var(--cv-glass); }
+.resonance-chamber .recording-tabs button { border-radius: 999px; }
+.resonance-chamber .recording-tabs button[aria-pressed="true"] { background: var(--cv-grad); color: #0b0820; }
+.chamber-stage { position: relative; isolation: isolate; overflow: hidden; display: grid; justify-items: center; gap: 14px; padding: 34px 18px 22px; border-radius: 26px;
+  background: radial-gradient(circle at 50% 40%, rgba(255,95,210,.14), rgba(4,3,13,.6) 70%); border: 1px solid rgba(255,95,210,.2); }
+.chamber-flower { position: absolute; z-index: -1; width: 380px; max-width: 110%; top: 50%; left: 50%; margin: -190px 0 0 -190px; color: rgba(201,205,240,.12);
+  animation: cv-spin 120s linear infinite; }
+.chamber-orb-wrap { position: relative; width: 132px; height: 132px; display: grid; place-items: center; }
+.chamber-orb { width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform .09s linear;
+  background: radial-gradient(circle at 35% 30%, #ffc2ef, var(--cv-magenta) 45%, var(--cv-violet)); box-shadow: 0 0 60px -8px rgba(255,95,210,.7); }
+[data-transport="idle"] .chamber-orb { opacity: .75; }
+.chamber-ripple { position: absolute; inset: 6px; border-radius: 50%; border: 2px solid rgba(255,95,210,.55); animation: cv-ring 2.4s ease-out infinite; }
+.chamber-ripple-2 { animation-delay: .8s; } .chamber-ripple-3 { animation-delay: 1.6s; }
+.chamber-stage .record-clock { text-align: center; }
+.chamber-stage .record-clock strong { font-family: "Syne", sans-serif; font-weight: 800; font-size: 2.4rem; font-variant-numeric: tabular-nums; display: block; }
+.chamber-stage .record-live { color: var(--cv-magenta); }
+.chamber-stage meter { width: min(320px, 100%); height: 10px; }
+.chamber-stage .actions button { border-radius: 999px; }
+.chamber-stage .actions .primary { background: var(--cv-grad); color: #0b0820; border: 0; }
+.resonance-chamber .record-wave { border-radius: 18px; background: rgba(4,3,13,.5); }
+.chamber-takes { border: 1px solid var(--cv-line); border-radius: 22px; padding: 14px 16px; margin: 14px 0; }
+.chamber-takes h3 { font-family: "Syne", sans-serif; font-weight: 800; margin: 0 0 8px; }
+.chamber-takes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.chamber-takes li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 14px; background: rgba(255,255,255,.03); }
+.chamber-takes li[data-active="true"] { border: 1px solid rgba(255,95,210,.4); }
+.chamber-pro-note { color: var(--cv-cyan); }
+
+/* ---------- VIDEO · The Observatory ---------- */
+[data-observatory] { position: relative; isolation: isolate; font-family: "Space Grotesk", sans-serif; }
+[data-observatory]::before { content: ""; position: absolute; z-index: -1; top: -120px; left: -10%; width: min(720px, 90vw); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(64,190,220,.3), rgba(70,110,255,.12) 45%, transparent 70%); animation: cv-breathe 11s ease-in-out infinite; }
+[data-observatory] .lvp-hero h1 em { font-family: "Cormorant Garamond", serif; font-weight: 600; color: var(--cv-cyan); }
+[data-observatory] .lvp-video-preview { border-radius: 22px; overflow: hidden; border: 1px solid rgba(127,233,255,.25); }
+[data-observatory] .lvp-video-preview.vertical { max-width: 340px; margin-inline: auto; border-radius: 30px; border: 2px solid rgba(127,233,255,.55);
+  box-shadow: 0 0 0 6px rgba(4,3,13,.8), 0 0 50px -8px rgba(127,233,255,.5); }
+[data-observatory] .lvp-primary { border-radius: 999px; }
+.obs-caption-status { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0; padding: 6px 14px; border-radius: 999px; font-size: .85rem;
+  border: 1px solid var(--cv-line); background: rgba(4,3,13,.5); }
+.obs-caption-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cv-muted); }
+.obs-caption-status[data-state="reviewed"] .obs-caption-dot { background: var(--cv-cyan); }
+.obs-caption-status[data-state="draft"] .obs-caption-dot { background: var(--cv-gold); }
+.obs-caption-status[data-state="rough"] .obs-caption-dot { background: var(--cv-magenta); }
+.obs-keep-open { color: var(--cv-gold); }
+
+/* ---------- motion ---------- */
+@keyframes cv-breathe { 0%,100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes cv-drift { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes cv-ring { from { transform: scale(1); opacity: .8; } to { transform: scale(1.7); opacity: 0; } }
+@keyframes cv-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .forge-glow, .forge-drift .chip, .melody-ring, .chamber-glow, .chamber-flower, .chamber-ripple, [data-observatory]::before { animation: none !important; }
+  .chamber-orb, .melody-orb, .nebula-forge .qc-create { transition: none !important; }
+}
+
+/* ---------- phone ---------- */
+@media (max-width: 767px) {
+  .forge-grid { grid-template-columns: 1fr; }
+  .forge-side { position: static; }
+  .nebula-forge, .chamber-banner { border-radius: 22px; }
+  .forge-launch .quick-submit, .nebula-forge .qc-create { width: 100%; justify-content: center; }
+  .resonance-chamber, .nebula-forge { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Record: begin + advanced ---------- */
+.chamber-advanced { border: 1px solid var(--cv-line); border-radius: 20px; padding: 10px 16px; margin-bottom: 12px; }
+.chamber-advanced summary { cursor: pointer; color: var(--cv-cyan); font-weight: 600; }
+.chamber-begin { align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.chamber-begin-button { border: 0; border-radius: 999px; padding: 12px 26px; font-weight: 700; background: var(--cv-grad); color: #0b0820; box-shadow: 0 12px 34px -14px rgba(255,95,210,.7); }
+.chamber-begin-button:disabled { opacity: .45; box-shadow: none; cursor: not-allowed; }
+
+/* ---------- Video: vibe tiles + shape pills ---------- */
+[data-observatory] .vibe-look-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+[data-observatory] .vibe-look-grid button { min-height: 104px; border-radius: 20px; border: 1px solid rgba(201,205,240,.18); padding: 14px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; text-align: left; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.6); transition: transform .2s ease; }
+[data-observatory] .vibe-look-grid button:hover:not(:disabled) { transform: translateY(-2px); }
+[data-observatory] .vibe-look-grid button[aria-pressed="true"] { border: 2px solid var(--cv-cyan); box-shadow: 0 0 30px -8px rgba(127,233,255,.7); }
+[data-observatory] .vibe-look-grid strong { font-family: "Syne", sans-serif; font-weight: 800; }
+[data-observatory] .lvp-more-looks > summary { display: inline-flex; border-radius: 999px; padding: 8px 18px; border: 1px solid rgba(127,233,255,.45); color: var(--cv-cyan); cursor: pointer; }
+[data-observatory] .video-shape-options { display: flex; gap: 10px; flex-wrap: wrap; }
+[data-observatory] .video-shape-option { border-radius: 999px; padding: 10px 20px; border: 1px solid var(--cv-line); background: rgba(4,3,13,.5); color: var(--cv-text); display: inline-flex; align-items: center; gap: 10px; }
+[data-observatory] .video-shape-option[aria-pressed="true"] { background: linear-gradient(120deg, #3fc7e6, #6e7dff); color: #04030d; border-color: transparent; }
+[data-observatory] .video-shape-option > span:not(.video-shape-icon), [data-observatory] .video-shape-option small { display: none; }
+[data-observatory] .video-shape-option strong { font-size: .95rem; }
+@media (max-width: 767px) { [data-observatory] .vibe-look-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (prefers-reduced-motion: reduce) { [data-observatory] .vibe-look-grid button { transition: none !important; } }
