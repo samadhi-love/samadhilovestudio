@@ -2,7 +2,7 @@
 
 ## Singing language starts with English
 
-Create shows a small **Language** selector in both Simple and Custom. English is the default; short or uncertain text never stops creation. Clear non-English lyrics or an explicit request such as “sing in Spanish” can choose another language, with a small “Singing in Spanish — change” note. Picking a language yourself takes priority, including picking English. Your words are not translated. Dialect and detailed language controls remain inside Custom → Vocals.
+Create shows a small **Language** selector in both Simple and Custom, initially **Auto · English by default**. Priority is: **your dropdown choice → a language or dialect named in your description → clearly non-English lyrics → English**. The description matcher uses the same complete language/dialect names as the selector, including world-music languages such as Yoruba and aliases such as Brazilian Portuguese. Mood, genre and instrumental directions still shape the music. A quiet line always explains the result, for example **Singing in Spanish (from your description) · change**. Selecting English or any other listed language pins your choice; return to Auto to follow the description again. Short or uncertain text and conflicting descriptions never require resolving a language error. Your words are not translated. Dialect controls remain inside Custom → Vocals; provider pronunciation and dialect quality remain unverified, not guaranteed.
 
 ## Writing returns automatically
 

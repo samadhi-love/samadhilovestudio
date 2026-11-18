@@ -1,11 +1,12 @@
 import type { LanguageChoice, MusicLanguage } from "./music-language";
+import { musicLanguages, musicDialects } from "./music-language-catalog";
 
 // These are input aliases, not claims of verified singing pronunciation.
-const aliases: [MusicLanguage, string[]][] = [
+const extraAliases: [MusicLanguage, string[]][] = [
   ["en", ["english", "anglais", "inglés"]], ["ar", ["arabic", "العربية", "عربي", "عربية", "بالعربي", "بالعربية"]],
   ["es", ["spanish", "español"]], ["fr", ["french", "français"]], ["hi", ["hindi", "हिन्दी", "हिंदी"]],
   ["ja", ["japanese", "日本語"]], ["de", ["german", "deutsch"]], ["it", ["italian", "italiano"]],
-  ["pt", ["portuguese", "português"]], ["tr", ["turkish", "türkçe"]], ["ru", ["russian", "русском"]],
+  ["pt", ["portuguese", "português", "brazilian portuguese"]], ["tr", ["turkish", "türkçe"]], ["ru", ["russian", "русском"]],
   ["ko", ["korean", "한국어"]], ["zh", ["chinese", "mandarin", "中文"]], ["uk", ["ukrainian"]],
   ["pl", ["polish"]], ["nl", ["dutch"]], ["id", ["indonesian", "bahasa indonesia"]], ["sw", ["swahili"]],
   ["he", ["hebrew", "עברית"]], ["fa", ["persian", "farsi", "فارسی"]], ["ur", ["urdu", "اردو"]],
@@ -13,6 +14,7 @@ const aliases: [MusicLanguage, string[]][] = [
   ["vi", ["vietnamese"]], ["th", ["thai"]], ["el", ["greek"]], ["ro", ["romanian"]],
   ["sv", ["swedish"]], ["fi", ["finnish"]], ["no", ["norwegian"]], ["da", ["danish"]],
   ["cs", ["czech"]], ["hu", ["hungarian"]], ["tl", ["filipino", "tagalog"]],
+  ["mixed", ["multilingual", "mixed languages"]],
 ];
 const dialectAliases: [NonNullable<LanguageChoice["dialect"]>, string[]][] = [
   ["ar-LB", ["lebanese arabic", "lebanese", "لبناني", "لبنانية", "باللبناني"]],
@@ -27,9 +29,9 @@ const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const instructionBefore = /(?:\b(?:sing|sung|singing|lyrics?|vocals?|language|chorus|verses?|write|in|en|auf)|باللغة|بلهجة|لهجة|غني|غنّي|أغنية|اغنية|غنية|كلمات|на)\s*(?:(?:in|is|are|only|the|a|an)\s*|[:=]\s*)*$/iu;
 const instructionAfter = /^\s+(?:lyrics?|vocals?|singing|language|chorus|verses?)\b/iu;
 const instrumentalContext = /^\s+(?:guitar|oud|piano|instruments?|instrumental|rhythm|beats?|style|influence|flavou?r)\b/iu;
-const negated = /(?:\b(?:not|no|without|avoid|rather than)|ليس|مش|بدون)\s*$/iu;
+const negated = /(?:\b(?:not|no|without|avoid|rather than|don't|dont)|ليس|مش|بدون)\s*(?:(?:sing|singing|use|write|lyrics?|vocals?)\s+)?(?:in\s*)?$/iu;
 
-/** Recognize explicit singing instructions, not the language the brief is written in. */
+/** Match every listed name, preserving negations and instrument-only references. */
 export function promptLanguage(prompt: string): LanguageChoice | undefined {
   const text = prompt.normalize("NFKC").toLowerCase();
   const candidates: { start: number; end: number; language: MusicLanguage; dialect: LanguageChoice["dialect"]; alias: string }[] = [];
@@ -42,8 +44,13 @@ export function promptLanguage(prompt: string): LanguageChoice | undefined {
       }
     }
   };
-  for (const [language, words] of aliases) collect(language, "", words);
-  for (const [dialect, words] of dialectAliases) collect("ar", dialect, words);
+  for (const [language, label] of Object.entries(musicLanguages)) {
+    const words = [label, ...label.split(" / "), ...(extraAliases.find(([id]) => id === language)?.[1] ?? [])];
+    collect(language as MusicLanguage, "", [...new Set(language === "other" ? [label] : words)]);
+  }
+  for (const [dialect, label] of Object.entries(musicDialects)) {
+    collect("ar", dialect as LanguageChoice["dialect"], [...new Set([label, ...label.split(" · "), ...(dialectAliases.find(([id]) => id === dialect)?.[1] ?? [])])]);
+  }
   // Prefer "Lebanese Arabic" over the shorter overlapping "Arabic".
   const mentions = candidates.filter(c => !candidates.some(other =>
     other !== c && other.start <= c.start && other.end >= c.end && other.end - other.start > c.end - c.start,
@@ -53,11 +60,11 @@ export function promptLanguage(prompt: string): LanguageChoice | undefined {
     const before = text.slice(Math.max(0, mention.start - 60), mention.start);
     const after = text.slice(mention.end);
     if (negated.test(before) || instrumentalContext.test(after)) continue;
-    const previous = accepted.at(-1);
-    const joined = previous && /^(?:\s|,|\/|&|\band\b|\bthen\b|و)+$/u.test(text.slice(previous.end, mention.start));
-    const directDialect = !!mention.dialect && /arabic|darija|^بال/u.test(mention.alias);
-    if (instructionBefore.test(before) || instructionAfter.test(after) || joined || /^بال/u.test(mention.alias) || directDialect)
-      accepted.push(mention);
+    // A standalone dialect adjective before a genre is not a singing instruction.
+    if (mention.dialect && /^(?:lebanese|egyptian|khaleeji)$/u.test(mention.alias) &&
+      /^\s+(?:dabke|groove|beats?|rhythm|style)\b/u.test(after) &&
+      !instructionBefore.test(before) && !instructionAfter.test(after)) continue;
+    accepted.push(mention);
   }
   if (!accepted.length) return;
   const languages = new Set(accepted.map(c => c.language));

@@ -1,7 +1,7 @@
 "use client";
 import {brand} from "./brand";
 import { MusicLanguageControl } from "./music-language-control";
-import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, musicLanguages, musicDialects, type LanguageChoice } from "./music-language";
+import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
 import {playLooks,defaultPlayChoices,validPlayChoices,type PlayChoices,type PlayVisualRequest} from "./creative-play";
 import {AudioFormatDownload} from "./audio-format-download";
 import {StyleDNAControls} from "./style-dna-controls";
@@ -154,11 +154,10 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     creatorVocalDirection({...(simple?defaultCreatorVocals:vocalOptions),delivery:chosenPerformer??defaultCreatorVocals.delivery}),
     matchVocalToSong(idea,genre,instruments),
   ].join(" "));
-  let understoodLanguage="", intentIssue="";
+  let intentIssue="";
   if(!instrumental&&!localSketch) {
     try {
-      const profile=resolveLanguage(languageChoice,useOwnLyrics?lyrics:"",idea);
-      understoodLanguage=profile.dialect?musicDialects[profile.dialect]:musicLanguages[profile.resolved];
+      resolveLanguage(languageChoice,useOwnLyrics?lyrics:"",idea);
     } catch (e) { intentIssue=e instanceof Error?e.message:"Choose the singing language."; }
     if(inferredPerformer&&vocalOptions.delivery!==defaultCreatorVocals.delivery&&inferredPerformer!==vocalOptions.delivery)
       intentIssue="Your singing arrangement conflicts with the description. Change the arrangement or description before creating.";
@@ -277,7 +276,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         const blob = await renderInstrumental(take);
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
-        const input={title,prompt,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
+        const input={title,prompt,languagePrompt:idea,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments,genres:genre,autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
         const made=await generateSong(input);
         if(made){
           const madeIds=[made];setResultId(made);
@@ -404,7 +403,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
           {choice==="sketch"&&customMode?<span className="qc-mode" data-mode="sketch" data-testid="status-create-mode"><strong>{mode.label}</strong><button type="button" className="secondary small" data-testid="button-switch-to-song" onClick={()=>setChoice("vocals")}>Switch to song</button></span>:
           <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> Instrumental</label>}
         </div>
-        {!instrumental&&!localSketch&&<p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`Understood: ${understoodLanguage} · ${chosenPerformer??"Performer follows your description"}.`}{!intentIssue&&" Singing directions guide the music model; they are not a fixed singer identity or a pronunciation guarantee."}</p>}
+        {!instrumental&&!localSketch&&<p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${chosenPerformer??"Performer follows your description"}.`}{!intentIssue&&" Singing directions guide the music model; they are not a fixed singer identity or a pronunciation guarantee."}</p>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
         {!localSketch&&<div className="version-count-control">

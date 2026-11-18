@@ -150,12 +150,12 @@ test("Create exposes one English language selector in Simple and Custom, with di
  try{
   await act(async()=>h.root.render(<QuickCreate connected={false} saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined}/>));
   const language=()=>document.querySelector('select[aria-label="Singing language"]') as unknown as HTMLSelectElement;
-  assert.equal(language().value,"en");
-  assert.equal(language().options.length,Object.keys(musicLanguages).length);
+  assert.equal(language().value,"auto");
+  assert.equal(language().options.length,Object.keys(musicLanguages).length+1);
   assert.equal(language().closest("details"),null);
   assert.doesNotMatch(document.body.textContent!,/Auto is uncertain/);
   await act(async()=>h.button("Custom").click());
-  assert.equal(language().value,"en");
+  assert.equal(language().value,"auto");
   assert.equal(document.querySelectorAll('select[aria-label="Singing language"]').length,1);
   assert.equal(language().closest("details"),null);
   assert(document.querySelector('[data-testid="fold-vocals"]')!.textContent!.includes("Dialect"));
@@ -172,8 +172,8 @@ test("a rejected song submission displays its exact error and keeps the written 
   const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
   await h.input(prompt,description);
   const language=document.querySelector('select[aria-label="Singing language"]') as unknown as HTMLSelectElement;
-  assert.equal(language.value,"en","Simple shows the English default without requiring a selection");
-  assert.match(document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!,/English/);
+  assert.equal(language.value,"auto","Simple defaults to Auto with English as its fallback");
+  assert.match(document.querySelector('[data-testid="text-singing-language"]')!.textContent!,/English \(from your description\)/);
   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(calls,1);
   assert.match(document.body.textContent!,/Fixture: the generation response was interrupted/);
@@ -187,14 +187,15 @@ test("Simple recognizes the requested language and singer, exposes alternatives 
   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{submitted.push(input);return "fixture-song";}} saveSketch={async()=>undefined}/>));
   const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
   await h.input(prompt,"A warm acoustic song; sing in Spanish with a female lead.");
-  const summary=()=>document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!;
+  const summary=()=>document.querySelector('[data-testid="text-singing-language"]')!.textContent!+" "+document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!;
   assert.match(summary(),/Spanish/);assert.match(summary(),/Solo female lead/);
   const submit=async()=>act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   await submit();
   assert.equal(submitted.length,1);
   assert.match(submitted[0].voice,/Solo female lead/);
-  assert.equal(submitted[0].language,"en");
+  assert.equal(submitted[0].language,"auto");
   assert.equal(submitted[0].prompt,prompt.value);
+  assert.equal(submitted[0].languagePrompt,prompt.value);
    assert.equal(document.querySelector('[data-testid="select-singing-arrangement"]'),null,"Simple follows the description without an advanced singer menu");
    await act(async()=>h.button("Custom").click());
    await act(async()=>{document.querySelector<HTMLDetailsElement>('[data-testid="fold-vocals"]')!.open=true;});

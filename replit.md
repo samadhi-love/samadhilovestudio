@@ -1,4 +1,14 @@
-# Latest update — English-first creation with a visible language choice
+# Latest update — Auto language priority and one clear explanation
+
+Create defaults to **Auto · English by default**. A dropdown choice always wins, then a language/dialect named in the description, then clearly non-English lyrics, then English. Selecting Auto again restores that priority. Both Create modes show one quiet language line with the reason and a **change** button. Custom → Vocals keeps dialect controls; a selected dialect wins over a conflicting description without an error. Language detection uses the original description, not automatically added style notes, so an “Arabic pop” style chip alone does not unexpectedly change the singing language. Mood, genre, supplied lyrics and provider-cost safeguards remain intact.
+
+The dropdown and description matcher now share one language/dialect catalog. It also includes the existing World Sounds names Yoruba, Akan, Pidgin, Jamaican Patwa and Javanese, which were missing from the old singing selector. Every listed name is covered by regression tests, along with “sung in Spanish”, “in Yoruba”, “Hindi lyrics”, “Brazilian Portuguese”, explicit dropdown conflicts, lyrics fallback, English fallback and all four explanation messages. These are language directions, not a guarantee of provider pronunciation or dialect fidelity; none are newly claimed as listening-tested.
+
+**Verification:** **26/26 language tests**, **52/52 Studio verification groups**, **37/37 declared workspace test commands**, extra credits-controls, full workspace typecheck and production build passed (**41/41 named checks**). This includes complete catalog/dialect matching, negated language mentions, dropdown/description/lyrics conflicts, one explanatory status line, and a server regression proving style notes cannot change the language promised on screen. Final results and logs: `generated-artifacts/language-priority-verification/results.json` (ignored generated output). Preview restarted and returned 200; signed-in behavior was checked with offline DOM/API tests. No paid calls, publishing, data deletion, storage, secret, domain or billing changes.
+
+**Owner next step:** publish this revision yourself, then refresh Create. Leave Auto alone for English or description-led choices; choose a dropdown language to pin it. Live generated singing remains unverified by this offline-only change.
+
+## Previous update — English-first creation with a visible language choice
 
 Create now starts in **English** and no longer blocks on uncertain language detection. Both Simple and Custom show one small, always-visible **Language** dropdown containing the full existing language list. Clear non-English lyrics or an explicit singing-language request can change the default, with a calm “Singing in Spanish — change” note rather than an error. A language picked by the user takes priority, including English. Old saved Auto choices still work and fall back to English when unclear. Dialect and capability details stay inside Custom → Vocals; supplied words are never translated.
 

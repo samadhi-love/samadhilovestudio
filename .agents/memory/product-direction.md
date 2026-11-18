@@ -86,8 +86,8 @@ No draft-recovery prompts or drafts lists for users. Forms quietly keep the late
 
 **How to apply:** Keep device/account saving and paid-result protection behind the scenes. Do not reintroduce restore/dismiss gates or draft-management panels in Create or lyric/video editors. Preserve existing data and backups rather than cleaning them up to remove notices.
 
-Singing defaults to English, with a visible language selector in both Simple and Custom. Uncertain language detection must never block creation. Use another language only when selected, clearly present in the lyrics, or explicitly requested in the description; show a calm note for automatic changes.
+Singing defaults to Auto with English fallback, with a visible language selector in both Simple and Custom. Priority: dropdown pick > language/dialect named in the description > clearly non-English lyrics > English. Uncertain language detection must never block creation. Always show one calm line explaining the language and why.
 
 **Why:** The owner reported English lyrics being blocked by uncertain detection and no visible Simple-mode override, and explicitly chose this easier setup.
 
-**How to apply:** Preserve explicit user choices (including English), keep dialect depth in Custom → Vocals, and fall back to English instead of requiring beginners to resolve ambiguous detection.
+**How to apply:** Match the full shared language/dialect catalog, including existing world-music language names. Preserve explicit user choices (including English and dialects) over conflicting descriptions, keep dialect depth in Custom → Vocals, and fall back to English rather than asking beginners to resolve detection. Use the creator's original description, not automatically appended style hints, so the screen and server agree and a genre chip alone cannot unexpectedly change the singing language.

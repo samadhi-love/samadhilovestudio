@@ -1,28 +1,10 @@
 import { promptLanguage } from "./prompt-language";
-/** Music capabilities, not the provider's unrelated speech-language or voice catalog. */
-export const musicLanguages = {
-  en: "English", ar: "Arabic", es: "Spanish", fr: "French", hi: "Hindi",
-  ja: "Japanese", de: "German", it: "Italian", pt: "Portuguese", tr: "Turkish",
-  ru: "Russian", ko: "Korean", zh: "Chinese", uk: "Ukrainian", pl: "Polish",
-  nl: "Dutch", id: "Indonesian", sw: "Swahili", he: "Hebrew",
-  fa: "Persian / Farsi", ur: "Urdu", bn: "Bengali", pa: "Punjabi",
-  ta: "Tamil", te: "Telugu", vi: "Vietnamese", th: "Thai", el: "Greek",
-  ro: "Romanian", sv: "Swedish", fi: "Finnish", no: "Norwegian",
-  da: "Danish", cs: "Czech", hu: "Hungarian", tl: "Filipino / Tagalog",
-  mixed: "Mixed languages", other: "Other / not listed",
-} as const;
-export type MusicLanguage = keyof typeof musicLanguages;
-export const musicDialects = {
-  "ar-LB": "Lebanese Arabic · لبناني",
-  "ar-EG": "Egyptian Arabic",
-  "ar-x-gulf": "Khaleeji / Gulf Arabic",
-  "ar-SY": "Syrian Arabic", "ar-IQ": "Iraqi Arabic",
-  "ar-MA": "Moroccan Arabic / Darija", "ar-PS": "Palestinian Arabic",
-} as const;
+import { musicLanguages, musicDialects, type MusicLanguage } from "./music-language-catalog";
+export { musicLanguages, musicDialects, type MusicLanguage } from "./music-language-catalog";
 export type LanguageChoice = { language: "auto" | MusicLanguage; dialect: "" | keyof typeof musicDialects; selected?: boolean };
 // Remember an explicit choice (including English) separately from the default.
-export const defaultLanguageChoice: LanguageChoice = { language: "en", dialect: "", selected: false };
-export type LanguageProfile = LanguageChoice & { resolved: MusicLanguage; source: "selected" | "script-suggestion" | "prompt" };
+export const defaultLanguageChoice: LanguageChoice = { language: "auto", dialect: "", selected: false };
+export type LanguageProfile = LanguageChoice & { resolved: MusicLanguage; source: "selected" | "script-suggestion" | "prompt" | "default" };
 export type CapabilityStatus = "tested" | "experimental/unverified" | "unavailable";
 const experimental: CapabilityStatus = "experimental/unverified";
 export const musicCapabilityRegistry = {
@@ -34,7 +16,7 @@ export const musicCapabilityRegistry = {
   ],
   // Documentation allows any-language lyrics. That is not a listening-quality test.
   forLanguage(language: MusicLanguage) {
-    const status = language === "other" ? "unavailable" as const : experimental;
+    const status = experimental;
     return { lyricWriting: status, sungAudio: status, dialectFidelity: status,
       transcriptionAlignment: status, captionRendering: experimental };
   },
@@ -53,7 +35,7 @@ export function isLanguageChoice(value: unknown): value is LanguageChoice {
 export function isLanguageProfile(value: unknown): value is LanguageProfile {
   const p = value as LanguageProfile;
   return isLanguageChoice(value) && Object.hasOwn(musicLanguages, p.resolved) &&
-    ["selected", "script-suggestion", "prompt"].includes(p.source) &&
+    ["selected", "script-suggestion", "prompt", "default"].includes(p.source) &&
     (p.language === "auto" || p.language === p.resolved) &&
     (!p.dialect || ["ar", "mixed"].includes(p.resolved));
 }
@@ -106,21 +88,18 @@ export function resolveLanguage(choice: LanguageChoice, lyrics: string, prompt =
   if (!isLanguageChoice(choice)) throw new Error("Choose a listed singing language and an optional compatible dialect.");
   const requested = promptLanguage(prompt);
   const explicit = choice.language !== "auto" && choice.selected !== false;
-  if (requested?.dialect && choice.dialect && requested.dialect !== choice.dialect)
-    throw new Error("Your selected dialect conflicts with the description. Change the dialect or description before creating.");
   const requestedLanguage = requested?.language === "auto" ? undefined : requested?.language;
-  const inferred = explicit ? undefined : requestedLanguage ?? suggestLyricLanguage(lyrics) ?? (choice.dialect ? "ar" : undefined);
+  const detected = explicit || requestedLanguage ? undefined : suggestLyricLanguage(lyrics);
+  const inferred = explicit ? undefined : requestedLanguage ?? detected ?? (choice.dialect ? "ar" : undefined);
   const resolved: MusicLanguage = explicit ? choice.language as MusicLanguage : inferred ?? "en";
-  if (choice.dialect && !["ar", "mixed"].includes(resolved))
-    throw new Error("An Arabic dialect needs Arabic or Mixed languages. Change the language or clear the dialect.");
-  if (musicCapabilityRegistry.forLanguage(resolved).sungAudio === "unavailable")
-    throw new Error("This singing language is unavailable in Studio’s current capability registry. No music request was sent. Choose a listed language; Studio will not switch providers.");
-  return { ...choice, language: resolved, dialect: choice.dialect || (!explicit && requested?.dialect) || "", resolved, source: explicit || !inferred ? "selected" : requested ? "prompt" : "script-suggestion" };
+  const dialect = ["ar", "mixed"].includes(resolved) ? (explicit ? choice.dialect : requested?.dialect || choice.dialect) : "";
+  return { ...choice, language: resolved, dialect, resolved, source: explicit ? "selected" : requestedLanguage ? "prompt" : detected ? "script-suggestion" : choice.dialect ? "selected" : "default" };
 }
 /** Directions belong in plan styles, never substituted into displayed approved words. */
 export function singingDirection(profile: LanguageProfile): string {
   return [
     `Singing language: ${musicLanguages[profile.resolved]}.`,
+    "This singing-language target takes priority over conflicting language references elsewhere in the production description; keep its mood, genre and instrument directions.",
     profile.resolved === "mixed" ? "Preserve every passage's original language and script, including code-switching. Do not translate or romanize any passage." :
       "Write original lyrics in this language when no lyrics are supplied. Preserve supplied words and script exactly; never translate or romanize them.",
     profile.dialect === "ar-LB" ? "Lebanese Arabic dialect target: natural conversational Lebanese Levantine phrasing, not formal Modern Standard Arabic or Egyptian Arabic. For newly written Arabic passages use idiomatic Lebanese vocabulary such as shu, baddi, hayda and mish where appropriate, written in Arabic script. Lebanese vocal articulation and colloquial vowel patterns; conversational phrasing, not formal case endings. Preserve any supplied lyrics, including their dialect and mixed-language passages. Dialect fidelity is not guaranteed." : "",

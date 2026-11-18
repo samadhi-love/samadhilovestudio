@@ -68,9 +68,9 @@ test("section generation exposes saved language, editable choices for legacy son
    const checkbox=[...document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(i=>i.parentElement?.textContent?.includes("Instrumental replacement"))!;
    assert.equal(checkbox.checked,song.creationKind==="instrumental");
    const language=()=>document.querySelector('select[aria-label="Singing language"]') as HTMLSelectElement | null;
-   if(song.creationKind==="instrumental"){assert.equal(language(),null);await act(async()=>checkbox.click());assert.equal(language()!.value,"en");}
+   if(song.creationKind==="instrumental"){assert.equal(language(),null);await act(async()=>checkbox.click());assert.equal(language()!.value,"auto");}
    else{
-    assert.equal(language()!.value,song.id==="known"?"ar":"en");
+    assert.equal(language()!.value,song.id==="known"?"ar":"auto");
     if(song.id==="known"){const dialect=[...document.querySelectorAll("select")].find(s=>s.parentElement?.textContent?.startsWith("Dialect"))!;assert.equal(dialect.value,"ar-LB");}
     await act(async()=>{language()!.value="ja";language()!.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});
     assert.equal(language()!.value,"ja");

@@ -244,8 +244,8 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
       }
       if (!elevenLabs.connected) { setError("Open Settings to enable sung songs and connected generation."); return; }
       if (type === "vocals" && lyricsMode === "own" && !performanceWeight(lyrics)) { setError("Add words to sing, or choose Write lyrics for me. Section headings alone are not finished lyrics."); return; }
-      if (type === "vocals") resolveLanguage(languageChoice, currentLyrics, prompt);
-      if (await send({ action: "song", ...languageChoice, ...(projectId && { projectId }), title: resultTitle, prompt, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
+      if (type === "vocals") resolveLanguage(languageChoice, currentLyrics, idea);
+      if (await send({ action: "song", ...languageChoice, ...(projectId && { projectId }), title: resultTitle, prompt, languagePrompt:idea, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
         duration: length, openingMode, ...(lyricsMode==="auto" && !performanceWeight(lyrics) && lyrics.trim() && {arrangement:lyrics.slice(0,2000)}), instrumental: type === "instrumental", readLyricStyles,
         ...(type === "vocals" && sectionDirections && { sectionDirections: JSON.stringify(sectionDirections) }) }, "Song saved privately to Your songs")) goToResult();
     } catch (error) {
