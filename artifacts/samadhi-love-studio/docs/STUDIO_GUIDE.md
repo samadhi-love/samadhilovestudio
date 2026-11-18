@@ -1,5 +1,13 @@
 # Versual Studio — current guide
 
+## Writing returns automatically
+
+Create quietly keeps your description, lyrics and choices. Returning to the screen opens the last writing without a restore/dismiss question. **New song** clears the form immediately, including the folded detailed-production form; returning again keeps it clear. Previous private device copies and saved songs are retained, not deleted.
+
+There is no drafts list or recovery panel to manage. Internal account-writing records are kept behind the scenes, not shown as songs or picker options. Device writing takes priority over an older account copy, and late account responses do not replace newly typed words. A real conflicting account save still protects the other tab's changes and keeps this tab's words locally.
+
+Lyric/video editors also resume applicable device edits automatically. Video recovery only applies to the same recording and unchanged saved version; a previous private copy is preserved. Previously paid caption-sync results resume without another provider call. Paid-song recovery continues automatically when Your songs opens, without a recovery prompt or manual drafts list. A completed recovery scan stays limited to once per session, but an incomplete pass or a later interrupted creation allows another silent scan on the next visit. No music generation is replayed automatically.
+
 ## Cosmic Studio — current screen names
 
 The existing tools now share the landing page's cosmic theme. Desktop and
@@ -134,7 +142,7 @@ The guided-screen consolidation is implemented and its final offline verificatio
 
 ## Stage 3 — beginner creation improvements
 
-The new creation shortcuts reuse the current music, section-editing and video engines. “Help me describe it” expands the creator’s own words with the existing local style catalog; it makes no AI/provider call and the description stays editable. Lyrics chips insert song-part labels at the cursor, and the existing draft recovery autosaves those lyrics locally.
+The new creation shortcuts reuse the current music, section-editing and video engines. “Help me describe it” expands the creator’s own words with the existing local style catalog; it makes no AI/provider call and the description stays editable. Lyrics chips insert song-part labels at the cursor, and silent autosave keeps those lyrics locally.
 
 “Make 2 versions” is off by default. Turning it on warns that it sends two separate requests and uses twice the provider usage or Studio credits; the exact Studio-credit check still appears before each request. Confirmed versions are grouped under the same project and can be listened to and favorited separately.
 
@@ -156,9 +164,9 @@ The main navigation is **Create, My Songs, Video, Record, Explore**, with **Sett
 
 ### Create
 
-Choose an optional **Start from a recipe** template, describe the song, choose style chips and press Create. Use **Simple** for the shortest path. **Custom** opens separate lyrics, style, vocals and prompt-helper fold-outs when you want control. Language and singing-arrangement overrides are inside **Custom → Vocals**. The original detailed engine is inside **Custom → Pro production**, not another Create page; it stays mounted when folded away. Saved templates, prompts, lyric versions and drafts remain reusable.
+Choose an optional **Start from a recipe** template, describe the song, choose style chips and press Create. Use **Simple** for the shortest path. **Custom** opens separate lyrics, style, vocals and prompt-helper fold-outs when you want control. Language and singing-arrangement overrides are inside **Custom → Vocals**. The original detailed engine is inside **Custom → Pro production**, not another Create page; it stays mounted when folded away. Saved templates, prompts and lyric versions remain reusable. Writing resumes automatically; **New song** starts fresh.
 
-In Simple, **Help me describe it** suggests fuller wording locally without calling an AI service; edit the result before creating. In Custom → Lyrics, tap **Intro, Verse, Pre-Chorus, Chorus, Bridge** or **Outro** to insert a section label at the cursor. Your lyrics use the existing draft recovery. Optional melody recording is private and only becomes an attached reference after a song is saved. It is not used as music-generation input.
+In Simple, **Help me describe it** suggests fuller wording locally without calling an AI service; edit the result before creating. In Custom → Lyrics, tap **Intro, Verse, Pre-Chorus, Chorus, Bridge** or **Outro** to insert a section label at the cursor. Your lyrics are kept automatically with no recovery question. Optional melody recording is private and only becomes an attached reference after a song is saved. It is not used as music-generation input.
 
 “Make 2 versions” starts off. It creates two separate music requests, clearly warns about double usage/cost, and keeps confirmed versions together so you can listen and favorite the one you prefer. Each request still passes the existing credit check; the first stays saved if the second fails.
 
@@ -172,7 +180,7 @@ Singing generation uses **ElevenLabs Music**, not Suno and not an internally tra
 
 ### My Songs
 
-Find songs, drafts and recordings, use folders and filters, and reopen existing projects. A song's next steps are:
+Find saved songs and recordings, use folders and filters, and reopen existing projects. A song's next steps are:
 
 1. **Listen** — play the saved recording.
 2. **Fix a part** — reopen its writing, audio or production tools.

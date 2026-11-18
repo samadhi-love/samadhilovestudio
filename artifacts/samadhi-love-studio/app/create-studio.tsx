@@ -201,7 +201,16 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
     setError("");
     return true;
   }
-  const writingStatus=useAccountWriting("custom",{title:title.trim()||"Writing draft",prompt:idea,lyrics,voice},recovery.ready&&!busy&&!!(idea.trim()||lyrics.trim()),w=>{setTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoice(w.voice);if(w.lyrics)setLyricsMode("own");});
+  const writingStatus=useAccountWriting("custom",{title:title.trim(),prompt:idea,lyrics,voice},recovery.ready&&!busy&&!!(idea.trim()||lyrics.trim()),w=>{setTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoice(w.voice);if(w.lyrics)setLyricsMode("own");},recovery);
+  const freshRef=useRef(()=>{});
+  freshRef.current=()=>{
+    void recovery.reset({...recovery.value,title:"",idea:"",lyrics:"",voice:"",projectId:"",genres:[],fusionName:"",fusionVariation:0,autoGenre:false,direction:"",mood:"",voiceName:"",description:"",previews:[],sectionDirections:undefined,choice:null,lyricsMode:"auto",openingMode:"auto",languageChoice:defaultLanguageChoice});
+    writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
+  };
+  useEffect(()=>{
+    const fresh=(event:Event)=>{if((event as CustomEvent).detail?.scope===recovery.scope)freshRef.current();};
+    window.addEventListener("versual:new-song",fresh);return()=>window.removeEventListener("versual:new-song",fresh);
+  },[recovery.scope]);
 
   async function create(alternate = false) {
     if (busy || !idea.trim() || length === null || !validateIdea()) return;
@@ -292,14 +301,14 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
   const canCreate = !!idea.trim() && validTempo && length !== null && (isLocal || elevenLabs.connected) &&
     (type !== "vocals" || lyricsMode !== "own" || !!lyrics.trim());
   const formError = error || operationError;
-  return <div className="guided-creation"><RecoveryPanel recovery={recovery}/>{writingStatus.status&&<small role="status">{writingStatus.status}</small>}{writingStatus.available&&<button type="button" className="text-button" onClick={writingStatus.open}>Open saved writing draft</button>}
+  return <div className="guided-creation"><RecoveryPanel recovery={recovery}/>{writingStatus.status&&<small role="status">{writingStatus.status}</small>}
     <div className="create-banner guide-banner">
       <span className="eyebrow"><Sparkles size={15}/> THE CREATION ROOM</span>
       <h1>Give your idea a sound.</h1>
-      <p>Describe a song, shape the sound, then listen to your draft. The Studio will guide you at the level you choose.</p>
+      <p>Describe a song, shape the sound, then listen to your song. The Studio will guide you at the level you choose.</p>
       <div className="actions"><button type="button" className="secondary small" onClick={connectionSettings}><Settings2 size={15}/> AI Music Provider Settings</button><button type="button" className="secondary small" onClick={openVocalStudio}><Mic2 size={15}/> Open Vocal Studio</button></div>
     </div>
-    <label className="field">Project<select value={projectId} disabled={busy} onChange={event => setProjectId(event.target.value)}><option value="">Start a new project</option>{projects.map(song => <option key={song.id} value={song.id}>{song.name}</option>)}</select></label>
+    <label className="field">Project<select value={projectId} disabled={busy} onChange={event => setProjectId(event.target.value)}><option value="">Start a new project</option>{projects.filter(song=>!["account-writing-simple","account-writing-custom"].includes(song.id)||!!song.audioFormat).map(song => <option key={song.id} value={song.id}>{song.name}</option>)}</select></label>
     <nav className="guide-steps" aria-label="Creation steps">
       <button aria-current={step === 1 ? "step" : undefined} onClick={() => { setStep(1); reveal(levelsHeading.current); }}><span>01</span> Experience</button>
       <button aria-current={step === 2 ? "step" : undefined} disabled={!level} onClick={() => { setStep(2); reveal(createHeading.current); }}><span>02</span> Create</button>
@@ -369,12 +378,12 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
               <div className="chips lyric-modes">
                 <HelpControl subject="Write lyrics for me" tip="Let the music service write words based on your song description."><button type="button" className={`chip ${lyricsMode === "auto" ? "active" : ""}`} aria-pressed={lyricsMode === "auto"} onClick={() => setLyricsMode("auto")}>Write lyrics for me</button></HelpControl>
                 <HelpControl subject="Use my lyrics" tip="Open a text box for the exact words and section labels you want to provide."><button type="button" className={`chip ${lyricsMode === "own" ? "active" : ""}`} aria-pressed={lyricsMode === "own"} onClick={() => setLyricsMode("own")}>Use my lyrics</button></HelpControl>
-                {advanced && <HelpControl subject="Draft starter lyrics" tip="Fill the empty lyrics box with a starting draft you can edit."><button type="button" className="text-button" disabled={!idea.trim() || !!lyrics.trim()} onClick={() => {
+                {advanced && <HelpControl subject="Write starter lyrics" tip="Fill the empty lyrics box with lyrics you can edit."><button type="button" className="text-button" disabled={!idea.trim() || !!lyrics.trim()} onClick={() => {
                   if (hasExplicitWords(idea)) { setError(cleanWordsMessage); return; }
                   setLyricsMode("own");
                   const draft = songwritingStarter(idea, (length ?? 0) >= 240 ? "4" : "3", /duet|call.and.response/i.test(idea + " " + voice));
                   setLyrics(draft.replace(/ · \d+:\d{2}–\d+:\d{2}/g, ""));
-                }}>Draft starter lyrics</button></HelpControl>}
+                }}>Write starter lyrics</button></HelpControl>}
               </div>
               {lyricsMode === "auto" && lyrics.trim() && !performanceWeight(lyrics) && <p className="muted">Your template supplies the song structure. Studio will write words to fit it.</p>}
               {lyricsMode === "own" && <><HelpField label="Your lyrics" tip="Paste the words you want performed. Label sections such as [Verse 1] and [Chorus] to guide the arrangement."><textarea dir="auto" style={{unicodeBidi:"plaintext"}} rows={7} maxLength={5000} value={lyrics} onChange={event => setLyrics(event.target.value)} placeholder="[Verse 1]"/></HelpField>
@@ -414,13 +423,10 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
               {lyricsMode === "own" && <p className="muted">Use these section headings on separate lines so your genres and vocal directions match the lyrics.</p>}
             </div>}
             {formError && <p className="notice" role="alert">{formError}</p>}
-            {!isLocal && elevenLabs.connected && <p className="muted creation-note">ElevenLabs may use plan credits. Your finished track will save to Creation Drafts.</p>}
+            {!isLocal && elevenLabs.connected && <p className="muted creation-note">ElevenLabs may use plan credits. Your finished track saves automatically to Your songs.</p>}
             <div className="actions guide-generate">
               <HelpControl subject="Generate track" tip="Make audio from your current settings. ElevenLabs generation may use plan credits."><button type="submit" className="primary" disabled={!canCreate}><Sparkles size={16}/>{generating ? "Creating your track…" : isLocal ? "Create instrumental" : "Generate track"}</button></HelpControl>
               {pro && <HelpControl subject="Make an alternate take" tip="Generate another interpretation of the current idea so you can compare takes."><button type="button" className="secondary" disabled={!canCreate} onClick={() => create(true)}>Make an alternate take</button></HelpControl>}
-              <HelpControl subject="Save writing draft" tip="Save the prompt, lyrics, and vocal direction to revisit later."><button type="button" className="text-button" disabled={!idea.trim() && !currentLyrics.trim()} onClick={async () => {
-                if (validateIdea() && await saveDraft(title, buildPrompt(), currentLyrics, type === "vocals" ? voice : "", length, type === "vocals" ? sectionDirections : undefined, projectId || undefined)) goToResult();
-              }}>Save writing draft</button></HelpControl>
             </div>
             <p className="muted creation-note">{isLocal ? "Studio instruments turn your selected palette and arrangement into audio in this browser." :
               "Generation sends your prompt and any lyrics to the connected music provider and can use plan credits."}</p>
@@ -498,9 +504,9 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
         </div>
         <InstrumentalExports settings={localPreview.settings} title={localPreview.title} disabled={busy}/>
       </article>)}
-      {!drafts.length && !localPreviews.length && <div className="empty"><Library size={20}/> Your saved songs and instrumentals will appear here and in Your songs.</div>}
+      {!drafts.some(song=>song.audioFormat) && !localPreviews.length && <div className="empty"><Library size={20}/> Your saved songs and instrumentals will appear here and in Your songs.</div>}
       <div className="guide-draft-grid">
-        {drafts.map(song => <SongCard key={song.id} song={song} onReuse={reuse}/>)}
+        {drafts.filter(song=>!!song.audioFormat).map(song => <SongCard key={song.id} song={song} onReuse={reuse}/>)}
       </div>
       <button type="button" className="text-button guide-back-top" onClick={() => { setStep(1); reveal(levelsHeading.current); }}><ArrowUp size={15}/> Back to experience level</button>
     </section>

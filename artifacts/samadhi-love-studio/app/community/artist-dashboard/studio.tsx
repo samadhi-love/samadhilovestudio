@@ -36,7 +36,7 @@ export function ArtistConsole({ studioHref, moderator, selectedRecording }: { st
       </section>
       <p className="muted">These totals cover your Community releases. Share totals add up distinct attributed listeners per song.</p>
       <ArtistProfile key={data.profile?.id ?? "new"} profile={data.profile} resource={resource}/>
-      <section className="community-section"><h2>Your recordings</h2><p className="muted">Publishing shares the selected recording in Community with people who can access this site. Private notes, lyrics, mixes, and drafts stay in your workspace.</p>
+      <section className="community-section"><h2>Your recordings</h2><p className="muted">Publishing shares the selected recording in Community with people who can access this site. Private notes, lyrics, mixes, and writing stay in your workspace.</p>
         {ordered.length ? ordered.map(song => <div key={song.songId}><a className="secondary small" href={`${studioHref}?studio=songs&song=${encodeURIComponent(song.songId)}`}>Open Song actions in Your songs</a><ReleaseEditor song={song} focused={song === selected} hasProfile={!!data.profile} resource={resource}/></div>) :
           <p className="empty">Save a clean song with audio in Song Library to publish it here.</p>}
       </section>

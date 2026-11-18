@@ -7,7 +7,7 @@ import { DraftRecoveryProvider, RecoveryPanel, recoveryStore, useDraftRecovery }
 
 const delay = (ms = 25) => new Promise(resolve => setTimeout(resolve, ms));
 
-test("device recovery isolates accounts, flushes navigation changes, and requires explicit restoration", async () => {
+test("writing resumes silently, isolates accounts, flushes navigation, and preserves unusable copies", async () => {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: "https://studio.test" });
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
   const { createRoot } = await import("react-dom/client");
@@ -40,25 +40,26 @@ test("device recovery isolates accounts, flushes navigation changes, and require
   assert.equal(copy!.value.text, "Unfinished lyrics"); assert.equal(await copy!.value.blob!.text(), "original take");
   await mount("account-b"); assert.equal(controls!.recovery.candidate, null); assert.equal(document.getElementById("value")!.textContent, ""); await unmount();
   await mount("account-a");
-  assert(controls!.recovery.candidate); assert.equal(controls!.recovery.ready, false);
-  assert.equal(document.getElementById("value")!.textContent, "");
+  assert.equal(controls!.recovery.candidate,null); assert.equal(controls!.recovery.ready, true);
+  assert.equal(document.getElementById("value")!.textContent, "Unfinished lyrics");
+  assert.equal(document.querySelector(".recovery-status"),null);
   await act(async () => { await delay(450); });
   assert.equal((await recoveryStore<Value>("account-a:test-writing", "read"))!.value.text, "Unfinished lyrics");
   await act(async () => controls!.recovery.recover());
   assert.equal(document.getElementById("value")!.textContent, "Unfinished lyrics"); assert.equal(controls!.recovery.candidate, null);
   await unmount();
-  await mount("account-a", true); await act(async () => controls!.recovery.recover());
-  assert(controls!.recovery.candidate); assert.match(controls!.recovery.status, /source is unavailable/); await unmount();
+  await mount("account-a", true);
+  assert.equal(controls!.recovery.candidate,null);assert(controls!.recovery.ready);assert.match(controls!.recovery.status, /source is unavailable/); await unmount();
   await mount("account-a");
-  // A failed deletion must preserve the offered recovery record and show the error.
+  // A failed checkpoint write keeps the previous device data without a prompt.
   const request = indexedDB.open("samadhi-love-recovery-v1", 1);
   const database = await new Promise<IDBDatabase>((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
   const prototype = Object.getPrototypeOf(database), originalTransaction = prototype.transaction;
   prototype.transaction = () => { throw new Error("quota/storage unavailable"); };
-  await act(async () => controls!.recovery.clear()); assert(controls!.recovery.candidate); assert.match(controls!.recovery.status, /storage unavailable/);
+  await act(async () => controls!.recovery.clear());assert.equal(controls!.recovery.candidate,null);assert.match(controls!.recovery.status, /storage unavailable/);
   prototype.transaction = originalTransaction; database.close();
   await act(async () => { controls!.update({ text: "" }); await controls!.recovery.clear(); });
-  await unmount(); assert.equal(await recoveryStore("account-a:test-writing", "read"), undefined);
+  await unmount(); assert.equal((await recoveryStore("account-a:test-writing", "read"))?.inactive,true);
   dom.window.close();
 });
 

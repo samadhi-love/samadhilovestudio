@@ -69,7 +69,7 @@ test("caption-ready lyric drafting and audio creation use the same prompt-based 
   try{
     await act(async()=>h.root.render(<CaptionReadyCreate provider={{connected:true} as ElevenLabsKey} generate={async input=>{createdDuration=Number(input.duration);approved=String(input.lyrics);createdOpening=String(input.openingMode);return undefined;}} done={()=>{}} connect={()=>{}} audit={false} changeAudit={()=>{}} drafts={[]}/>));
     await h.select("direct");await h.input(document.querySelector("textarea")!,"A 4-minute joyful song");
-    await act(async()=>h.button("Draft lyrics with ElevenLabs").click());assert.equal(draftDuration,240);assert.equal(draftOpening,"direct");
+    await act(async()=>h.button("Write lyrics with ElevenLabs").click());assert.equal(draftDuration,240);assert.equal(draftOpening,"direct");
     const approve=[...document.querySelectorAll('input[type="checkbox"]')].find(i=>i.parentElement?.textContent?.includes("I approve")) as HTMLInputElement;
     await act(async()=>approve.click());await act(async()=>h.button("Generate song + prepare lyric video").click());
     assert.equal(createdDuration,240);assert.equal(createdOpening,"direct");assert.equal(approved,lyrics);

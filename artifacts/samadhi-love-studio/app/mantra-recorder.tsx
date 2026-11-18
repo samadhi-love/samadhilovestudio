@@ -108,7 +108,6 @@ export function MantraRecorder({ active, disabled, device, onCapture, save, open
   stopRef.current=()=>stop();
   async function start(kind:CaptureKind) {
     if(busy||phase!=="idle"||savingRef.current)return;
-    if(recovery.candidate){setError("Restore or dismiss the previous device draft before making a new recording.");return;}
     const previous=kind==="phrase"?phrase:performance;
     if(previous&&!confirm(`Replace this device's ${kind}? Download or save it first. The other recording stays untouched.`))return;
     const token=++operation.current;

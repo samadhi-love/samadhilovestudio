@@ -25,7 +25,7 @@ export function MusicWorkflow({ songs, open }: { songs: Song[]; open: (step: Wor
   return <div className="music-tools">
     <header className="page-title"><div className="page-title-copy"><p className="eyebrow">{brand.name} · PRODUCTION</p><h1><Layers3 size={26}/> Project Workflow</h1><p>Take an idea from its first sketch through production and release. Jump to the stage you need.</p></div></header>
     <section className="section">
-      <HelpField label="Working song" tip="Select a song to carry its notes or recording into compatible tools. An empty selection opens the tool on its own."><select value={selected} onChange={event => setSelected(event.target.value)}><option value="">New idea or browse tools</option>{songs.map(item => <option key={item.id} value={item.id}>{item.name}{item.creationDraft ? " · Draft" : ""}</option>)}</select></HelpField>
+      <HelpField label="Working song" tip="Select a song to carry its notes or recording into compatible tools. An empty selection opens the tool on its own."><select value={selected} onChange={event => setSelected(event.target.value)}><option value="">New idea or browse tools</option>{songs.filter(item=>!["account-writing-simple","account-writing-custom"].includes(item.id)||!!item.audioFormat).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></HelpField>
       <div className="music-grid">{steps.map(([id, label, tip], index) => <article key={id} className="music-card version-preview">
         <p className="eyebrow">{String(index + 1).padStart(2, "0")} / {label.toUpperCase()}</p><p>{tip}</p>
         <button type="button" className="secondary small" onClick={() => open(id, song)}>Open {label} <ArrowRight size={14}/></button>

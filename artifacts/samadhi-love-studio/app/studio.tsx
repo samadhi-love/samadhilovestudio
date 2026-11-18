@@ -25,7 +25,7 @@ import { isStudio } from "./studio-validation";
 import { mergeSavedSong, syncSongSource } from "./song-save-merge";
 import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
-import {claimAutomaticSongRecovery} from "./song-recovery-session";
+import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
 import { HelpControl, HelpField } from "./help-tip";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
@@ -181,16 +181,16 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   }
   const [recoveringSongs,setRecoveringSongs]=useState(false);
   async function recoverUnfinishedSongs(automatic=false){
-    if(recoveringSongs||saving||pendingSave.current||hasDraft.current){setError("Save your current edits before recovering unfinished songs.");return;}
+    if(recoveringSongs||saving||pendingSave.current||hasDraft.current)return;
     if(automatic&&!claimAutomaticSongRecovery(workspaceId))return;
-    setRecoveringSongs(true);setError("");
+    setRecoveringSongs(true);
     try{
       const response=await fetch("/api/studio/recover-songs",{method:"POST",headers:{"Content-Type":"application/json","X-Studio-Workspace":workspaceId},body:"{}"});
       const result=await response.json() as {error?:string;recovery?:{pending:number}};
       if(!response.ok)throw new Error(result.error??"Recovery could not finish. Your recordings are preserved.");
       await load();
-      if(result.recovery?.pending)setError("Some recordings still need recovery. Your audio is preserved; try again shortly.");
-    }catch(error){setError(error instanceof Error?error.message:"Recovery could not finish.");}
+      if(result.recovery?.pending){retryAutomaticSongRecovery(workspaceId);console.warn("Some saved recordings are still awaiting automatic recovery; audio is preserved.");}
+    }catch{retryAutomaticSongRecovery(workspaceId);console.warn("Automatic song recovery did not finish; existing recordings are preserved.");}
     finally{setRecoveringSongs(false);}
   }
   useEffect(() => { void load(); }, []);
@@ -271,11 +271,14 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     }, message, next));
   }
   async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
-    return saveRequest("/api/studio/create", {
+    try{const result=await saveRequest("/api/studio/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }, message, undefined, throwOnError);
+    if(!result)retryAutomaticSongRecovery(workspaceId);
+    return result;
+    }catch(error){retryAutomaticSongRecovery(workspaceId);throw error;}
   }
   const saveSong = (song: Song, message = "Song saved") => commit({ ...data, songs: data.songs.map(s => s.id === song.id ? song : s) }, message);
   async function saveMelodyReference(songId:string,blob:Blob,durationSeconds:number){
@@ -453,7 +456,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     if(creating){setToast("Let this creation finish saving before opening another song.");return;}
     setSelected(id); setTab(next); window.scrollTo(0, 0);
   }
-  function newSong(template = "") { if(creating){setToast("Let this creation finish saving first.");return;} if (captureActive.current) { setToast("Stop the take before starting a song."); return; } if (hasDraft.current && !confirm("Start a new song and discard unsaved changes?")) return; setError(""); setChosenTemplate(template); setModal("new"); }
+  function newSong(template = "") { if(creating){setToast("Let this creation finish saving first.");return;} if (captureActive.current) { setToast("Stop the take before starting a song."); return; } if(view==="overview"&&!pane&&!selected&&!template){window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:workspaceId,source:"header"}}));return;} if (hasDraft.current && !confirm("Start a new song and discard unsaved changes?")) return; setError(""); setChosenTemplate(template); setModal("new"); }
   async function createSong(name: string, templateId: string, genres: string[], stylePrompt = "") {
     const song = songFromStarter(uid(), name, data.songs.length, songTemplates.find(t => t.id === templateId), genres, stylePrompt);
     if (await commit({ ...data, songs: [song, ...data.songs] }, "New song created")) { setModal(null); setView("songs"); openSong(song.id); return true; }
@@ -536,7 +539,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   }
   const modalTitle = modal === "tour"?"Quick tour":modal === "sections"?"Edit audio · crop, cut & join":modal === "stems-midi"?"Stems & MIDI":modal === "logo"?"Logo Creator":modal === "cover"?"Create / animate cover":modal === "connections" ? "Settings" : modal === "new" ? "Start a song" : modal === "upload" ? (uploadTarget ? (uploadTarget.audioFormat ? "Replace audio" : "Attach audio") : "Upload song") : modal === "help" ? "Studio guide" : "Song template";
   const song = data.songs.find(s => s.id === selected && !s.deletedAt);
-  const library = sortSongs(data.songs.filter(s => !s.deletedAt));
+  const library = sortSongs(data.songs.filter(s => !s.deletedAt&&(!["account-writing-simple","account-writing-custom"].includes(s.id)||!!s.audioFormat)));
   const cleanLibrary = library.filter(song => !isExplicitSong(song));
   const videoDraft = data.songs.find(song => song.id === lyricSongId && song.creationDraft && !song.deletedAt && !isExplicitSong(song));
   const visibleLibrary = explicitView ? library.filter(isExplicitSong) : cleanLibrary;
@@ -588,7 +591,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
           save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></PanelErrorBoundary>}
         {loaded && vocalOpened && <PanelErrorBoundary panel="record" visible={view==="vocal-studio"&&!song&&!pane}><VocalStudio active={view === "vocal-studio" && !song} saving={saving} initialSongId={workflowSong} input={vocalInput}
-          projects={data.songs.filter(s => !s.deletedAt && !isExplicitSong(s))} songs={data.songs.filter(s => s.audioFormat && !s.deletedAt && !isExplicitSong(s))}
+          projects={cleanLibrary} songs={cleanLibrary.filter(s=>s.audioFormat)}
           onCapture={active => { captureActive.current = active; setCapturing(active); }}
           publish={async (file, title, projectId, sessionId) => (await sendAudio(file, title, null, undefined, projectId, sessionId))?.songId}
           sendMix={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
@@ -601,7 +604,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         {pane ? null : !loaded ? <div className="empty">{error ? "Your studio is temporarily unavailable." : "Opening your studio…"}</div> : song ?
           <SongEditor key={song.id} release={<section className="panel form-panel song-release-step" data-testid="section-song-release"><h2>Export & release tools</h2><ReleaseTools initialSongId={song.id} songs={cleanLibrary} saving={saving} save={saveSong}/><h2>Artist publishing</h2><p className="muted">Nothing is published until you confirm it here.</p>{song.creationDraft?<p className="muted">Move this creation to Your songs before publishing.</p>:<ArtistConsole key={song.id} studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName} selectedRecording={song.id}/>}</section>} songs={data.songs} saveProject={saveSong} openRelated={id => { if (navigate("songs")) openSong(id); }} song={song} tab={tab} setTab={setTab} saving={saving} remix={() => remix(song)} stemsConnected={elevenLabs.connected} mixStems={archive=>{ if(navigate("multitrack")) setMixInput({blob:archive,title:song.name+" stems",projectId:projectRoot(data.songs,song).id,kind:"stems"}); }} vocalStudio={() => { if (navigate("vocal-studio")) setWorkflowSong(song.id); }} folders={folders} save={saveSong} copy={copy} back={() => navigate(song.creationDraft ? "create" : "songs", song.creationDraft)} template={editTemplate} onDirty={dirty => { hasDraft.current = dirty; }} attach={() => openUpload(song)} lyricVideo={() => { setLyricSongId(song.id); navigate("lyric-video"); }}
             remove={async value => { if (await saveSong({ ...(value??song), deletedAt: new Date().toISOString() }, "Song deleted · recoverable for 14 days")) { hasDraft.current = false; navigate("songs"); } }}/>
-        : view === "meditative-vibes" ? <MeditativeVibes workspaceId={workspaceId} saving={saving} projects={data.songs.filter(s => !s.deletedAt && !s.projectId && !s.example && !isExplicitSong(s))}
+        : view === "meditative-vibes" ? <MeditativeVibes workspaceId={workspaceId} saving={saving} projects={cleanLibrary.filter(s => !s.projectId && !s.example)}
           dirty={active => { hasDraft.current = active; }} persistBusy={active => { pendingSave.current = active; setSaving(active); }}
           saveAudio={async (file, title, projectId) => !!(await sendAudio(file, title, null, undefined, projectId))}
           sendMix={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }} recordVoice={() => navigate("recording")} useInSong={idea => sendToCreate({ idea })}/>
@@ -682,7 +685,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             <GenrePicker label="Explore genres" value={tag ? [tag] : []} single allowCustom={false} extraOptions={allTags} change={next=>{setTag(next[0]??"");setQuery("");setStage("");navigate("songs");}}/>
           </Section>}
         </> : view === "songs" ? <>
-          <PageTitle icon={<ListMusic/>} title="Your songs" subtitle="Every song you make becomes a star. Private until you choose to share." action={<div className="actions">{uploadButton}<button type="button" disabled={recoveringSongs||saving} onClick={()=>void recoverUnfinishedSongs()}>{recoveringSongs?"Recovering…":"Recover unfinished songs"}</button></div>}/>
+          <PageTitle icon={<ListMusic/>} title="Your songs" subtitle="Every song you make becomes a star. Private until you choose to share." action={<div className="actions">{uploadButton}</div>}/>
           <div className="chips library-scope">
             <button className={`chip ${!explicitView && !archiveView ? "active" : ""}`} aria-pressed={!explicitView && !archiveView} onClick={() => { setExplicitView(false); setArchiveView(false); setTag(""); }}>Active creations</button>
             <HelpControl subject="Needs cleanup" tip="View songs flagged by the clean-content check so you can review and edit them."><button className={`chip ${explicitView && !archiveView ? "active" : ""}`} aria-pressed={explicitView && !archiveView} onClick={() => { setExplicitView(true); setArchiveView(false); setTag(""); }}>Needs review</button></HelpControl>
@@ -693,7 +696,6 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           <div className="filters"><label className="search"><Search size={18}/><input aria-label="Search songs" placeholder="Search titles, lyrics, prompts, and tags…" value={query} onChange={e => setQuery(e.target.value)}/>{query && <button aria-label="Clear search" onClick={() => setQuery("")}><X size={16}/></button>}</label>
             <select aria-label="Filter by stage" value={stage} onChange={e => setStage(e.target.value)}><option value="">All stages</option>{stages.map(s => <option key={s}>{s}</option>)}</select></div>
           <div className="actions library-organization">
-            <button className={`chip ${draftsOnly?"active":""}`} aria-pressed={draftsOnly} onClick={()=>setDraftsOnly(!draftsOnly)}>Writing &amp; unfinished</button>
             <label>Sort<select aria-label="Sort Your songs" value={songSort} onChange={e=>setSongSort(e.target.value as SongSort)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="liked">Liked songs</option></select></label>
             <select aria-label="Filter by folder" value={folderFilter} onChange={e => setFolderFilter(e.target.value)}><option value="">All folders</option>{folders.map(folder => <option value={folder.id} key={folder.id}>{folder.name}</option>)}</select>
             <button className="secondary small" onClick={() => setEditingFolder({ id: "", name: "" })}>New folder</button>
@@ -753,7 +755,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           {data.templates.some(t => t.id === templateEdit.id) && <button type="button" className="secondary danger" disabled={saving} onClick={async () => {
             if (confirm(isStudioPreset(templateEdit.id) ? "Reset this Studio template to its default? Songs created from it will keep their contents." : "Delete this template? Songs created from it will keep their contents.") && await commit({ ...data, templates: data.templates.filter(t => t.id !== templateEdit.id) }, isStudioPreset(templateEdit.id) ? "Studio template reset" : "Template deleted")) setModal(null);
           }}>{isStudioPreset(templateEdit.id) ? "Reset Studio template" : "Delete template"}</button>}</div>
-      </form> : <div className="guide"><p>Start with a blank song or a reusable template. The examples are writing drafts. Open any song to attach a recording, or use Upload song to create a song from a file.</p><p>Use <strong>Save song</strong> to keep your edits. Use <strong>Save version</strong> in Writing to keep a named snapshot of your lyrics or creative prompt.</p><p>Compare directions in Mix lab, then use the release checklist to plan the master, visuals, and promotion.</p><button type="button" className="primary" data-testid="button-restart-tour" onClick={()=>setModal("tour")}>Take the quick tour</button></div>}
+      </form> : <div className="guide"><p>Start with a blank song or a reusable template. Writing returns automatically when you come back. New song clears the form without deleting saved work. Open any song to attach a recording, or use Upload song to create a song from a file.</p><p>Use <strong>Save song</strong> to keep your edits. Use <strong>Save version</strong> in Writing to keep a named snapshot of your lyrics or creative prompt.</p><p>Compare directions in Mix lab, then use the release checklist to plan the master, visuals, and promotion.</p><button type="button" className="primary" data-testid="button-restart-tour" onClick={()=>setModal("tour")}>Take the quick tour</button></div>}
       </PanelErrorBoundary>
     </div></div>}
     {modal==="tour"&&<div className="modal-shade" onClick={event=>{if(event.target===event.currentTarget)finishTour();}}><div className="modal" role="dialog" aria-modal="true" aria-label="Quick tour"><div className="modal-head"><h2>Quick tour</h2><button type="button" className="icon-button" aria-label="Close" onClick={finishTour}><X size={20}/></button></div><StudioQuickTour onDone={finishTour}/></div></div>}
@@ -832,11 +834,11 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
         const text = draft.notes[field];
         const last = versions[field][0];
         if (text === song.notes[field] || !text.trim() || text === last?.text ||
-            versions[field].filter(item => item.label === "Autosaved draft").length >= 24 ||
-            (last?.label === "Autosaved draft" && now - Date.parse(last.date) < 60000)) continue;
-        versions[field] = [{ id: uid(), label: "Autosaved draft", date: new Date(now).toISOString(), text }, ...versions[field]];
+            versions[field].filter(item => ["Autosaved draft","Autosaved writing"].includes(item.label)).length >= 24 ||
+            (last&&["Autosaved draft","Autosaved writing"].includes(last.label) && now - Date.parse(last.date) < 60000)) continue;
+        versions[field] = [{ id: uid(), label: "Autosaved writing", date: new Date(now).toISOString(), text }, ...versions[field]];
       }
-      void autoSave.current({ ...draft, versions }, "Song draft autosaved").then(saved => { if (!saved) { autosaveFailures.current++; attempted.current = ""; } else autosaveFailures.current = 0; });
+      void autoSave.current({ ...draft, versions }, "").then(saved => { if (!saved) { autosaveFailures.current++; attempted.current = ""; } else autosaveFailures.current = 0; });
     }, 2500);
     return () => window.clearTimeout(timer);
   }, [autoInput, cleanDraft, dirty, draft, saving, song.notes, recovery.ready]);
@@ -908,9 +910,9 @@ function VersionPanel({ field, value, versions, edit, copy, save }: {
       <input aria-label={`${title} version name`} placeholder="Name this snapshot" maxLength={80} value={label} onChange={e => setLabel(e.target.value)}/><button className="secondary" disabled={!value.trim()}>Save version</button>
     </form>
     <label className="field">Version history <span className="muted">({versions.length})</span>
-      <select value={version} onChange={e => setVersion(e.target.value)}><option value="">Choose a saved version</option>{versions.map(v => <option key={v.id} value={v.id}>{v.label} · {dateText(v.date)}</option>)}</select>
+      <select value={version} onChange={e => setVersion(e.target.value)}><option value="">Choose a saved version</option>{versions.map(v => <option key={v.id} value={v.id}>{v.label==="Autosaved draft"?"Autosaved writing":v.label} · {dateText(v.date)}</option>)}</select>
     </label>
-    {previous && <div className="version-preview"><pre>{previous.text}</pre><div className="actions"><button className="secondary small" onClick={() => { if (value === previous.text || !value.trim() || confirm("Replace the current draft with this snapshot? Saved versions will stay in history.")) edit(previous.text); }}><ArrowDown size={14}/> Restore to draft</button><button className="text-button" onClick={() => copy(previous.text)}>Copy version</button></div></div>}
+    {previous && <div className="version-preview"><pre>{previous.text}</pre><div className="actions"><button className="secondary small" onClick={() => { if (value === previous.text || !value.trim() || confirm("Replace the current text with this snapshot? Saved versions will stay in history.")) edit(previous.text); }}><ArrowDown size={14}/> Use version</button><button className="text-button" onClick={() => copy(previous.text)}>Copy version</button></div></div>}
   </section>;
 }
 

@@ -7,7 +7,7 @@ export const useRecoveryScope=()=>useContext(Scope);
 export function DraftRecoveryProvider({ scope, children }: { scope: string; children: ReactNode }) {
   return <Scope.Provider value={scope}>{children}</Scope.Provider>;
 }
-export type RecoveryRecord<T> = { version: 1; at: string; value: T };
+export type RecoveryRecord<T> = { version: 1; at: string; value: T; inactive?:boolean };
 function containsBinary(value: unknown): boolean {
   if (value instanceof Blob || value instanceof ArrayBuffer) return true;
   return !!value && typeof value === "object" && Object.values(value).some(containsBinary);
@@ -38,67 +38,83 @@ export async function recoveryStore<T>(key: string, mode: "read" | "write" | "de
 export function useDraftRecovery<T>(name: string, value: T, restore: (value: T) => void | Promise<void>, enabled = true) {
   const scope = useContext(Scope);
   const key = scope ? `${encodeURIComponent(scope)}:${name}` : "";
-  const [candidate, setCandidate] = useState<RecoveryRecord<T> | null>(null);
   const [readyKey, setReadyKey] = useState("");
+  const [localKey,setLocalKey]=useState("");
   const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
   const restoreRef = useRef(restore); restoreRef.current = restore;
   const generation = useRef(0);
+  const writes=useRef(Promise.resolve());
   const snapshots = useRef(new Map<string, { value: T; enabled: boolean; ready: boolean }>());
-  if (key) snapshots.current.set(key, { value, enabled, ready: readyKey === key && !candidate });
+  if (key) snapshots.current.set(key, { value, enabled, ready: readyKey === key });
+  function write(target:string,record:RecoveryRecord<T>){
+    const task=writes.current.catch(()=>{}).then(()=>recoveryStore(target,"write",record)).then(()=>{});
+    writes.current=task;
+    return task;
+  }
   useEffect(() => {
     if (!key) return;
+    const initial=JSON.stringify(value);
     const flush = () => {
       const snapshot = snapshots.current.get(key);
-      if (snapshot?.enabled && snapshot.ready) void recoveryStore(key, "write", { version: 1, at: new Date().toISOString(), value: snapshot.value }).catch(() => {});
+      if (snapshot?.enabled && (snapshot.ready||JSON.stringify(snapshot.value)!==initial)) void write(key, { version: 1, at: new Date().toISOString(), value: snapshot.value }).catch(() => {});
     };
     const hidden = () => { if (document.visibilityState === "hidden") flush(); };
     window.addEventListener("pagehide", flush); document.addEventListener("visibilitychange", hidden);
     return () => { flush(); window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", hidden); };
   }, [key]);
   useEffect(() => {
-    let alive = true; generation.current++; setReadyKey(""); setCandidate(null); setStatus("");
+    let alive = true; const token=++generation.current; setReadyKey("");setLocalKey("");setStatus("");
     if (!key) return;
-    void recoveryStore<T>(key, "read").then(record => {
-      if (!alive) return;
-      if (record?.version === 1 && (containsBinary(record.value) || JSON.stringify(record.value) !== JSON.stringify(snapshots.current.get(key)?.value))) setCandidate(record);
+    const initial=JSON.stringify(snapshots.current.get(key)?.value);
+    void recoveryStore<T>(key, "read").then(async record => {
+      if (!alive||token!==generation.current) return;
+      if(record?.version===1&&!record.inactive){
+        setLocalKey(key);
+        // Late storage reads must never replace text entered since opening.
+        if(JSON.stringify(snapshots.current.get(key)?.value)===initial){
+          try{await restoreRef.current(record.value);}
+          catch(error){
+            // Preserve an unusable old copy privately; it cannot block a form.
+            await write(`${key}:preserved:${record.at}`,record);
+            setStatus(error instanceof Error?error.message:"The previous device copy could not open.");
+          }
+        }
+      }
+      if(!alive||token!==generation.current)return;
       setReadyKey(key);
     }).catch(error => { if (alive) { setReadyKey(key); setStatus(error.message); } });
     return () => { alive = false; generation.current++; };
   }, [key]);
   useEffect(() => {
-    if (!key || readyKey !== key || candidate || !enabled) return;
+    if (!key || readyKey !== key || !enabled) return;
     const token = generation.current;
     const timer = setTimeout(() => {
-      void recoveryStore(key, "write", { version: 1, at: new Date().toISOString(), value }).then(() => {
-        if (token === generation.current) setStatus("Device recovery available");
+      if(token!==generation.current)return;
+      void write(key, { version: 1, at: new Date().toISOString(), value }).then(() => {
+        if (token === generation.current) {setLocalKey(key);setStatus("");}
       }).catch(error => { if (token === generation.current) setStatus(error.message); });
     }, 400);
     return () => clearTimeout(timer);
-  }, [key, readyKey, candidate, value, enabled]);
+  }, [key, readyKey, value, enabled]);
   async function clear() {
     if (!key) return;
     generation.current++;
-    try { await recoveryStore(key, "delete"); setCandidate(null); setStatus(""); }
+    try { await write(key,{version:1,at:new Date().toISOString(),value:snapshots.current.get(key)?.value??value,inactive:true});setStatus(""); }
     catch (error) { setStatus(error instanceof Error ? error.message : "Recovery could not clear."); }
   }
-  async function recover() {
-    if (!candidate || busy) return;
-    setBusy(true);
-    try { await restoreRef.current(candidate.value); setCandidate(null); setStatus("Draft restored. Review it before saving to your account."); }
-    catch (error) { setStatus(error instanceof Error ? error.message : "This draft could not restore. The recovery copy is preserved."); }
-    finally { setBusy(false); }
+  function reset(next:T){
+    void restoreRef.current(next);
+    if(!key)return Promise.resolve();
+    generation.current++;
+    const prior=snapshots.current.get(key)?.value;
+    snapshots.current.set(key,{value:next,enabled:true,ready:true});
+    setReadyKey(key);setLocalKey(key);setStatus("");
+    // New song changes the current form, not the old private recording/text.
+    if(prior!==undefined)void write(`${key}:preserved:${new Date().toISOString()}:${crypto.randomUUID()}`,{version:1,at:new Date().toISOString(),value:prior}).catch(()=>{});
+    return write(key,{version:1,at:new Date().toISOString(),value:next}).catch(error=>{setStatus(error instanceof Error?error.message:"Writing could not save on this device.");});
   }
-  return { candidate, ready: !!key && readyKey === key && !candidate, status, busy, recover, clear };
+  return { value,scope,candidate:null, ready: !key || readyKey === key, hasLocal:!!key&&localKey===key,status,busy:false,recover:async()=>{},clear,reset };
 }
 
-export function RecoveryPanel({ recovery }: { recovery: ReturnType<typeof useDraftRecovery> }) {
-  if (!recovery.candidate && !recovery.status) return null;
-  return <aside className="notice recovery-status" aria-label="Draft recovery">
-    {recovery.candidate && <><p>A draft from {new Date(recovery.candidate.at).toLocaleString()} is available on this device.</p>
-      <div className="actions"><button type="button" className="secondary small" disabled={recovery.busy} onClick={() => void recovery.recover()}>Restore draft</button>
-      <button type="button" className="text-button" disabled={recovery.busy} onClick={() => { if (confirm("Discard this recovery copy? Your account's saved project is unchanged.")) void recovery.clear(); }}>Keep current version</button></div></>}
-    {recovery.status && <p role="status">{recovery.status}</p>}
-    <small>Recovery stays on this device. Save your project to sync it to your account.</small>
-  </aside>;
-}
+/** Compatibility component: writing is resumed automatically, never prompted. */
+export function RecoveryPanel<T>(_props: { recovery: ReturnType<typeof useDraftRecovery<T>> }) {return null;}

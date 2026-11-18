@@ -146,7 +146,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
       {status.saved && <>
         <button type="button" className="secondary" disabled={busy} onClick={() => { setStep(null); setReconnecting(true); setMessage(""); }}>Reconnect</button>
         <button type="button" className="text-button danger" disabled={busy} onClick={async () => {
-          if (!confirm("Disconnect ElevenLabs from this Studio? Your songs and drafts will stay here.")) return;
+          if (!confirm("Disconnect ElevenLabs from this Studio? Your songs and writing will stay here.")) return;
           setMessage("");
           if (await update("DELETE")) { setReconnecting(false); setStep(null); setMessage("ElevenLabs disconnected."); }
         }}>Disconnect</button>
@@ -171,7 +171,7 @@ export function ElevenLabsSettingsPanel({ access, firstSong }: { access: ElevenL
           {step === 1 && <><p>Paste the key here to connect and store it securely in your private workspace.</p>{keyForm}</>}
           {step === 2 && <><p>Run the free account check below, then review all three feature results. Some permissions may say Not verified because ElevenLabs does not expose them in a read-only account response. No composition, alignment or stem processing runs during this check.</p>
             <div className="actions">{testButton}</div></>}
-          {step === 3 && <p>Open Create and choose an experience level if prompted. Enter a title, describe the song, add lyrics if you have them, and choose a length. Click <strong>Generate track</strong> when ready. ElevenLabs may use credits. Your track will appear in Creation Drafts.</p>}
+          {step === 3 && <p>Open Create, describe the song, add lyrics if you have them, and choose a length. Click <strong>Generate track</strong> when ready. ElevenLabs may use credits. Your track saves automatically to Your songs.</p>}
           <div className="actions">
             {step > 0 && <button type="button" className="secondary" disabled={busy} onClick={() => goToStep(step - 1)}>Back</button>}
             {step < 3 && <button type="button" className="primary" disabled={busy || (step === 1 && !status.saved) || (step === 2 && !testedMusic)} onClick={() => goToStep(step + 1)}>Continue</button>}

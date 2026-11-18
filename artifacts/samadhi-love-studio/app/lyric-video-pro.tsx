@@ -532,6 +532,7 @@ function LyricVideoProContent(props: Props) {
     void loadVersions(song.id);
   }, [song?.id, mode === "classic"]);
   async function loadVersions(id: string, cursor?: string) {
+    const openedSignature=current.current?signature(current.current):"";
     const historyRequest = ++versionsRequest.current;
     setVersionsBusy(true); setVersionsError("");
     try {
@@ -554,12 +555,17 @@ function LyricVideoProContent(props: Props) {
             );
             if (raw) {
               const local = JSON.parse(raw);
+              if(isLyricProject(local)&&signature(local)!==signature(current.current!))
+                localStorage.setItem(`samadhi-lyric-recovery:${workspace.current}:${id}:preserved:${crypto.randomUUID()}`,raw);
               if (
                 isLyricProject(local) &&
                 local.pro?.sourceSongId === id &&
-                signature(local) !== signature(current.current!)
+                signature(local) !== signature(current.current!) &&
+                signature(current.current!)===openedSignature &&
+                local.pro?.sourceAudioId===current.current?.pro?.sourceAudioId &&
+                local.pro?.updatedAt===current.current?.pro?.updatedAt
               )
-                setRecovery(local);
+                edit({...local,pro:{...local.pro!,updatedAt:expected.current??undefined}});
             }
           } catch {
             /* Local recovery is optional. */
@@ -675,9 +681,7 @@ function LyricVideoProContent(props: Props) {
       return;
     const key = `samadhi-lyric-recovery:${workspace.current}:${project.pro.sourceSongId}`;
     try {
-      if (signature(project) === savedSignature.current)
-        localStorage.removeItem(key);
-      else localStorage.setItem(key, JSON.stringify(project));
+      localStorage.setItem(key, JSON.stringify(project));
     } catch {
       /* Cloud autosave remains the durable copy. */
     }
@@ -1023,8 +1027,9 @@ function LyricVideoProContent(props: Props) {
     const restored=captionRecovery.window?mergeWindowCaptions(opened.cues,captionRecovery.cues,captionRecovery.window):captionRecovery.cues;
     const next={...opened,cues:restored,pro:{...opened.pro,captionEdit:undefined,alignment:{engine:captionRecovery.engine??"Recovered sync",at:new Date().toISOString(),audioId:opened.pro.sourceAudioId,reviewed:false,warnings:captionRecovery.warnings??[]}}};
     if(!isLyricProject(next)){setError("The recovered captions need a timing review before restoring.");return;}
-    edit(next);setCaptionRecovery(null);void persist(true,"Restored last caption sync");setStatus("Restored your last caption sync. No provider call was made.");
+    edit(next);setCaptionRecovery(null);void persist(true,"Restored last caption sync");
   }
+  useEffect(()=>{if(captionRecovery&&!busy&&!current.current?.cues.length)restoreCaptionSync();},[captionRecovery,busy]);
   async function generateCaptions() {
     const next = current.current;
     if (!next?.pro || !song || busy) return;
@@ -2116,70 +2121,6 @@ function LyricVideoProContent(props: Props) {
                     </button>
                   )}
                 </div>
-                {recovery && (
-                  <div className="lvp-review-warning">
-                    <strong>
-                      Unsaved edits were recovered from this device.
-                    </strong>
-                    <p>
-                      Cloud autosave keeps the saved project; this recovery copy
-                      is scoped to your Studio account on this device.
-                    </p>
-                    <div className="lvp-actions">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          edit({
-                            ...recovery,
-                            pro: {
-                              ...recovery.pro!,
-                              updatedAt: expected.current ?? undefined,
-                            },
-                          });
-                          setRecovery(null);
-                        }}
-                      >
-                        Restore recovered edits
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (recovery.pro && workspace.current)
-                            localStorage.removeItem(
-                              `samadhi-lyric-recovery:${workspace.current}:${recovery.pro.sourceSongId}`,
-                            );
-                          setRecovery(null);
-                        }}
-                      >
-                        Discard device recovery copy
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          downloadBlob(
-                            new Blob(
-                              [
-                                JSON.stringify(
-                                  {
-                                    schema: "samadhi-lyric-video-pro/v1",
-                                    project: recovery,
-                                  },
-                                  null,
-                                  2,
-                                ),
-                              ],
-                              { type: "application/json" },
-                            ),
-                            "recovered-lyric-project.json",
-                          )
-                        }
-                      >
-                        Download recovered project
-                      </button>
-                    </div>
-                  </div>
-                )}
                 {(!song || step === 0) && (
                   <section className="lvp-panel">
                     <h2>
@@ -2299,10 +2240,9 @@ function LyricVideoProContent(props: Props) {
                       </div>
                       <p className="obs-caption-status" role="status" data-testid="status-caption-timing" data-state={!project.cues.length?"none":p.alignment?.reviewed?"reviewed":p.alignment?.engine==="Rough timing"||!p.alignment?"rough":"draft"}>
                         <span aria-hidden="true" className="obs-caption-dot"/>
-                        {!project.cues.length?"No captions yet":p.alignment?.reviewed?"Captions reviewed by you":p.alignment?.engine==="Rough timing"||!p.alignment?"Rough timing · listen and adjust":`Synced draft · ${p.alignment.engine} · needs your review`}
+                        {!project.cues.length?"No captions yet":p.alignment?.reviewed?"Captions reviewed by you":p.alignment?.engine==="Rough timing"||!p.alignment?"Rough timing · listen and adjust":`Synced captions · ${p.alignment.engine} · needs your review`}
                       </p>
                       {p.captionEdit&&<div role="status"><p>Captions moved to your edited song. The changed part ({formatCaptionTime(p.captionEdit.start)}–{formatCaptionTime(p.captionEdit.end)}) needs a quick realign.</p><button type="button" disabled={busy} onClick={()=>void realignChangedPart()}>Realign changed part</button></div>}
-                      {!project.cues.length&&captionRecovery&&<button type="button" disabled={busy} onClick={restoreCaptionSync}>Restore your last caption sync</button>}
                       <audio
                         key={soundtrackUrl}
                         ref={audio}
@@ -3496,7 +3436,7 @@ function LyricVideoProContent(props: Props) {
                           </section>
                           {!p.alignment?.reviewed && (
                             <p className="lvp-note">
-                              This caption draft has not been marked reviewed.
+                              These captions have not been marked reviewed.
                               Listen before publishing.
                             </p>
                           )}

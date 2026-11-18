@@ -170,6 +170,8 @@ test("audio section upload attaches carried captions and saves an untouched old 
 test("landing headline has an actual intervening space and client exposes restore, changed-window and cost confirmation",()=>{
  const landing=readFileSync("app/landing/index.tsx","utf8"),client=readFileSync("app/lyric-video-pro.tsx","utf8");
  assert.match(landing,/Your soul<\/span>\{" "\}<span/);
- assert.match(client,/Restore your last caption sync/);assert.match(client,/Realign changed part/);
+ assert.doesNotMatch(client,/Restore your last caption sync|Restore recovered edits/);
+ assert.match(client,/if\(captionRecovery&&!busy&&!current\.current\?\.cues\.length\)restoreCaptionSync\(\)/);
+ assert.match(client,/Realign changed part/);
  assert.match(client,/window\.start\*decoded\.sampleRate/);assert.match(client,/may cost provider credits/);
 });

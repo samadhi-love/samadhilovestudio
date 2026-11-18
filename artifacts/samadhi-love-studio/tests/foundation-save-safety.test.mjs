@@ -188,13 +188,20 @@ test("automatic recovery runs once per account/session, survives reloads and tol
     assert.equal(recoverySession.claimAutomaticSongRecovery("session-owner"),false);
     const reloaded=await import("../generated-artifacts/tests/foundation/recovery-session.mjs?reload");
     assert.equal(reloaded.claimAutomaticSongRecovery("session-owner"),false);
+    recoverySession.retryAutomaticSongRecovery("session-owner");
+    assert.equal(recoverySession.claimAutomaticSongRecovery("session-owner"),true,"an interrupted creation can silently recover on the next visit");
+    assert.equal(recoverySession.claimAutomaticSongRecovery("session-owner"),false,"a completed scan is still limited to once per session");
     assert.equal(reloaded.claimAutomaticSongRecovery("another-owner"),true);
     Object.defineProperty(globalThis.window,"sessionStorage",{get(){throw new Error("blocked");}});
     assert.equal(reloaded.claimAutomaticSongRecovery("blocked-owner"),true);
     assert.equal(reloaded.claimAutomaticSongRecovery("blocked-owner"),false);
+    reloaded.retryAutomaticSongRecovery("blocked-owner");
+    assert.equal(reloaded.claimAutomaticSongRecovery("blocked-owner"),true,"recovery can retry even when session storage is blocked");
     const studio=readFileSync("app/studio.tsx","utf8");
     assert.match(studio,/if\(automatic&&!claimAutomaticSongRecovery\(workspaceId\)\)return/);
-    assert.match(studio,/onClick=\{\(\)=>void recoverUnfinishedSongs\(\)\}/,"manual retry stays available");
+    assert.doesNotMatch(studio,/Recover unfinished songs/,"paid recovery runs automatically, without a user prompt");
+    assert.match(studio,/if\(!result\)retryAutomaticSongRecovery\(workspaceId\)/);
+    assert.match(studio,/if\(result\.recovery\?\.pending\)\{retryAutomaticSongRecovery\(workspaceId\)/);
   }finally{if(previous)Object.defineProperty(globalThis,"window",previous);else delete globalThis.window;}
 });
 test("legacy account writing saves twice, reloads and saves again; stale second tab conflicts",async()=>{

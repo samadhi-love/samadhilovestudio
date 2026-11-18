@@ -153,9 +153,9 @@ export function CaptionReadyCreate({
               setApproved(false);
             }}
           >
-            <option value="">Choose a song or writing draft…</option>
+            <option value="">Choose a song…</option>
             {drafts
-              .filter((s) => s.notes.lyrics.trim())
+              .filter((s) => s.notes.lyrics.trim()&&(!["account-writing-simple","account-writing-custom"].includes(s.id)||!!s.audioFormat))
               .map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -212,7 +212,7 @@ export function CaptionReadyCreate({
             disabled={!provider.connected || !idea.trim() || seconds===null}
             onClick={draft}
           >
-            Draft lyrics with ElevenLabs
+            Write lyrics with ElevenLabs
           </button>
         </div>
         <label>
@@ -227,7 +227,7 @@ export function CaptionReadyCreate({
               setLyrics(e.target.value);
               setApproved(false);
             }}
-            placeholder="Enter your lyrics or use Draft lyrics above. Keep headings such as [Verse 1] and [Chorus]."
+            placeholder="Enter your lyrics or use Write lyrics above. Keep headings such as [Verse 1] and [Chorus]."
           />
         </label>
         <button type="button" className="secondary small" disabled={busy} onClick={() => { setAutoLength(false); setManualTime("0:15"); }}>

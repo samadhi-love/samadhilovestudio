@@ -79,3 +79,9 @@ Community presentation should emphasise kind reactions without public popularity
 **Why:** The owner explicitly requested “Only kind reactions — no rankings, no noise” and said to keep the underlying data while hiding public metrics.
 
 **How to apply:** Do not reintroduce public competitive scores as decoration or delete the underlying statistics to achieve a simpler presentation.
+
+No draft-recovery prompts or drafts lists for users. Forms quietly keep the latest writing and show it automatically on return. “New song” starts fresh immediately. Paid-song recovery stays, but runs silently and automatically; preserve existing user data.
+
+**Why:** The owner found a repeating recovery notice blocked song creation and confused beginners, and explicitly chose this simpler behaviour.
+
+**How to apply:** Keep device/account saving and paid-result protection behind the scenes. Do not reintroduce restore/dismiss gates or draft-management panels in Create or lyric/video editors. Preserve existing data and backups rather than cleaning them up to remove notices.

@@ -100,7 +100,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
   const recovery=useDraftRecovery("quick-create",{languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
-    if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}if(typeof value.resultId==="string")setResultId(value.resultId);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
+    if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}else{setPhoto(null);setPhotoName("");}setResultId(typeof value.resultId==="string"?value.resultId:undefined);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
     setMakeTwoVersions(value.makeTwoVersions===true);
     const recoveredTakes=Array.isArray(value.melodyTakes)?[...value.melodyTakes]:[];
@@ -109,7 +109,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     setMelodyTakes(recoveredTakes.filter((take:any)=>take&&typeof take.id==="string"&&typeof Blob!=="undefined"&&take.blob instanceof Blob&&Number.isFinite(take.durationSeconds)).map((take:any)=>({...take,durationSeconds:Math.max(1,Math.min(300,Math.round(take.durationSeconds)))})));
     setSongTitle(value.songTitle??"");setVoiceEdit(value.voiceEdit??null);setCustomMode(value.customMode===true);setVocalOptions({...defaultCreatorVocals,...value.vocalOptions});setOwnLyrics(value.ownLyrics===true);setLyrics(typeof value.lyrics==="string"?value.lyrics:"");
     if(validSongMap(value.songMap))setSongMap(value.songMap);setMapEnabled(value.mapEnabled===true);setIdea(value.idea);setChoice(recoverCreateChoice(value.choice));setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto");setGenreEdit(value.genreEdit);setInstrumentsEdit(value.instrumentsEdit);setCodeEdit(value.codeEdit);setAutoGenre(value.autoGenre);setUseHistory(value.useHistory);setFusionName(value.fusionName);setFusionVariation(value.fusionVariation);
-    if(value.pendingTake){if(!(value.pendingTake.blob instanceof Blob))throw new Error("The device recording is unavailable. Check Your songs before retrying.");setPendingTake({...value.pendingTake,url:URL.createObjectURL(value.pendingTake.blob)});}
+    if(value.pendingTake){if(!(value.pendingTake.blob instanceof Blob))throw new Error("The device recording is unavailable. Check Your songs before retrying.");setPendingTake({...value.pendingTake,url:URL.createObjectURL(value.pendingTake.blob)});}else setPendingTake(undefined);
   },!!photo||ownLyrics&&!!lyrics.trim()||mapEnabled||!!idea.trim()||!!pendingTake||melodyTakes.length>0||adMode&&!!(adBrief.brand||adBrief.benefit||adBrief.cta));
   const [proOpen,setProOpen]=useState(seed?.panel==="pro");
   const [promptSearch,setPromptSearch]=useState(""),[favoritePromptsOnly,setFavoritePromptsOnly]=useState(false),[promptName,setPromptName]=useState("");
@@ -173,7 +173,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   const busy = saving || pending || promptBusy;
   async function saveMelodyReferencesToSong(songId:string){
     if(!melodyTakes.length)return;
-    if(!saveMelodyReference){setMelodyStatus("The song saved, but its melody takes are still in this local draft because private song storage is unavailable.");return;}
+    if(!saveMelodyReference){setMelodyStatus("The song saved. Its melody takes are still kept on this device because private song storage is unavailable.");return;}
     const remaining=[...melodyTakes];let saved=0;
     while(remaining.length){
       const take=remaining[0];
@@ -182,7 +182,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
       remaining.shift();saved++;setMelodyTakes([...remaining]);
     }
     if(!remaining.length)setMelodyStatus(`Saved ${saved} private melody reference${saved===1?"":"s"} with the song. They were not sent to ElevenLabs.`);
-    else setMelodyStatus(`Saved ${saved} reference${saved===1?"":"s"}; ${remaining.length} take${remaining.length===1?" remains":"s remain"} in this local draft. Check Your songs before retrying.`);
+    else setMelodyStatus(`Saved ${saved} reference${saved===1?"":"s"}; ${remaining.length} take${remaining.length===1?" remains":"s remain"} on this device. Check Your songs before retrying.`);
   }
   async function savePending(t:NonNullable<typeof pendingTake>){
     const id=await saveSketch(new File([t.blob],"quick-studio-sketch.wav",{type:"audio/wav"}),t.title,t.prompt,t.code,t.take,t.saveId);
@@ -227,7 +227,18 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     setCustomMode(true);
     setPromptNotice("Saved lyrics and musical directions loaded. Create makes a new song.");
   }
-  const writingStatus=useAccountWriting("simple",{title:songTitle.trim()||"Writing draft",prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}});
+  const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
+  function startFresh(broadcast=true){
+    const blank:Parameters<typeof recovery.reset>[0]={languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:false,melodyTakes:[],pendingTake:undefined};
+    void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
+    if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
+    setPlayStage("start");setPreviousChoices(null);setError("");setPromptNotice("");setMelodyStatus("");setRecipeId("");setOpenPanel("");
+  }
+  const freshCreateRef=useRef(()=>{});freshCreateRef.current=()=>startFresh(false);
+  useEffect(()=>{
+    const fresh=(event:Event)=>{const detail=(event as CustomEvent).detail;if(detail?.scope===recovery.scope&&detail.source!=="quick")freshCreateRef.current();};
+    window.addEventListener("versual:new-song",fresh);return()=>window.removeEventListener("versual:new-song",fresh);
+  },[recovery.scope]);
   const promptLibraryItems=savedPrompts.filter(t=>!readStyleDNA(t)&&(!favoritePromptsOnly||t.favorite)&&
     (!promptSearch.trim()||[t.name,t.description,...t.tags,...Object.values(t.notes)].some(text=>text.toLowerCase().includes(promptSearch.trim().toLowerCase()))));
 
@@ -237,8 +248,6 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
     if (mode.blocked) { setError(instrumental?"Instrumentals need a connected music account. Connect it, or turn off Instrumental.":"Singing needs a connected music account. Connect your music account to create this song."); return; }
     if (simple&&!idea.trim()) { setError("Describe your song first: what it is about, plus any genre, mood or language you want."); return; }
     if (customMode&&!idea.trim()&&!useOwnLyrics&&!genre.trim()) { setError("Add lyrics, styles or a short description before creating."); return; }
-    if(recovery.candidate){setError("Restore the previous device draft or dismiss its recovery notice before creating another.");return;}
-    if(pendingTake){setError("Save your pending instrumental below before creating another. Your original is preserved.");return;}
     if(mapOn&&!validSongMap(songMap)){setError("Check the song map tempo and section durations before creating.");return;}
     if(!adActive&&(!mapOn||songTiming.explicit)&&songTiming.overLimit){setError("This prompt needs more than ten minutes in one generation. Request a shorter song or assemble a longer set in Party Files.");return;}
     if(localSketch&&timing.seconds>360){setError("Local instrument sketches support six minutes. Choose a shorter length.");return;}
@@ -297,10 +306,10 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
   return <section className="create-banner quick-create nebula-forge" data-playful={playful} aria-labelledby="quick-create-heading">
     <RecoveryPanel recovery={recovery}/>
     {writingStatus.status&&<small role="status">{writingStatus.status}</small>}
-    {writingStatus.available&&<button type="button" className="text-button" onClick={writingStatus.open}>Open saved writing draft</button>}
     <div className="eyebrow"><Sparkles size={15}/> {brand.name} · THE NEBULA FORGE</div>
     <span className="forge-glow" aria-hidden="true"/>
     <h1 id="quick-create-heading">Begin a song</h1>
+    <button type="button" className="secondary small" disabled={busy} onClick={()=>startFresh()}>New song</button>
     <p className="forge-sub">Describe it, write it, or hum it. Nothing is sent until you press Create.</p>
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>
@@ -357,7 +366,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
           <label className="field qc-field">Lyrics
             <div className="lyric-section-chips" role="group" aria-label="Add song part">{["Intro","Verse","Pre-Chorus","Chorus","Bridge","Outro"].map(section=><button key={section} type="button" className="chip" data-testid={`chip-lyric-${section.toLowerCase().replace(/[^a-z]+/g,"-")}`} disabled={instrumental} onClick={()=>addLyricSection(section)}>[{section}]</button>)}</div>
             <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"Instrumental is on. Your lyrics are kept for later.":"Write your own lyrics, or leave empty and lyrics are written for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setError("");}}/>
-            <small className="muted">{instrumental?"Instrumental: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Empty: lyrics are written automatically."} Lyrics autosave as a recoverable draft on this device.</small></label>
+            <small className="muted">{instrumental?"Instrumental: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Empty: lyrics are written automatically."} Your writing is kept automatically.</small></label>
           <p className="muted lyric-section-tip">Intro sets the scene; verses tell the story; pre-chorus builds; chorus repeats the main hook; bridge adds contrast; outro closes the song.</p>
           {useOwnLyrics && <LyricNotationPreview text={lyrics}/>}
           </details>
@@ -439,7 +448,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
         </div>
         <aside className="forge-side" aria-label="Hum and recipes">
           {simple&&<div className="forge-hum-card">
-          <MelodyReferenceRecorder disabled={busy} takes={melodyTakes} onTake={(blob,seconds)=>{setMelodyTakes(current=>[...current,{id:crypto.randomUUID(),blob,durationSeconds:seconds}]);setMelodyStatus("Take recorded. It stays private and will be attached to the saved song; it is not sent to ElevenLabs.");}} onRemove={id=>{setMelodyTakes(current=>current.filter(take=>take.id!==id));setMelodyStatus("Melody take removed from this local draft.");}}/>
+          <MelodyReferenceRecorder disabled={busy} takes={melodyTakes} onTake={(blob,seconds)=>{setMelodyTakes(current=>[...current,{id:crypto.randomUUID(),blob,durationSeconds:seconds}]);setMelodyStatus("Take recorded. It stays private and will be attached to the saved song; it is not sent to ElevenLabs.");}} onRemove={id=>{setMelodyTakes(current=>current.filter(take=>take.id!==id));setMelodyStatus("Melody take removed from this song idea.");}}/>
           {melodyStatus&&<p role="status" data-testid="text-melody-reference-status">{melodyStatus}</p>}
           </div>}
         {recipes.length>0&&<div className="qc-recipes" data-testid="section-recipes">
@@ -460,7 +469,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
       </fieldset>
     </form>
     {proProduction&&<details className="qc-fold qc-pro" data-testid="fold-pro-production" hidden={!customMode} open={proOpen} onToggle={e=>setProOpen((e.currentTarget as HTMLDetailsElement).open)}>
-      <summary>Pro production · sections, instrumentals, voices and saved drafts</summary>
+      <summary>Pro production · sections, instrumentals and voices</summary>
       {proProduction}
     </details>}
     {pendingTake&&<div className="quick-result"><strong>{pendingTake.title} · Not saved yet</strong><AudioPlayer src={pendingTake.url} label="Listen to pending instrumental"/><div className="actions"><a className="secondary small" href={pendingTake.url} download={pendingTake.title+".wav"}>Download original</a><button type="button" className="primary small" disabled={busy} onClick={async()=>{setPending(true);try{await savePending(pendingTake);}finally{setPending(false);}}}>Retry save to Your songs</button><button type="button" className="secondary small" disabled={busy} onClick={()=>{if(confirm("Discard this local take? Download it first if you want a copy. No saved song will be deleted.")){setPendingTake(undefined);setError("");}}}>Discard unsaved take</button></div></div>}
