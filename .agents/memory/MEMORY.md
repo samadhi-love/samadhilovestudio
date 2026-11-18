@@ -11,3 +11,4 @@
 - [Per-song cutover safety](per-song-cutover.md) — Legacy backups freeze after copy; confirm sibling-app writers before live cutover and never equate local checks with production.
 - [Verified production origin](first-publish-origin.md) — Owner approved the verified deployment origin in production settings; the earlier pending-origin instruction is superseded.
 - [Large video safety](large-video-safety.md) — Full-length exports must stay disk-backed; offline codec fakes do not prove native encoding or phone playback.
+- [Production auth coverage](production-auth-coverage.md) — Development keys and a healthy storage endpoint do not verify live-key server-rendered pages.
