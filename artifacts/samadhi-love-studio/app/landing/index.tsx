@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Disc3, Play, Sparkles } from "lucide-react";
 import { brand } from "../brand";
+import { DivineSpark } from "../cosmic-channel";
 import { useCommunityResource } from "../community/client";
 import { artistHref, communityApi, songHref, type CommunityData, type Release } from "../community/data";
 import { CommunityPlayer } from "../community/player";
@@ -202,6 +203,8 @@ export function VersualLanding() {
       <section className="vl-band" aria-label={brand.slogan}>
         {phrases.map((p, n) => <span key={p} className={tones[n % 3]}>{p}</span>)}
       </section>
+
+      <DivineSpark variant="banner"/>
 
       <section className="vl-section"><Quotes reduced={reduced}/></section>
 

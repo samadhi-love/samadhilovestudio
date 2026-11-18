@@ -32,6 +32,18 @@ const render=()=>renderToStaticMarkup(React.createElement(VersualLanding));
 const parse=()=>new JSDOM(render()).window.document;
 const release=n=>({id:`song-${n}`,title:`Published song ${n}`,artist:{id:`artist-${n}`,name:n===1?"ليلى & نور":`Artist ${n}`},releasedAt:n,art:n,tags:["Oud Fusion"],stats:{listens:0,reactions:{like:0,love:0,inspired:0}},inspirational:false,comments:false});
 
+test("the compact welcome appears once directly between the slogan band and quotes",()=>{
+  feed({releases:[]});const doc=parse(),banner=doc.querySelector(".divine-spark--banner");
+  assert.equal(doc.querySelectorAll(".divine-spark").length,1);
+  assert.equal(doc.querySelector(".vl-band").nextElementSibling,banner);
+  assert.ok(banner.nextElementSibling.querySelector("blockquote"));
+  for(const line of [
+    "Welcome to SAMADHI LOVE",
+    "A UNIQUE CREATIVE PLATFORM WHERE MUSIC, POSITIVE VIBES AND FREQUENCY MEET",
+    "♫ ✧ ❨ Music is for the soul ❩ ✧ ♫",
+  ])assert.equal(doc.body.textContent.split(line).length-1,1,line);
+});
+
 test("shared identity comes from one config and describes the product",async()=>{
   const source=JSON.parse(await readFile(path.join(root,"brand.json"),"utf8"));
   assert.deepEqual(brand,source);assert.ok(Object.isFrozen(brand));

@@ -1,3 +1,5 @@
+import { useId } from "react";
+import "./divine-spark-banner.css";
 const affirmations = ["I AM THE SOUL.", "I AM THE LIGHT DIVINE.", "I AM LOVE", "I AM WILL", "I AM FIXED DESIGN", "I AM THE MONAD", "I AM THE LIGHT DIVINE", "I AM LOVE", "I AM WILL", "I AM FIXED DESIGN"];
 
 function Geometry({ variant = 0 }: { variant?: number }) {
@@ -28,31 +30,35 @@ export function CosmicChannel() {
   </aside>;
 }
 
-export function DivineSpark() {
-  return <section className="divine-spark about-samadhi welcome-samadhi" aria-label="Welcome to SAMADHI LOVE">
+export function DivineSpark({ variant }: { variant?: "banner" } = {}) {
+  const uid = useId().replace(/:/g, "");
+  const banner = variant === "banner";
+  const ocean = `welcome-ocean-${uid}`, night = `welcome-night-${uid}`, globe = `welcome-globe-${uid}`, headingId = `welcome-heading-${uid}`;
+  const notes = banner ? ["♪", "♫", "♬", "♩"] : ["♪", "♫", "♬", "♩", "♫", "♪", "♬", "♬", "♩", "♪", "♫", "♬", "♫", "♪"];
+  return <section className={`divine-spark about-samadhi welcome-samadhi${banner ? " divine-spark--banner" : ""}`} aria-labelledby={headingId}>
     <div className="welcome-cosmos" aria-hidden="true">
       <span className="welcome-ringed-planet"/>
-      <svg className="welcome-earth" viewBox="0 0 120 120" fill="none">
+      <svg className="welcome-earth" viewBox="0 0 120 120" fill="none" aria-hidden="true" focusable="false">
         <defs>
-          <radialGradient id="welcome-ocean" cx=".28" cy=".25" r=".8"><stop stopColor="#7ce7ee"/><stop offset=".4" stopColor="#187ea8"/><stop offset="1" stopColor="#06152d"/></radialGradient>
-          <radialGradient id="welcome-night" cx=".25" cy=".2" r=".8"><stop offset=".25" stopColor="#071322" stopOpacity="0"/><stop offset="1" stopColor="#010811" stopOpacity=".92"/></radialGradient>
-          <clipPath id="welcome-globe"><circle cx="60" cy="60" r="51"/></clipPath>
+          <radialGradient id={ocean} cx=".28" cy=".25" r=".8"><stop stopColor="#7ce7ee"/><stop offset=".4" stopColor="#187ea8"/><stop offset="1" stopColor="#06152d"/></radialGradient>
+          <radialGradient id={night} cx=".25" cy=".2" r=".8"><stop offset=".25" stopColor="#071322" stopOpacity="0"/><stop offset="1" stopColor="#010811" stopOpacity=".92"/></radialGradient>
+          <clipPath id={globe}><circle cx="60" cy="60" r="51"/></clipPath>
         </defs>
         <circle cx="60" cy="60" r="55" fill="#68d8ff" fillOpacity=".07"/>
-        <g clipPath="url(#welcome-globe)">
-          <circle cx="60" cy="60" r="51" fill="url(#welcome-ocean)"/>
+        <g clipPath={`url(#${globe})`}>
+          <circle cx="60" cy="60" r="51" fill={`url(#${ocean})`}/>
           <path d="m51 12 11 3 3 8 12 2 6 7 16-2 14 14-13 8-12-5-9 4-3 10-8 1-6-7-8-1-8-10-9 1-2-7 12-6-3-7 7-4ZM48 48l14 2 8 8 12 2 4 10-10 8-4 17-9 10-7-11-2-14-8-7-5-14ZM23 10l8 5-5 12-8 5-3-12Z" fill="#83b18c"/>
           <path d="M17 40c17-12 24-3 36-7s18-7 33-3M28 78c15 9 20 2 31 7m16-34c11 2 17 10 29 7" stroke="#e0f8fa" strokeOpacity=".5" strokeWidth="4" strokeLinecap="round"/>
-          <circle cx="60" cy="60" r="51" fill="url(#welcome-night)"/>
+          <circle cx="60" cy="60" r="51" fill={`url(#${night})`}/>
         </g>
         <circle cx="60" cy="60" r="51" stroke="#b3f3ff" strokeOpacity=".42"/>
       </svg>
     </div>
-    <div className="welcome-note-field" aria-hidden="true">{["♪", "♫", "♬", "♩", "♫", "♪", "♬", "♬", "♩", "♪", "♫", "♬", "♫", "♪"].map((note, index) => <span key={index}>{note}</span>)}</div>
+    <div className="welcome-note-field" aria-hidden="true">{notes.map((note, index) => <span key={index}>{note}</span>)}</div>
     <div className="about-samadhi-copy">
-      <h2 className="glitter-words">Welcome to SAMADHI LOVE</h2>
+      <h2 id={headingId} className="glitter-words">Welcome to SAMADHI LOVE</h2>
       <div className="welcome-message"><Geometry/><p>A UNIQUE CREATIVE PLATFORM WHERE MUSIC, POSITIVE VIBES AND FREQUENCY MEET</p><Geometry variant={1}/></div>
-      <p className="welcome-soul"><span aria-hidden="true">♫ ✧ </span>❨ Music is for the soul ❩<span aria-hidden="true"> ✧ ♫</span></p>
+      <p className="welcome-soul">♫ ✧ ❨ Music is for the soul ❩ ✧ ♫</p>
     </div>
   </section>;
 }

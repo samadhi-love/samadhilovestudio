@@ -1,5 +1,7 @@
 # Latest update — the cosmic Studio (owner review; not published)
 
+**Compact welcome update:** DivineSpark now reuses its artwork in a slim banner after the landing slogan and on Create only in both modes, preserving all three lines exactly; passed 19/19 cosmic tests, 12/12 landing tests, 47/47 Studio groups plus the supplemental offline suites, API security, whole-workspace typecheck and build; no publishing.
+
 The existing Studio now matches the space-themed home page. This was a
 presentation and wording update, not a replacement app or a new music engine.
 

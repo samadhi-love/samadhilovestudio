@@ -26,6 +26,8 @@ await build({
     export {SongCard,SongHubProvider} from "./app/song-card";
     export {VideoFormatPicker} from "./app/video-format-picker";
     export {FlowerOfLife} from "./app/cosmic-flower-of-life";
+    export {DivineSpark} from "./app/cosmic-channel";
+    export {StudioWelcome} from "./app/studio-welcome";
     export {freshSong} from "./app/studio-data";
     export {screens,screenHome} from "./app/studio-routes";
     export {brand} from "./app/brand";`,resolveDir:root,loader:"tsx"},
@@ -48,6 +50,60 @@ const el=React.createElement,noop=()=>{};
 const render=(Component,props={})=>renderToStaticMarkup(el(Component,props));
 const domOf=(Component,props)=>new JSDOM(render(Component,props));
 const source=file=>readFile(path.join(root,"app",file),"utf8");
+const welcomeLines=[
+  "Welcome to SAMADHI LOVE",
+  "A UNIQUE CREATIVE PLATFORM WHERE MUSIC, POSITIVE VIBES AND FREQUENCY MEET",
+  "♫ ✧ ❨ Music is for the soul ❩ ✧ ♫",
+];
+
+test("Create shows the three exact welcome lines once in Simple and Advanced views",async()=>{
+  for(const beginner of [true,false]){
+    const doc=new JSDOM(renderToStaticMarkup(el("main",{"data-simple":beginner},
+      el(ui.StudioWelcome,{view:"overview",visible:true}),
+    ))).window.document;
+    assert.equal(doc.querySelectorAll(".divine-spark--banner").length,1);
+    for(const line of welcomeLines)assert.equal(doc.body.textContent.split(line).length-1,1);
+    assert.equal(doc.querySelector(".welcome-note-field").textContent,"♪♫♬♩");
+    assert.equal(doc.querySelectorAll(".welcome-message .sacred-symbol").length,2);
+  }
+  const studio=await source("studio.tsx");
+  assert.equal((studio.match(/<StudioWelcome\b/g)??[]).length,1);
+  assert.match(studio,/<StudioWelcome view=\{view\} visible=\{loaded && !song && !pane && !modal\}/);
+  assert.doesNotMatch(studio,/<DivineSpark\b/);
+});
+test("other Studio screens and obscured Create states never mount the old welcome",()=>{
+  for(const screen of ui.screens){
+    const html=render(ui.StudioWelcome,{view:ui.screenHome[screen],visible:true});
+    assert.equal(html.includes(welcomeLines[0]),screen==="create",screen);
+  }
+  for(const view of ["create","prompt-lab","vocal-director","templates"])
+    assert.equal(domOf(ui.StudioWelcome,{view,visible:true}).window.document.querySelectorAll(".divine-spark--banner").length,1);
+  assert.equal(render(ui.StudioWelcome,{view:"overview",visible:false}),"");
+});
+test("reused welcome artwork has unique references when rendered twice",()=>{
+  const doc=new JSDOM(renderToStaticMarkup(el(React.Fragment,null,
+    el(ui.DivineSpark,{variant:"banner"}),el(ui.DivineSpark,{variant:"banner"}),
+  ))).window.document;
+  const ids=[...doc.querySelectorAll("[id]")].map(node=>node.id);
+  assert.equal(ids.length,new Set(ids).size);
+  for(const section of doc.querySelectorAll(".divine-spark--banner")){
+    assert.equal(section.querySelector("h2").id,section.getAttribute("aria-labelledby"));
+    for(const node of section.querySelectorAll("[fill],[clip-path]"))
+      for(const attr of ["fill","clip-path"]){
+        const match=node.getAttribute(attr)?.match(/^url\(#(.+)\)$/);
+        if(match)assert.ok([...section.querySelectorAll("[id]")].some(target=>target.id===match[1]));
+      }
+  }
+});
+test("welcome banner defines compact layout, phone stacking and full reduced-motion opt-out",async()=>{
+  const css=await source("divine-spark-banner.css");
+  assert.match(css,/min-height:110px/);
+  assert.match(css,/#ffe9a8/);
+  assert.match(css,/@media\s*\(max-width:700px\)[\s\S]*flex-direction:column/);
+  assert.match(css,/@media\s*\(prefers-reduced-motion:reduce\)[\s\S]*::before[\s\S]*::after[\s\S]*animation:none!important/);
+  assert.match(css,/divine-banner-spin/);
+  assert.match(css,/divine-banner-float/);
+});
 const navProps={activeView:"overview",owner:false,navigate:()=>true,settings:noop,guide:noop};
 const song=(id,name,date)=>({...ui.freshSong(id,name,0),createdAt:date,audioId:`audio-${id}`,audioFormat:"mp3"});
 

@@ -31,7 +31,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
 import { audioAccept, audioFormatsLabel, artNames, emptyNotes, fields, freshSong, initialStudio, isAudioFormat, maxAudioBytes, songAudioUrl, stages, styles, tasks, type Field, type Folder, type Mix, type Song, type Studio, type Template } from "./studio-data";
 
-import { DivineSpark } from "./cosmic-channel";
+import { StudioWelcome } from "./studio-welcome";
 import { ElevenLabsSettingsPanel, useElevenLabsKey } from "./elevenlabs-key";
 import { isInstrumental, type Instrumental } from "./creation-guide";
 import { InstrumentalExports, SeparatedStems } from "./production-exports";
@@ -565,7 +565,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         {loaded && !song && !pane && <ScreenSections activeView={view} navigate={navigate} beginner={beginner}/>}
         {loaded&&<PanelErrorBoundary panel="studio"><JobStatus completed={refreshCompletedJobs}/></PanelErrorBoundary>}
         {loaded && !song && pane==="plan-credits" && <PanelErrorBoundary panel="plan-credits"><PlanCreditsScreen tab={planTab} setTab={t=>{setPlanTab(t);try{window.history.replaceState(null,"",`${window.location.pathname}?studio=plan-credits&section=${t}`);}catch{}}} owner={!creatorName} signOut={signOut}/></PanelErrorBoundary>}
-        {!beginner && <DivineSpark/>}
+        <StudioWelcome view={view} visible={loaded && !song && !pane && !modal}/>
         {error && !modal && (view !== "create" || !!song) && <div className="notice" role="alert">{error}{!loaded && <button onClick={load}>Retry</button>}</div>}
         {loaded && <PanelErrorBoundary panel="explore" visible={view==="radio"&&!song&&!pane}>
           {view === "radio" && !song && !pane && <ExploreScreen tab={exploreTab} setTab={t=>{setExploreTab(t);try{window.history.replaceState(null,"",`${window.location.pathname}?studio=explore${t==="radio"?"":"&section="+t}`);}catch{}}} signOut={signOut} owner={!creatorName}/>}
