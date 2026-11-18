@@ -3,6 +3,9 @@ import { StudioErrorBoundary } from "./studio-error-boundary";
 import "./globals.css";
 import { CosmicChannel } from "./cosmic-channel";
 import { StudioAuthProvider } from "./auth-provider";
+import {headers} from "next/headers";
+import {serverStorage} from "./server/storage";
+import {authRequestHostname} from "./server/auth-hostname";
 import "./cosmic-channel.css";
 import "./studio-theme.css";
 import "./radio-scenes.css";
@@ -27,6 +30,7 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body><StudioAuthProvider><StudioErrorBoundary>{children}</StudioErrorBoundary><CosmicChannel/></StudioAuthProvider></body></html>;
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const serverHostname=authRequestHostname(await headers(),serverStorage.STUDIO_PUBLIC_ORIGIN);
+  return <html lang="en"><body><StudioAuthProvider serverHostname={serverHostname}><StudioErrorBoundary>{children}</StudioErrorBoundary><CosmicChannel/></StudioAuthProvider></body></html>;
 }

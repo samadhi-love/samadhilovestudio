@@ -1,4 +1,21 @@
-# Storage, draft-sync and full-song export safeguards — November 17, 2026
+# Production sign-in startup correction — November 17, 2026
+
+Fixed the production-only `Host must not be empty` page-render crash. The root
+layout now supplies a trusted server hostname from the configured public origin
+(or the preview request when no origin is configured). Clerk resolves its key
+during rendering instead of module import; the browser still uses its own
+hostname. The proxy, managed credentials, sign-in routes and appearance are
+unchanged. Visitor-supplied forwarded hosts cannot override the configured
+production origin.
+
+Verification passed: **62/62 authentication/provider tests**, including **eight
+new offline regression tests** using synthetic test/live keys and the actual
+homepage/sign-in page inside the actual root layout. Full workspace typecheck
+and build passed. Network was blocked during the server-render tests.
+No publishing, real-account sign-in/OAuth testing, secret changes, domain or
+billing changes were performed. A real deployment retry remains owner-controlled.
+
+# Earlier storage, draft-sync and full-song export safeguards — November 17, 2026
 
 - Paid audio storage now tries the same private R2 key up to three times, then
   a separate recovery key. This never repeats the ElevenLabs request. If
@@ -29,10 +46,10 @@ are not verified by offline fixtures. Safe exports require writable browser
 storage; the original decoded soundtrack still occupies memory. No live
 storage checks, paid calls, publishing, domain or billing changes were run.
 
-**Separate deployment observation:** logs for an earlier attempt at 00:30 UTC
+**Earlier deployment observation (now diagnosed above):** logs for an earlier attempt at 00:30 UTC
 on November 18 report `Host must not be empty` during server rendering.
-This request did not trigger a publish or diagnose that separate error;
-passing offline checks do not establish that a new deployment will start.
+The later approved correction and offline reproduction are described above.
+Passing offline checks still do not establish that a new deployment will start.
 
 # Earlier approved foundation repairs — November 17, 2026
 

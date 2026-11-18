@@ -4,11 +4,6 @@ import { ClerkProvider } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { dark } from "@clerk/themes";
 
-const clerkPubKey = publishableKeyFromHost(
-  typeof window === "undefined" ? "" : window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
-
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 const origin = typeof window === "undefined" ? "" : window.location.origin;
@@ -59,7 +54,13 @@ const clerkAppearance = {
   },
 };
 
-export function StudioAuthProvider({ children }: { children: ReactNode }) {
+export function StudioAuthProvider({ children,serverHostname }: { children: ReactNode;serverHostname:string }) {
+  // Client components are also evaluated during server rendering. Resolve per
+  // render, using the trusted server hostname instead of inventing an empty one.
+  const clerkPubKey = publishableKeyFromHost(
+    typeof window === "undefined" ? serverHostname : window.location.hostname,
+    import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+  );
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
