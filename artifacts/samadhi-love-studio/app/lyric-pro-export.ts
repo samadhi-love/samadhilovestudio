@@ -1,7 +1,7 @@
 import type { VideoFormat } from "./lyric-video-data";
 import { exportShort } from "./short-export";
 import {videoFrameSize} from "./video-format-options";
-import {createVideoFile,assertVideoDuration,codecCompatibility} from "./video-export-storage";
+import {createVideoFile,assertVideoDuration,codecCompatibility,keepScreenAwake} from "./video-export-storage";
 
 export const proVideoSize=videoFrameSize;
 export type ProExportResult = {
@@ -10,8 +10,7 @@ export type ProExportResult = {
   codec: string;
   engine: string;
 };
-export async function exportProVideo(
-  options: {
+type ProExportOptions = {
     audio: AudioBuffer;
     audioUrl: string;
     start: number;
@@ -26,7 +25,23 @@ export async function exportProVideo(
     frameEncodingError?:string;
     preferRecorder?: boolean;
     checkpoint?: {read:(index:number)=>Promise<Blob|undefined>;write:(index:number,blob:Blob)=>Promise<void>};
-  },
+};
+
+/** Keeps the screen on for the whole export so a phone doesn't lock and stop it. */
+export async function exportProVideo(
+  options: ProExportOptions,
+  progress: (fraction: number) => void,
+): Promise<ProExportResult> {
+  const releaseScreen = await keepScreenAwake();
+  try {
+    return await renderProVideo(options, progress);
+  } finally {
+    releaseScreen();
+  }
+}
+
+async function renderProVideo(
+  options: ProExportOptions,
   progress: (fraction: number) => void,
 ): Promise<ProExportResult> {
   const { audio, start, end, intro, outro, format, resolution, signal } =
