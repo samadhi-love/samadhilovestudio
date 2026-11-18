@@ -73,7 +73,7 @@ const mocks = {
   env: "export const env=globalThis.__pro.env;",
   access:
     'export async function privateWorkspace(){return globalThis.__pro.id?{id:globalThis.__pro.id,role:"owner"}:null;}',
-  store: `export const privateHeaders={"Cache-Control":"private,no-store"};export const maxStudioBytes=1500000;export const audioKey=(owner,id)=>'songs/'+encodeURIComponent(owner)+'/'+id;export async function readStudio(id){return id==='owner'?{data:structuredClone(globalThis.__pro.studio),revision:globalThis.__pro.revision}:{data:null,revision:0};}export async function writeStudio(id,revision,content){if(id!=='owner'||revision!==globalThis.__pro.revision)return;globalThis.__pro.studio=JSON.parse(content);return{revision:++globalThis.__pro.revision};}export function saveConflict(){return Response.json({error:'conflict'},{status:409});}`,
+  store: `export const privateHeaders={"Cache-Control":"private,no-store"};export const maxStudioBytes=1500000;export const audioKey=(owner,id)=>'songs/'+encodeURIComponent(owner)+'/'+id;export async function readStudio(id){return id==='owner'?{data:structuredClone(globalThis.__pro.studio),revision:globalThis.__pro.revision}:{data:null,revision:0};}export async function writeStudio(id,revision,content){if(id!=='owner'||revision!==globalThis.__pro.revision)return;const data=JSON.parse(content);if(globalThis.__pro.failFinalSave&&data.songs.some(s=>s.generation?.status==='complete'&&globalThis.__pro.studio.songs.find(old=>old.id===s.id)?.generation?.status==='generating'))return;globalThis.__pro.studio=data;return{revision:++globalThis.__pro.revision};}export function saveConflict(){return Response.json({error:'conflict'},{status:409});}`,
   vault:
     'export async function resolveElevenLabsKey(){return "mock-existing-key";}',
   providerAudio: `export async function sendProviderAudio(audio,format,key,fields,endpoint){globalThis.__pro.providerCalls.push({format,fields,endpoint});return Response.json(globalThis.__pro.providerResult,{status:globalThis.__pro.providerStatus??200});}`,
@@ -622,6 +622,15 @@ const smartCaptions=await clearResponse.json();checked(clearResponse.ok&&smartCa
 state.providerResult={words:[{text:"Clear",start:1,end:1.4},{text:"words",start:1.5,end:2},{text:"from",start:2.1,end:2.5},{text:"our",start:10,end:10.4},{text:"song",start:10.5,end:11}]};
 clearResponse=await sync.POST(request("/api/studio/lyric-sync","POST",{songId:autoCaptionSong.id,audioId:autoCaptionSong.audioId,sourceAudioId:autoCaptionSong.audioId??autoCaptionSong.id,duration:30,mode:"auto"}));
 const pauseCaptions=await clearResponse.json();checked(clearResponse.ok&&pauseCaptions.cues.length===2&&pauseCaptions.cues[0].end===2.5&&pauseCaptions.cues[1].time===10,"automatic Studio alignment leaves a measured instrumental pause between sung phrases");checked(pauseCaptions.cues.map(c=>c.text).join(" ")==="Clear words from our song"&&autoCaptionSong.generation.approvedLyrics===approvedAuto,"pause-aware display grouping preserves every approved word and the saved lyrics");
+state.failFinalSave=true;
+const failedFinalSave=await create.POST(request("/api/studio/create","POST",{action:"song",title:"Recover this recording",prompt:"Warm acoustic song",lyrics:"[Verse]\nA bright new morning",duration:30}));
+checked(failedFinalSave.status===409,"final workspace save failure reports recovery instead of deleting paid audio");
+const unfinished=state.studio.songs.find(s=>s.name==="Recover this recording");
+checked(unfinished?.creationDraft===true,"failed final save preserves the original writing draft");
+checked(files.has(`songs/owner/${unfinished.id}`),"paid audio bytes remain in private R2 after failed final save");
+checked(files.has(`private/recovery/audio/owner/${unfinished.id}.json`),"failed final save has a private recovery receipt");
+checked(files.get(`songs/owner/${unfinished.id}`).customMetadata.recoverable==="1","paid audio metadata provides a second recovery index");
+state.failFinalSave=false;
 console.log(
   JSON.stringify({
     apiChecks: checks,

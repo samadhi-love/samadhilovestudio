@@ -59,14 +59,14 @@ test("startup checks schema and bucket before reconciling stale job records with
   const result = await initializeRuntime(source, a);
   assert.deepEqual(a.calls, ["schema", "head-bucket", "reconcile-stale-jobs"]);
   assert.equal(env.DB, a.DB);
-  assert.equal(result.env.STUDIO_ROW_STORAGE, "verified");
+  assert.equal(result.env.STUDIO_ROW_STORAGE, "legacy");
   assert.equal(result.env.STUDIO_CREDITS_ENABLED, undefined);
   assert.equal(result.env.ELEVENLABS_API_KEY, undefined);
   assert.equal(result.env.STUDIO_BILLING_LAUNCH_APPROVED, undefined);
 });
-test("production cannot be switched back to legacy bundle storage by an environment override",async()=>{
-  const result=await initializeRuntime({...source,STUDIO_ROW_STORAGE:"legacy"},adapters());
-  assert.equal(result.env.STUDIO_ROW_STORAGE,"verified");
+test("owner-approved legacy production saving cannot be switched to per-song mode by an environment override",async()=>{
+  const result=await initializeRuntime({...source,STUDIO_ROW_STORAGE:"verified"},adapters());
+  assert.equal(result.env.STUDIO_ROW_STORAGE,"legacy");
 });
 test("missing schema fails startup without creating tables or checking media", async () => {
   let bucket = false;

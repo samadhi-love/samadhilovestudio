@@ -3,6 +3,18 @@ name: Per-song cutover safety
 description: Why the legacy save backup is frozen and shared-database clients require confirmation before live cutover.
 ---
 
+Current owner decision: "Restore legacy saving as requested." Production must
+use the legacy workspace; preserve per-song tables but do not copy songs or
+activate verified per-song saving without fresh approval. The live database
+was empty when this decision was checked.
+
+**Why:** The owner explicitly chose legacy saving after being told that the
+current code forced per-song saving and background jobs needed compatibility.
+
+**How to apply:** Treat the fresh-start/per-song direction below as historical.
+Preserve both stores. Durable jobs may use empty foreign-key anchor records for
+owned legacy songs, but those anchors are not copied song data or an active store.
+
 Copying an owner to independent song records intentionally freezes that owner's
 legacy studios bundle as a read-only backup. Before a live copy, confirm whether
 the separate sibling app still writes to the same D1 database; older save code

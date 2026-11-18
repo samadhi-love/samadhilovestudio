@@ -38,7 +38,7 @@ async function getVisuals(request:Request) {
   const {jobs} = await listJobs(access.id,song);
   const key = await resolveElevenLabsKey(access.id);
   const assets=await env.BUCKET.list({prefix:prefix(access.id,song),limit:1000,include:["customMetadata","httpMetadata"]} as R2ListOptions);
-  const images=assets.objects.filter(o=>o.customMetadata?.kind==="background"&&visualId(o.key.slice(prefix(access.id,song).length))).map(o=>({id:o.key.slice(prefix(access.id,song).length),label:jobs.find(j=>j.asset===o.key.slice(prefix(access.id,song).length))?.prompt.slice(0,70)??"Uploaded image · "+o.key.split("/").pop()!.slice(0,8)}));
+  const images=assets.objects.filter(o=>o.customMetadata?.kind==="background"&&(!o.customMetadata.generation||jobs.some(j=>j.id===o.customMetadata?.generation&&j.status==="ready"))&&visualId(o.key.slice(prefix(access.id,song).length))).map(o=>({id:o.key.slice(prefix(access.id,song).length),label:jobs.find(j=>j.asset===o.key.slice(prefix(access.id,song).length))?.prompt.slice(0,70)??"Uploaded image · "+o.key.split("/").pop()!.slice(0,8)}));
   return json({configured:!!key,jobs:jobs.map(publicJob),images});
 }
 
@@ -141,12 +141,13 @@ async function postVisuals(request:Request) {
       // Stream the short clip into R2: never materialize 120 MB inside a Worker.
       const pipe=media.body.pipeThrough(bounded).pipeTo(stream.writable);
       await Promise.all([pipe,bucket.put(asset,stream.readable,{httpMetadata:{contentType:mime},customMetadata:{song:song.id,kind:job.mode==="image"?"background":"sourceVideo",source:job.source,createdAt:job.createdAt,generation:job.id}})]);
-      if(!size||!visualSignature(header,mime)){await bucket.delete(asset);throw new Error();}
+      if(!size||!visualSignature(header,mime))throw new Error();
       // Recheck deletion/ownership after a long provider download; never resurrect removed project data.
-      if(!await ownedSong(access.id,song.id)){await bucket.delete(asset);throw new Error();}
+      if(!await ownedSong(access.id,song.id))throw new Error();
       job={...job,status:"ready",asset:job.id,mime,error:undefined};
     } catch {
-      await bucket.delete(asset).catch(()=>{});
+      // Preserve paid bytes even when ownership recheck or final metadata save
+      // fails. The durable provider job can import again without a new charge.
       job={...job,status:"pending",error:"Your visual was generated, but its private copy could not finish. Check again to retry the download without paying for another generation."};
     }
     await bucket.put(recordKey,JSON.stringify(job),{onlyIf:{etagMatches:lock.etag},httpMetadata:{contentType:"application/json"}});

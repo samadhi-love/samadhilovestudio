@@ -162,7 +162,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setError("");
     try {
       const response = await fetch("/api/studio", { cache: "no-store" });
-      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; workspace?: string } | null;
+      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; workspace?: string;warning?:string } | null;
       if (!response.ok || !result || !Number.isSafeInteger(result.revision))
         throw new Error(result?.error || "The studio could not load. Try again.");
       if (result.data) {
@@ -172,9 +172,26 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       if (result.workspace) setWorkspaceId(result.workspace);
       revisionRef.current=result.revision;setRevision(result.revision);
       setLoaded(true);
+      if(result.warning)setError(result.warning);
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
   }
+  const [recoveringSongs,setRecoveringSongs]=useState(false);
+  async function recoverUnfinishedSongs(){
+    if(recoveringSongs||saving||pendingSave.current||hasDraft.current){setError("Save your current edits before recovering unfinished songs.");return;}
+    setRecoveringSongs(true);setError("");
+    try{
+      const response=await fetch("/api/studio/recover-songs",{method:"POST",headers:{"Content-Type":"application/json","X-Studio-Workspace":workspaceId},body:"{}"});
+      const result=await response.json() as {error?:string;recovery?:{pending:number}};
+      if(!response.ok)throw new Error(result.error??"Recovery could not finish. Your recordings are preserved.");
+      await load();
+      if(result.recovery?.pending)setError("Some recordings still need recovery. Your audio is preserved; try again shortly.");
+    }catch(error){setError(error instanceof Error?error.message:"Recovery could not finish.");}
+    finally{setRecoveringSongs(false);}
+  }
   useEffect(() => { void load(); }, []);
+  useEffect(()=>{
+    if(view==="songs"&&loaded&&workspaceId&&!pendingSave.current&&!hasDraft.current)void recoverUnfinishedSongs();
+  },[view,loaded,workspaceId]);
   const jobCompleted=useRef(()=>{});
   jobCompleted.current=()=>{if(!pendingSave.current&&!hasDraft.current)void load();};
   const refreshCompletedJobs=useRef(()=>jobCompleted.current()).current;
@@ -221,7 +238,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
       const response = await (url === "/api/studio/create" ? productionFetch : fetch)(url, { ...request, headers });
-      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string } | null;
+      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;warning?:string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
       }
@@ -230,7 +247,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         : "The save could not be confirmed. Keep this tab open and retry."));
       const savedData = result.data ?? next;
       if (savedData) {dataRef.current=savedData;setData(savedData);}
-      revisionRef.current=result.revision;setRevision(result.revision); setToast(message); return result;
+      revisionRef.current=result.revision;setRevision(result.revision); setToast(message);
+      if(result.warning)setError(result.warning);
+      return result;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed. Try again.");
       if (throwOnError) throw e;
@@ -658,7 +677,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             <GenrePicker label="Explore genres" value={tag ? [tag] : []} single allowCustom={false} extraOptions={allTags} change={next=>{setTag(next[0]??"");setQuery("");setStage("");navigate("songs");}}/>
           </Section>}
         </> : view === "songs" ? <>
-          <PageTitle icon={<ListMusic/>} title="My Songs" subtitle="Your songs, recordings and writing projects save here privately. Each creation has its own Song actions panel." action={uploadButton}/>
+          <PageTitle icon={<ListMusic/>} title="My Songs" subtitle="Your songs, recordings and writing projects save here privately. Each creation has its own Song actions panel." action={<div className="actions">{uploadButton}<button type="button" disabled={recoveringSongs||saving} onClick={()=>void recoverUnfinishedSongs()}>{recoveringSongs?"Recovering…":"Recover unfinished songs"}</button></div>}/>
           <div className="chips library-scope">
             <button className={`chip ${!explicitView && !archiveView ? "active" : ""}`} aria-pressed={!explicitView && !archiveView} onClick={() => { setExplicitView(false); setArchiveView(false); setTag(""); }}>Active creations</button>
             <HelpControl subject="Needs cleanup" tip="View songs flagged by the clean-content check so you can review and edit them."><button className={`chip ${explicitView && !archiveView ? "active" : ""}`} aria-pressed={explicitView && !archiveView} onClick={() => { setExplicitView(true); setArchiveView(false); setTag(""); }}>Needs review</button></HelpControl>

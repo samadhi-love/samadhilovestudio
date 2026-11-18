@@ -193,16 +193,19 @@ r=await audio.POST(localRequest());check(r.ok&&state.studio.songs.filter(s=>s.id
 const unlisted=[];state.env.DB={prepare(sql){return{bind(...args){return{async run(){unlisted.push({sql,args});return{meta:{changes:1}};}};}};}};
 const sharingKey="song-sharing/owner/"+local.id+".json";await bucket.put(sharingKey,JSON.stringify({token:"a".repeat(64)}));
 data=structuredClone(state.studio);data.songs.find(s=>s.id===local.id).deletedAt=new Date().toISOString();r=await put(data);
-check(JSON.parse(new TextDecoder().decode(files.get(sharingKey).data)).token===null,"Archive revokes unlisted links before storing archived metadata");
+check(JSON.parse(new TextDecoder().decode(files.get(sharingKey).data)).token===null,"Archive revokes unlisted links after committing archived metadata");
 check(r.ok&&unlisted.at(-1).args.join("/")==="owner/"+local.id,"Archive unlists only this creator’s selected release");
 r=await audio.GET(request("/api/studio/audio?song="+local.id,"GET"));check(r.status===404,"archived recordings are unavailable from the active audio endpoint");
 data=structuredClone(state.studio);delete data.songs.find(s=>s.id===local.id).deletedAt;r=await put(data);
 check(JSON.parse(new TextDecoder().decode(files.get(sharingKey).data)).token===null,"Restore keeps revoked listening links unavailable");
 check(r.ok&&unlisted.length===2,"restoration unlists again and cannot silently republish a release");
-check(state.studio.songs.find(s=>s.id===local.id).audioId===local.audioId&&files.size===fileCount+1&&files.get(localKey).data.join(",")==="1,2,3,4","Archive and Restore preserve exact original bytes and recording identity");
+check(state.studio.songs.find(s=>s.id===local.id).audioId===local.audioId&&[...files.keys()].filter(k=>!k.startsWith("private/save-effects/")).length===fileCount+1&&files.get(localKey).data.join(",")==="1,2,3,4","Archive and Restore preserve exact original bytes and recording identity while keeping cleanup receipts");
 state.env.DB={prepare(){return{bind(){return{async run(){throw new Error("simulated release storage unavailable");}};}};}};
 data=structuredClone(state.studio);data.songs.find(s=>s.id===local.id).deletedAt=new Date().toISOString();const oldError=console.error;console.error=()=>{};try{r=await put(data);}finally{console.error=oldError;}
-check(r.status===503&&!state.studio.songs.find(s=>s.id===local.id).deletedAt,"failed release unlisting blocks archival without changing the saved song");delete state.env.DB;
+check(r.status===200&&!!state.studio.songs.find(s=>s.id===local.id).deletedAt&&(await r.json()).warning?.includes("cleanup")&&state.studio._saveEffects.length===3,"failed post-commit unlisting preserves the saved archive and reports durable pending cleanup");
+state.env.DB={prepare(sql){return{bind(...args){return{async run(){unlisted.push({sql,args});return{meta:{changes:1}};}};}};}};
+await workspace.GET();check(unlisted.length===3,"reopening the workspace retries the recorded failed unlisting");
+data=structuredClone(state.studio);delete data.songs.find(s=>s.id===local.id).deletedAt;await put(data);delete state.env.DB;
 const beforeDenied=JSON.stringify(state.studio);state.id=null;r=await workspace.GET();check(r.status===401,"unauthenticated workspace read rejected");r=await audio.POST(request("/api/studio/audio","POST",{}));check(r.status===401,"unauthenticated upload rejected");check(JSON.stringify(state.studio)===beforeDenied,"denied requests leave all data unchanged");state.id="owner";
 r=await audio.POST(new Request("https://studio.test/api/studio/audio",{method:"POST",headers:{Origin:"https://studio.test","X-Studio-Deletion-Policy":"14-days-v1","X-Audio-Format":"wav","X-Audio-Size":String(96*1024*1024+1)},body:new Uint8Array([1]),duplex:"half"}));check(r.status===413,"oversize audio rejected before storage");
 r=await audio.POST(new Request("https://studio.test/api/studio/audio",{method:"POST",headers:{Origin:"https://studio.test","X-Studio-Deletion-Policy":"14-days-v1","X-Audio-Format":"wav","X-Audio-Size":"1","X-Studio-Clean-Audio":"1","X-Song-Title":"Mix","X-Studio-Revision":String(state.revision),"X-Project-Song-Id":"somebody-elses-project"},body:new Uint8Array([1]),duplex:"half"}));check(r.status===400,"unknown/foreign project linkage rejected");

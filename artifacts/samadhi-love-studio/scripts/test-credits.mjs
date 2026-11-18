@@ -84,7 +84,7 @@ await ledger.assignBeta(owner.id,"creator",owner.id,crypto.randomUUID());await l
 const generationRequest=()=>request("/api/studio/create",{action:"song",title:"Original credit test",prompt:"Uplifting original instrumental",instrumental:true,duration:240},{"X-Production-Id":crypto.randomUUID(),"X-Studio-Credits-Accepted":"72"});
 let rendered=await context.run(owner,()=>creation.POST(generationRequest()));
 check(rendered.ok&&wallet(owner.id).balance===228,"actual creation route saves output then finalizes the credit reservation");
-check(globalThis.__credits.lastProviderKey==="fixture-only-never-sent"&&globalThis.__credits.files.size===1,"actual creation route uses only the configured business key and saves one owned recording");
+check(globalThis.__credits.lastProviderKey==="fixture-only-never-sent"&&[...globalThis.__credits.files.keys()].filter(k=>k.startsWith("songs/")).length===1&&[...globalThis.__credits.files.keys()].some(k=>k.startsWith("private/recovery/audio/")),"actual creation route uses only the configured business key and saves one owned recording with a recovery receipt");
 globalThis.__credits.failGeneration=true;rendered=await context.run(owner,()=>creation.POST(generationRequest()));
 check(rendered.status===502&&wallet(owner.id).balance===228,"actual provider rejection in creation restores credits");
 check(globalThis.__credits.studio.songs.some(song=>song.generation?.status==="incomplete"),"failed generation preserves approved writing drafts alongside refunded usage");

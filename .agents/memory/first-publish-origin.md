@@ -1,17 +1,20 @@
 ---
-name: First-publish origin reminder
-description: The app is unpublished; origin is pending, not a prerequisite for development/storage setup.
+name: Verified production origin
+description: Only configure a real production origin after verifying deployment metadata or explicit owner authorization.
 ---
 
-The user said: "The app is NOT published yet, so there is no production HTTPS
+Historical instruction: "The app is NOT published yet, so there is no production HTTPS
 origin. Leave that setting empty/pending for now and continue setup with the
 other values ... Make sure the app still runs in development without it.
 Remind me to add the origin right after the first publish."
 
-**Why:** the user asked; no production address exists yet.
+The owner later explicitly approved setting the production-only origin to
+the existing deployment URL. Deployment metadata confirmed that URL, although
+the deployment had not yet had a successful build. The earlier instruction to
+leave the origin pending is superseded.
 
-**How to apply:** do not invent a public origin or block local preview/storage
-diagnostics on it. Immediately after the first publish, obtain the actual
-published URL using the deployment tools and remind the owner to set
-`STUDIO_PUBLIC_ORIGIN` to that HTTPS origin. Do not guess it from development
-domains or the separately owned domain. Keep production origin validation strict.
+**Why:** the owner approved production configuration before their own publish.
+
+**How to apply:** do not invent an origin from development domains or the separately
+owned domain. Keep origin validation strict and use production-scoped settings.
+Do not describe the origin as pending after its authorized configuration.

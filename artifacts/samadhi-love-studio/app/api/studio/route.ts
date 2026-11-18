@@ -1,7 +1,8 @@
 import {normalizeSongDeletion,deletionDeadline,songDependsOn} from "../../song-deletion";
 import { isSectionDirections } from "../../song-section-directions";
 import { serverStorage as env } from "../../server/storage";
-import { revokeSongShare } from "../../song-sharing";
+import {privacyEffects,finishPrivacyEffects} from "../../server/save-safety";
+import {changedCleanField} from "../../changed-clean-fields";
 import { stampSong } from "../../song-library";
 import { maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "./store";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "../../clean-content";
@@ -22,13 +23,15 @@ export async function GET() {
   const access = await privateWorkspace();
   if (!access) return Response.json({ error: "Sign in to open your studio." }, { status: 401 });
   try {
+    let warning="";
     let current = await readStudio(access.id);
     if(current.data?.songs.some(song=>song.deletedAt&&deletionDeadline(song)===null)){
       const next={...current.data,songs:current.data.songs.map(song=>song.deletedAt&&deletionDeadline(song)===null?normalizeSongDeletion(song,song):song)};
       const saved=await writeStudio(access.id,current.revision,JSON.stringify(next));
       if(!saved)return saveConflict();current=await readStudio(access.id);
     }
-    return Response.json({ ...(access.role === "creator" && !current.data ? { ...current, data: emptyCreatorStudio } : current), workspace: access.id }, options);
+    if(await finishPrivacyEffects(access.id,current.data))warning="Your workspace is saved. Sharing cleanup is pending and will retry when you reopen My Songs.";
+    return Response.json({ ...(access.role === "creator" && !current.data ? { ...current, data: emptyCreatorStudio } : current), workspace: access.id,...(warning?{warning}:{}) }, options);
   } catch (error) {
     console.error("Studio load failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     return Response.json({ error: "The studio could not load. Try again." }, { ...options, status: 503 });
@@ -57,14 +60,14 @@ async function putWorkspace(request: Request) {
   if (data.songs.some(song => song?.lyricVideo !== undefined && !isLyricProject(song.lyricVideo)))
     return Response.json({ error: "Check the lyric lines and timing before saving." }, { status: 400 });
   if (data.songs.some(song => song?.sectionDirections !== undefined &&
-    (!isSectionDirections(song.sectionDirections) || song.sectionDirections.some(section => hasExplicitWords(section.genre, section.instruments, section.voice)))))
+    !isSectionDirections(song.sectionDirections)))
     return Response.json({ error: "Check the genres and vocal directions for each song section." }, { status: 400 });
   const previous = await readStudio(id);
   if(data._storage&&previous.data)Object.assign(data,await rebaseUnchanged(data,previous.data));
    if (!data._storage && previous.revision !== revision) return saveConflict();
   const previousSongs = new Map((previous.data?.songs ?? []).map(song => [song.id, song]));
   for (const song of data.songs) {
-    if (song.releaseMetadata !== undefined && (!validReleaseMetadata(song.releaseMetadata) || hasExplicitWords(...Object.values(song.releaseMetadata))))
+    if (song.releaseMetadata !== undefined && !validReleaseMetadata(song.releaseMetadata))
       return Response.json({ error: "Check the release credits, ISRC, and UPC fields." }, { status: 400 });
     const old = previousSongs.get(song.id);
     if(song.coverAsset&&song.coverAsset!==old?.coverAsset){const asset=await env.BUCKET?.head(`lyric-assets/${encodeURIComponent(id)}/${song.id}/${song.coverAsset}`);if(!asset||asset.customMetadata?.kind!=="background"||asset.httpMetadata?.contentType!=="image/png")return Response.json({error:"Save an owned PNG cover image before selecting it."},{status:400,...options});}
@@ -90,6 +93,13 @@ async function putWorkspace(request: Request) {
     }
   }catch(error){return Response.json({error:(error as Error).message},{status:409,...options});}
   const previousTemplates = new Map((previous.data?.templates ?? []).map(template => [template.id, template]));
+  for(const song of data.songs){
+    const old=previousSongs.get(song.id);
+    for(const field of ["name","suno","notes","summary","tags","mixes","versions","lyricVideo","sectionDirections","releaseMetadata","logoDesign","musicalAd"] as const){
+      const dirty=changedCleanField(song[field],old?.[field],field);
+      if(dirty)return Response.json({error:`Song "${song.name}": ${cleanWordsMessage} Field: ${dirty}.`,songId:song.id,field:dirty},{status:422,...options});
+    }
+  }
   const dirtyText = (value: unknown, old: unknown, depth = 0): boolean => {
     if (depth > 8) return true;
     if (value === old) return false;
@@ -100,16 +110,7 @@ async function putWorkspace(request: Request) {
   };
   const dirtyNotes = (notes: Record<string, string> | undefined, old: Record<string, string> | undefined) =>
     Object.entries(notes ?? {}).some(([field, value]) => dirtyText(value, old?.[field]));
-  const rejected = data.songs.some(song => {
-    const old = previousSongs.get(song?.id);
-    const cues = song?.lyricVideo?.cues ?? [];
-    const newSnapshots = (["lyrics", "prompt"] as const).some(field => Array.isArray(song?.versions?.[field]) &&
-      song.versions[field].some(version => dirtyText(version?.text, old?.versions?.[field]?.find(item => item.id === version?.id)?.text)));
-    return (song?.explicit === true && old?.explicit !== true) ||
-      dirtyText(song?.logoDesign,old?.logoDesign) || dirtyText(song?.musicalAd,old?.musicalAd) || dirtyText(song?.name, old?.name) || dirtyText(song?.suno, old?.suno) || dirtyNotes(song?.notes, old?.notes) ||
-      dirtyText(song?.summary, old?.summary) || dirtyText(song?.tags, old?.tags) || dirtyText(song?.mixes, old?.mixes) || newSnapshots ||
-      (JSON.stringify(cues) !== JSON.stringify(old?.lyricVideo?.cues ?? []) && cues.some(cue => hasExplicitWords(cue.text)));
-  }) || data.templates.some(template => {
+  const rejected = data.songs.some(song=>song.explicit===true&&!previousSongs.get(song.id)?.explicit) || data.templates.some(template => {
     const old = previousTemplates.get(template?.id);
     return dirtyText(template?.name, old?.name) || dirtyText(template?.description, old?.description) || dirtyText(template?.tags, old?.tags) || dirtyNotes(template?.notes, old?.notes);
   });
@@ -129,15 +130,18 @@ async function putWorkspace(request: Request) {
   }
   // Older clients may omit newly added collections/settings. Omission is not deletion.
   const next = { ...previous.data, ...data, songs, ...(data.discovery === undefined && previous.data?.discovery ? { discovery: previous.data.discovery } : {}) };
+  // Server-owned outbox is committed atomically with the workspace. Never
+  // accept a client's attempt to inject or remove pending privacy actions.
+  Object.assign(next,{_saveEffects:privacyEffects(previous.data,next)});
   const content = JSON.stringify(next);
   if (new TextEncoder().encode(content).length > maxStudioBytes)
     return Response.json({ error: "The studio has reached its storage limit." }, { status: 413 });
   try {
-    // Restoring an archive must never silently republish an earlier release.
-    // Unlist before changing archive state; a failed write is safe to retry.
-    for(const song of songs){const old=previousSongs.get(song.id);if(old&&!!old.deletedAt!==!!song.deletedAt){await revokeSongShare(id,song.id);if(env.DB)await env.DB.prepare("update community_releases set listed = 0 where owner = ? and song_id = ?").bind(id,song.id).run();}}
     const saved = await writeStudio(id, revision, content);
-    return saved ? Response.json(await readStudio(id), options) : saveConflict();
+    if(!saved)return saveConflict();
+    const committed=await readStudio(id);
+    const pending=await finishPrivacyEffects(id,committed.data);
+    return Response.json({...committed,...(pending?{warning:"Your workspace saved. Sharing cleanup is pending and will retry when My Songs loads."}:{})},options);
   } catch (error) {
     console.error("Studio save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     if(error instanceof Error&&/malformed JSON|revision.conflict/i.test(error.message))return saveConflict();

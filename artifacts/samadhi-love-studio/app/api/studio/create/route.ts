@@ -7,6 +7,7 @@ import { performanceWeight, songOpenings, type SongOpening } from "../../../song
 import { withProductionUsage, managedProviderKey, jobExecution } from "../../../credits/production";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { isExplicitSong } from "../../../clean-content";
+import {preservePaidSong} from "../../../server/song-recovery";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
 import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
 import { stampSong } from "../../../song-library";
@@ -324,7 +325,12 @@ async function createMusic(request: Request) {
     draft.updatedAt=new Date().toISOString();
 
     const object = audioKey(id, draft.id);
-    await bucket.put(object, audio, { httpMetadata: { contentType: "audio/mpeg" } });
+    // Write a recovery receipt BEFORE storing paid audio. A failed final
+    // workspace save must never orphan or delete a provider result.
+    try{await preservePaidSong(id,draft);}
+    catch{console.error("Paid recording recovery receipt unavailable",{songId:draft.id,requestId:request.headers.get("X-Production-Id")});}
+    await bucket.put(object, audio, { httpMetadata: { contentType: "audio/mpeg" },
+      customMetadata:{recoverable:"1",songId:draft.id,title:draft.name,createdAt:draft.updatedAt,requestId:request.headers.get("X-Production-Id")??""} });
     const saved = await saveCreation(id, starter, studio => {
       const source = draft.projectId && studio.songs.find(s => s.id === draft.projectId && !s.deletedAt);
       const completed = studio.songs.find(s => s.id === draft.id);
@@ -332,8 +338,7 @@ async function createMusic(request: Request) {
       return { ...studio, songs: source ? attachRenderedMix(studio.songs, source, audioSong) : completed ? studio.songs.map(s => s.id === draft.id ? audioSong : s) : [draft, ...studio.songs] };
     });
     if (saved) return Response.json({ ...saved, songId: draft.id }, options);
-    if(!execution)await bucket.delete(object).catch(() => {});
-    return problem("The recording was generated but could not be saved. Check studio storage before trying again.", 409);
+    return problem("Your recording is safely stored but could not be attached. Open My Songs and choose Recover unfinished songs. Do not generate it again.", 409);
   } catch {
     return preservedProblem("Creation could not finish. Check your drafts and ElevenLabs account before retrying.", 502);
   }

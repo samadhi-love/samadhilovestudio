@@ -23,3 +23,6 @@ timeoutMs = 120000
 
 [userenv.development]
 STUDIO_OWNER_EMAIL = "issame4@gmail.com"
+
+[userenv.production]
+STUDIO_PUBLIC_ORIGIN = "https://samadhi-love-studio.replit.app"

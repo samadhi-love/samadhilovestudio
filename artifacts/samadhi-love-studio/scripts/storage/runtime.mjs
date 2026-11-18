@@ -44,11 +44,10 @@ export async function initializeRuntime(source = process.env, adapters) {
   const BUCKET = adapters?.BUCKET ?? new R2PrivateBucket(config);
   await verifyStorage(DB, BUCKET);
   await recoverStaleJobs(DB);
-  // Production always uses verified per-song rows, including brand-new empty
-  // accounts. Never accept an environment override back to legacy bundle saves.
-  // First saves are verified empty fresh starts, not implicit copy operations.
+  // Owner explicitly restored legacy saving. Per-song data is preserved but
+  // never copied or made active by startup.
   // Production cannot silently activate project-funded generation or billing.
-  const env = { DB, BUCKET, STUDIO_ROW_STORAGE: "verified", STUDIO_OWNER_EMAIL: source.STUDIO_OWNER_EMAIL,
+  const env = { DB, BUCKET, STUDIO_ROW_STORAGE: "legacy", STUDIO_OWNER_EMAIL: source.STUDIO_OWNER_EMAIL,
     STUDIO_ELEVENLABS_VAULT_KEY: config.vault, STUDIO_PUBLIC_ORIGIN: config.publicOrigin,
     STUDIO_CREATOR_BETA: "1" };
   globalThis[Symbol.for("samadhi.node.bindings")] = env;

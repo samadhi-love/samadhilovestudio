@@ -1,4 +1,59 @@
-# Live storage verification — November 17, 2026
+# Approved foundation repairs — November 17, 2026
+
+The owner confirmed **restore legacy workspace saving**. Production now uses
+the `studios` workspace, not verified per-song saving. No song copy or data
+cutover was run. Existing per-song tables and preview songs remain unchanged.
+Jobs create only empty foreign-key anchor rows for owned legacy songs; these
+contain no copied song/lyrics/project data and do not verify an account.
+
+- The deployment service confirmed `https://samadhi-love-studio.replit.app`.
+  `STUDIO_PUBLIC_ORIGIN` is set to that value in the **production** environment;
+  no domain, DNS, billing or publishing changes were made.
+- Before changing D1, recorded a Cloudflare **Time Travel recovery bookmark** at
+  `artifacts/samadhi-love-studio/generated-artifacts/d1-before-foundation-fixes-2026-11-17.json`.
+  This is a point-in-time recovery bookmark subject to Cloudflare retention,
+  not an indefinite SQL export. Do not restore it without explicit approval.
+- Compared the live schema with all ten migration definitions. No application
+  tables, indexes, triggers or views were missing or mismatched. Added only the
+  two missing migration-history entries for 0008 and 0009. The ledger now has
+  **10 entries**; foreign-key violations: **0**. Before the change, all live
+  legacy/per-song/account/job tables contained **0 rows**.
+- Paid music audio is not deleted when the final workspace save fails. A
+  private recovery receipt and a second index on the audio object's metadata
+  retain the song title, reference and audio key. My Songs attempts recovery
+  on entry and has **Recover unfinished songs**. Recovery is owner-scoped,
+  idempotent, preserves edited writing and does not replace a newer recording,
+  resurrect deleted songs, or call a provider. It retries saves on conflicts.
+- Paid visual imports also retain downloaded bytes on failure. Unconfirmed
+  visual imports are not presented as ready images; the existing provider job
+  can retry importing without requesting another paid generation.
+- Archive/restore sharing cleanup now runs **after** a successful workspace
+  commit. Its outbox is saved atomically in that workspace. Failures remain
+  recorded, return a visible warning and retry when the workspace loads;
+  successful cleanup has a private receipt to avoid repeated processing.
+- Clean-word validation on song saves checks changed text fields, not unchanged
+  flagged text elsewhere. Rejections identify the song and field. Publish/share
+  checks remain strict.
+
+**Final verification:** 45/45 Studio verification groups and 27/27 individual
+offline test commands passed (overlapping coverage; 28 successful commands
+including `verify:studio`). The durable-processing command passed 15/15 tests,
+including seven new foundation-safety tests. The actual creation-route fixture
+also passed five new checks for paid audio and recovery receipts after a failed
+final save. Full-workspace dependency checks, typecheck and build passed.
+
+**Local production startup: PASS.** The initial attempt found the preview port
+already occupied. Started the real production entry point on isolated port
+19661 with the approved origin and live D1/private R2 credentials; it bound to
+`0.0.0.0`, completed startup checks, and `/health` returned HTTP 200 with server,
+database and storage all `ok`. Stopped that temporary production process after
+the check, then restarted the normal preview workflows.
+
+No paid provider calls were used. Real paid-output generation/recovery and the
+next deployed build have not been tested live; those were not simulated by
+changing real account data. The owner, not Agent, will trigger publishing.
+
+## Earlier live-check results (superseded where noted above)
 
 Owner-authorized live checks only; no publishing, migrations, paid provider calls
 or user-data changes were made.
@@ -28,12 +83,10 @@ or user-data changes were made.
   instance was started. A separate read-only check found zero active cloud jobs;
   no startup reconciliation was run against them.
 
-**Owner checklist:** Keep `STUDIO_PUBLIC_ORIGIN` pending as previously requested
-while unpublished. Immediately after first publish, set it to the actual HTTPS
-origin without a path, then repeat the production-startup verification. Do not
-invent a production hostname now. No D1/R2 credential replacement is indicated
-by these results. Migration-history reconciliation needs separate approval;
-nothing was migrated during this verification.
+**Historical checklist:** The origin was pending and migration reconciliation
+needed approval at the time of these earlier checks. Both are superseded by
+the approved foundation-repair results above. No D1/R2 credential replacement
+was required.
 
 # Step 3 Part B — saving and recovering work
 
