@@ -84,3 +84,17 @@ mtime_ms = 1795011941362
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/ff1b978c-72eb-44da-8821-04b0624ce5e3/e20f4bfa-a58c-434e-904e-53024142e99c"
 storage_version_token = "1795012046659548"
 content_type = "text/plain"
+
+[[outputs]]
+id = "rwxi6Ria1xgfY-W_bEqzm"
+uri = "file://generated-artifacts/step4-core-verification/full-report.txt"
+type = "text"
+title = "Step 4 verification results and live-test blocker"
+description = "All 40 offline verification commands passed. The real production journey stopped at owner sign-in; paid calls used: zero."
+logical_id = "2d00e03e-5286-4b52-bb65-708bf93f32a5"
+content_hash = "sha256:234a79e6dee31451864a6bd70e4ad1be4dc66c24aa594008a1fcbc5feb4430cf"
+size = 232085
+mtime_ms = 1795015675503
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/2d00e03e-5286-4b52-bb65-708bf93f32a5/2f7b326a-8897-40bc-9f5f-00454a56f1d7"
+storage_version_token = "1795015745574001"
+content_type = "text/plain"
