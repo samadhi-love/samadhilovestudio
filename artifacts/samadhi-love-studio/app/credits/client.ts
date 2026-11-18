@@ -1,6 +1,6 @@
 "use client";
 import type { CreditQuote } from "./data";
-import { waitForJob } from "./job-wait";
+import { JobWaitError, waitForJob } from "./job-wait";
 export async function productionFetch(url: string, init: RequestInit) {
   const input = typeof init.body === "string" ? JSON.parse(init.body) : {};
   let quoted: Response;
@@ -24,7 +24,8 @@ export async function productionFetch(url: string, init: RequestInit) {
   try {
     return await submitProduction(url,{...init,headers},input);
   }
-  catch {
+  catch (error) {
+    if (error instanceof JobWaitError) throw error;
     throw new Error("The connection was lost while submitting production. Generation may already have started. Do not click Generate again yet: check My Songs and your provider history first to avoid a duplicate charge. Your prompt is still in this form.");
   }
   finally { window.dispatchEvent(new window.Event("samadhi-usage-updated")); }
@@ -37,7 +38,13 @@ export async function submitProduction(url:string,init:RequestInit,input:Record<
     const queued=await response.json() as {jobId?:unknown;songId?:string};
     if(typeof queued.jobId!=="string")throw new Error("The job reference could not be confirmed.");
     window.dispatchEvent(new window.Event("samadhi-jobs-updated"));
-    const saved=await waitForJob(()=>fetch(`/api/studio/jobs?id=${encodeURIComponent(queued.jobId as string)}`,{signal:init.signal,cache:"no-store"}),{signal:init.signal});
+    let saved;
+    try {
+      saved=await waitForJob(signal=>fetch(`/api/studio/jobs?id=${encodeURIComponent(queued.jobId as string)}`,{signal,cache:"no-store"}),{signal:init.signal??undefined});
+    } catch(error) {
+      if(error instanceof JobWaitError)window.dispatchEvent(new window.CustomEvent("samadhi-job-wait-failed",{detail:{jobId:queued.jobId,message:error.message}}));
+      throw error;
+    }
     window.dispatchEvent(new window.Event("samadhi-jobs-updated"));
     if(saved.result)return Response.json(saved.result.body,{status:saved.result.status});
     return Response.json({error:saved.job?.error_message??"This attempt didn't finish. Your draft is saved.",songId:queued.songId},{status:502});

@@ -1,22 +1,39 @@
 "use client";
-import {useEffect,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import {useRecoveryScope} from "./draft-recovery";
+import {lostConnectionMessage,readJobReply} from "./credits/job-wait";
 type Job={id:string;type:string;status:string;song_id:string;error_message?:string};
 const uncertainWarning="This may use credits again, because the last attempt may have reached ElevenLabs. Try again?";
 export function JobStatus({completed}:{completed:()=>void}){
   const workspace=useRecoveryScope();
   const [jobs,setJobs]=useState<Job[]>([]),[error,setError]=useState(""),[busy,setBusy]=useState("");
+  const [connectionError,setConnectionError]=useState(""),[checking,setChecking]=useState(false);
+  const refreshStatus=useRef<()=>void>(()=>{});
   useEffect(()=>{
+    setJobs([]);setConnectionError("");setChecking(false);
     if(!workspace)return;
-    let stopped=false,known:Set<string>|undefined;
-    const refresh=()=>{void fetch("/api/studio/jobs",{cache:"no-store"}).then(async r=>r.ok?await r.json() as {jobs?:Job[]}:null).then(v=>{
+    let stopped=false,pending=false,known:Set<string>|undefined;
+    const controller=new AbortController();
+    const refresh=()=>{
+      if(pending||stopped)return;
+      pending=true;setChecking(true);
+      void readJobReply<{jobs?:Job[]}>(signal=>fetch("/api/studio/jobs",{cache:"no-store",signal}),15_000,controller.signal).then(reply=>{
+      const v=reply.body;
+      if(!stopped&&!Array.isArray(v?.jobs))setConnectionError(lostConnectionMessage);
       if(stopped||!Array.isArray(v?.jobs))return;
+      setConnectionError("");
       const done=new Set(v.jobs.filter(job=>job.status==="done"&&job.type==="music-generation").map(job=>job.id));
       if(known&&[...done].some(id=>!known!.has(id)))completed();
       known=done;setJobs(v.jobs);
-    }).catch(()=>{});};
+    }).catch(()=>{if(!stopped)setConnectionError(lostConnectionMessage);}).finally(()=>{pending=false;if(!stopped)setChecking(false);});};
+    refreshStatus.current=refresh;
+    const interrupted=(event:Event)=>{
+      const detail=(event as CustomEvent<{jobId?:string;message?:string}>).detail;
+      if(detail?.jobId)setConnectionError(detail.message??lostConnectionMessage);
+    };
     refresh();const timer=setInterval(refresh,5000);window.addEventListener("samadhi-jobs-updated",refresh);
-    return()=>{stopped=true;clearInterval(timer);window.removeEventListener("samadhi-jobs-updated",refresh);};
+    window.addEventListener("samadhi-job-wait-failed",interrupted);
+    return()=>{stopped=true;controller.abort();refreshStatus.current=()=>{};clearInterval(timer);window.removeEventListener("samadhi-jobs-updated",refresh);window.removeEventListener("samadhi-job-wait-failed",interrupted);};
   },[workspace,completed]);
   async function retry(job:Job){
     if(busy)return;
@@ -39,9 +56,10 @@ export function JobStatus({completed}:{completed:()=>void}){
     }catch(e){setError(e instanceof Error?e.message:"This attempt could not start.");}finally{setBusy("");}
   }
   const visible=jobs.filter(j=>!j.error_message?.startsWith("Retry started:")).slice(0,4);
-  if(!visible.length&&!error)return null;
+  if(!visible.length&&!error&&!connectionError)return null;
   return <section className="notice" aria-label="Saved work status" aria-live="polite">
     {visible.map(job=><p key={job.id}>{job.status==="done"?"Done":job.status==="failed"?"Didn't finish":job.type==="music-generation"?"Making your song…":job.type==="video-render"?"Making your video…":"Timing your lyrics…"} {job.status==="failed"&&<><span>{job.error_message}</span> {["music-generation","lyric-sync"].includes(job.type)&&<button type="button" disabled={!!busy} onClick={()=>void retry(job)}>Try again</button>}</>}</p>)}
     {error&&<p role="alert">{error}</p>}
+    {connectionError&&<p role="alert">{connectionError} <button type="button" disabled={checking} onClick={()=>refreshStatus.current()}>Try again</button></p>}
   </section>;
 }

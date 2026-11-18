@@ -70,3 +70,17 @@ mtime_ms = 1795010746191
 storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/185eeaff-bdb9-4ad2-b5ae-9ca672a43351/71382683-3c5b-48d6-965f-672e496d19e3"
 storage_version_token = "1795010777991921"
 content_type = "text/plain"
+
+[[outputs]]
+id = "AQ9V8k6vcn--W2tVcF97y"
+uri = "file://generated-artifacts/job-wait-repair-verification/full-report.txt"
+type = "text"
+title = "Job-wait repair: complete verification report"
+description = "All 39 verification commands passed, including every declared workspace test command, 50 Studio groups, full typecheck and production build."
+logical_id = "ff1b978c-72eb-44da-8821-04b0624ce5e3"
+content_hash = "sha256:62fde60d53062115c513662f01cfe89e8217b3877a74e31a2e4f9d8e3ca2e01b"
+size = 230808
+mtime_ms = 1795011941362
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:f2b101da-394b-4dff-a129-612a0388bbbf/ff1b978c-72eb-44da-8821-04b0624ce5e3/e20f4bfa-a58c-434e-904e-53024142e99c"
+storage_version_token = "1795012046659548"
+content_type = "text/plain"

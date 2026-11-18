@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const checks = [
+  ["Bounded job polling, stalled replies and safe reconnection", ["--test", "tests/job-wait.test.mjs"]],
   ["Private video upload retry/reload, immutable chunks and account isolation", ["--test", "tests/video-upload-resume.test.mjs"]],
   ["Caption continuity, changed-window alignment and private paid-sync recovery", ["--test", "tests/caption-edit-continuity.test.mjs"]],
   ["Cosmic Studio screens, real-song sky, accessible controls and reduced motion", ["--test", "tests/cosmic-studio.test.mjs"]],
