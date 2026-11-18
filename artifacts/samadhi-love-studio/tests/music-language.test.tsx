@@ -150,7 +150,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../song-library": { stampSong: (song: unknown) => song },
     "cloudflare:workers": { env: { BUCKET: { put: async () => {}, delete: async () => {} } } },
     "../../../studio-data": songData,
-    "../../../server/audio-storage": {storePaidAudio: async (_owner:string,song:unknown) => song},
+    "../../../server/audio-storage": {storePaidAudio: async (_owner:string,song:unknown) => song,finishPaidAudio:async()=>true},
     "../../../track-duration": duration,
     "../elevenlabs/provider": {
       musicModel: "music_v2_5", elevenLabsFailureMessage: async () => "Fixture error",

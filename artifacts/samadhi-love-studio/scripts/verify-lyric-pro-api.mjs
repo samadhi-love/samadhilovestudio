@@ -15,14 +15,17 @@ const bytes = async (value) =>
       : new Uint8Array(value);
 const bucket = {
   async put(key, value, options = {}) {
+    if(options.onlyIf?.etagMatches&&options.onlyIf.etagMatches!==files.get(key)?.etag)return null;
+    if(options.onlyIf?.etagDoesNotMatch==="*"&&files.has(key))return null;
     const data = await bytes(value);
     files.set(key, {
       data,
+      etag:crypto.randomUUID(),
       httpMetadata: options.httpMetadata ?? {},
       customMetadata: options.customMetadata ?? {},
       uploaded: new Date(),
     });
-    return {};
+    return {etag:files.get(key).etag};
   },
   async head(key) {
     const item = files.get(key);
@@ -42,6 +45,7 @@ const bucket = {
       size: data.length,
       body: new Response(data).body,
       text: async () => new TextDecoder().decode(data),
+      json: async () => JSON.parse(new TextDecoder().decode(data)),
       arrayBuffer: async () => data.buffer,
     };
   },
@@ -476,6 +480,9 @@ const generated = state.studio.songs[0];
 checked(generated.notes.instruments==="Oud, Piano"&&generated.tags.includes("Jazz"),"instrument and genre selections are saved with the actual song");
 checked(generated.name==="Approved words stay exact","automatic title comes from approved lyrics while lyrics stay unchanged");
 checked(generated.creationDraft===false&&Number.isFinite(Date.parse(generated.createdAt)),"completed generated songs are ready in My Songs with a server creation date");
+const completedReceipt=files.get(`private/recovery/audio/owner/${generated.id}.json`);
+checked(JSON.parse(new TextDecoder().decode(completedReceipt.data)).done===true,"successful creation leaves no pending recovery receipt");
+checked(completedReceipt.customMetadata.done==="1","receipt completion can be excluded using listing metadata alone");
 checked(
   generated.notes.lyrics === "[Verse]\nApproved words stay exact!",
   "exact approved lyrics preserved",

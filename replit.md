@@ -1,5 +1,7 @@
 # Production sign-in startup correction — November 17, 2026
 
+**Job A follow-up:** Library saves preserve server-owned writing revisions; successful paid-song attachment completes its recovery receipt; automatic My Songs recovery runs once per account/tab session (manual recovery stays available), with attached primary/history audio filtered before metadata reads—offline checks confirm 50 attached songs need only LIST requests, not per-song GET/HEAD requests.
+
 Fixed the production-only `Host must not be empty` page-render crash. The root
 layout now supplies a trusted server hostname from the configured public origin
 (or the preview request when no origin is configured). Clerk resolves its key

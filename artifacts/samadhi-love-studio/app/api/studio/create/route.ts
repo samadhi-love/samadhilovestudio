@@ -7,7 +7,7 @@ import { performanceWeight, songOpenings, type SongOpening } from "../../../song
 import { withProductionUsage, managedProviderKey, jobExecution } from "../../../credits/production";
 import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { isExplicitSong } from "../../../clean-content";
-import {storePaidAudio} from "../../../server/audio-storage";
+import {storePaidAudio,finishPaidAudio} from "../../../server/audio-storage";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
 import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
 import { stampSong } from "../../../song-library";
@@ -332,7 +332,14 @@ async function createMusic(request: Request) {
       const audioSong = completed ? { ...completed, audioFormat: draft.audioFormat,audioId:draft.audioId, generation: draft.generation,creationDraft:false,updatedAt:draft.updatedAt } : draft;
       return { ...studio, songs: source ? attachRenderedMix(studio.songs, source, audioSong) : completed ? studio.songs.map(s => s.id === draft.id ? audioSong : s) : [draft, ...studio.songs] };
     });
-    if (saved) return Response.json({ ...saved, songId: draft.id }, options);
+    if (saved) {
+      // Receipt cleanup must never turn a committed, paid song into a failed
+      // creation. Recovery also excludes attached songs without reading receipts.
+      try{
+        if(!await finishPaidAudio(id,draft))console.warn("Paid song saved; recovery receipt changed before completion.");
+      }catch{console.warn("Paid song saved; recovery receipt completion is pending.");}
+      return Response.json({ ...saved, songId: draft.id }, options);
+    }
     return problem("Your recording is safely stored but could not be attached. Open My Songs and choose Recover unfinished songs. Do not generate it again.", 409);
   } catch {
     return preservedProblem("Creation could not finish. Check your drafts and ElevenLabs account before retrying.", 502);

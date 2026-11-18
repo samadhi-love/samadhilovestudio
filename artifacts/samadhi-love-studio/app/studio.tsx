@@ -24,6 +24,7 @@ import { isStudio } from "./studio-validation";
 import { mergeSavedSong, syncSongSource } from "./song-save-merge";
 import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
+import {claimAutomaticSongRecovery} from "./song-recovery-session";
 import { HelpControl, HelpField } from "./help-tip";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
@@ -176,8 +177,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
   }
   const [recoveringSongs,setRecoveringSongs]=useState(false);
-  async function recoverUnfinishedSongs(){
+  async function recoverUnfinishedSongs(automatic=false){
     if(recoveringSongs||saving||pendingSave.current||hasDraft.current){setError("Save your current edits before recovering unfinished songs.");return;}
+    if(automatic&&!claimAutomaticSongRecovery(workspaceId))return;
     setRecoveringSongs(true);setError("");
     try{
       const response=await fetch("/api/studio/recover-songs",{method:"POST",headers:{"Content-Type":"application/json","X-Studio-Workspace":workspaceId},body:"{}"});
@@ -190,7 +192,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   }
   useEffect(() => { void load(); }, []);
   useEffect(()=>{
-    if(view==="songs"&&loaded&&workspaceId&&!pendingSave.current&&!hasDraft.current)void recoverUnfinishedSongs();
+    if(view==="songs"&&loaded&&workspaceId&&!pendingSave.current&&!hasDraft.current)void recoverUnfinishedSongs(true);
   },[view,loaded,workspaceId]);
   const jobCompleted=useRef(()=>{});
   jobCompleted.current=()=>{if(!pendingSave.current&&!hasDraft.current)void load();};

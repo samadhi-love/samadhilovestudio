@@ -12,3 +12,4 @@
 - [Verified production origin](first-publish-origin.md) — Owner approved the verified deployment origin in production settings; the earlier pending-origin instruction is superseded.
 - [Large video safety](large-video-safety.md) — Full-length exports must stay disk-backed; offline codec fakes do not prove native encoding or phone playback.
 - [Production auth coverage](production-auth-coverage.md) — Development keys and a healthy storage endpoint do not verify live-key server-rendered pages.
+- [Storage cost verification](storage-cost-verification.md) — Count outbound S3 commands; metadata-inclusive listings can conceal per-object reads behind one bucket call.

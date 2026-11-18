@@ -2,6 +2,7 @@ import {serverStorage as env} from "./storage";
 import {audioKey} from "../api/studio/store";
 import {preservePaidSong} from "./song-recovery";
 import type {Song} from "../studio-data";
+export {finishPaidSong as finishPaidAudio} from "./song-recovery";
 
 /** Retries only replayable bytes at a unique storage key; never calls AI. */
 export async function storePaidAudio(owner:string,song:Song,audio:ArrayBuffer,wait=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms))){
