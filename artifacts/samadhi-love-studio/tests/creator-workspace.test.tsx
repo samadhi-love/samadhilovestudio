@@ -7,6 +7,7 @@ import {newProSettings,clipCues} from "../app/lyric-pro-data";import {freshSong}
 import {bestShortStart,expandSongDescription,insertLyricSection} from "../app/creation-shortcuts";
 import {SongCard,SongHubProvider,type SongAction,type SongHub} from "../app/song-card";
 import {MelodyReferenceRecorder,formatMelodyTimer,melodyReferenceLimitSeconds} from "../app/melody-reference-recorder";
+import {musicLanguages} from "../app/music-language";
 const song={...freshSong("song","World original",0),audioId:"original",audioFormat:"mp3" as const};
 function project():LyricProject{return{theme:"cosmic",format:"wide",motion:"drift",cues:[{time:122,end:128,text:"نور Love",words:[{offset:3,time:122},{offset:8,time:124}]}],pro:{...newProSettings(song,360),approvedLyrics:"نور Love",sections:[{id:"chorus",name:"Chorus",time:120,end:160,language:"ara",singer:"A"}],background:"saved-image",alignment:{engine:"fixture",at:"test",audioId:"original",reviewed:true,warnings:[]}}};}
 test("26 complete looks are valid and preserve approved multilingual lyrics, sections, source, range and alignment",()=>{
@@ -144,6 +145,25 @@ test("connection failures show the actual permission error and refresh never gen
   assert.equal(h.button('Refresh connection').disabled,true);
  }finally{await h.close();}
 });
+test("Create exposes one English language selector in Simple and Custom, with dialects kept in Vocals",async()=>{
+ const h=await setup();
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected={false} saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined}/>));
+  const language=()=>document.querySelector('select[aria-label="Singing language"]') as unknown as HTMLSelectElement;
+  assert.equal(language().value,"en");
+  assert.equal(language().options.length,Object.keys(musicLanguages).length);
+  assert.equal(language().closest("details"),null);
+  assert.doesNotMatch(document.body.textContent!,/Auto is uncertain/);
+  await act(async()=>h.button("Custom").click());
+  assert.equal(language().value,"en");
+  assert.equal(document.querySelectorAll('select[aria-label="Singing language"]').length,1);
+  assert.equal(language().closest("details"),null);
+  assert(document.querySelector('[data-testid="fold-vocals"]')!.textContent!.includes("Dialect"));
+  await act(async()=>{language().value="es";language().dispatchEvent(new h.dom.window.Event("change",{bubbles:true}));});
+  await act(async()=>h.button("Simple").click());
+  assert.equal(language().value,"es");
+ }finally{await h.close();}
+});
 test("a rejected song submission displays its exact error and keeps the written prompt",async()=>{
  const h=await setup();let calls=0;
  const description="A short hopeful pop song about a fresh start. Sing in English.";
@@ -151,8 +171,8 @@ test("a rejected song submission displays its exact error and keeps the written 
   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>{calls++;throw new Error("Fixture: the generation response was interrupted. Check your existing draft.");}} saveSketch={async()=>undefined}/>));
   const prompt=document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!;
   await h.input(prompt,description);
-  const language=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value==="auto")&&[...s.options].some(o=>/^English\b/.test(o.textContent??"")))!;
-  assert.equal(language,undefined,"Simple infers the requested language instead of showing a language menu");
+  const language=document.querySelector('select[aria-label="Singing language"]') as unknown as HTMLSelectElement;
+  assert.equal(language.value,"en","Simple shows the English default without requiring a selection");
   assert.match(document.querySelector('[data-testid="text-understood-prompt"]')!.textContent!,/English/);
   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   assert.equal(calls,1);
@@ -173,7 +193,7 @@ test("Simple recognizes the requested language and singer, exposes alternatives 
   await submit();
   assert.equal(submitted.length,1);
   assert.match(submitted[0].voice,/Solo female lead/);
-  assert.equal(submitted[0].language,"auto");
+  assert.equal(submitted[0].language,"en");
   assert.equal(submitted[0].prompt,prompt.value);
    assert.equal(document.querySelector('[data-testid="select-singing-arrangement"]'),null,"Simple follows the description without an advanced singer menu");
    await act(async()=>h.button("Custom").click());

@@ -1,4 +1,14 @@
-# Latest update — Create keeps writing quietly and never waits for an old recovery notice
+# Latest update — English-first creation with a visible language choice
+
+Create now starts in **English** and no longer blocks on uncertain language detection. Both Simple and Custom show one small, always-visible **Language** dropdown containing the full existing language list. Clear non-English lyrics or an explicit singing-language request can change the default, with a calm “Singing in Spanish — change” note rather than an error. A language picked by the user takes priority, including English. Old saved Auto choices still work and fall back to English when unclear. Dialect and capability details stay inside Custom → Vocals; supplied words are never translated.
+
+Frontend and server use the same rule, before paid accounting and when constructing the provider request. Regression coverage checks uncertain English, clear Spanish/French/Hindi and other scripts, explicit overrides, legacy Auto, API generation metadata, visible selectors in both modes, and preserved dialect controls. No user data, credentials, storage modes, billing or domains changed. No paid provider calls were made.
+
+**Verification:** **52/52 Studio verification groups**, **37/37 declared workspace test commands**, extra credits-controls, full workspace typecheck and production build passed (**41/41 named checks**). Language tests passed **23/23**; creator/video-preset DOM tests passed **25/25**, including the new Simple/Custom selector test. Updated old no-selector expectations and corrected test-only DOM/Worker type clashes found during verification. Reports: `generated-artifacts/language-default-verification/results.json` and its logs (ignored output). Preview restarted successfully; `/creator` returned 200 and its signed-out phone-sized entry rendered. Signed-in behavior was verified with offline DOM/API tests, not paid generation or a real phone.
+
+**Owner next step:** publish this revision yourself, then refresh Create. English writing should create without a language-detection error; the Language dropdown can override the target in either mode. Actual live singing quality has not been tested in this offline-only fix.
+
+## Previous update — Create keeps writing quietly and never waits for an old recovery notice
 
 Removed the restore/dismiss gates, account-draft buttons and unfinished-writing filter from the creation screens. Create automatically resumes the last writing; an older account response cannot replace newly typed text or a deliberately cleared form. **New song** immediately clears both the main form and its folded detailed-production form. Autosave runs quietly; actual save errors and two-tab conflicts still protect the writing. Internal writing-only account records are hidden from song lists and pickers, while actual recordings remain visible.
 

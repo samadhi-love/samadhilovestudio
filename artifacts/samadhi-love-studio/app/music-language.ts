@@ -19,8 +19,9 @@ export const musicDialects = {
   "ar-SY": "Syrian Arabic", "ar-IQ": "Iraqi Arabic",
   "ar-MA": "Moroccan Arabic / Darija", "ar-PS": "Palestinian Arabic",
 } as const;
-export type LanguageChoice = { language: "auto" | MusicLanguage; dialect: "" | keyof typeof musicDialects };
-export const defaultLanguageChoice: LanguageChoice = { language: "auto", dialect: "" };
+export type LanguageChoice = { language: "auto" | MusicLanguage; dialect: "" | keyof typeof musicDialects; selected?: boolean };
+// Remember an explicit choice (including English) separately from the default.
+export const defaultLanguageChoice: LanguageChoice = { language: "en", dialect: "", selected: false };
 export type LanguageProfile = LanguageChoice & { resolved: MusicLanguage; source: "selected" | "script-suggestion" | "prompt" };
 export type CapabilityStatus = "tested" | "experimental/unverified" | "unavailable";
 const experimental: CapabilityStatus = "experimental/unverified";
@@ -45,7 +46,8 @@ export const musicCapabilityRegistry = {
 export function isLanguageChoice(value: unknown): value is LanguageChoice {
   if (!value || typeof value !== "object") return false;
   const v = value as LanguageChoice;
-  return (v.language === "auto" || Object.hasOwn(musicLanguages, v.language)) &&
+  return (v.selected === undefined || typeof v.selected === "boolean") &&
+    (v.language === "auto" || Object.hasOwn(musicLanguages, v.language)) &&
     (v.dialect === "" || Object.hasOwn(musicDialects, v.dialect) && ["auto", "ar", "mixed"].includes(v.language));
 }
 export function isLanguageProfile(value: unknown): value is LanguageProfile {
@@ -55,25 +57,40 @@ export function isLanguageProfile(value: unknown): value is LanguageProfile {
     (p.language === "auto" || p.language === p.resolved) &&
     (!p.dialect || ["ar", "mixed"].includes(p.resolved));
 }
-/** Conservative suggestions only. Shared Latin scripts and short input require a choice.
+/** Conservative suggestions only. Ambiguous input falls back to English.
  * Never use an English production brief as evidence of the intended singing language.
  */
 export function suggestLyricLanguage(lyrics: string): MusicLanguage | undefined {
   const text = lyrics.replace(/\[[^\]\n]*\]|\{[^}\n]*\}/g, "");
   const count = (pattern: RegExp) => (text.match(pattern) ?? []).length;
-  if (count(/\p{L}/gu) < 16) return;
+  if (count(/\p{L}/gu) < 2) return;
   const scripts = [
     ["ar", count(/\p{Script=Arabic}/gu)],
     ["hi", count(/\p{Script=Devanagari}/gu)],
     ["ja", count(/[\p{Script=Hiragana}\p{Script=Katakana}]/gu)],
     ["he", count(/\p{Script=Hebrew}/gu)],
+    ["ko", count(/\p{Script=Hangul}/gu)],
+    ["zh", count(/\p{Script=Han}/gu)],
+    ["bn", count(/\p{Script=Bengali}/gu)],
+    ["pa", count(/\p{Script=Gurmukhi}/gu)],
+    ["ta", count(/\p{Script=Tamil}/gu)],
+    ["te", count(/\p{Script=Telugu}/gu)],
+    ["th", count(/\p{Script=Thai}/gu)],
+    ["el", count(/\p{Script=Greek}/gu)],
+    ["ru", count(/\p{Script=Cyrillic}/gu)],
   ] as const;
-  const found = scripts.filter(([, n]) => n >= 8);
+  // Han alongside Japanese kana is Japanese, not a mixed-language passage.
+  const hasKana = scripts.some(([id, n]) => id === "ja" && n >= 2);
+  const found = scripts.filter(([id, n]) => n >= 2 && !(id === "zh" && hasKana));
   const latin = count(/\p{Script=Latin}/gu);
   if (found.length > 1 || found.length && latin >= 8) return "mixed";
-  // Arabic script is also used by Persian and Urdu; Devanagari is shared too.
-  // A script alone cannot distinguish these languages.
-  if (found.length === 1 && found[0][0] !== "hi" && found[0][0] !== "ar") return found[0][0];
+  if (found.length === 1) {
+    if (found[0][0] === "ar") {
+      if (/[ٹڈڑںھہے]/u.test(text)) return "ur";
+      if (/(?:^|\s)(?:در|را)(?:\s|$)/u.test(text) || /[پچژگ]/u.test(text)) return "fa";
+    }
+    return found[0][0];
+  }
   const words = new Set(text.toLocaleLowerCase().match(/\p{L}+/gu) ?? []);
   const scores = ([
     ["en", ["the", "and", "with", "your", "our", "through", "heart", "love"]],
@@ -88,17 +105,17 @@ export function suggestLyricLanguage(lyrics: string): MusicLanguage | undefined 
 export function resolveLanguage(choice: LanguageChoice, lyrics: string, prompt = ""): LanguageProfile {
   if (!isLanguageChoice(choice)) throw new Error("Choose a listed singing language and an optional compatible dialect.");
   const requested = promptLanguage(prompt);
-  if (requested && choice.language !== "auto" && choice.language !== "mixed" && choice.language !== requested.language)
-    throw new Error(`Your language setting is ${musicLanguages[choice.language]}, but the description requests ${musicLanguages[requested.language as MusicLanguage]}. Change the setting or description before creating.`);
+  const explicit = choice.language !== "auto" && choice.selected !== false;
   if (requested?.dialect && choice.dialect && requested.dialect !== choice.dialect)
     throw new Error("Your selected dialect conflicts with the description. Change the dialect or description before creating.");
-  const resolved = choice.language === "auto" ? requested?.language ?? suggestLyricLanguage(lyrics) ?? (choice.dialect ? "ar" : undefined) : choice.language;
-  if (!resolved || resolved === "auto") throw new Error('Auto is uncertain. Choose the singing language, or say “sing in Spanish” (or your preferred language) in the description. Your words will not be translated.');
+  const requestedLanguage = requested?.language === "auto" ? undefined : requested?.language;
+  const inferred = explicit ? undefined : requestedLanguage ?? suggestLyricLanguage(lyrics) ?? (choice.dialect ? "ar" : undefined);
+  const resolved: MusicLanguage = explicit ? choice.language as MusicLanguage : inferred ?? "en";
   if (choice.dialect && !["ar", "mixed"].includes(resolved))
     throw new Error("An Arabic dialect needs Arabic or Mixed languages. Change the language or clear the dialect.");
   if (musicCapabilityRegistry.forLanguage(resolved).sungAudio === "unavailable")
     throw new Error("This singing language is unavailable in Studio’s current capability registry. No music request was sent. Choose a listed language; Studio will not switch providers.");
-  return { ...choice, dialect: choice.dialect || requested?.dialect || "", resolved, source: choice.language === "auto" ? requested ? "prompt" : "script-suggestion" : "selected" };
+  return { ...choice, language: resolved, dialect: choice.dialect || (!explicit && requested?.dialect) || "", resolved, source: explicit || !inferred ? "selected" : requested ? "prompt" : "script-suggestion" };
 }
 /** Directions belong in plan styles, never substituted into displayed approved words. */
 export function singingDirection(profile: LanguageProfile): string {

@@ -85,3 +85,9 @@ No draft-recovery prompts or drafts lists for users. Forms quietly keep the late
 **Why:** The owner found a repeating recovery notice blocked song creation and confused beginners, and explicitly chose this simpler behaviour.
 
 **How to apply:** Keep device/account saving and paid-result protection behind the scenes. Do not reintroduce restore/dismiss gates or draft-management panels in Create or lyric/video editors. Preserve existing data and backups rather than cleaning them up to remove notices.
+
+Singing defaults to English, with a visible language selector in both Simple and Custom. Uncertain language detection must never block creation. Use another language only when selected, clearly present in the lyrics, or explicitly requested in the description; show a calm note for automatic changes.
+
+**Why:** The owner reported English lyrics being blocked by uncertain detection and no visible Simple-mode override, and explicitly chose this easier setup.
+
+**How to apply:** Preserve explicit user choices (including English), keep dialect depth in Custom → Vocals, and fall back to English instead of requiring beginners to resolve ambiguous detection.

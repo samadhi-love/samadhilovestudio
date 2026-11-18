@@ -1,5 +1,9 @@
 # Versual Studio — current guide
 
+## Singing language starts with English
+
+Create shows a small **Language** selector in both Simple and Custom. English is the default; short or uncertain text never stops creation. Clear non-English lyrics or an explicit request such as “sing in Spanish” can choose another language, with a small “Singing in Spanish — change” note. Picking a language yourself takes priority, including picking English. Your words are not translated. Dialect and detailed language controls remain inside Custom → Vocals.
+
 ## Writing returns automatically
 
 Create quietly keeps your description, lyrics and choices. Returning to the screen opens the last writing without a restore/dismiss question. **New song** clears the form immediately, including the folded detailed-production form; returning again keeps it clear. Previous private device copies and saved songs are retained, not deleted.

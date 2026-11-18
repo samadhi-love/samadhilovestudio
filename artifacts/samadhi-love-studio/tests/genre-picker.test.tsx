@@ -32,7 +32,7 @@ async function setup(){
   const button=(name:string)=>[...document.querySelectorAll("button")].find(b=>b.textContent?.replace("✓","").trim()===name)!;
   async function input(element:HTMLInputElement|HTMLTextAreaElement,value:string){await act(async()=>{Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element),"value")!.set!.call(element,value);element.dispatchEvent(new dom.window.Event("input",{bubbles:true}));});}
   async function family(name:string){const el=[...document.querySelectorAll('select')].find(s=>[...s.options].some(o=>o.value===name))!;await act(async()=>{el.value=name;el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
-  async function language(){const el=[...document.querySelectorAll("select")].find(s=>s.parentElement?.textContent?.startsWith("Singing language"))!;await act(async()=>{el.value="en";el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
+  async function language(){const el=document.querySelector('select[aria-label="Singing language"]') as unknown as HTMLSelectElement;await act(async()=>{el.value="en";el.dispatchEvent(new dom.window.Event("change",{bubbles:true}));});}
   return {dom,root,button,input,family,language,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
 }
 

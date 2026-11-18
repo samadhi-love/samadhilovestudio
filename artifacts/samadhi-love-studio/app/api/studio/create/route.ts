@@ -114,6 +114,7 @@ async function createMusic(request: Request) {
       languageProfile = resolveLanguage({
         language: input.language ?? defaultLanguageChoice.language,
         dialect: input.dialect ?? "",
+        selected: input.selected ?? (input.language ? undefined : false),
       }, text("lyrics"), text("prompt"));
     } catch (error) { return problem((error as Error).message, 400); }
   }
@@ -347,14 +348,14 @@ async function createMusic(request: Request) {
 }
 
 const paidCreation = withProductionUsage(recoverableRoute(createMusic, "Creation could not finish. Check saved drafts before retrying; existing recordings are preserved."));
-// Reject unavailable/ambiguous language BEFORE the existing credit-reservation wrapper.
+// Reject invalid/unavailable choices before accounting; uncertain text defaults to English.
 // Keep that wrapper and its authentication, quota and refund behavior unchanged.
 export const POST = recoverableRoute(async (request: Request) => {
   let input;
   try { input = JSON.parse(await readBoundedText(request.clone() as unknown as Request, 80_000)); }
   catch { return problem("Invalid creation request.", 400); }
   if (input?.action === "lyric-plan" || input?.action === "song" && input?.instrumental !== true) {
-    try { resolveLanguage({language: input.language ?? "auto", dialect: input.dialect ?? ""}, typeof input.lyrics === "string" ? input.lyrics : "", typeof input.prompt === "string" ? input.prompt : ""); }
+    try { resolveLanguage({language: input.language ?? defaultLanguageChoice.language, dialect: input.dialect ?? "", selected: input.selected ?? (input.language ? undefined : false)}, typeof input.lyrics === "string" ? input.lyrics : "", typeof input.prompt === "string" ? input.prompt : ""); }
     catch (error) { return problem((error as Error).message, 400); }
   }
   return paidCreation(request);

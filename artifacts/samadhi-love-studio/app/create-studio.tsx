@@ -244,7 +244,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
       }
       if (!elevenLabs.connected) { setError("Open Settings to enable sung songs and connected generation."); return; }
       if (type === "vocals" && lyricsMode === "own" && !performanceWeight(lyrics)) { setError("Add words to sing, or choose Write lyrics for me. Section headings alone are not finished lyrics."); return; }
-      if (type === "vocals") resolveLanguage(languageChoice, currentLyrics);
+      if (type === "vocals") resolveLanguage(languageChoice, currentLyrics, prompt);
       if (await send({ action: "song", ...languageChoice, ...(projectId && { projectId }), title: resultTitle, prompt, genres: selectedGenres.join(", "), lyrics: currentLyrics, voice: type === "vocals" ? voice : "",
         duration: length, openingMode, ...(lyricsMode==="auto" && !performanceWeight(lyrics) && lyrics.trim() && {arrangement:lyrics.slice(0,2000)}), instrumental: type === "instrumental", readLyricStyles,
         ...(type === "vocals" && sectionDirections && { sectionDirections: JSON.stringify(sectionDirections) }) }, "Song saved privately to Your songs")) goToResult();
@@ -388,7 +388,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
               {lyricsMode === "auto" && lyrics.trim() && !performanceWeight(lyrics) && <p className="muted">Your template supplies the song structure. Studio will write words to fit it.</p>}
               {lyricsMode === "own" && <><HelpField label="Your lyrics" tip="Paste the words you want performed. Label sections such as [Verse 1] and [Chorus] to guide the arrangement."><textarea dir="auto" style={{unicodeBidi:"plaintext"}} rows={7} maxLength={5000} value={lyrics} onChange={event => setLyrics(event.target.value)} placeholder="[Verse 1]"/></HelpField>
                 <p className="muted creation-note">{lyrics.length.toLocaleString()} / 5,000 characters</p><CleanLyricsChecker lyrics={lyrics} change={setLyrics}/><LyricNotationPreview text={lyrics}/></>}
-              <MusicLanguageControl value={languageChoice} change={setLanguageChoice} lyrics={currentLyrics} disabled={busy}/>
+              <MusicLanguageControl value={languageChoice} change={setLanguageChoice} lyrics={currentLyrics} prompt={idea} disabled={busy}/>
               {advanced && <HelpField label={<>Vocal direction <span className="muted">(optional)</span></>} subject="Vocal direction" tip="Describe who sings, speaks, or whispers and where each voice enters. For a duet, say who leads each section."><input value={voice} maxLength={1000} onChange={event => setVoice(event.target.value)} placeholder="Deep male call and soaring female response"/></HelpField>}
               {advanced && !!voices.length && <div className="chips voice-chips">{voices.map(profile => <button type="button" key={profile.id} className="chip" onClick={() => setVoice(profile.description)}>{profile.name}</button>)}</div>}
             </>}

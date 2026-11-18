@@ -32,12 +32,17 @@ const fixtures = [
   { language: "mixed", dialect: "ar-LB", text: "هيدا قلبي singing with you\nبدي ضل حدّك tonight" },
 ] as const;
 
-test("Auto is conservative; short, shared or empty input needs an explicit choice", () => {
-  for (const text of ["", "حب", "love", "amor", "bonjour", "तेरे साथ मेरा दिल गाए", "la la la la la la la", "در شب روشن تو را دوست دارم", "تم میرے دل کی روشنی ہو ہمیشہ"])
-    assert.throws(() => languages.resolveLanguage({ language: "auto", dialect: "" }, text), /uncertain/);
-  for (const f of fixtures.filter(f => f.language !== "hi")) {
+test("English defaults never block uncertain text; clear lyrics select their language", () => {
+  assert.equal(languages.defaultLanguageChoice.language, "en");
+  for (const text of ["", "love", "amor", "bonjour", "la la la la la la la"]) {
+    assert.equal(languages.resolveLanguage(languages.defaultLanguageChoice, text).resolved, "en");
+    assert.equal(languages.resolveLanguage({ language: "auto", dialect: "" }, text).resolved, "en");
+  }
+  for (const f of fixtures) {
     assert.equal(languages.resolveLanguage({ language: "auto", dialect: f.dialect }, f.text).resolved, f.language);
   }
+  assert.equal(languages.resolveLanguage(languages.defaultLanguageChoice,"حب").resolved,"ar");
+  assert.equal(languages.resolveLanguage(languages.defaultLanguageChoice,"你好").resolved,"zh");
 });
 test("explicit language overrides Auto without translating or rewriting lyrics", () => {
   for (const f of fixtures) {
@@ -100,8 +105,9 @@ test("explicit description instructions resolve language and dialect without gue
   assert(languages.isLanguageProfile(profile));
  }
  for(const prompt of ["An English description of hope","Spanish guitar with an Arabic oud","Lebanese dabke groove","A song about the English countryside"])
-  assert.throws(()=>languages.resolveLanguage(auto,"",prompt),/Auto is uncertain/,prompt);
- assert.throws(()=>languages.resolveLanguage({language:"en",dialect:""},"","Sing in Arabic"),/description requests Arabic/);
+  assert.equal(languages.resolveLanguage(auto,"",prompt).resolved,"en",prompt);
+ assert.equal(languages.resolveLanguage({language:"en",dialect:"",selected:true},"","Sing in Arabic").resolved,"en");
+ assert.equal(languages.resolveLanguage(languages.defaultLanguageChoice,"","Sing in Arabic").resolved,"ar");
  assert.throws(()=>languages.resolveLanguage({language:"ar",dialect:"ar-LB"},"","Sing in Egyptian Arabic"),/dialect conflicts/);
  assert.equal(languages.resolveLanguage({language:"ar",dialect:"ar-LB"},"","Sing in Arabic").dialect,"ar-LB");
 });
@@ -190,8 +196,8 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
       method: "POST", headers: { Origin: "https://studio.test", "Content-Type": "application/json" }, body: JSON.stringify(input),
     })) as Promise<Response> };
 }
-test("unsupported, ambiguous and incompatible selections stop before accounting or provider requests", async () => {
-  for (const choice of [{ language: "other", dialect: "" }, { language: "auto", dialect: "" }, { language: "en", dialect: "ar-LB" }, { language: "xx", dialect: "" }]) {
+test("unsupported and incompatible selections stop before accounting or provider requests", async () => {
+  for (const choice of [{ language: "other", dialect: "" }, { language: "en", dialect: "ar-LB" }, { language: "xx", dialect: "" }]) {
     const h = routeHarness();
     const r = await h.post({ action: "song", title: "Fixture", prompt: "An original song", duration: 15, ...choice });
     assert.equal(r.status, 400);
@@ -240,10 +246,9 @@ test("prompt-derived language and performer directions survive into the actual o
  assert(audio.composition_plan.chunks.every((chunk:any)=>chunk.positive_styles.some((style:string)=>style.includes("Lebanese"))));
  assert(!("voice_id" in audio));
  assert.equal(h.stored().songs[0].generation!.languageProfile!.source,"prompt");
- const blocked=routeHarness();
- assert.equal((await blocked.post({action:"song",prompt:"Sing in Arabic",title:"Fixture",duration:15,language:"en"})).status,400);
- assert.equal(blocked.paidEntries(),0);
- assert.equal(blocked.calls.length,0);
+ const selected=routeHarness();
+ assert.equal((await selected.post({action:"song",prompt:"Sing in Arabic",title:"Fixture",duration:15,language:"en",selected:true,lyrics:fixtures[1].text})).status,200);
+ assert.equal(selected.stored().songs[0].generation!.languageProfile!.resolved,"en");
 });
 test("instrumentals bypass singing-language checks; lyric planning honors selection", async () => {
   const h = routeHarness();
@@ -274,7 +279,7 @@ test("replacement and inserted section requests pass the route preflight with sa
 
   const legacy: songData.Song = { ...songData.freshSong("legacy-song", "Legacy", 0), audioFormat: "mp3" };
   assert.deepEqual(replacementLanguageChoice(legacy), languages.defaultLanguageChoice);
-  assert.throws(() => sectionGenerationPayload(legacy, replacementLanguageChoice(legacy), false, "New verse", 15), /uncertain/);
+  assert.equal(sectionGenerationPayload(legacy, replacementLanguageChoice(legacy), false, "New verse", 15).language, "en");
   const selected = routeHarness([legacy]);
   assert.equal((await selected.post(sectionGenerationPayload(legacy, { language: "ja", dialect: "" }, false, "New Japanese passage", 15))).status, 200);
   assert.match(selected.calls[0].payload.prompt, /Singing language: Japanese/);
@@ -285,7 +290,7 @@ test("replacement and inserted section requests pass the route preflight with sa
   assert.equal((await instrumental.post(instrumentalPayload)).status, 200);
   assert.equal(instrumental.calls.length, 1);
   assert.equal(instrumental.calls[0].payload.force_instrumental, true);
-  assert.equal(replacementLanguageChoice({ ...original, audioId: "different-recording" }).language, "auto");
+  assert.equal(replacementLanguageChoice({ ...original, audioId: "different-recording" }).language, "en");
 });
 test("invalid language metadata is rejected without breaking old songs or projects", () => {
   const song = songData.freshSong("old-song", "Old song", 0);
@@ -294,19 +299,20 @@ test("invalid language metadata is rejected without breaking old songs or projec
   assert(!isProSettings({ ...pro, languageProfile: { language: "en", resolved: "ar", dialect: "", source: "selected" } }));
 });
 
-test("accessible selectors offer Auto, allow overrides, clear incompatible dialects, and disclose costs", async () => {
+test("accessible selectors default to English, allow overrides, clear incompatible dialects, and disclose costs", async () => {
   const dom = new JSDOM('<!doctype html><div id="root"></div>', { url: "https://studio.test" });
   Object.assign(globalThis, { window: dom.window, document: dom.window.document, IS_REACT_ACT_ENVIRONMENT: true });
   const { createRoot } = await import("react-dom/client");
   const root = createRoot(document.getElementById("root")!);
   function Harness() {
-    const [value, change] = useState<languages.LanguageChoice>({ language: "auto", dialect: "" });
+    const [value, change] = useState<languages.LanguageChoice>(languages.defaultLanguageChoice);
     return <MusicLanguageControl value={value} change={change} lyrics={fixtures[0].text}/>;
   }
   try {
     await act(async () => root.render(<Harness/>));
     const selects = [...document.querySelectorAll("select")];
-    assert.equal(selects[0].value, "auto");
+    assert.equal(selects[0].value, "ar");
+    assert.match(document.body.textContent!, /Singing in Arabic — change/);
     assert(selects.every(select => select.closest("label")));
     assert.doesNotMatch(document.body.textContent!, /Tentative suggestion: Arabic/);
     async function choose(index: number, value: string) {
@@ -321,6 +327,26 @@ test("accessible selectors offer Auto, allow overrides, clear incompatible diale
     assert.match(document.body.textContent!, /no free audition/i);
     assert.match(document.body.textContent!, /full-line emphasis/);
   } finally { await act(async () => root.unmount()); dom.window.close(); }
+});
+test("default English and legacy Auto both reach creation; missing settings follow clear lyrics or explicit requests", async () => {
+  for (const choice of [{}, {language:"auto"}, {...languages.defaultLanguageChoice}]) {
+    const h=routeHarness();
+    const response=await h.post({action:"song",prompt:"A hopeful pop song",title:"Sunrise",duration:15,lyrics:"I rise again\nTomorrow is mine",...choice});
+    assert.equal(response.status,200,await response.clone().text());
+    assert.equal(h.stored().songs[0].generation!.languageProfile!.resolved,"en");
+    assert.equal(h.calls.length,1);
+  }
+  for (const [lyrics,prompt,language] of [
+    [fixtures[2].text,"A gentle guitar song","es"],
+    [fixtures[3].text,"A piano ballad","fr"],
+    [fixtures[4].text,"A gentle ballad","hi"],
+    ["Hoy nace mi canción","Sing in Spanish","es"],
+  ]) {
+    const h=routeHarness();
+    const response=await h.post({action:"song",prompt,title:"Fixture",duration:15,lyrics,...languages.defaultLanguageChoice});
+    assert.equal(response.status,200,await response.clone().text());
+    assert.equal(h.stored().songs[0].generation!.languageProfile!.resolved,language);
+  }
 });
 test("canvas preview/export captions retain full shaped lines, RTL direction and script offsets", () => {
   for (const f of fixtures) {

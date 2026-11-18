@@ -353,6 +353,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
           <button type="button" role="tab" aria-selected={simple} data-testid="tab-mode-simple" onClick={()=>switchMode(false)}>Simple</button>
           <button type="button" role="tab" aria-selected={customMode} data-testid="tab-mode-custom" onClick={()=>switchMode(true)}>Custom</button>
         </div>
+        <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
         {simple?<>
           <label className="field qc-field">Describe your song
             <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="Mood, subject, style and singing language — e.g. hopeful pop about a fresh start, sung in English" onChange={e=>{setIdea(e.target.value);setError("");}}/>
@@ -379,7 +380,7 @@ export function QuickCreate({ proProduction, seed=null, recipes=[], editRecipe, 
           </details>
           <details className="qc-fold" key={"vocals"+panelKey} open={openPanel==="vocals"||undefined} data-testid="fold-vocals"><summary>Vocals</summary>
             <div className="qc-row">
-              {!instrumental&&<MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
+              {!instrumental&&<MusicLanguageControl detailsOnly value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
               {!instrumental&&!localSketch&&<label className="field">Singing arrangement
                 <select data-testid="select-singing-arrangement" value={vocalOptions.delivery} onChange={e=>{setVoiceEdit(null);setVocalOptions({...vocalOptions,delivery:e.target.value});setError("");}}>
                   {singingArrangements.map(value=><option key={value} value={value}>{value==="Studio chooses"?"Follow my description":value}</option>)}

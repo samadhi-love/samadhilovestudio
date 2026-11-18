@@ -13,7 +13,7 @@ export async function customCreate() {
 
 /** These fixtures test English creation; language inference is tested separately. */
 export async function englishCreation() {
-  const language = [...document.querySelectorAll("select")].find(s => s.parentElement?.textContent?.startsWith("Singing language"));
+  const language = document.querySelector('select[aria-label="Singing language"]') as HTMLSelectElement | null;
   if (language) await act(async () => {
     language.value = "en";
     language.dispatchEvent(new window.Event("change", { bubbles: true }));
