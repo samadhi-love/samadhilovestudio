@@ -26,6 +26,14 @@ const eslintConfig = defineConfig([
       // separate sections. Plain links give each a full load with fresh sign-in
       // state; next/link is not used anywhere in this app.
       "@next/next/no-html-link-for-pages": "off",
+      // React Compiler readiness rules. This app does not use the React
+      // Compiler; the flagged patterns ("latest value" refs, resetting state
+      // when an id changes, clocks read while drawing) were reviewed and
+      // behave correctly. Kept visible as warnings, not build errors.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
     },
   },
   {
