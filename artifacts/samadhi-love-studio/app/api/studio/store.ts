@@ -16,13 +16,18 @@ export async function readStudio(id: string) {
   return row ? { data: JSON.parse(row.content) as Studio, revision: row.revision } : { data: null, revision: 0 };
 }
 
+const knownCheckpoints = new Set<string>();
+
 export async function checkpointStudio(id: string, expectedRevision?: number, name = "pre-upgrade") {
   // Existing R2 checkpoints and the frozen studios row are never rewritten.
   if(env.STUDIO_ROW_STORAGE==="verified")return true;
   const bucket = env.BUCKET;
   if (!bucket) throw new Error("Workspace backup storage is unavailable.");
   const key = `checkpoints/${encodeURIComponent(id)}/${name}.json`;
-  if (await bucket.head(key)) return true;
+  // Checkpoints are written once and never removed: skip the storage round-trip
+  // on every later save once one is known to exist.
+  if (knownCheckpoints.has(key)) return true;
+  if (await bucket.head(key)) { knownCheckpoints.add(key); return true; }
   const db = getDb();
   const row = await db.select().from(studios).where(eq(studios.owner, id)).get();
   const revision = row?.revision ?? 0;
@@ -31,18 +36,22 @@ export async function checkpointStudio(id: string, expectedRevision?: number, na
   await bucket.put(key, JSON.stringify({ createdAt: new Date().toISOString(), revision, data: row ? JSON.parse(row.content) : null, stations }), {
     onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType: "application/json" },
   });
+  knownCheckpoints.add(key);
   return true;
 }
 
-export async function writeStudio(id: string, revision: number, content: string) {
+/** `known`: the stored library the caller already read at this revision, to avoid reading it again. */
+export async function writeStudio(id: string, revision: number, content: string, known?: { revision: number; data: Studio | null }) {
   if(env.STUDIO_ROW_STORAGE==="verified")return writeSongRows(env.DB!,id,content) as Promise<{data:Studio;revision:number}|undefined>;
   if (new TextEncoder().encode(content).length > maxLegacyRowBytes) throw new StorageFullError();
   const db = getDb();
-  const previous=await db.select().from(studios).where(eq(studios.owner,id)).get();
+  const previous = known && known.revision === revision
+    ? { revision, songs: known.data?.songs ?? [] }
+    : await db.select().from(studios).where(eq(studios.owner,id)).get().then(row => row && { revision: row.revision, songs: (JSON.parse(row.content).songs ?? []) as { id: string }[] });
   if((previous?.revision??0)!==revision)return undefined;
   if (revision > 0 && !await checkpointStudio(id, revision)) return undefined;
   if (revision > 0 && !await checkpointStudio(id, revision, "before-project-workflow-v2")) return undefined;
-  const oldIds=new Set<string>(previous?(JSON.parse(previous.content).songs??[]).map((s:{id:string})=>s.id):[]);
+  const oldIds=new Set<string>((previous?.songs??[]).map(s=>s.id));
   for(const song of ((JSON.parse(content) as Studio).songs??[])){if(!oldIds.has(song.id)&&await env.DB!.prepare("select song_id from song_deletion_jobs where owner = ? and song_id = ?").bind(id,song.id).first())throw new Error("This song ID has been permanently deleted. Start a new song with a new ID.");}
   const rows = revision === 0
     ? await db.insert(studios).values({ owner: id, content, revision: 1 }).onConflictDoNothing().returning({ revision: studios.revision })

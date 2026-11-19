@@ -26,6 +26,7 @@ import { pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
 import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
 import { createSaveQueue } from "./save-queue";
+import { canSendChanges, studioChanges } from "./studio-changes";
 import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
@@ -170,6 +171,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const saveQueue = useRef<ReturnType<typeof createSaveQueue> | null>(null);
   if (!saveQueue.current) saveQueue.current = createSaveQueue(() => pendingSave.current);
   const hasDraft = useRef(false);
+  // The library exactly as the server last confirmed it. Only set from server
+  // responses, so a changes-only save is always measured against stored data.
+  const confirmedRef = useRef<{ data: Studio; revision: number } | null>(null);
 
   async function load() {
     setError("");
@@ -184,6 +188,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       }
       if (result.workspace) setWorkspaceId(result.workspace);
       revisionRef.current=result.revision;setRevision(result.revision);
+      confirmedRef.current=result.data?{data:result.data,revision:result.revision}:null;
       setLoaded(true);
       if(result.warning)setError(result.warning);
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
@@ -263,6 +268,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string;lyrics?:string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
+        confirmedRef.current={data:result.data,revision:result.revision};
       }
       if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
         ? "The production result could not be confirmed. Keep this tab open and check Your songs and your provider history before generating again to avoid a duplicate charge."
@@ -270,6 +276,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const savedData = result.data ?? next;
       if (savedData) {dataRef.current=savedData;setData(savedData);}
       revisionRef.current=result.revision;setRevision(result.revision); setToast(message);
+      confirmedRef.current=result.data?{data:result.data,revision:result.revision}:null;
       if(result.warning)setError(result.warning);
       return result;
     } catch (e) {
@@ -289,8 +296,16 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const base = data;
     let payload: Studio | undefined;
     const prepared = () => payload ??= dataRef.current === base ? next : rebaseStudio(base, next, dataRef.current);
+    // Send only what changed when the server-confirmed copy is current;
+    // otherwise (or if unsure) send the whole library as before.
+    const body = (payload: Studio) => {
+      const confirmed = confirmedRef.current;
+      return confirmed && confirmed.revision === revisionRef.current && canSendChanges(confirmed.data, payload)
+        ? { changes: studioChanges(confirmed.data, payload), revision: revisionRef.current }
+        : { data: payload, revision: revisionRef.current };
+    };
     return !!(await saveRequest("/api/studio", () => ({
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: prepared(), revision:revisionRef.current }),
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body(prepared())),
     }), message, prepared));
   }
   async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
