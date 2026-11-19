@@ -9,7 +9,7 @@
     "test:ace-step": "node --test tests/ace-step-engine.test.mjs",
     "test:song-lifecycle": "node --test tests/song-lifecycle.test.mjs",
     "test:cosmic-studio": "node --test tests/cosmic-studio.test.mjs",
-    "test:landing": "node --test tests/versual-landing.test.mjs",
+    "test:landing": "node --test tests/versual-landing.test.mjs tests/hologram-slogan.test.mjs",
     "test:consolidation": "node scripts/test-studio-consolidation.mjs",
     "test:mantra": "node scripts/test-mantra.mjs",
     "test:languages": "node scripts/test-music-languages.mjs",

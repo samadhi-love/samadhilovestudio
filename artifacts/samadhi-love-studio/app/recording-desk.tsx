@@ -349,7 +349,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
 
   return <div hidden={!active} className="resonance-chamber" data-transport={transport}><RecoveryPanel recovery={recovery}/>
     <div className="create-banner chamber-banner"><span className="chamber-glow" aria-hidden="true"/><span className="eyebrow"><AudioLines size={16}/> THE RESONANCE CHAMBER</span>
-      <h1>Record</h1><p>Your voice, your hum, your podcast. Every take stays private.</p>
+      <h1>Record</h1><p className="hologram-guide">Your voice, your hum, your podcast. Every take stays private.</p>
       <p className="cosmic-poetic chamber-poetic">Breathe. Let it come through.</p>
     </div>
     <MantraRecorder active={active} disabled={transport!=="idle"||reading||progress!==null||saving} device={microphone.device}
@@ -362,7 +362,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
           }}><Icon size={16}/> {name}</button>)}</div> :
           (advanced||mode==="tune")&&<details className="chamber-advanced" data-testid="details-recording-advanced" open={mode === "tune" || undefined}>
             <summary>Advanced · Voice Tune</summary>
-            <p className="muted">Correct the pitch of a recorded vocal. Your take and its original stay as they are.</p>
+            <p className="muted hologram-guide">Correct the pitch of a recorded vocal. Your take and its original stay as they are.</p>
             {mode === "tune"
               ? <button type="button" className="secondary small" data-testid="button-return-voice" disabled={busy} onClick={() => { setMode(requestedMode); settingsChanged(); }}>Back to {requestedMode === "podcast" ? "Podcast" : "Voice"}</button>
               : <button type="button" className="secondary small" data-testid="button-open-voice-tune" aria-pressed={false} disabled={busy} onClick={() => { setMode("tune"); settingsChanged(); }}><AudioLines size={15}/> Open Voice Tune</button>}
@@ -397,7 +397,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
             <button type="button" className="secondary small" disabled={busy || item.id === takeId} aria-pressed={item.id === takeId} onClick={() => chooseTake(item)}><Play size={14}/> {item.id === takeId ? "Open below" : "Listen"}</button>
           </li>)}</ul>
         </section>}
-        <p className="muted creation-note chamber-pro-note">Pro vocal tools — Voice Tune, podcast mix, trim and mixer handoff — open in Advanced view.</p>
+        <p className="muted creation-note chamber-pro-note hologram-guide">Pro vocal tools — Voice Tune, podcast mix, trim and mixer handoff — open in Advanced view.</p>
         <p className="muted creation-note">Up to 8 minutes per take. The microphone opens when you press Start recording. Takes stay in this tab until you save or download them.</p>
         <HelpField label={<><Upload size={14}/> Import audio</>} subject="Import audio" tip="Bring in an existing audio file to trim, tune, or mix as a take."><input type="file" accept=".mp3,.wav,.m4a,.aac,.webm,.ogg,.flac,audio/*" disabled={busy || takes.length >= 3} onChange={event => {
           const file = event.target.files?.[0]; event.target.value = "";
@@ -444,7 +444,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
       <section className="panel form-panel recording-controls">
         <h2>{mode === "tune" ? "Voice Tune" : mode === "podcast" ? "Podcast mix" : "Take editor"}</h2>
         {mode === "tune" ? <>
-          <p className="muted creation-note">Correct the pitch of one isolated vocal after recording. Compare it with the original before saving.</p>
+          <p className="muted creation-note hologram-guide">Correct the pitch of one isolated vocal after recording. Compare it with the original before saving.</p>
           <div className="field-grid">
             <HelpField label="Scale" tip="Choose the notes pitch correction will use. Chromatic allows every note."><select value={scale} disabled={busy} onChange={event => { setScale(event.target.value as Scale); settingsChanged(); }}>
               <option value="chromatic">Chromatic (all notes)</option><option value="major">Major</option><option value="minor">Minor</option></select></HelpField>
@@ -454,14 +454,14 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
           <HelpField label={<>Correction strength · {strength}%</>} subject="Correction strength" tip="A higher percentage moves the vocal pitch more firmly toward the chosen notes."><input type="range" min="0" max="100" value={strength} disabled={busy}
             onChange={event => { setStrength(Number(event.target.value)); settingsChanged(); }}/></HelpField>
         </> : mode === "podcast" ? <>
-          <p className="muted creation-note">Reduce low rumble, level speech, and add a quiet music bed.</p>
+          <p className="muted creation-note hologram-guide">Reduce low rumble, level speech, and add a quiet music bed.</p>
           <HelpField label={<>Voice gain · {speechGain} dB</>} subject="Voice gain" tip="Raise or lower the voice level in the podcast mix."><input type="range" min="-8" max="6" value={speechGain} disabled={busy}
             onChange={event => { setSpeechGain(Number(event.target.value)); settingsChanged(); }}/></HelpField>
           <HelpField label="Music bed" tip="Choose a library recording to play underneath the voice."><select value={bed} disabled={busy} onChange={event => { setBed(event.target.value); settingsChanged(); }}>
             <option value="">None</option>{songs.filter(song => song.audioFormat).map(song => <option key={song.id} value={song.id}>{song.name}</option>)}</select></HelpField>
           {bed && <HelpField label={<>Music level · {bedLevel}%</>} subject="Music level" tip="Adjust how loud the background music is in the podcast mix."><input type="range" min="0" max="35" value={bedLevel} disabled={busy}
             onChange={event => { setBedLevel(Number(event.target.value)); settingsChanged(); }}/></HelpField>}
-        </> : <p className="muted creation-note">Set the start and end points, then preview the trimmed take.</p>}
+        </> : <p className="muted creation-note hologram-guide">Set the start and end points, then preview the trimmed take.</p>}
         <div className="actions"><HelpControl subject="Process take" tip="Process the selected portion of your take. The label changes with the mode you choose."><button className="primary" disabled={!validTrim || busy} onClick={render}>
           {mode === "tune" ? "Apply voice tuning" : mode === "podcast" ? "Mix podcast" : "Preview trim"}</button></HelpControl>
           {progress !== null && <button className="secondary" onClick={() => processing.current?.abort()}>Cancel processing</button>}</div>
@@ -494,7 +494,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
             <button type="button" className="chamber-begin-button" data-testid="button-begin-song-from-take" disabled={!saved || busy} onClick={() => { if (saved) beginSavedSong(saved.id); }}>Begin a song</button>
             <small className="muted">{saved ? "Opens Create with this recording's details. Nothing is sent until you press Create; your audio is not uploaded to a music provider." : "Save this take first, then begin a song from it."}</small>
           </div>}
-          {!result && mode !== "record" && <p className="muted creation-note">Apply the effect to preview it and enable WAV export.</p>}
+          {!result && mode !== "record" && <p className="muted creation-note hologram-guide">Apply the effect to preview it and enable WAV export.</p>}
         </div>
       </section>
     </div>

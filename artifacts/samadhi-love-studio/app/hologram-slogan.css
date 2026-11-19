@@ -1,0 +1,34 @@
+/* Opt-in only on approved text; inherit each placement's font size. */
+.hologram-slogan{
+  font-family:"Orbitron","Space Grotesk",sans-serif;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:#8ff3ff;
+  text-shadow:0 0 3px #8ff3ff70,0 0 10px #46caff55,0 0 23px #166dce40;
+}
+.hologram-slogan__word{display:inline-block;white-space:nowrap}
+.hologram-slogan__letter{position:relative;display:inline-block}
+/* Invisible generated real letters reserve exact final widths during decode. */
+.hologram-slogan__letter::before{content:attr(data-letter);visibility:hidden}
+.hologram-slogan__glyph{
+  position:absolute;inset:0;text-align:center;
+  background-image:repeating-linear-gradient(180deg,#8ff3ff 0 3px,#83e8f5 3px 4px,#8ff3ff 4px 6px);
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+@media(max-width:700px){.hologram-slogan{letter-spacing:.06em}}
+.hologram-slogan--description{
+  text-transform:none;
+  font-size:inherit;
+  letter-spacing:.02em;
+  line-height:1.65;
+  text-shadow:0 0 5px #46caff40,0 0 12px #166dce28;
+}
+/* Level 2 is opt-in on reviewed guidance only: no font, case, size or motion changes. */
+.hologram-guide{color:#b4e9ee !important;text-shadow:0 0 7px #62d9e61a}
+.vl-pop.vl-pop--soft{animation:none;opacity:1;transform:none}
+@media(forced-colors:active){
+  .hologram-guide{color:CanvasText !important;text-shadow:none}
+  .hologram-slogan{color:CanvasText;text-shadow:none;font-family:inherit;letter-spacing:inherit}
+  .hologram-slogan__glyph{background:none;-webkit-text-fill-color:currentColor}
+}

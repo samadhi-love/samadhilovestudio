@@ -43,6 +43,15 @@ test("the compact welcome appears once directly between the slogan band and quot
     "♫ ✧ ❨ Music is for the soul ❩ ✧ ♫",
   ])assert.equal(doc.body.textContent.split(line).length-1,1,line);
 });
+test("only the large slogan band keeps the full effect; other slogan copies are static soft guidance",()=>{
+  feed({releases:[]});const doc=parse();
+  assert.equal(doc.querySelectorAll("[data-hologram-attention]").length,1);
+  assert.ok(doc.querySelector(".vl-band[data-hologram-attention=slogan]"));
+  assert.ok([...doc.querySelectorAll(".hologram-slogan")].every(node=>node.closest(".vl-band")));
+  assert.equal(doc.querySelectorAll(".vl-hero .hologram-slogan,.vl-starpop .hologram-slogan").length,0);
+  assert.equal(doc.querySelectorAll(".vl-hero .hologram-guide").length,1);
+  assert.equal(doc.querySelectorAll(".vl-starpop .vl-pop--soft .hologram-guide").length,3);
+});
 
 test("shared identity comes from one config and describes the product",async()=>{
   const source=JSON.parse(await readFile(path.join(root,"brand.json"),"utf8"));

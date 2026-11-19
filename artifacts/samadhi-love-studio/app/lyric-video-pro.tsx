@@ -1806,7 +1806,7 @@ function LyricVideoProContent(props: Props) {
           <h1>
             Make your <em>video</em>
           </h1>
-          <p>Pick a vibe. Your lyrics light up in time with your voice.</p>
+          <p className="hologram-guide">Pick a vibe. Your lyrics light up in time with your voice.</p>
           <details className="lvp-quick-guide"><summary>How to make a lyric video</summary><ol><li>Choose a Studio song, create one, or upload your authorized recording.</li><li>Choose Auto lyric video. Saved lyrics guide synchronization; uploads can use supplied lyrics or transcription.</li><li>Open Caption editor to correct words and timing.</li><li>Choose a background and lyric style, then YouTube widescreen or upright Shorts / Reels.</li><li>Export the video file, play it, then download or share it for upload.</li></ol><p>Automatic alignment and transcription use the connected provider and applicable credits. Review sung words, dialects and pauses before exporting.</p></details>
           <span className="lvp-feature-badge">
             Sacred backgrounds · Cosmic scenes · Animated lyric styles
@@ -2755,7 +2755,7 @@ function LyricVideoProContent(props: Props) {
                         <section className="lvp-panel">
                           <span className="lvp-kicker">STEP 3</span>
                           <h2>Caption editor</h2>
-                          <p>Correct your lyrics, move line and word timing, or add a caption. Choose a line below to open it in the editor.</p>
+                          <p className="hologram-guide">Correct your lyrics, move line and word timing, or add a caption. Choose a line below to open it in the editor.</p>
                           <button type="button" className="lvp-primary" disabled={busy} onClick={()=>openCaptionEditor()}>Open caption text &amp; timing editor</button>
                           <p>
                             Check the beginning, middle, and end. Reliable

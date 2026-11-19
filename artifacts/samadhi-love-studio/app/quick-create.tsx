@@ -353,7 +353,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     <span className="forge-glow" aria-hidden="true"/>
     <h1 id="quick-create-heading">Begin a song</h1>
     <button type="button" className="secondary small" disabled={busy} onClick={()=>startFresh()}>New song</button>
-    <p className="forge-sub">A few words are enough. Nothing is sent until you press Begin.</p>
+    <p className="forge-sub hologram-guide">A few words are enough. Nothing is sent until you press Begin.</p>
     <div className="qc-status" data-connected={connected} data-testid="status-provider" role="status">
       <span className="qc-dot" aria-hidden="true"/>
       <strong>{connectionChecking?"Checking music account…":connected?"Music account connected":"Music account not connected"}</strong>
@@ -426,7 +426,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
             {!instrumental&&<MusicLanguageControl detailsOnly value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>}
           </details>
           <details className="qc-fold qc-prompt-library" data-testid="saved-prompt-library"><summary>Your Sounds <small>{savedPrompts.length} saved privately</small></summary>
-            <p className="muted">Save your Sound &amp; Soul and Voice as one named sound, then bring it back with one tap. Words stay optional.</p>
+            <p className="muted hologram-guide">Save your Sound &amp; Soul and Voice as one named sound, then bring it back with one tap. Words stay optional.</p>
             {savePrompt&&<div className="prompt-save-row">
               <label className="field">Name this sound
                 <input data-testid="input-saved-prompt-name" maxLength={100} value={promptName} placeholder={songTitle.trim()||"Desert night soul"} onChange={event=>setPromptName(event.target.value)}/></label>

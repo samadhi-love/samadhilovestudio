@@ -71,6 +71,7 @@ import { PromptLab, VocalDirector } from "./music-creation-tools";
 import { emptyDiscovery, type CreateSeed } from "./music-workspace-data";
 
 import { StudioNavigation, ScreenContextHelp, ScreenSections, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
+import { HologramScope, HologramVideoDescription, HologramOriginalsLine, HologramStartSongNote } from "./hologram-slogan";
 import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from "./studio-routes";
 import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
 import { StudioQuickTour } from "./studio-tour";
@@ -569,6 +570,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const comparison = data.songs.find(s => s.id === compareSong && !s.deletedAt && !isExplicitSong(s)) ?? cleanLibrary.find(s => s.mixes.length >= 2) ?? cleanLibrary[0];
 
   return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{engine:musicEngine.status.engine,simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
+    <HologramScope primary={view === "overview" && !song && !pane ? "video-description" : "simple-view"}>
     <div className="cosmic-shell-sky" aria-hidden="true"><i/><i/><i/></div>
     <aside className="sidebar">
       <button className="brand cosmic-brand" onClick={() => navigate("overview")}><img src="/favicon.svg" alt=""/><span><strong>VERSUAL STUDIO</strong><small>{brand.subline}</small></span></button>
@@ -671,7 +673,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
              saveMelodyReference={saveMelodyReference}
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
-          <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted">Turn your music into a lyric video, animated cover or social short. Choose cosmic and sacred scenes, cinematic backgrounds and animated lyric templates in the same studio.</p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
+          <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted"><HologramVideoDescription/></p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
           {!beginner && <section className="studio-shortcuts" aria-label="Studio quick actions">
             {([{ label: "Music Creation", target: "overview", icon: Sparkles, hint: "Start with an idea" },
               { label: "Your songs", target: "songs", icon: ListMusic, hint: "Upload and organize" },
@@ -686,13 +688,13 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           {!beginner && <PartySpotlight/>}
           <div className="overview-grid">
             <Section title="Song library" action={<div className="actions library-actions">{uploadButton}<button className="text-button" onClick={() => navigate("songs")}>View all <ArrowRight size={15}/></button></div>}>
-              <p className="section-sub">Originals in motion, one frequency at a time.</p>
+              <p className="section-sub"><HologramOriginalsLine/></p>
               <div className="song-list">{cleanLibrary.slice(0, 4).map(s => <SongRow key={s.id} song={s} open={() => openSong(s.id)}/>)}
-                {!cleanLibrary.length && <div className="empty">Start a song to give your next idea a home.</div>}</div>
+                {!cleanLibrary.length && <div className="empty"><HologramStartSongNote/></div>}</div>
             </Section>
             {!beginner && <div>
               <Section title="Release focus">
-                <p className="section-sub">Bring your next track into the world.</p>
+                <p className="section-sub hologram-guide">Bring your next track into the world.</p>
                 {activeSong ? <div className="focus panel">
                   <div className="focus-head"><Artwork art={activeSong.art} small/><div><span className="eyebrow">IN FOCUS</span><h3>{activeSong.name}</h3></div></div>
                   <Checklist song={activeSong} preview/>
@@ -781,7 +783,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       </PanelErrorBoundary>
     </div></div>}
     {modal==="tour"&&<div className="modal-shade" onClick={event=>{if(event.target===event.currentTarget)finishTour();}}><div className="modal" role="dialog" aria-modal="true" aria-label="Quick tour"><div className="modal-head"><h2>Quick tour</h2><button type="button" className="icon-button" aria-label="Close" onClick={finishTour}><X size={20}/></button></div><StudioQuickTour onDone={finishTour}/></div></div>}
-  </div></SongHubProvider></DraftRecoveryProvider>;
+    </HologramScope></div></SongHubProvider></DraftRecoveryProvider>;
 }
 
 function PageTitle({ icon, title, subtitle, action }: { icon: ReactNode; title: string; subtitle: string; action?: ReactNode }) {

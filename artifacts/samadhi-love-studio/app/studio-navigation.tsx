@@ -6,6 +6,7 @@ import { CircleHelp, CreditCard, Globe2, Layers3, Megaphone, Menu, Settings2, Sh
 import type { ComponentType } from "react";
 import { screenHome, screenOf, screenSections, type Screen, type SectionView } from "./studio-routes";
 import { HelpTip } from "./help-tip";
+import { HologramSimpleViewNote } from "./hologram-slogan";
 
 export type WorkspaceView = SectionView;
 
@@ -101,7 +102,7 @@ export function StudioNavigation({ activeView, activeScreen, activeUtility, owne
       {mobileOpen ? <X size={18}/> : <Menu size={18}/>}<span>Studio menu</span>
     </button>
     <nav id="studio-workspace-navigation" className="studio-workspace-navigation" aria-label="Workspace">
-      {changeBeginner && <p className="studio-mode-note">{beginner ? "Simple view · start with an idea" : "Advanced view · Pro screens are available below"}</p>}
+      {changeBeginner && <p className="studio-mode-note">{beginner ? <HologramSimpleViewNote/> : "Advanced view · Pro screens are available below"}</p>}
       <div className="simple-main-navigation">{visible.filter(i => !i.pro).map(entry)}</div>
       {!beginner && <div className="creator-secondary-nav nav-pro-group"><p className="nav-label">PRO TOOLS</p>{visible.filter(i => i.pro).map(entry)}</div>}
       <div className="studio-nav-bottom">

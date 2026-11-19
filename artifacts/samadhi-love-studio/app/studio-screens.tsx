@@ -37,7 +37,7 @@ export function ExploreScreen({ tab, setTab, signOut, owner }: { tab: ExploreTab
     <header className="galaxy-head">
       <p className="eyebrow">THE GALAXY MAP</p>
       <h1>Explore</h1>
-      <p className="galaxy-poem">Music shared by the community. Only kind reactions — no rankings, no noise.</p>
+      <p className="galaxy-poem hologram-guide">Music shared by the community. Only kind reactions — no rankings, no noise.</p>
     </header>
     <div className="galaxy-tabbar">
       <Tabs<ExploreTab | "following"> label="Explore" value={view} change={pick} items={[["discover", "Discover"], ["radio", "Radio"], ["party", "Party Mix"], ["following", "Following"]]}/>
@@ -71,7 +71,7 @@ export function PromoteScreen({ songs, songId, setSongId, creatorName, working, 
   const [ad, setAd] = useState<MusicalAd>(song?.musicalAd ?? emptyMusicalAd);
   const [notice, setNotice] = useState("");
   return <section className="promote-screen" data-testid="screen-promote">
-    <header className="screen-intro"><p className="eyebrow"><Megaphone size={14}/> PROMOTE</p><h1>Give your song a face.</h1><p className="muted">Logos, animated nature logos and musical ads. Everything you save stays with the chosen song.</p></header>
+    <header className="screen-intro"><p className="eyebrow"><Megaphone size={14}/> PROMOTE</p><h1>Give your song a face.</h1><p className="muted hologram-guide">Logos, animated nature logos and musical ads. Everything you save stays with the chosen song.</p></header>
     <label className="field">Song<select data-testid="select-promote-song" value={songId} onChange={e => { setSongId(e.target.value); setAd(songs.find(s => s.id === e.target.value)?.musicalAd ?? emptyMusicalAd); setNotice(""); }}>
       <option value="">No song · standalone logo</option>{songs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
     <Tabs label="Promote tools" value={tool} change={setTool} items={[["logo", "Logo Creator"], ["ad", "Musical ad"]]}/>

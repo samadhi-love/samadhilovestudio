@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Disc3, Play, Sparkles } from "lucide-react";
 import { brand } from "../brand";
 import { DivineSpark } from "../cosmic-channel";
+import { HologramSlogan } from "../hologram-slogan";
 import { useCommunityResource } from "../community/client";
 import { artistHref, communityApi, songHref, type CommunityData, type Release } from "../community/data";
 import { CommunityPlayer } from "../community/player";
 import "./landing.css";
 
-const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap";
+const FONTS = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Orbitron:wght@500&family=Space+Grotesk:wght@400;500;600;700&family=Syne:wght@700;800&display=swap";
 const phrases = brand.slogan.split(/(?<=\.)\s+/).filter(Boolean);
 const tones = ["vl-cyan", "vl-violet", "vl-magenta"];
 
@@ -169,7 +170,7 @@ function StarPop() {
       <span className="vl-rays"/>
       <svg viewBox="0 0 100 100" className="vl-star"><path d="M50 6l12.6 28.5 31 3.1-23.3 20.6 6.8 30.4L50 72.9 22.9 88.6l6.8-30.4L6.4 37.6l31-3.1z"/></svg>
     </div>
-    <p>{phrases.map((p, n) => <span key={p} className={"vl-pop " + tones[n % 3]} style={{ animationDelay: 0.9 + n * 0.6 + "s" }}>{p}</span>)}</p>
+    <p>{phrases.map((p, n) => <span key={p} className={"vl-pop vl-pop--soft " + tones[n % 3]} style={{ animationDelay: 0.9 + n * 0.6 + "s" }}><HologramSlogan soft part={n as 0 | 1 | 2}/></span>)}</p>
   </section>;
 }
 
@@ -189,7 +190,7 @@ export function VersualLanding() {
     <main>
       <section className="vl-hero">
         <div className="vl-hero-copy">
-          <p className="vl-eyebrow"><Sparkles size={15}/> {brand.slogan.toUpperCase()}</p>
+          <p className="vl-eyebrow"><Sparkles size={15}/> <HologramSlogan soft/></p>
           <h1 className="vl-h1"><span className="vl-headline-line">Your soul</span>{" "}<span className="vl-grad vl-headline-line">has a sound.</span></h1>
           <p className="vl-lede">Bring the melody that lives in you down to earth. Describe it, write it, hum it — and watch it become a full song and a glowing lyric video.</p>
           <div className="vl-ctas">
@@ -200,8 +201,8 @@ export function VersualLanding() {
         <HeroVisual/>
       </section>
 
-      <section className="vl-band" aria-label={brand.slogan}>
-        {phrases.map((p, n) => <span key={p} className={tones[n % 3]}>{p}</span>)}
+      <section className="vl-band" aria-label={brand.slogan} data-hologram-attention="slogan">
+        {phrases.map((p, n) => <span key={p} className={tones[n % 3]}><HologramSlogan part={n as 0 | 1 | 2}/></span>)}
       </section>
 
       <DivineSpark variant="banner"/>

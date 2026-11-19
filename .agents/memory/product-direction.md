@@ -103,3 +103,9 @@ Keep normal personal-key Create wording quiet: at most one small “Uses your El
 **Why:** The owner says users are responsible for their own ElevenLabs credits and finds repeated credit warnings unnecessary.
 
 **How to apply:** Do not reintroduce repeated normal-generation warnings. Preserve accounting, paid-result recovery and explicit consent before replaying an uncertain paid attempt; this wording decision is not permission to bypass those safeguards.
+
+Keep the new deep-space sky, spacecraft and shooting stars on the public front page only. Preserve the original backgrounds and inner sky on Studio, member, listener and auth pages; corner constellations stay everywhere.
+
+**Why:** The owner corrected the background change: “no it's not i di not tell you to change that before.” Restoring the original appearance means removing the new overrides, not inventing another purple-and-gold palette.
+
+**How to apply:** Keep existing panels, sidebar, “I AM…” rails and welcome banner unchanged when modifying decorative scenery. Do not make inner-page shells transparent or hide their existing skies.

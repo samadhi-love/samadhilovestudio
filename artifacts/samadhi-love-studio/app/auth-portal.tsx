@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { brand } from "./brand";
+import { HologramSlogan } from "./hologram-slogan";
 
 const stars = Array.from({ length: 36 }, (_, i) => {
   const a = i * 2.39996, r = 18 + ((i * 37) % 82);
@@ -17,7 +18,7 @@ export function AuthPortal({ mode, children, note }: { mode: "sign-in" | "sign-u
     <section className="portal-card">
       <a className="brand portal-brand" href="/"><img src="/favicon.svg" alt=""/><span><strong>{brand.name}</strong><small>{brand.subline}</small></span></a>
       <p className="portal-eyebrow">THE PORTAL</p>
-      <h1 className="portal-slogan">{brand.slogan}</h1>
+      <h1 className="portal-slogan"><HologramSlogan/></h1>
       <div className="portal-widget">{children}</div>
       {note}
     </section>

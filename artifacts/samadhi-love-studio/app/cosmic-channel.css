@@ -80,11 +80,12 @@ body{padding:var(--sacred-frame)}
 @media(forced-colors:active){.welcome-message .sacred-symbol{filter:none}.welcome-samadhi{border-color:CanvasText}.welcome-cosmos{display:none}}
 
 /* ---------- Living deep-space backdrop (sibling of .cosmic-frame, behind all content) ---------- */
-/* Page backdrops become transparent so the fixed sky (z-index:-1 in the root context) shows; panels/cards untouched. */
-html body:has(.vs-sky) :is(.versual-landing,.shell,.shell[data-cosmic-screen],.member-shell,.listener-shell,.studio-auth){background:transparent}
-/* Replace only the older decorative skies, not hero art, panels or the welcome banner. */
-html body:has(.vs-sky) :is(.vl-sky,.cosmic-shell-sky){display:none}
-.vs-sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#0a1430,#05040f 70%)}
+/* Replace only the public landing backdrop. Inner pages retain their original
+   backgrounds and decorative skies; corner constellations remain global. */
+html body:has(.vs-sky) .versual-landing{background:transparent}
+html body:has(.vs-sky) .versual-landing .vl-sky{display:none}
+.vs-sky{display:none;position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#0a1430,#05040f 70%)}
+body:has(.versual-landing):not(:has(.shell,.member-shell,.listener-shell,.studio-auth)) .vs-sky{display:block}
 .vs-sky *{pointer-events:none}
 .vs-nebula{position:absolute;border-radius:50%;filter:blur(60px);will-change:transform,opacity}
 .vs-nebula-a{width:70vmax;height:55vmax;left:-20vmax;top:-18vmax;background:radial-gradient(closest-side,#5b3a9a55,transparent);animation:vs-neb-a 74s ease-in-out infinite alternate}
