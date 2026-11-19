@@ -13,7 +13,8 @@ export function studioWorkerSecrets(command, localBindings = {}, source = proces
   if (source.STUDIO_OWNER_EMAIL?.trim()) {
     names.add("STUDIO_OWNER_EMAIL");
     if (source.ELEVENLABS_API_KEY !== undefined) names.add("ELEVENLABS_API_KEY");
-    if (source.FAL_KEY !== undefined) names.add("FAL_KEY");
+    const falName = Object.keys(source).find(name => name === "FAL_KEY") ?? Object.keys(source).find(name => /^fal[_-]?key$/i.test(name.trim()));
+    if (falName) names.add(falName);
   }
   return { required: [...names] };
 }

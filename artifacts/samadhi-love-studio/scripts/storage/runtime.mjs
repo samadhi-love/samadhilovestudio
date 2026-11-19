@@ -7,6 +7,15 @@ import { TransformStream } from "node:stream/web";
 
 // Storage setup is independent of hosting. In particular, an unpublished app
 // has no production origin yet; diagnostics/migrations must not invent one.
+/** Accept the fal.ai key however its Secret name was capitalized (FAL_KEY, Fal_key, fal-key…). */
+export function falKeyName(source = process.env) {
+  if (source.FAL_KEY !== undefined) return "FAL_KEY";
+  return Object.keys(source).find(name => /^fal[_-]?key$/i.test(name.trim()));
+}
+export function findFalKey(source = process.env) {
+  const name = falKeyName(source);
+  return name ? source[name]?.trim() || undefined : undefined;
+}
 export function storageConfig(source = process.env) {
   const resources = resourceConfig(source);
   const names = ["STUDIO_CLOUDFLARE_D1_API_TOKEN", "STUDIO_R2_ACCESS_KEY_ID", "STUDIO_R2_SECRET_ACCESS_KEY"];
@@ -49,7 +58,7 @@ export async function initializeRuntime(source = process.env, adapters) {
   // Production cannot silently activate project-funded generation or billing.
   const env = { DB, BUCKET, STUDIO_ROW_STORAGE: "legacy", STUDIO_OWNER_EMAIL: source.STUDIO_OWNER_EMAIL,
     STUDIO_ELEVENLABS_VAULT_KEY: config.vault, STUDIO_PUBLIC_ORIGIN: config.publicOrigin,
-    STUDIO_CREATOR_BETA: "1", FAL_KEY: source.FAL_KEY };
+    STUDIO_CREATOR_BETA: "1", FAL_KEY: findFalKey(source) };
   globalThis[Symbol.for("samadhi.node.bindings")] = env;
   if (!globalThis.FixedLengthStream) globalThis.FixedLengthStream = class extends TransformStream {
     constructor(expected) {

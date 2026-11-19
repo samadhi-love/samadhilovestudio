@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { runtimeConfig, storageConfig, initializeRuntime, verifyStorage } from "../scripts/storage/runtime.mjs";
+import { runtimeConfig, storageConfig, initializeRuntime, verifyStorage, findFalKey, falKeyName } from "../scripts/storage/runtime.mjs";
+import { studioWorkerSecrets } from "../scripts/worker-secrets.mjs";
 import { D1Http } from "../scripts/storage/d1.mjs";
 import { R2PrivateBucket, encodeMetadata, decodeMetadata, MAX_UPLOAD } from "../scripts/storage/r2.mjs";
 import { env } from "../scripts/storage/node-bindings.mjs";
@@ -14,6 +15,14 @@ const source = { PORT: "19559", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture-d1",
   STUDIO_R2_ACCESS_KEY_ID: "fixture-s3", STUDIO_R2_SECRET_ACCESS_KEY: "fixture-secret",
   STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32), STUDIO_OWNER_EMAIL: "owner@example.test" };
 const resources = runtimeConfig(source);
+test("fal.ai key is found whatever the Secret name's capitalization",()=>{
+  assert.equal(findFalKey({FAL_KEY:" a "}),"a");
+  for(const name of ["Fal_key","fal_key","Fal_Key","FAL-KEY","fal-key"])assert.equal(findFalKey({[name]:"k"}),"k",name);
+  assert.equal(findFalKey({FAL_KEY:"exact",Fal_key:"other"}),"exact");
+  assert.equal(findFalKey({FALCON_KEY:"no",fal_keys:"no"}),undefined);assert.equal(findFalKey({Fal_key:"  "}),undefined);
+  assert.equal(falKeyName({Fal_key:"k"}),"Fal_key");
+  assert.deepEqual(studioWorkerSecrets("serve",{}, {STUDIO_OWNER_EMAIL:"o@x.test",Fal_key:"k"}).required.includes("Fal_key"),true);
+});
 test("unpublished storage setup needs neither a public origin nor a hosting port",()=>{
   for(const origin of [undefined,"","pending","not-a-url"]){
     const config=storageConfig({...source,PORT:undefined,STUDIO_PUBLIC_ORIGIN:origin});
