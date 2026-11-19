@@ -20,7 +20,13 @@ const eslintConfig = defineConfig([
     // Stale values in effects and callbacks caused real lost-save bugs. Every
     // remaining exception is reviewed and carries its reason inline.
     files: ["app/**/*.{ts,tsx}"],
-    rules: { "react-hooks/exhaustive-deps": "error" },
+    rules: {
+      "react-hooks/exhaustive-deps": "error",
+      // Deliberate: the public site, sign-in/sign-up/sign-out and the Studio are
+      // separate sections. Plain links give each a full load with fresh sign-in
+      // state; next/link is not used anywhere in this app.
+      "@next/next/no-html-link-for-pages": "off",
+    },
   },
   {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
