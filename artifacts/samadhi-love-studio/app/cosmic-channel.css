@@ -78,3 +78,77 @@ body{padding:var(--sacred-frame)}
 @media(max-width:700px){.welcome-samadhi{padding:10px 12px}.welcome-message{gap:8px}.welcome-message .sacred-symbol{width:26px;height:26px}.welcome-note-field{font-size:20px}.welcome-earth{width:86px;height:86px;right:-15px;bottom:-22px;opacity:.55}.welcome-ringed-planet{width:30px;height:30px;left:10px;top:7px;opacity:.45}.welcome-ringed-planet::after{inset:9px -12px;border-width:3px}}
 @media(max-width:360px){.welcome-message .sacred-symbol{width:21px;height:21px}.welcome-message p{letter-spacing:.025em}}
 @media(forced-colors:active){.welcome-message .sacred-symbol{filter:none}.welcome-samadhi{border-color:CanvasText}.welcome-cosmos{display:none}}
+
+/* ---------- Living deep-space backdrop (sibling of .cosmic-frame, behind all content) ---------- */
+/* Page backdrops become transparent so the fixed sky (z-index:-1 in the root context) shows; panels/cards untouched. */
+html body:has(.vs-sky) :is(.versual-landing,.shell,.shell[data-cosmic-screen],.member-shell,.listener-shell,.studio-auth){background:transparent}
+/* Replace only the older decorative skies, not hero art, panels or the welcome banner. */
+html body:has(.vs-sky) :is(.vl-sky,.cosmic-shell-sky){display:none}
+.vs-sky{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#0a1430,#05040f 70%)}
+.vs-sky *{pointer-events:none}
+.vs-nebula{position:absolute;border-radius:50%;filter:blur(60px);will-change:transform,opacity}
+.vs-nebula-a{width:70vmax;height:55vmax;left:-20vmax;top:-18vmax;background:radial-gradient(closest-side,#5b3a9a55,transparent);animation:vs-neb-a 74s ease-in-out infinite alternate}
+.vs-nebula-b{width:60vmax;height:50vmax;right:-18vmax;bottom:-16vmax;background:radial-gradient(closest-side,#16325f66,transparent);animation:vs-neb-b 88s ease-in-out infinite alternate}
+.vs-nebula-c{width:45vmax;height:35vmax;left:35vw;top:30vh;background:radial-gradient(closest-side,#0f5a5c3a,transparent);animation:vs-neb-a 96s ease-in-out infinite alternate-reverse}
+.vs-nebula-d{width:30vmax;height:24vmax;right:12vw;top:4vh;background:radial-gradient(closest-side,#b58a4a1c,transparent);animation:vs-neb-b 66s ease-in-out infinite alternate-reverse}
+@keyframes vs-neb-a{0%{transform:translate(0,0) scale(1);opacity:.75}100%{transform:translate(6vw,4vh) scale(1.12);opacity:1}}
+@keyframes vs-neb-b{0%{transform:translate(0,0) scale(1.05);opacity:1}100%{transform:translate(-5vw,-3vh) scale(.94);opacity:.7}}
+.vs-stars{position:absolute;inset:-20%;will-change:transform}
+.vs-stars-far{opacity:.5;background-image:radial-gradient(circle at 20% 30%,#dfe7ff 0 .5px,transparent 1px),radial-gradient(circle at 70% 60%,#c9f4ff 0 .5px,transparent 1px),radial-gradient(circle at 45% 85%,#fff 0 .4px,transparent .9px);background-size:97px 89px,131px 113px,71px 67px;animation:vs-drift-far 240s linear infinite alternate}
+.vs-stars-mid{opacity:.65;background-image:radial-gradient(circle at 30% 40%,#eef4ff 0 .8px,transparent 1.5px),radial-gradient(circle at 80% 20%,#bfefff 0 .7px,transparent 1.4px);background-size:223px 197px,281px 241px;animation:vs-drift-mid 170s linear infinite alternate}
+.vs-stars-near{opacity:.85;background-image:radial-gradient(circle at 50% 50%,#fff 0 1.1px,#cfefff55 1.6px,transparent 2.6px),radial-gradient(circle at 15% 75%,#ffeccc 0 .9px,transparent 1.8px);background-size:419px 367px,523px 449px;animation:vs-drift-near 120s linear infinite alternate,vs-breathe 9s ease-in-out infinite alternate}
+@keyframes vs-drift-far{to{transform:translate(-3vw,-3vh)}}
+@keyframes vs-drift-mid{to{transform:translate(5vw,-5vh)}}
+@keyframes vs-drift-near{to{transform:translate(-8vw,8vh)}}
+@keyframes vs-breathe{to{opacity:.6}}
+.vs-shooting{position:absolute;left:62vw;top:12vh;width:140px;height:1px;background:linear-gradient(90deg,transparent,#d8f6ffcc 70%,#fff);transform-origin:right center;opacity:0;animation:vs-shoot 31s linear infinite 6s}
+@keyframes vs-shoot{0%{opacity:0;transform:rotate(-24deg) translateX(0)}1%{opacity:.85}3.5%{opacity:0;transform:rotate(-24deg) translateX(-38vw)}100%{opacity:0;transform:rotate(-24deg) translateX(-38vw)}}
+.vs-ship-route{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity}
+.vs-ship{display:block;width:96px;height:24px;overflow:visible;opacity:.82;filter:contrast(.88) brightness(.94)}
+.vs-ship-bank{transform-box:view-box;transform-origin:70px 15px;animation:vs-bank 14s ease-in-out infinite alternate}
+.vs-ship-wake{animation:vs-wake 3.2s ease-in-out infinite alternate}
+.vs-ship-engines{animation:vs-core 2.1s ease-in-out infinite alternate}
+.vs-nav{opacity:.15;animation:vs-nav 4.8s ease-in-out infinite}
+.vs-nav-red{fill:#ff5a4e}.vs-nav-green{fill:#5dffa8;animation-delay:-1.6s}.vs-nav-white{fill:#f4f8ff;animation-delay:-3.2s;animation-duration:3.6s}
+@keyframes vs-bank{0%{transform:rotate(-.6deg) translateY(-.2px)}100%{transform:rotate(.5deg) translateY(.25px)}}
+@keyframes vs-wake{0%{opacity:.85}100%{opacity:.55}}
+@keyframes vs-core{0%{opacity:1}100%{opacity:.78}}
+@keyframes vs-nav{0%,70%,100%{opacity:.15}78%{opacity:.95}86%{opacity:.2}}
+.vs-route-1{animation:vs-route-1 52s linear infinite 4s}
+.vs-route-1 .vs-ship{width:110px;height:28px;transform:rotate(-8deg)}
+@keyframes vs-route-1{0%{opacity:0;transform:translate(-140px,68vh)}2%{opacity:.7}26%{opacity:.7}28%,100%{opacity:0;transform:translate(104vw,40vh)}}
+.vs-route-2{animation:vs-route-2 58s linear infinite 30s}
+.vs-route-2 .vs-ship{width:72px;height:18px;transform:scaleX(-1) rotate(-6deg)}
+@keyframes vs-route-2{0%{opacity:0;transform:translate(104vw,22vh)}2%{opacity:.55}30%{opacity:.55}32%,100%{opacity:0;transform:translate(-120px,48vh)}}
+
+/* ---------- Four mirrored inner-corner constellations (foreground decoration, clear of rails) ---------- */
+.vs-constellations{position:fixed;inset:0;z-index:79;pointer-events:none;overflow:hidden}
+.vs-constellation{position:absolute;width:150px;height:150px;overflow:visible;opacity:.8}
+.vs-constellation-nw{left:calc(var(--sacred-frame) + 6px);top:calc(var(--sacred-frame) + 6px)}
+.vs-constellation-ne{right:calc(var(--sacred-frame) + 6px);top:calc(var(--sacred-frame) + 6px);transform:scaleX(-1)}
+.vs-constellation-sw{width:200px;height:200px;left:calc(var(--sacred-frame) + 6px);bottom:calc(var(--sacred-frame) + 6px);transform:scaleY(-1)}
+.vs-constellation-se{width:200px;height:200px;right:calc(var(--sacred-frame) + 6px);bottom:calc(var(--sacred-frame) + 6px);transform:scale(-1,-1)}
+.vs-const-lines line{stroke:#d6ecff;stroke-opacity:.38;stroke-width:.5;vector-effect:non-scaling-stroke}
+.vs-const-dust circle{fill:#dfe9ff;opacity:.35}
+.vs-const-stars circle{fill:#f4fbff;filter:drop-shadow(0 0 2px #bdf2ff);transform-box:fill-box;transform-origin:center;animation:vs-twinkle 5s ease-in-out infinite}
+.vs-const-stars .vs-star-1,.vs-const-stars .vs-star-5{fill:#cdf6ff;animation-duration:4.4s;animation-delay:-1.3s}
+.vs-const-stars .vs-star-2,.vs-const-stars .vs-star-6{animation-duration:5.8s;animation-delay:-2.9s}
+.vs-const-stars .vs-star-3{fill:#d9f8ff;animation-duration:4.8s;animation-delay:-.7s}
+.vs-const-stars .vs-star-4{animation-duration:5.4s;animation-delay:-3.6s}
+@keyframes vs-twinkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.78)}}
+@media(max-width:700px){
+  .vs-constellation,.vs-constellation-sw,.vs-constellation-se{width:90px;height:90px;opacity:.65}
+  .vs-stars-far{background-size:157px 149px,201px 183px,131px 127px}
+  .vs-stars-mid{background-size:313px 287px,381px 341px}
+  .vs-stars-near{background-size:519px 467px,623px 549px}
+  .vs-nebula{filter:blur(35px)}
+  .vs-route-1 .vs-ship{width:62px;height:16px}.vs-route-2 .vs-ship{width:44px;height:11px}
+  .vs-shooting{width:80px}
+}
+/* Pause everything decorative while the tab is hidden. */
+html[data-vs-sky-paused] :is(.vs-sky,.vs-constellations),html[data-vs-sky-paused] :is(.vs-sky,.vs-constellations) *{animation-play-state:paused!important}
+@media(prefers-reduced-motion:reduce){
+  .vs-sky *,.vs-constellations *{animation:none!important}
+  .vs-shooting,.vs-ship-route{display:none}
+}
+@media(forced-colors:active){.vs-sky,.vs-constellations{display:none!important}}
