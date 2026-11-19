@@ -166,12 +166,12 @@ type Props = {
   persistBusy: (busy: boolean) => void;
   dirty: (dirty: boolean) => void;
 };
+/** Three visible steps. Internal step numbers stay 0–4 so every existing jump still works:
+ * Words covers caption creation (1) and the caption editor (2); Look is 3; Make & download is 4. */
 const steps = [
-  "Choose or create",
-  "Generate captions",
-  "Caption editor",
-  "Choose look",
-  "Export",
+  { label: "Words", covers: [1, 2], go: 1 },
+  { label: "Look", covers: [3], go: 3 },
+  { label: "Make & download", covers: [4], go: 4 },
 ];
 const formatLabels=videoFormatLabels;
 const shortTime = (t: number) =>
@@ -2069,20 +2069,20 @@ function LyricVideoProContent(props: Props) {
             mode !== "start" && (
               <>
                 <nav className="lvp-stepper" aria-label="Lyric video workflow">
-                  {steps.map((label, i) => (
+                  {steps.map((item, i) => (
                     <button
                       type="button"
-                      key={label}
+                      key={item.label}
                       disabled={
                         busy ||
-                        (i > 0 && !project) ||
-                        ((i === 2 || i === 4) && !project?.cues.length)
+                        !project ||
+                        (item.go === 4 && !project?.cues.length)
                       }
-                      aria-current={step === i ? "step" : undefined}
-                      onClick={() => setStep(i)}
+                      aria-current={item.covers.includes(step) ? "step" : undefined}
+                      onClick={() => setStep(item.go === 1 && project?.cues.length ? 2 : item.go)}
                     >
                       <b>{i + 1}</b>
-                      {label}
+                      {item.label}
                     </button>
                   ))}
                 </nav>
@@ -2438,7 +2438,7 @@ function LyricVideoProContent(props: Props) {
                     <main className="lvp-controls">
                       {step === 1 && (
                         <section className="lvp-panel">
-                          <span className="lvp-kicker">STEP 2</span>
+                          <span className="lvp-kicker">STEP 1 · WORDS</span>
                           <h2>Bring the words onto the screen</h2>
                           <p>
                             {p.approvedLyrics.trim()
@@ -2765,7 +2765,7 @@ function LyricVideoProContent(props: Props) {
                       )}
                       {step === 2 && (
                         <section className="lvp-panel">
-                          <span className="lvp-kicker">STEP 3</span>
+                          <span className="lvp-kicker">STEP 1 · WORDS</span>
                           <h2>Caption editor</h2>
                           <p className="hologram-guide">Correct your lyrics, move line and word timing, or add a caption. Choose a line below to open it in the editor.</p>
                           <button type="button" className="lvp-primary" disabled={busy} onClick={()=>openCaptionEditor()}>Open caption text &amp; timing editor</button>
@@ -2922,11 +2922,10 @@ function LyricVideoProContent(props: Props) {
                           id="lyric-look-controls"
                           tabIndex={-1}
                         >
-                          <span className="lvp-kicker">STEP 4</span>
+                          <span className="lvp-kicker">STEP 2 · LOOK</span>
                           <h2>Choose your look</h2>
                           <VibeLookPicker project={project} change={edit} disabled={busy} title="Featured vibes"/>
-                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More looks · backgrounds, caption styles, signature overlays & ad tools</summary>
-                          <details><summary>Sacred images & backgrounds · Jesus, Mother Mary & all 36 designs</summary>
+                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all 36 designs</h3>
                           <LyricBackgroundPicker
                             initialGroup="sacred"
                             project={project}
@@ -2941,7 +2940,7 @@ function LyricVideoProContent(props: Props) {
                             }
                             exportTemplate={() => void exportOwnTemplate()}
                           />
-                          </details>
+                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More looks · caption styles, animated designs, AI visuals & ad tools</summary>
                           <VisualGenerationControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} apply={applyGeneratedVisual} disabled={busy}/>
                           <AdvertisingVideoControls project={project} change={edit} uploadPhotos={files=>void uploadAdPhotos(files)} upload={file=>void uploadProductVideo(file)} disabled={busy}/>
                           <StemReactiveControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} change={edit} disabled={busy} working={value=>setOperation(value?"Analyzing stem motion":"")}/>
@@ -3290,7 +3289,7 @@ function LyricVideoProContent(props: Props) {
                       )}
                       {step === 4 && (
                         <section className="lvp-panel">
-                          <span className="lvp-kicker">STEP 5</span>
+                          <span className="lvp-kicker">STEP 3 · MAKE & DOWNLOAD</span>
                           <h2>Download, share & promote</h2>
                           <SocialVideoTools project={project} change={next=>{edit(next);seek(next.pro!.range.start);}} time={time} disabled={busy} choosePlatform={setPlatform}/>
                           <div className="lvp-fields">

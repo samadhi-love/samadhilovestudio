@@ -60,12 +60,14 @@ export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:
   {key:"edit",label:"Edit in Shape",icon:<Scissors size={16}/>,run:()=>act("sections"),disabled:!ready},
   ...(keepGoing?[{key:"extend",label:"Keep Going",icon:<FastForward size={16}/>,run:()=>act("extend"),disabled:!ready}]:[]),
   {key:"redo",label:"Redo a Part",icon:<RotateCcw size={16}/>,run:()=>act("redo-part"),disabled:!ready},
-  {key:"video",label:"Make Video",icon:<Film size={16}/>,run:()=>act(videoAction),disabled:!ready},
+  {key:"video",label:"Make LyriVid",icon:<Film size={16}/>,run:()=>act(videoAction),disabled:!ready},
+  {key:"mix",label:"Mix & edit",icon:<Wrench size={16}/>,run:()=>act("mix"),disabled:!ready},
   ...(!instrumental?[{key:"voice",label:"Save Voice",icon:<Mic size={16}/>,run:()=>act("save-voice"),disabled:!ready}]:[]),
   {key:"share",label:"Share",icon:<Share2 size={16}/>,run:()=>openSheet("share")},
   {key:"publish",label:"Publish",icon:<Globe size={16}/>,run:()=>void hub?.publish(song),disabled:!ready},
   {key:"download",label:"Download",icon:<Download size={16}/>,run:()=>openSheet("download")},
   {key:"duplicate",label:"Duplicate",icon:<Copy size={16}/>,run:()=>void hub?.duplicate(song)},
+  {key:"logo",label:"Logo & ad",icon:<Globe size={16}/>,run:()=>act("logo")},
   {key:"organize",label:"Add to Project / Playlist",icon:<FolderPlus size={16}/>,run:()=>openSheet("organize")},
   {key:"tools",label:"More tools",icon:<Wrench size={16}/>,run:()=>openSheet("tools")},
   {key:"delete",label:"Delete",icon:<Trash2 size={16}/>,run:()=>void hub?.archive(song),danger:true},
@@ -92,6 +94,7 @@ export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:
   <div className="song-card-header"><div className={`song-card-art art-${song.art%4}`} aria-hidden="true">{song.coverAsset?<img style={{width:"100%",height:"100%",objectFit:"cover"}} src={`/api/studio/lyric-assets?song=${encodeURIComponent(song.id)}&asset=${encodeURIComponent(song.coverAsset)}`} alt=""/>:<Music2 size={24}/>}</div>
    <button type="button" className="song-card-title" disabled={busy||!hub||archived} onClick={()=>act("details")}><strong>{song.name}</strong><span>{song.tags.slice(0,3).join(" · ")||song.stage}</span><small>{time!==null?<time dateTime={new Date(time).toISOString()}>{new Date(time).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</time>:"Earlier saved creation · date unavailable"} · {archived?"Deleted":blocked?"Needs review":songStatus(song)}{!archived&&hub?.releaseLoaded?" · "+(release?.status??"Private"):""}</small></button>
    <div className="song-card-buttons">
+    {ready&&!archived&&<button type="button" className="secondary small song-lyrivid" data-testid={`button-lyrivid-${song.id}`} disabled={busy||!hub} aria-label={`Make a LyriVid for ${song.name}`} onClick={()=>act(videoAction)}><Film size={15}/> LyriVid</button>}
     {ready&&!archived&&<button type="button" className="song-play" aria-pressed={preview} aria-label={`${preview?"Close player for":"Play"} ${song.name}`} onClick={togglePreview}><Play size={16} fill={preview?"currentColor":"none"}/></button>}
     {!archived&&<button type="button" className={`song-like${song.favorite?" liked":""}`} aria-pressed={!!song.favorite} aria-label={`${song.favorite?"Unlike":"Like"} ${song.name}`} disabled={busy||!hub} onClick={()=>void hub?.save({...song,favorite:!song.favorite},song.favorite?"Removed from Liked songs":"Added to Liked songs")}><Heart size={18} fill={song.favorite?"currentColor":"none"}/><span>{song.favorite?"Liked":"Like"}</span></button>}
     <div className="song-menu-wrap">

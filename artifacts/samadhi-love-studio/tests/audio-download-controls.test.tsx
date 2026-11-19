@@ -12,7 +12,7 @@ test("original download is retained beside format options and the explicit auto 
  try{await act(async()=>root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));
  const pick=async(label:string)=>{await act(async()=>(document.querySelector('[aria-label="Song actions for Original voice"]') as HTMLButtonElement).click());const item=[...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(button=>button.textContent===label);assert(item,label);await act(async()=>item.click());};
  await pick("Download");const select=document.querySelector('select[aria-label="Audio download format"]')!;assert.equal(select.querySelectorAll("option").length,5);assert.ok(document.querySelector('a[download="Original voice.mp3"]'));assert([...select.querySelectorAll("option")].some(option=>option.textContent?.includes("WAV")));
- await pick("Make Video");assert.equal(action,"auto-video");
+ await pick("Make LyriVid");assert.equal(action,"auto-video");
  await act(async()=>root.render(<AudioActions song={{...song,audioId:"new-audio"}}/>));assert.ok(document.querySelector('a[href*="new-audio"]'));assert.equal(song.audioId,"original-audio");
  }finally{await act(async()=>root.unmount());dom.window.close();}
 });

@@ -57,18 +57,22 @@ async function setup() {
   const { createRoot } = await import("react-dom/client");
   return { dom, root: createRoot(document.getElementById("root")!) };
 }
-test("Simple shows five screens; Pro adds World Sounds, Mix & Edit and Promote; Plan & Credits stays accessible in the sidebar", async () => {
+test("navigation always shows exactly five screens; Account holds Settings, Plan & Credits and Guide; advanced options never add menu items", async () => {
   const h = await setup(); const opened: string[] = [];
   const props = { activeView: "overview" as const, owner: false, navigate: () => true, openScreen: (s: string) => { opened.push(s); return true; }, settings: () => {}, guide: () => {} };
-  await act(async () => h.root.render(<StudioNavigation {...props} beginner/>));
-  for (const id of ["create", "songs", "lyric-video", "record", "explore"]) assert(document.querySelector(`[data-testid="nav-${id}"]`), id);
-  for (const id of ["world-sounds", "mix-edit", "promote"]) assert.equal(document.querySelector(`[data-testid="nav-${id}"]`), null);
-  assert.ok(document.querySelector('[data-testid="nav-plan-credits"]'));
-  await act(async () => (document.querySelector('[data-testid="toggle-settings-help"]') as HTMLElement).click());
+  for (const beginner of [true, false]) {
+    await act(async () => h.root.render(<StudioNavigation {...props} beginner={beginner} changeBeginner={() => {}}/>));
+    for (const id of ["create", "songs", "lyric-video", "record", "explore"]) assert(document.querySelector(`[data-testid="nav-${id}"]`), id);
+    for (const id of ["world-sounds", "mix-edit", "promote"]) assert.equal(document.querySelector(`[data-testid="nav-${id}"]`), null, id);
+    assert.equal(document.querySelectorAll(".simple-main-navigation button").length, 5);
+  }
+  assert.equal(document.querySelector('[data-testid="nav-plan-credits"]'), null, "account group starts closed");
+  await act(async () => (document.querySelector('[data-testid="toggle-account"]') as HTMLElement).click());
+  assert.ok(document.querySelector('[data-testid="nav-settings"]'));
+  assert.ok(document.querySelector('[data-testid="nav-guide"]'));
+  assert.ok(document.querySelector('[data-testid="switch-workspace-mode"]'), "advanced options toggle lives in Account");
   await act(async () => (document.querySelector('[data-testid="nav-plan-credits"]') as HTMLElement).click());
   assert.deepEqual(opened, ["plan-credits"]);
-  await act(async () => h.root.render(<StudioNavigation {...props} beginner={false}/>));
-  for (const id of ["world-sounds", "mix-edit", "promote"]) assert(document.querySelector(`[data-testid="nav-${id}"]`), id);
   assert.equal(document.body.textContent!.includes("Moderation"), false);
   await act(async () => h.root.unmount());
 });

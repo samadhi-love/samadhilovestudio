@@ -119,16 +119,21 @@ async function mounted(element,fn){
   finally{await act(async()=>app.unmount());dom.window.close();for(const [key,descriptor]of descriptors)descriptor?Object.defineProperty(globalThis,key,descriptor):delete globalThis[key];}
 }
 
-test("all nine screens retain their real IDs and themed five-entry navigation",async()=>{
+test("all nine screens retain their real IDs and a calm five-entry navigation",async()=>{
   const css=await source("cosmic-theme.css");
   for(const screen of ui.screens){
     assert.ok(css.includes(`data-cosmic-screen=${screen}`),screen);
     const doc=domOf(ui.StudioNavigation,{...navProps,activeView:ui.screenHome[screen],activeScreen:screen,beginner:false}).window.document;
     assert.equal(doc.querySelectorAll(".studio-mobile-dock button").length,5);
     for(const id of ["create","songs","lyric-video","record","explore"])assert.ok(doc.querySelector(`[data-testid="nav-${id}"]`));
-    assert.match(doc.querySelector('[data-testid="nav-songs"]').textContent,/Your songs/);
-    assert.ok(doc.querySelector('[data-testid="nav-settings"]'));
-    assert.ok(doc.querySelector('[data-testid="nav-plan-credits"]'));
+    assert.match(doc.querySelector('[data-testid="nav-songs"]').textContent,/Songs/);
+    assert.match(doc.querySelector('[data-testid="nav-lyric-video"]').textContent,/LyriVid/);
+    assert.equal(doc.querySelectorAll(".simple-main-navigation button").length,5,"never more than five primary items");
+    for(const hidden of ["world-sounds","mix-edit","promote"])assert.equal(doc.querySelector(`[data-testid="nav-${hidden}"]`),null,hidden);
+    assert.ok(doc.querySelector('[data-testid="toggle-account"]'),"settings, plan, guide live in one Account group");
+    if(screen==="plan-credits"){assert.ok(doc.querySelector('[data-testid="nav-settings"]'));assert.ok(doc.querySelector('[data-testid="nav-plan-credits"]'));}
+    const parent={"world-sounds":"create","mix-edit":"songs",promote:"songs"}[screen]??(screen==="plan-credits"?null:screen);
+    if(parent)assert.equal(doc.querySelector(`[data-testid="nav-${parent}"]`).getAttribute("aria-current"),"page",`${screen} highlights ${parent}`);
   }
   for(const screen of ["settings","guide","plan-credits"])assert.ok(css.includes(`data-cosmic-screen=${screen}`));
 });
@@ -262,7 +267,11 @@ test("one calm song menu reuses all four existing edit/creation handoffs without
 test("Explore retains original tab IDs and Listening Room without claiming an empty station is live",()=>{
   globalThis.__cosmicCommunity=null;
   const doc=domOf(ui.ExploreScreen,{tab:"radio",setTab:noop,signOut:"/logout",owner:false}).window.document;
-  for(const id of ["discover","radio","party","following","listening-room"])assert.ok(doc.querySelector(`[data-testid="tab-${id}"]`),id);
+  for(const id of ["discover","radio","party","listening-room"])assert.ok(doc.querySelector(`[data-testid="tab-${id}"]`),id);
+  assert.equal(doc.querySelectorAll('[role="tab"]').length,3,"three Explore tabs");
+  assert.equal(doc.querySelector('[data-testid="tab-following"]'),null,"Following filter appears only inside Discover");
+  const discover=domOf(ui.ExploreScreen,{tab:"discover",setTab:noop,signOut:"/logout",owner:false}).window.document;
+  assert.ok(discover.querySelector('[data-testid="tab-following"]'));
   assert.match(doc.body.textContent,/Only kind reactions/);
 });
 
@@ -273,9 +282,10 @@ test("Following opens the existing Discover route rather than creating a new rou
     return el(ui.ExploreScreen,{tab,setTab:next=>{routes.push(next);setTab(next);},signOut:"/logout",owner:false});
   }
   await mounted(el(Explore),async doc=>{
+    await act(async()=>doc.querySelector('[data-testid="tab-discover"]').click());
     await act(async()=>doc.querySelector('[data-testid="tab-following"]').click());
-    assert.deepEqual(routes,["discover"]);
-    assert.equal(doc.querySelector('[data-testid="tab-following"]').getAttribute("aria-selected"),"true");
+    assert.deepEqual(routes,["discover","discover"]);
+    assert.equal(doc.querySelector('[data-testid="tab-following"]').getAttribute("aria-pressed"),"true");
     assert.ok(doc.querySelector('[data-testid="tab-listening-room"]'));
   });
 });

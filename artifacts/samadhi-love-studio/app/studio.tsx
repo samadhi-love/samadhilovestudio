@@ -69,10 +69,10 @@ import { InternationalMusicTent } from "./international-music-tent";
 import { PromptLab, VocalDirector } from "./music-creation-tools";
 import { emptyDiscovery, type CreateSeed } from "./music-workspace-data";
 
-import { StudioNavigation, ScreenContextHelp, ScreenSections, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
+import { StudioNavigation, ScreenContextHelp, ScreenSections, ContextBack, workspaceNavigation, type WorkspaceView as View } from "./studio-navigation";
 import { HologramScope, HologramVideoDescription, HologramOriginalsLine, HologramStartSongNote } from "./hologram-slogan";
 import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from "./studio-routes";
-import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
+import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
 import { StudioQuickTour } from "./studio-tour";
 import { SongSky, SongSkyToggle } from "./song-sky";
 // Heavy editors download only when first opened, not before the Studio can be used.
@@ -639,7 +639,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           <button className="primary" disabled={!loaded || saving} onClick={() => beginner ? navigate("overview") : newSong()}><Plus size={17}/> {beginner ? "Create music" : "New song"}</button></div></header>
       <MobileProjectBar songs={cleanLibrary} currentId={song?.id??""} disabled={!loaded||saving||creating} select={id=>{if(navigate("songs"))openSong(id);}}/>
       <div className="content">
-        {loaded && !song && !pane && <ScreenSections activeView={view} navigate={navigate} beginner={beginner}/>}
+        {loaded && !song && !pane && <ContextBack screen={screenOf(view)} open={openScreen}/>}
+        {loaded && !song && !pane && <ScreenSections activeView={view} navigate={navigate} beginner={beginner} extra={view==="overview"?<button type="button" className="secondary small" data-testid="button-open-world-sounds" onClick={()=>openScreen("world-sounds")}>🌍 World sounds</button>:undefined}/>}
         {loaded&&<PanelErrorBoundary panel="studio"><JobStatus completed={refreshCompletedJobs}/></PanelErrorBoundary>}
         {loaded && !song && pane==="plan-credits" && <PanelErrorBoundary panel="plan-credits"><PlanCreditsScreen tab={planTab} setTab={t=>{setPlanTab(t);try{window.history.replaceState(null,"",`${window.location.pathname}?studio=plan-credits&section=${t}`);}catch{}}} owner={!creatorName} signOut={signOut}/></PanelErrorBoundary>}
         <StudioWelcome view={view} visible={loaded && !song && !pane && !modal}/>
@@ -793,7 +794,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           <details className="panel form-panel artist-dashboard-fold" data-testid="fold-artist-dashboard" open={artistOpen||undefined} onToggle={e=>setArtistOpen((e.currentTarget as HTMLDetailsElement).open)}><summary>Artist Dashboard · releases and listening</summary>{artistOpen&&<ArtistConsole studioHref={creatorName?"/creator":"/owner"} moderator={!creatorName}/>}</details>
           <div className="song-sky-bar"><p className="count">{filtered.length} {filtered.length === 1 ? "song" : "songs"}</p><SongSkyToggle mode={libraryMode} change={setLibraryMode}/></div>
           {libraryMode==="sky"&&<SongSky songs={filtered} allSongs={data.songs} open={id=>openSong(id)}/>}
-          <div className="song-list">{filtered.map(s => <div className="song-row-steps" key={s.id}><SongRow song={s} open={() => openSong(s.id)}/><SongSteps song={s} busy={saving||creating} listening={songPreview===s.id} listen={()=>{setSongExpanded(s.id);setSongPreview(songPreview===s.id?"":s.id);}} fix={()=>songAction("sections",s)} video={()=>songAction("video",s)} release={()=>{if(canNavigate("songs"))openSong(s.id,"Release");}}/></div>)}{!filtered.length && <div className="empty">No songs match these filters.</div>}</div>
+          <div className="song-list">{filtered.map(s => <SongRow key={s.id} song={s} open={() => openSong(s.id)}/>)}{!filtered.length && <div className="empty">No songs match these filters.</div>}</div>
           </>}
         </> : view === "templates" ? <>
           <PageTitle icon={<Layers3/>} title="Song templates" subtitle="Start with an arrangement you love. Give each new song a life of its own." action={<button className="secondary" onClick={() => editTemplate(null)}><Plus size={17}/> New template</button>}/>

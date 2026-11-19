@@ -96,7 +96,7 @@ test("the song ellipsis menu holds every lifecycle action once and hides paid co
  for(const engine of ['elevenlabs','ace-step'] as const){
   const h=await mount(<SongHubProvider value={cardHub(engine,log)}><SongCard song={song}/></SongHubProvider>);
    try{const trigger=document.querySelector<HTMLButtonElement>('[data-testid="song-menu"]')!;assert.equal(trigger.getAttribute('aria-haspopup'),'menu');await act(async()=>trigger.click());assert.equal(document.querySelector('[role="menu"]')!.parentElement,document.body,"the menu escapes glass-card stacking/containing blocks on phones");
-   const expected=['Play','Edit in Shape',...(engine==='elevenlabs'?['Keep Going']:[]),'Redo a Part','Make Video','Save Voice','Share','Publish','Download','Duplicate','Add to Project / Playlist','More tools','Delete'];
+   const expected=['Play','Edit in Shape',...(engine==='elevenlabs'?['Keep Going']:[]),'Redo a Part','Make LyriVid','Mix & edit','Save Voice','Share','Publish','Download','Duplicate','Logo & ad','Add to Project / Playlist','More tools','Delete'];
    assert.deepEqual(items(),expected);assert.ok(!/Re-Imagine|Polish|Edit Words|Use as Seed/.test(document.body.textContent!));
    await act(async()=>[...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(b=>b.textContent==='Save Voice')!.click());assert.equal(log.at(-1),'save-voice');assert.equal(document.querySelector('[role="menu"]'),null);
    await act(async()=>trigger.click());await act(async()=>document.querySelector('[role="menu"]')!.dispatchEvent(new h.dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true})));assert.equal(document.querySelector('[role="menu"]'),null);

@@ -31,7 +31,6 @@ function Tabs<T extends string>({ label, value, change, items }: { label: string
  * keeps its existing route tab and is reachable from the secondary tool link. */
 export function ExploreScreen({ tab, setTab, signOut, owner }: { tab: ExploreTab; setTab: (t: ExploreTab) => void; signOut: string; owner: boolean }) {
   const [following, setFollowing] = useState(false);
-  const view = tab === "discover" && following ? "following" : tab;
   const pick = (next: ExploreTab | "following") => { if (next === "following") { setFollowing(true); setTab("discover"); } else { setFollowing(false); setTab(next); } };
   return <section className="explore-screen galaxy-map" data-testid="screen-explore" data-cosmic-screen="explore">
     <header className="galaxy-head">
@@ -40,10 +39,11 @@ export function ExploreScreen({ tab, setTab, signOut, owner }: { tab: ExploreTab
       <p className="galaxy-poem hologram-guide">Music shared by the community. Only kind reactions — no rankings, no noise.</p>
     </header>
     <div className="galaxy-tabbar">
-      <Tabs<ExploreTab | "following"> label="Explore" value={view} change={pick} items={[["discover", "Discover"], ["radio", "Radio"], ["party", "Party Mix"], ["following", "Following"]]}/>
+      <Tabs<ExploreTab> label="Explore" value={tab} change={next => pick(next)} items={[["discover", "Discover"], ["radio", "Radio"], ["party", "Party Mix"]]}/>
+      {tab === "discover" && <button type="button" className="galaxy-tool" data-testid="tab-following" aria-pressed={following} onClick={() => pick(following ? "discover" : "following")}>{following ? "Showing: people you follow" : "Only people I follow"}</button>}
       <button type="button" className="galaxy-tool" data-testid="tab-listening-room" aria-pressed={tab === "listening-room"} onClick={() => pick("listening-room")}><Lock size={14}/> Listening Room</button>
     </div>
-    {tab === "discover" && <div className="explore-embed"><Community key={view} initialTab={following ? "following" : "discover"} songId={null} artistId={null} signIn="/login" signOut={signOut}/></div>}
+    {tab === "discover" && <div className="explore-embed"><Community key={following ? "following" : "discover"} initialTab={following ? "following" : "discover"} songId={null} artistId={null} signIn="/login" signOut={signOut}/></div>}
     {tab === "party" && <div className="explore-embed"><PartyMix/></div>}
     {tab === "listening-room" && <div className="explore-embed"><SubscriberRoom signOut={signOut} ownerPreview={owner}/></div>}
   </section>;

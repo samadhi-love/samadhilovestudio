@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import React, { act, useState } from "react";
 import { JSDOM } from "jsdom";
 import { StudioErrorBoundary } from "../app/studio-error-boundary";
-import { StudioNavigation, SimpleWorkspaceTools, ScreenSections, WorkspaceModeSwitch, primaryScreens } from "../app/studio-navigation";
+import { StudioNavigation, SimpleWorkspaceTools, ScreenSections, WorkspaceModeSwitch, primaryScreens, contextParent } from "../app/studio-navigation";
 import { resolveView, screenHome, screenOf, screenSections, screens, sectionViews } from "../app/studio-routes";
 
 test("every old engine view resolves into the consolidated screen structure", () => {
@@ -50,9 +50,9 @@ test("an unexpected tool render error shows recovery instructions instead of a b
 });
 
 
-test("beginner navigation has five destinations and Pro adds only the three requested screens",()=>{
- assert.deepEqual(primaryScreens.filter(item=>!item.pro).map(item=>item.label),["Create","Your songs","Video","Record","Explore"]);
- assert.deepEqual(primaryScreens.filter(item=>item.pro).map(item=>item.label),["World Sounds","Mix & Edit","Promote"]);
+test("navigation has exactly five destinations; former Pro screens open from inside their parent",()=>{
+ assert.deepEqual(primaryScreens.map(item=>item.label),["Create","Songs","LyriVid","Record","Explore"]);
+ assert.deepEqual(Object.fromEntries(Object.entries(contextParent).map(([k,v])=>[k,v!.parent])),{"world-sounds":"create","mix-edit":"songs",promote:"songs"});
  assert.equal(screens.length,9);
  for(const screen of screens){
    if(screen!=="plan-credits")assert.equal(screenOf(screenHome[screen]),screen);
@@ -67,8 +67,8 @@ test("beginner navigation opens mobile menu, routes to a workspace, and restores
  const click=async(el:Element)=>act(async()=>{(el as HTMLButtonElement).click();});
  await click(document.querySelector('.studio-menu-toggle')!);assert.equal(document.querySelector('.studio-menu-toggle')!.getAttribute('aria-expanded'),'true');
  await click([...document.querySelectorAll('.simple-main-navigation button')].find(b=>b.textContent==='Create')!);assert.equal(target,'overview');assert.equal(document.querySelector('.studio-menu-toggle')!.getAttribute('aria-expanded'),'false');
- await click(document.querySelector('[role="switch"]')!);assert.equal(document.querySelector('[role="switch"]')!.getAttribute('aria-checked'),'true');assert.equal(document.querySelectorAll('.creator-secondary-nav button').length,3);assert.equal(document.querySelectorAll('.simple-main-navigation button').length,5);
- await click(document.querySelector('[data-testid="toggle-settings-help"]')!);
+ await click(document.querySelector('[role="switch"]')!);assert.equal(document.querySelector('[role="switch"]')!.getAttribute('aria-checked'),'true');assert.equal(document.querySelectorAll('.creator-secondary-nav button').length,0);assert.equal(document.querySelectorAll('.simple-main-navigation button').length,5);
+ await click(document.querySelector('[data-testid="toggle-account"]')!);
  assert(!document.querySelector('a[href="/admin"]'));assert(!document.querySelector('a[href="/community/moderation"]'));
  await click(document.querySelector('[role="switch"]')!);assert.equal(document.querySelectorAll('.simple-main-navigation button').length,5);assert(!document.querySelector('.creator-secondary-nav'));
  await act(async()=>root.render(<ScreenSections activeView="multitrack" beginner={false} navigate={v=>{target=v;return true;}}/>));await click([...document.querySelectorAll('button')].find(b=>/Compare mixes/.test(b.textContent??""))!);assert.equal(target,'compare');
