@@ -29,7 +29,7 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     origin = configured.origin;
   }
   const verifiedHost = new URL(origin).host;
-  const response = await fetch(origin + "/api/replit-auth/session", {
+  const verify = () => fetch(origin + "/api/replit-auth/session", {
     headers: {
       cookie,
       "x-forwarded-host": process.env.NODE_ENV === "development"
@@ -41,6 +41,23 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
     redirect: "manual",
     signal: AbortSignal.timeout(10000),
   });
+  // The sign-in service can hiccup for a moment (restart, build, cold start).
+  // Ask once more before showing an error. A retry never grants access: only a
+  // verified identity below does. Redirects and rejections are not retried.
+  let response: Response;
+  try {
+    response = await verify();
+  } catch {
+    response = new Response(null, { status: 503 });
+  }
+  if (response.status >= 500) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      response = await verify();
+    } catch {
+      throw new Error("Studio sign-in verification is unavailable.");
+    }
+  }
   if (response.status === 401 || response.status === 403) return null;
   if (!response.ok) throw new Error("Studio sign-in verification is unavailable.");
   const user = await response.json() as ChatGPTUser;
