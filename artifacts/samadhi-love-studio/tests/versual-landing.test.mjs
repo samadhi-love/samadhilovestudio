@@ -49,7 +49,8 @@ test("only the large slogan band keeps the full effect; other slogan copies are 
   assert.ok(doc.querySelector(".vl-band[data-hologram-attention=slogan]"));
   assert.ok([...doc.querySelectorAll(".hologram-slogan")].every(node=>node.closest(".vl-band")));
   assert.equal(doc.querySelectorAll(".vl-hero .hologram-slogan,.vl-starpop .hologram-slogan").length,0);
-  assert.equal(doc.querySelectorAll(".vl-hero .hologram-guide").length,1);
+  // The hero no longer repeats the slogan right above the large band.
+  assert.equal(doc.querySelectorAll(".vl-hero .hologram-guide,.vl-hero .vl-eyebrow").length,0);
   assert.equal(doc.querySelectorAll(".vl-starpop .vl-pop--soft .hologram-guide").length,3);
 });
 

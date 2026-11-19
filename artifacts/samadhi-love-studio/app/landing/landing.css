@@ -83,7 +83,8 @@ body:has(.versual-landing) .cosmic-frame{display:none}
 .vl-cyan{color:var(--vl-cyan)}.vl-violet{color:var(--vl-violet)}.vl-magenta{color:var(--vl-mag)}
 
 /* sections */
-.vl-section{padding:90px 0}
+.vl-section{padding:72px 0}
+.vl-h2+.vl-grid3{margin-top:36px}
 .vl-kicker{color:var(--vl-cyan);letter-spacing:.24em;font-size:12px;font-weight:600;margin:0 0 12px}
 .vl-h2{font-size:clamp(32px,4.6vw,58px);line-height:1.04;letter-spacing:-.02em}
 .vl-sub{color:var(--vl-sec);max-width:640px;margin:18px 0 44px;font-size:17px}

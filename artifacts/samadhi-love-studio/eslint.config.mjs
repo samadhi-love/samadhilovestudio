@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     ".sites-runtime/**",
     "outputs/**",
     "work/**",
+    // Local, untracked build/test leftovers; scanning them exhausts memory.
+    "generated-artifacts/**",
+    "vendor/**",
   ]),
   {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
