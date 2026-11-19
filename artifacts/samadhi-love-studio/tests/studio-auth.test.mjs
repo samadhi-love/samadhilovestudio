@@ -38,7 +38,7 @@ function loadBridge({ cookie = "", production = false, publicOrigin, respond = a
     });
     const exports = {};
     vm.runInNewContext(outputText, {
-      exports, URL, AbortSignal,
+      exports, URL, AbortSignal, Response, setTimeout,
       process: { env: { NODE_ENV: production ? "production" : "development" } },
       require(name) {
         if(name.endsWith("/server/storage")&&imports["cloudflare:workers"])return vmStorage(imports["cloudflare:workers"].env);
@@ -106,9 +106,29 @@ for (const status of [302, 307, 503]) {
       respond: async () => new Response(null, { status, headers: { Location: "https://untrusted.example" } }),
     });
     await assert.rejects(bridge.getChatGPTUser(), /verification is unavailable/);
-    assert.equal(bridge.calls.length, 1);
+    assert.equal(bridge.calls.length, status >= 500 ? 2 : 1, "only a service failure is retried, once");
   });
 }
+
+test("a brief sign-in service hiccup is retried once, then the verified identity is used", async () => {
+  const user = { userId: "fixture-user", email: "fixture@example.test" };
+  let first = true;
+  const bridge = loadBridge({
+    cookie: "__session=fixture",
+    respond: async () => {
+      if (first) { first = false; throw new TypeError("connection refused"); }
+      return Response.json(user);
+    },
+  });
+  assert.equal(JSON.stringify(await bridge.getChatGPTUser()), JSON.stringify(user));
+  assert.equal(bridge.calls.length, 2);
+});
+
+test("a retried check that is still rejected stays signed out", async () => {
+  const statuses = [502, 401];
+  const bridge = loadBridge({ cookie: "__session=fixture", respond: async () => new Response(null, { status: statuses.shift() }) });
+  assert.equal(await bridge.getChatGPTUser(), null);
+});
 
 test("invalid identity responses fail closed", async () => {
   const bridge = loadBridge({
