@@ -416,7 +416,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     if(action==="short-video"){
       if(navigate("lyric-video")){
         const id=uid(),look=lastUsedVideoLook(),sections=song.lyricVideo?.pro?.sections??[];
-        let duration=song.lyricVideo?.pro?.duration??song.creationSeconds??0;
+        const duration=song.lyricVideo?.pro?.duration??song.creationSeconds??0;
         const fallbackStart=bestShortStart(duration,sections,[],30);
         setLyricSongId(song.id);setSocialVideoRequest({id,songId:song.id,look,start:fallbackStart,seconds:30});
         if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});

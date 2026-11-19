@@ -29,7 +29,7 @@ test("local song-description help, lyric section insertion and short selection w
  const energy=Array.from({length:60},(_,index)=>index>=30&&index<45?.95:.1);assert.equal(bestShortStart(60,[],energy,15),30);
 });
 test("Create help is local, lyric chips insert at the cursor, and two versions require clear cost consent",async()=>{
- const h=await setup();let requests:any[]=[];let allowTwo=false;
+ const h=await setup();const requests:any[]=[];let allowTwo=false;
  h.dom.window.confirm=()=>allowTwo;
  try{
   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `version-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));

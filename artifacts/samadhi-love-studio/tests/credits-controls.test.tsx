@@ -12,7 +12,7 @@ import {JobWaitError,lostConnectionMessage} from "../app/credits/job-wait";
 
 test("production preflight confirms server cost and submits a stable reference, while cancellation sends no job",async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});Object.assign(globalThis,{window:dom.window,document:dom.window.document});
- const oldFetch=globalThis.fetch;let calls:RequestInit[]=[],confirmed="",allow=false;
+ const oldFetch=globalThis.fetch;const calls:RequestInit[]=[];let confirmed="",allow=false;
  dom.window.confirm=((message:string)=>{confirmed=message;return allow;}) as typeof confirm;
  globalThis.fetch=async(url,init)=>{if(String(url)==="/api/studio/credits")return Response.json({funding:"studio",credits:72,available:300,enabled:true});calls.push(init!);return Response.json({ok:true});};
  try{const init={method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"song",duration:240})};

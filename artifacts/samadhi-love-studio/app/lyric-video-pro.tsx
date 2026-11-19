@@ -439,7 +439,7 @@ function LyricVideoProContent(props: Props) {
     return () => {
       mounted.current = false;
       controller.current?.abort();
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- on close, release every preview file that exists at that moment, on purpose
       urls.current.forEach(URL.revokeObjectURL);
     };
   }, []);
