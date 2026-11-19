@@ -1,4 +1,5 @@
 import { privateHeaders } from "./store";
+import { StorageFullError } from "./storage-full";
 
 export class RequestBodyError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -29,7 +30,7 @@ export function recoverableRoute<T extends unknown[]>(handler: (...args: T) => P
   return async (...args: T): Promise<Response> => {
     try { return await handler(...args); }
     catch (error) {
-      if (error instanceof RequestBodyError)
+      if (error instanceof RequestBodyError || error instanceof StorageFullError)
         return Response.json({ error: error.message }, { status: error.status, headers: privateHeaders });
       const requestId = crypto.randomUUID();
       // Do not log request bodies, credentials, lyrics, or provider error payloads.

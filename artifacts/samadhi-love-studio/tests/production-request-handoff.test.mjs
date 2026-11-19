@@ -26,7 +26,7 @@ function fixture(metered,fal=false,role="owner") {
   const notation=compile("../app/lyric-notation.ts",{});
   const opening=compile("../app/song-opening.ts",{"./lyric-notation":notation});
   const duration=compile("../app/track-duration.ts",{"./lyric-notation":notation,"./song-opening":opening});
-  const requests = compile("../app/api/studio/request-errors.ts", { "./store": { privateHeaders: {} } });
+  const requests = compile("../app/api/studio/request-errors.ts", { "./store": { privateHeaders: {} }, "./storage-full": { StorageFullError: class StorageFullError extends Error {} } });
   class CreditError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
   const api = compile("../app/credits/production.ts", {
     "cloudflare:workers": { env: { STUDIO_CREDITS_ENABLED: metered ? "1" : undefined } },

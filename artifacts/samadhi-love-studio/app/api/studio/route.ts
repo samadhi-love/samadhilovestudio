@@ -5,6 +5,7 @@ import {privacyEffects,finishPrivacyEffects} from "../../server/save-safety";
 import {changedCleanField} from "../../changed-clean-fields";
 import { stampSong } from "../../song-library";
 import { maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "./store";
+import { StorageFullError } from "./storage-full";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "../../clean-content";
 import { isLyricProject } from "../../lyric-video-data";
 import { isDiscovery } from "../../music-workspace-data";
@@ -145,6 +146,7 @@ async function putWorkspace(request: Request) {
   } catch (error) {
     console.error("Studio save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     if(error instanceof Error&&/malformed JSON|revision.conflict/i.test(error.message))return saveConflict();
+    if(error instanceof StorageFullError)return Response.json({ error: error.message }, { status: 413, ...options });
     return Response.json({ error: "The studio could not save your changes. Keep this page open and try again." }, { status: 503 });
   }
 }

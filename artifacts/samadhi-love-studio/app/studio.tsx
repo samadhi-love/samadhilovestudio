@@ -24,7 +24,8 @@ import type {RegionOperation} from "./song-region-actions";
 
 import { pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
-import { mergeSavedSong, syncSongSource } from "./song-save-merge";
+import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
+import { createSaveQueue } from "./save-queue";
 import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
@@ -166,6 +167,8 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [templateEdit, setTemplateEdit] = useState<Template | null>(null);
   const [compareSong, setCompareSong] = useState("");
   const pendingSave = useRef(false);
+  const saveQueue = useRef<ReturnType<typeof createSaveQueue> | null>(null);
+  if (!saveQueue.current) saveQueue.current = createSaveQueue(() => pendingSave.current);
   const hasDraft = useRef(false);
 
   async function load() {
@@ -241,10 +244,18 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
 
   useEffect(()=>{if(!modal)return;const trigger=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('.modal-shade [role="dialog"]');if(dialog)return containDialogFocus(dialog,trigger);},[modal]);
 
-  async function saveRequest(url: string, request: RequestInit, message: string, next?: Studio, throwOnError = false) {
-    if (!loaded || pendingSave.current) return null;
+  // A save that arrives while another is running waits its turn instead of being
+  // dropped. Function arguments are evaluated when the save actually runs, so a
+  // queued save is built from the newest saved library and revision.
+  async function saveRequest(url: string, request: RequestInit | (() => RequestInit), message: string, next?: Studio | (() => Studio), throwOnError = false) {
+    if (!loaded) return null;
+    return saveQueue.current!(() => sendSaveRequest(url, request, message, next, throwOnError));
+  }
+  async function sendSaveRequest(url: string, prepare: RequestInit | (() => RequestInit), message: string, prepared?: Studio | (() => Studio), throwOnError = false) {
     pendingSave.current = true; setError(""); setSaving(true);
     try {
+      const request = typeof prepare === "function" ? prepare() : prepare;
+      const next = typeof prepared === "function" ? prepared() : prepared;
       const headers = new Headers(request.headers);
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
@@ -272,9 +283,15 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setUndoPromptFavorite(null);
     const latest=dataRef.current;
     if(next.songs.some(s=>!!s.deletedAt!==!!latest.songs.find(old=>old.id===s.id)?.deletedAt)){releaseRequest.current++;setReleaseLoaded(false);}
-    return !!(await saveRequest("/api/studio", {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: next, revision:revisionRef.current }),
-    }, message, next));
+    // Callers build `next` from this render's `data`. If anything newer was saved
+    // since (an earlier queued save, a finished job), replay only this edit's
+    // changes on top of it instead of sending the older copy back.
+    const base = data;
+    let payload: Studio | undefined;
+    const prepared = () => payload ??= dataRef.current === base ? next : rebaseStudio(base, next, dataRef.current);
+    return !!(await saveRequest("/api/studio", () => ({
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: prepared(), revision:revisionRef.current }),
+    }), message, prepared));
   }
   async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
     try{const result=await saveRequest("/api/studio/create", {
@@ -510,21 +527,21 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   async function sendAudio(file: File, title: string, target: Song | null, instrumental?: { prompt: string; settings: Instrumental; arrangement?: string }, projectId?: string, sessionId?: string,creationId?:string) {
     const format = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!isAudioFormat(format)) return null;
-    return saveRequest("/api/studio/audio", {
+    return saveRequest("/api/studio/audio", () => ({
       method: "POST",
       headers: {
         "X-Audio-Format": format,
         "X-Audio-Size": String(file.size),
         "X-Studio-Clean-Audio": "1",
         ...(target ? { "X-Song-Id": target.id } : { "X-Song-Title": encodeURIComponent(title) }),
-        "X-Studio-Revision": String(revision),
+        "X-Studio-Revision": String(revisionRef.current),
         ...(projectId && { "X-Project-Song-Id": projectId }),
         ...(sessionId && { "X-Source-Session-Id": sessionId }),
         ...(creationId&&{"X-Creation-Id":creationId}),
         ...(instrumental && { "X-Studio-Instrumental": encodeURIComponent(JSON.stringify(instrumental)) }),
       },
       body: file,
-    }, instrumental ? "Instrumental saved to Your songs" : target ? "Recording saved" : "Song uploaded");
+    }), instrumental ? "Instrumental saved to Your songs" : target ? "Recording saved" : "Song uploaded");
   }
   function editTemplate(template: Template | null, song?: Song) {
     setTemplateEdit(template ?? { id: uid(), name: song ? song.name + " Template" : "", description: song?.summary ?? "", tags: song?.tags ?? [], notes: song?.notes ?? { ...emptyNotes } });

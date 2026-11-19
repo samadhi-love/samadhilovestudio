@@ -4,6 +4,7 @@ import { getDb } from "../../../db";
 import { listenerStation, studios } from "../../../db/schema";
 import type { Studio } from "../../studio-data";
 import { readSongRows, writeSongRows } from "../../../scripts/storage/song-rows.mjs";
+import { maxLegacyRowBytes, StorageFullError } from "./storage-full";
 
 // Transport limit only. Persistent limits and revisions are per song, not per account.
 export const maxStudioBytes = 32 * 1024 * 1024;
@@ -35,6 +36,7 @@ export async function checkpointStudio(id: string, expectedRevision?: number, na
 
 export async function writeStudio(id: string, revision: number, content: string) {
   if(env.STUDIO_ROW_STORAGE==="verified")return writeSongRows(env.DB!,id,content) as Promise<{data:Studio;revision:number}|undefined>;
+  if (new TextEncoder().encode(content).length > maxLegacyRowBytes) throw new StorageFullError();
   const db = getDb();
   const previous=await db.select().from(studios).where(eq(studios.owner,id)).get();
   if((previous?.revision??0)!==revision)return undefined;
