@@ -11,7 +11,7 @@ globalThis.__ace={};
 await build({stdin:{contents:`
 export {POST as create} from "./app/api/studio/create/route";
 export {GET as settings,PUT as choose} from "./app/api/studio/music-engine/route";
-export {falSongInput,generateFal,downloadFalAudio,FalRejected} from "./app/server/fal-music";
+export {falSongInput,generateFal,downloadFalAudio,FalRejected,writeFalLyrics,cleanFalLyrics,falLyricRequest} from "./app/server/fal-music";
 export {emptyCreatorStudio} from "./app/studio-data";
 export {MusicEngineSettings} from "./app/music-engine-settings";
 export {jobExecution} from "./app/credits/production";
@@ -36,6 +36,10 @@ export {jobExecution} from "./app/credits/production";
     eleven:`export const musicModel="music_v2_5";export const elevenLabsFailureMessage=async()=>"ElevenLabs rejected";
       export async function elevenLabsRequest(key,path,payload){const s=globalThis.__ace;s.eleven.push({path,payload});return path==="music/plan"?Response.json({chunks:[{text:"[Verse]\\nLight upon the sea",duration_ms:30000}]}):new Response("ID3fixture MP3 audio",{headers:{"Content-Type":"audio/mpeg"}});}`,
     fal:`export async function falRequest(key,path,init={}){const s=globalThis.__ace;s.fal.push({path,method:init.method??"GET",input:init.body?JSON.parse(init.body):undefined});
+      if(path.startsWith("/fal-ai/any-llm")){
+        if(init.method==="POST"){if(s.llmFailure)return new Response("",{status:503});return Response.json({request_id:"llm-1"});}
+        if(path.endsWith("/status"))return Response.json({status:"COMPLETED"});
+        return Response.json({output:s.llmOutput??"Here are your lyrics:\\n[Verse 1]\\nStars above the quiet sea\\nLight is calling you and me\\n\\n[Chorus]\\nWe are one under the sky"});}
       if(init.method==="POST"){if(s.networkFailure)throw new TypeError("network reset");if(s.submitStatus)return new Response("",{status:s.submitStatus});return Response.json({request_id:"request-123"});}
       if(path.endsWith("/status"))return Response.json({status:s.queueState??"COMPLETED"});
       if(s.resultFailure)return new Response("",{status:503});
@@ -120,13 +124,42 @@ test("private downloads remain recoverable after final library conflicts",async(
   assert.equal([...objects.keys()].filter(k=>k.startsWith("songs/")).length,2);
   assert.equal([...objects.keys()].filter(k=>k.startsWith("private/recovery/")).length,2);
 });
-test("unconnected automatic lyric writer does not silently return an instrumental",async()=>{
+const songPosts=state=>state.fal.filter(c=>c.method==="POST"&&c.path.startsWith("/fal-ai/ace-step"));
+const lyricPosts=state=>state.fal.filter(c=>c.method==="POST"&&c.path.startsWith("/fal-ai/any-llm"));
+test("description-only songs need no ElevenLabs: the fal lyric writer writes, then ACE-Step sings",async()=>{
   const {state}=fixture({elevenKey:null});const response=await api.create(request({...input,lyrics:""}));
-  assert.equal(response.status,400);assert.match((await response.json()).error,/automatic lyric writing/);assert.equal(state.fal.length,0);
+  assert.equal(response.status,200,JSON.stringify(await response.clone().json()));
+  assert.equal(state.eleven.length,0);assert.equal(lyricPosts(state).length,1);assert.equal(songPosts(state).length,1);
+  const sung=songPosts(state)[0].input.lyrics;assert.match(sung,/^\[Verse 1\]/);assert.match(sung,/Stars above the quiet sea/);assert.doesNotMatch(sung,/Here are your lyrics/);
+  assert.match(state.studio.data.songs[0].notes.lyrics,/We are one under the sky/);
+  const asked=lyricPosts(state)[0].input;assert.match(asked.system_prompt,/ONLY the lyrics/);assert.match(asked.prompt,/Hopeful soul with piano/);
 });
-test("description-only songs reuse existing lyric writing before fal sings",async()=>{
+test("description-only songs prefer the cheap fal writer even when ElevenLabs is connected",async()=>{
   const {state}=fixture();const response=await api.create(request({...input,lyrics:""}));
-  assert.equal(response.status,200);assert.equal(state.eleven.length,1);assert.equal(state.eleven[0].path,"music/plan");assert.match(state.fal[0].input.lyrics,/Light upon the sea/);
+  assert.equal(response.status,200);assert.equal(state.eleven.length,0);assert.equal(lyricPosts(state).length,1);assert.equal(songPosts(state).length,1);
+});
+test("lyric writer failure uses the ElevenLabs writer when connected, and never sings empty words",async()=>{
+  let f=fixture({llmFailure:true});let response=await api.create(request({...input,lyrics:""}));
+  assert.equal(response.status,200);assert.equal(f.state.eleven[0].path,"music/plan");assert.match(songPosts(f.state)[0].input.lyrics,/Light upon the sea/);
+  f=fixture({llmFailure:true,elevenKey:null});response=await api.create(request({...input,lyrics:""}));
+  assert.equal(response.status,502);assert.match((await response.json()).error,/own lyrics/);assert.equal(songPosts(f.state).length,0);
+});
+test("unclean or wordless writer output is refused before any paid song request",async()=>{
+  for(const llmOutput of ["[Verse]\n[Chorus]","[Verse]\nfuck this"]){
+    const {state}=fixture({elevenKey:null,llmOutput});const response=await api.create(request({...input,lyrics:""}));
+    assert.equal(response.status,502);assert.equal(songPosts(state).length,0);
+  }
+});
+test("Write them for me uses the fal writer with ACE-Step and keeps the ElevenLabs path otherwise",async()=>{
+  let f=fixture({elevenKey:null});let response=await api.create(request({action:"lyric-plan",prompt:"A gospel song of gratitude",duration:120}));
+  assert.equal(response.status,200);assert.match((await response.json()).lyrics,/^\[Verse 1\]/);assert.equal(f.state.eleven.length,0);assert.equal(lyricPosts(f.state).length,1);
+  f=fixture({env:{}});response=await api.create(request({action:"lyric-plan",prompt:"A gospel song of gratitude",duration:120}));
+  assert.equal(response.status,200);assert.equal(f.state.eleven[0].path,"music/plan");assert.equal(f.state.fal.length,0);
+});
+test("writer prompt scales sections with length and strips assistant chatter",()=>{
+  assert.match(api.falLyricRequest({description:"x",singing:"",duration:40}).system_prompt,/one verse and one chorus/);
+  assert.match(api.falLyricRequest({description:"x",singing:"",duration:300}).system_prompt,/final chorus/);
+  assert.equal(api.cleanFalLyrics("Sure! Here you go:\n```\n**[Verse]**\nHello light\n```"),"[Verse]\nHello light");
 });
 test("short and over-limit text preflight use backup without a fal submission; six-minute cap is enforced",async()=>{
   for(const change of [{duration:3,lyrics:"[Verse]\nA bright day"},{prompt:"gentle ".repeat(100)}]){

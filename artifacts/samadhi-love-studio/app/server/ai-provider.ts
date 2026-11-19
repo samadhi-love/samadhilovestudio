@@ -40,7 +40,7 @@ export function providerMediaRequest(value:string) {
 /** Queue submissions are paid: never replay a POST, including on 429/5xx. */
 export function falRequest(key:string,path:string,init:RequestInit={}) {
   if(!key.trim())throw new Error("Connect fal.ai before using ACE-Step.");
-  if(!/^\/fal-ai\/ace-step-1\.5(?:\/requests\/[\w-]+(?:\/status)?)?$/.test(path))
+  if(!/^\/fal-ai\/(?:ace-step-1\.5|any-llm)(?:\/requests\/[\w-]+(?:\/status)?)?$/.test(path))
     throw new Error("Unexpected fal destination.");
   const headers=new Headers(init.headers);headers.set("Authorization",`Key ${key}`);headers.set("Content-Type","application/json");
   const send=()=>fetch(`https://queue.fal.run${path}`,{...init,headers,redirect:"manual"});
