@@ -29,6 +29,12 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // Tests build partial fakes (fetch, AudioContext, MediaRecorder, route
+    // payloads); loose types there are deliberate. App code stays strict.
+    files: ["tests/**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
+  {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {
       // These files are vendored verbatim from shadcn@4.17.0. Keep the
