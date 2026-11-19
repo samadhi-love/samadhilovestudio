@@ -30,62 +30,16 @@ function Constellation({ corner }: { corner: "nw" | "ne" | "sw" | "se" }) {
   </svg>;
 }
 
+/* Photorealistic ship renders (transparent WebP) with live engine and light glows on top. */
 function Spacecraft({ variant }: { variant: 1 | 2 }) {
-  const uid = useId().replace(/:/g, "");
-  const id = (name: string) => `vs-ship-${name}-${uid}`;
-  const metal = id("metal"), dome = id("dome"), rim = id("rim"), belly = id("belly"), core = id("core"), top = id("top"), side = id("side"), haze = id("haze");
-  const defs = <defs>
-    <linearGradient id={metal} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f2f4f6"/><stop offset=".45" stopColor="#a9b0b9"/><stop offset="1" stopColor="#4a525d"/></linearGradient>
-    <radialGradient id={dome} cx=".38" cy=".25" r=".85"><stop offset="0" stopColor="#ffffff"/><stop offset=".35" stopColor="#c3cad3"/><stop offset="1" stopColor="#3f4752"/></radialGradient>
-    <linearGradient id={rim} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#5d6570"/><stop offset=".35" stopColor="#e9edf1"/><stop offset=".6" stopColor="#b8bfc8"/><stop offset="1" stopColor="#4d5560"/></linearGradient>
-    <linearGradient id={belly} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6f7782"/><stop offset="1" stopColor="#262c35"/></linearGradient>
-    <radialGradient id={core}><stop offset="0" stopColor="#ffffff"/><stop offset=".35" stopColor="#fff3cf"/><stop offset="1" stopColor="#ffd27a" stopOpacity="0"/></radialGradient>
-    <linearGradient id={top} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#9aa3b4"/><stop offset=".6" stopColor="#6c7588"/><stop offset="1" stopColor="#4a5265"/></linearGradient>
-    <linearGradient id={side} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3e4558"/><stop offset="1" stopColor="#171b26"/></linearGradient>
-    <filter id={haze} x="-10%" y="-20%" width="120%" height="140%"><feGaussianBlur stdDeviation=".12"/></filter>
-  </defs>;
-  if (variant === 1) {
-    /* Classic metallic flying saucer, seen slightly from below, with a ring of lights. */
-    return <svg className="vs-ship vs-ship-1" viewBox="0 0 120 50" aria-hidden="true" focusable="false">{defs}
-      <g className="vs-ship-bank" filter={`url(#${haze})`}>
-        <path d="M44 21 C46 9 52 5 60 5 C68 5 74 9 76 21Z" fill={`url(#${dome})`}/>
-        <path d="M56 5.6 C57 3.4 63 3.4 64 5.6Z" fill="#d9dee4"/>
-        <path d="M49 12 C53 9.6 58 8.8 62 8.8" stroke="#ffffff" strokeOpacity=".7" strokeWidth=".5" fill="none"/>
-        <ellipse cx="60" cy="22.5" rx="33" ry="6.5" fill={`url(#${metal})`}/>
-        <g fill="#2a313b">{[38, 46, 54, 62, 70, 78].map(x => <ellipse key={x} cx={x + 2} cy={x === 38 || x === 78 ? 21.6 : 20.6} rx="1.5" ry=".9"/>)}</g>
-        <ellipse cx="60" cy="27" rx="57" ry="5.6" fill={`url(#${rim})`}/>
-        <path d="M5 26.4 C30 22.6 90 22.6 115 26.4" stroke="#ffffff" strokeOpacity=".75" strokeWidth=".45" fill="none"/>
-        <ellipse cx="60" cy="30" rx="44" ry="4.6" fill={`url(#${belly})`}/>
-        <ellipse cx="60" cy="33.2" rx="19" ry="3.4" fill="#1d222b"/>
-        <g className="vs-ship-engines">{[44, 50, 56, 64, 70, 76].map((x, i) => <ellipse key={x} className={`vs-saucer-light vs-saucer-light-${i}`} cx={x} cy={i === 0 || i === 5 ? 33.4 : 34.6} rx="1.5" ry="1" fill={`url(#${core})`}/>)}</g>
-      </g>
-    </svg>;
-  }
-  /* Long angular starship cruiser, three-quarter view, nose to the right, twin rear engines. */
-  return <svg className="vs-ship vs-ship-2" viewBox="0 0 140 50" aria-hidden="true" focusable="false">{defs}
-    <g className="vs-ship-bank">
-      <g className="vs-ship-wake"><path d="M2 30 22 27.4 22 32.2Z" fill="#8fdcff" opacity=".35"/><path d="M6 37 26 34.2 26 38.8Z" fill="#8fdcff" opacity=".3"/></g>
-      <g filter={`url(#${haze})`}>
-        <path d="M22 24 62 15 118 9 138 11 122 19 66 27 30 32Z" fill={`url(#${top})`}/>
-        <path d="M30 32 66 27 122 19 117 27 70 35 34 41Z" fill={`url(#${side})`}/>
-        <path d="M22 24 30 32 34 41 24 36Z" fill="#232836"/>
-        <path d="M44 19 46 11 58 9 62 15Z" fill={`url(#${top})`}/>
-        <path d="M46 11 49 5 53 5 58 9Z" fill="#8a93a5"/>
-        <path d="M84 13 86 9 94 8 96 12Z" fill="#7a8396"/>
-        <path d="M100 7 101 3 102 7" stroke="#b9c1cf" strokeWidth=".35" fill="none"/>
-        <path d="M22 24 62 15 118 9 138 11" stroke="#e9eef6" strokeOpacity=".7" strokeWidth=".4" fill="none"/>
-        <g stroke="#2b3142" strokeWidth=".25" opacity=".8" fill="none"><path d="M40 21 116 12M48 25 120 16M58 17 64 26M76 15 82 24M96 12 100 21"/></g>
-        <g fill="#ffe7b0">{[44, 52, 60, 68, 76, 84, 92, 100, 108].map((x, i) => <rect key={x} x={x} y={r2ship(35.4 - i * 1.6)} width="1.4" height=".6" opacity=".85"/>)}</g>
-        <rect x="18" y="26" width="8" height="6" rx="1" fill="#1b1f2a"/><rect x="22" y="33" width="8" height="6" rx="1" fill="#1b1f2a"/>
-      </g>
-      <g className="vs-ship-engines"><circle cx="20" cy="29" r="3.2" fill={`url(#${core})`}/><circle cx="24" cy="36" r="3.2" fill={`url(#${core})`}/></g>
-      <circle className="vs-nav vs-nav-red" cx="34" cy="40.4" r=".6"/>
-      <circle className="vs-nav vs-nav-green" cx="58" cy="9.4" r=".6"/>
-      <circle className="vs-nav vs-nav-white" cx="137.4" cy="11" r=".5"/>
-    </g>
-  </svg>;
+  const saucer = variant === 1;
+  return <span className={`vs-ship vs-ship-${variant}`} aria-hidden="true">
+    <span className="vs-ship-bank">
+      <img src={saucer ? "/ships/saucer.webp" : "/ships/cruiser.webp"} alt="" width={saucer ? 560 : 640} height={saucer ? 252 : 276} decoding="async" loading="lazy" draggable={false}/>
+      {saucer ? <span className="vs-ship-glow vs-saucer-glow"/> : <><span className="vs-ship-glow vs-engine vs-engine-a"/><span className="vs-ship-glow vs-engine vs-engine-b"/></>}
+    </span>
+  </span>;
 }
-const r2ship = (n: number) => Math.round(n * 100) / 100;
 
 /** Living deep-space backdrop and corner constellations; purely decorative. */
 function CosmicSky() {
