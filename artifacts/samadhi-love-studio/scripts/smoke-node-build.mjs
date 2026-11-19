@@ -12,8 +12,10 @@ const source = { PORT: "3000", STUDIO_CLOUDFLARE_D1_API_TOKEN: "fixture", STUDIO
   STUDIO_R2_SECRET_ACCESS_KEY: "fixture", STUDIO_ELEVENLABS_VAULT_KEY: "ab".repeat(32) };
 await initializeRuntime(source, {
   DB: { prepare(sql) {
-    assert.match(sql, /^SELECT name FROM sqlite_master/);
-    return { bind: () => ({ all: async () => ({ results: tables }) }) };
+    // Startup reads the schema and also marks stale jobs interrupted; nothing else may run.
+    assert.match(sql, /^\s*(SELECT name FROM sqlite_master|UPDATE studio_jobs SET)/, sql);
+    const statement = { all: async () => ({ results: /sqlite_master/.test(sql) ? tables : [] }), run: async () => ({ meta: { changes: 0 } }), first: async () => null };
+    return { ...statement, bind: () => statement };
   } },
   BUCKET: { checkAccess: async () => {} },
 });
@@ -23,7 +25,7 @@ const { startProdServer } = await import("vinext/server/prod-server");
 const { server, port } = await startProdServer({ port: 0, host: "127.0.0.1", silent: true });
 try {
   const origin = `http://127.0.0.1:${port}`;
-  for (const [path, expected] of [["/creator", 200], ["/owner", 200], ["/api/studio", 401], ["/api/studio/elevenlabs", 401]]) {
+  for (const [path, expected] of [["/", 200], ["/creator", 200], ["/owner", 200], ["/api/studio", 401], ["/api/studio/elevenlabs", 401]]) {
     const response = await fetch(origin + path);
     assert.equal(response.status, expected, `${path}: ${await response.text()}`);
   }
