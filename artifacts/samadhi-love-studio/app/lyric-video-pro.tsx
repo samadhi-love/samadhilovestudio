@@ -439,6 +439,7 @@ function LyricVideoProContent(props: Props) {
     return () => {
       mounted.current = false;
       controller.current?.abort();
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
       urls.current.forEach(URL.revokeObjectURL);
     };
   }, []);
@@ -530,6 +531,7 @@ function LyricVideoProContent(props: Props) {
       prior?.pro ? "Saved project loaded" : "Lyrics retrieved from the song",
     );
     void loadVersions(song.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [song?.id, mode === "classic"]);
   async function loadVersions(id: string, cursor?: string) {
     const openedSignature=current.current?signature(current.current):"";
@@ -670,6 +672,7 @@ function LyricVideoProContent(props: Props) {
       return;
     const timer = setTimeout(() => void persist(), 1600);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [project, operation, saving, retrySave, recoveryReady, recovery]);
   useEffect(() => {
     if (
@@ -765,6 +768,7 @@ function LyricVideoProContent(props: Props) {
       live = false;
     };
   }, [imageKeys]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{const asset=activeFootageAsset;let live=true;const task=new AbortController();footageDecoder.current?.dispose();footageDecoder.current=null;setFootageReady(!asset);if(asset&&project?.pro)void openFootage(assetUrl(project.pro.sourceSongId,asset),task.signal).then(decoder=>{if(live){footageDecoder.current=decoder;setFootageReady(true);setImageRevision(n=>n+1);}else decoder.dispose();}).catch(error=>{if(live){setFootageReady(false);message(error,"Product footage could not load. Remove it or try another MP4.");}});return()=>{live=false;task.abort();footageDecoder.current?.dispose();footageDecoder.current=null;};},[project?.pro?.sourceSongId,activeFootageAsset]);
   useEffect(() => {
     const context = canvas.current?.getContext("2d");
@@ -801,6 +805,7 @@ function LyricVideoProContent(props: Props) {
       autoFor.current = "";
       void generateCaptions();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [song?.id, p?.duration, busy]);
   const handledAutoCaption = useRef("");
   useEffect(()=>{
@@ -832,6 +837,7 @@ function LyricVideoProContent(props: Props) {
       if(isLyricProject(next)){edit(next);setStatus("Recovered your timed captions. Listen and review before exporting.");}
     }).catch(()=>{});
     return()=>{active=false;};
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[song?.id,p?.sourceAudioId,p?.duration,recoveryReady,recovery,props.autoCaptionRequest?.songId]);
   useEffect(() => {
     const request = props.autoCaptionRequest;
@@ -845,6 +851,7 @@ function LyricVideoProContent(props: Props) {
     }
     if(!current.current?.pro?.approvedLyrics.trim()){setLyricsEditorOpen(true);setStatus("Have the words from another app? Paste them and align to this recording, or generate captions directly from its audio.");return;}
     void generateCaptions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [props.autoCaptionRequest?.id, song?.id, p?.duration, busy, recoveryReady, recovery]);
   const handledSocialRequest=useRef("");
   useEffect(()=>{const request=props.socialVideoRequest;if(!request||request.id===handledSocialRequest.current||song?.id!==request.songId||!p?.duration||busy||recoveryReady!==song.id)return;
@@ -852,8 +859,10 @@ function LyricVideoProContent(props: Props) {
     if(recovery){setError("Resolve the available recovery copy before changing this video's excerpt. Your saved project is preserved.");return;}
     if(request.audioId&&request.audioId!==p.sourceAudioId){setError("This recording changed. Open its current version before preparing the video; your saved design is preserved.");return;}
     const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;let next=applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[props.socialVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   const handledCover=useRef("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{const request=props.coverVideoRequest;if(!request||handledCover.current===request.id||song?.id!==request.songId||!p?.duration||busy||recoveryReady!==song.id)return;handledCover.current=request.id;if(recovery){setError("Resolve the recovery copy before preparing this cover video.");return;}const currentProject=current.current!;const next=applySocialVideoPreset(currentProject,"reels",0,30);edit({...next,motion:"drift",visualLayers:{backgroundMotion:.6,overlayAmount:.45,overlayStyle:request.overlay,overlayMotion:true,beatOffset:0},pro:{...next.pro!,background:request.asset,intro:0,outro:0,sections:next.pro!.sections.map(section=>({...section,background:undefined,theme:undefined}))}});setCleanExport(true);setStep(4);seek(0);setPlatform("instagram");setStatus("Animated cover prepared. Render the video to include your song and moving cover.");},[props.coverVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   async function chooseSong(id: string) {
     if (busy) return;
@@ -996,6 +1005,7 @@ function LyricVideoProContent(props: Props) {
       pendingVideo.current = null;
       patchPro({ sourceVideo: item.id });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [p?.sourceSongId]);
   async function realignChangedPart(){
     const opened=current.current,pro=opened?.pro,window=pro?.captionEdit;
@@ -1029,6 +1039,7 @@ function LyricVideoProContent(props: Props) {
     if(!isLyricProject(next)){setError("The recovered captions need a timing review before restoring.");return;}
     edit(next);setCaptionRecovery(null);void persist(true,"Restored last caption sync");
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{if(captionRecovery&&!busy&&!current.current?.cues.length)restoreCaptionSync();},[captionRecovery,busy]);
   async function generateCaptions() {
     const next = current.current;
@@ -1305,6 +1316,7 @@ function LyricVideoProContent(props: Props) {
     const design = pendingDesign.current;
     pendingDesign.current = null;
     void uploadOwnBackground(design.file, design.scope);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [p?.sourceSongId, p?.duration, busy]);
   async function validateDesign(file: Blob) {
     if (

@@ -23,6 +23,7 @@ export function VisualGenerationControls({project,apply,disabled}:{project:Lyric
   const updateJob=(job:VisualJob)=>{if(alive.current&&activeSong.current===job.song)setLibrary(old=>({...old,jobs:[job,...old.jobs.filter(j=>j.id!==job.id)].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),images:job.status==="ready"&&job.mode==="image"&&job.asset&&!old.images.some(i=>i.id===job.asset)?[...old.images,{id:job.asset,label:job.prompt.slice(0,70)}]:old.images}));};
   async function api(payload:object){const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),credentials:"same-origin"});const result=await response.json() as ApiResult;if(!response.ok)throw new Error(result.error??"The visual request could not finish.");return result;}
   async function load(signal?:AbortSignal){const song=p.sourceSongId;const response=await fetch(endpoint+"?song="+encodeURIComponent(song),{signal,credentials:"same-origin"});const result=await response.json() as Library&{error?:string};if(!response.ok)throw new Error(result.error??"The visual library could not open.");if(alive.current&&activeSong.current===song){setLibrary(result);setLoaded(true);}}
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{const task=new AbortController();setLoaded(false);setLibrary({configured:false,jobs:[],images:[]});setReference("");setBilling(false);setRights(false);setError("");setNotice("");request.current=null;void load(task.signal).catch(e=>{if(!task.signal.aborted)setError(e.message);});return()=>task.abort();},[p.sourceSongId]);
   const pending=library.jobs.filter(visualActive);
   useEffect(()=>{
@@ -32,6 +33,7 @@ export function VisualGenerationControls({project,apply,disabled}:{project:Lyric
       for(const job of pending){if(stopped)break;try{const result=await api({action:"refresh",song,id:job.id});if(!stopped)updateJob(result.job);}catch(e){if(!stopped&&activeSong.current===song){setError(e instanceof Error?e.message:"Checking status failed. Try again.");setPoll(false);}break;}}
     },8000);
     return()=>{stopped=true;window.clearTimeout(timer);};
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[library.jobs,poll,p.sourceSongId]);
   const fail=(e:unknown)=>{if(alive.current)setError(e instanceof Error?e.message:"This visual action could not finish.");};
   async function generate(){

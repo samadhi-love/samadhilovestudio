@@ -17,6 +17,12 @@ const eslintConfig = defineConfig([
     "vendor/**",
   ]),
   {
+    // Stale values in effects and callbacks caused real lost-save bugs. Every
+    // remaining exception is reviewed and carries its reason inline.
+    files: ["app/**/*.{ts,tsx}"],
+    rules: { "react-hooks/exhaustive-deps": "error" },
+  },
+  {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {
       // These files are vendored verbatim from shadcn@4.17.0. Keep the

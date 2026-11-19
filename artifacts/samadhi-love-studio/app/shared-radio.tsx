@@ -19,9 +19,12 @@ export function SharedRadio({active=true}:{active?:boolean}){
  useEffect(()=>()=>{mounted.current=false;intent.current=false;player.current?.pause();},[]);
  useEffect(()=>{if(!active){intent.current=false;player.current?.pause();setListening(false);}},[active]);
  const current=data?.current,serverNow=clock+offset.current;
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{if(!active||!data?.live||!current)return;const timer=setTimeout(()=>void refresh().catch(e=>setError(e.message)),Math.max(100,current.end-(Date.now()+offset.current)+100));return()=>clearTimeout(timer);},[active,current?.id,current?.end,data?.live]);
  function sync(){const audio=player.current,current=dataRef.current?.current;if(!audio||!current)return;const target=Math.max(0,(Date.now()+offset.current-current.start)/1000);if(Number.isFinite(audio.duration)&&target<audio.duration&&Math.abs(audio.currentTime-target)>1.5)audio.currentTime=target;}
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{if(!data?.live||!current){player.current?.pause();setListening(false);}else if(intent.current&&active){sync();void player.current?.play().catch(()=>{setListening(false);setError("Tap Listen live to resume playback in this browser.");});}},[current?.id,data?.live,active]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{if(listening)sync();},[data?.serverNow]);
  useEffect(()=>{if(player.current)player.current.volume=volume;},[volume]);
  async function action(payload:Record<string,unknown>){if(busy)return false;setBusy(true);setError("");try{const response=await fetch("/api/radio",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...payload,revision:dataRef.current?.revision})});const result=await response.json() as RadioView & {error?:string};if(!response.ok)throw new Error(result.error??"The station could not update.");if((dataRef.current?.revision??-1)<=result.revision){offset.current=result.serverNow-Date.now();setData(result);}setNotice("Station updated.");return true;}catch(e){setError(e instanceof Error?e.message:"The station could not update.");return false;}finally{setBusy(false);}}

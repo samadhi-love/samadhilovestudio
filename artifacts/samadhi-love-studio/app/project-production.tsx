@@ -57,6 +57,7 @@ export function ProjectComparison({ songs, song, saving, save }: { songs: Song[]
     const e = engine.current; engine.current = null; void e?.context.close();
     setReady(false); setLength(0); setPosition(0); setError(""); setBusy(false);
     return () => { request.current?.abort(); const current = engine.current; engine.current = null; if (current) void current.context.close(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [left, right, songs.find(s => s.id === left)?.audioId, songs.find(s => s.id === right)?.audioId]);
   useEffect(() => {
     const e = engine.current; if (!e) return;

@@ -87,6 +87,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
     if (outputUrl.current) URL.revokeObjectURL(outputUrl.current);
     outputUrl.current = ""; setOutput(null);
     setClipLength("full"); setClipStart("0"); setPostCaption("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [song?.id]);
 
   useEffect(() => () => {
@@ -151,6 +152,7 @@ export function LyricVideoStudio({ songs, initialSongId, saving, save, elevenLab
     }
     paint();
     return () => cancelAnimationFrame(request);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [clean, sameText, cues, theme, motion, format, font, color, effect, captionTemplate, intensity, bpm, captionLayout, fontsReady, song?.name, image, playing, time]);
 
   function estimate() {

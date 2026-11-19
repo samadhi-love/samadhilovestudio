@@ -16,8 +16,10 @@ import {newPartyFile,partyGenerationKey,partyGenerationParts,partyOutputKey,type
 import {PartyVoiceRecorder} from "./voice-recorder";
 const clock=(t:number)=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
 type Pending={fileId:string;name:string;key:string;result:AssemblyResult;song?:Song};
+// One shared empty list, so "no files yet" is the same value on every render.
+const noFiles:PartyFile[]=[];
 export function PartyFileBuilder({party,data,disabled,change,settings,persist,refresh,working,unsaved}:{party:Party;data:PartyData;disabled:boolean;change:(files:PartyFile[])=>void;settings:(patch:Partial<Party>)=>void;persist:(files:PartyFile[],mix?:Party["fileMix"])=>Promise<Party>;refresh:()=>Promise<PartyData>;working:(label:string)=>void;unsaved?:(value:boolean)=>void}){
- const files=party.files??[],[selected,setSelected]=useState(files[0]?.id??""),[query,setQuery]=useState(""),[rights,setRights]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[progress,setProgress]=useState(0),[active,setActive]=useState(false),[voiceActive,setVoiceActive]=useState(false),[pending,setPending]=useState<Pending|null>(null),[estimate,setEstimate]=useState<{fileId:string;key:string;quotes:CreditQuote[];parts:number[]}|null>(null);
+ const files=party.files??noFiles,[selected,setSelected]=useState(files[0]?.id??""),[query,setQuery]=useState(""),[rights,setRights]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[progress,setProgress]=useState(0),[active,setActive]=useState(false),[voiceActive,setVoiceActive]=useState(false),[pending,setPending]=useState<Pending|null>(null),[estimate,setEstimate]=useState<{fileId:string;key:string;quotes:CreditQuote[];parts:number[]}|null>(null);
  const generating=useRef(false),stopRequested=useRef(false),controller=useRef<AbortController|null>(null),current=useRef(party),pendingRef=useRef(pending);current.current=party;pendingRef.current=pending;
  useEffect(()=>()=>controller.current?.abort(),[]);
  const voiceWorking=useCallback((value:boolean)=>{setVoiceActive(value);working(value?"Recording / saving your voice":"");},[working]);

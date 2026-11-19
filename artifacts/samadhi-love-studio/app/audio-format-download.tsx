@@ -10,6 +10,7 @@ export function AudioFormatDownload({ url, title, sourceKey }: { url: string; ti
   const reportFor = useRef("");
   const [report, setReport] = useState<AudioReadiness | null>(null);
   const controller = useRef<AbortController | null>(null), active = useRef(false), generation = useRef(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
   useEffect(() => { generation.current++; controller.current?.abort(); setBusy(false); setStatus(""); setReport(null); setTrimmed(null); if(trimmedUrl.current){URL.revokeObjectURL(trimmedUrl.current);trimmedUrl.current="";} return () => { generation.current++; controller.current?.abort(); if(trimmedUrl.current){URL.revokeObjectURL(trimmedUrl.current);trimmedUrl.current="";} }; }, [sourceKey]);
   async function download(check = false) {
     if (active.current) return;

@@ -62,6 +62,7 @@ export function MeditativeVibes(props: Props) {
       setSaved(items => cursor ? [...items, ...result.sessions.filter((s: Saved) => !items.some(i => i.id === s.id))] : result.sessions); setNext(result.next); setListError("");
     } catch (e) { if (alive.current) setListError((e as Error).message); }
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(() => { void loadList(); }, [props.workspaceId]);
   async function run(label: string, action: () => Promise<void>, persist = false) {
     if (working.current || props.saving) return;

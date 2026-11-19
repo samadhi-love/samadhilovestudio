@@ -124,6 +124,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
   useEffect(() => { if (!active) stopPlayback(); }, [active]);
   useEffect(() => () => { if (processed) URL.revokeObjectURL(processed.url); }, [processed]);
   useEffect(() => { setProcessed(null); }, [selected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(() => () => { if (mix) URL.revokeObjectURL(mix.url); }, [mix?.url]);
   useEffect(() => () => { if (stem) URL.revokeObjectURL(stem.url); }, [stem]);
   useEffect(() => {
@@ -147,6 +148,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     const url = URL.createObjectURL(wavAudio(buffer.getChannelData(0), buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : undefined));
     setSourceUrl(url);
     return () => URL.revokeObjectURL(url);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [selected?.source, session.id]);
   useEffect(() => {
     if (saved || (!session.sources.length && !revision.current)) return;
@@ -171,6 +173,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     if (!recovery.ready || saved || syncing || syncError || (!session.sources.length && !revision.current) || !session.name.trim()) return;
     const timer = window.setTimeout(() => { void persist(session); }, 450);
     return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [session, saved, syncing, syncError, recovery.ready]);
 
   async function job(action: () => Promise<void>) {
@@ -275,6 +278,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     imported.current = input;
     setRejectedTake({ blob: input.blob, title: input.title, role: input.role, at: playhead });
     void job(async () => { await add(input.blob, input.title, input.role, playhead); if (input.projectId) setSession(current => current.projectSongId ? current : { ...current, projectSongId: input.projectId }); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [active, input, busy, capturing]);
 
   return <div hidden={!active} className="vocal-workspace" ref={area} onPlayCapture={event => {

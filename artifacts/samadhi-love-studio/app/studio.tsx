@@ -212,6 +212,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   useEffect(() => { void load(); }, []);
   useEffect(()=>{
     if(view==="songs"&&loaded&&workspaceId&&!pendingSave.current&&!hasDraft.current)void recoverUnfinishedSongs(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[view,loaded,workspaceId]);
   const jobCompleted=useRef(()=>{});
   jobCompleted.current=()=>{if(!pendingSave.current&&!hasDraft.current)void load();};
@@ -236,6 +237,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   useEffect(()=>{applyLocationRef.current=applyLocation;navigateRef.current=navigate;});
   // Initial URL entry and back/forward both go through the resolver; the initial apply is deferred to a frame so it runs after mount.
   useEffect(()=>{const frame=requestAnimationFrame(()=>applyLocationRef.current(false));const pop=()=>{if(!applyLocationRef.current(false)){fromHistory.current=true;navigateRef.current("overview");fromHistory.current=false;}};window.addEventListener("popstate",pop);return()=>{cancelAnimationFrame(frame);window.removeEventListener("popstate",pop);};},[]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{if(!loaded)return;const params=new URLSearchParams(window.location.search),recording=params.get("song");if(resolveLocation(window.location.search,window.location.hash)?.screen!=="songs"||!recording)return;const found=data.songs.find(s=>s.id===recording);if(found){setArchiveView(!!found.deletedAt);setSongExpanded(found.id);setSelected("");requestAnimationFrame(()=>document.querySelector(`[data-song-id="${found.id}"]`)?.scrollIntoView({block:"center"}));}},[loaded]);
   useEffect(() => {
     if (!toast) return;
@@ -247,6 +249,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const close = (e: KeyboardEvent) => { if (e.key === "Escape" && !modalBusy) { if(modal==="tour")finishTour();else setModal(null); } };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [modal, modalBusy]);
 
   useEffect(()=>{if(!modal)return;const trigger=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('.modal-shade [role="dialog"]');if(dialog)return containDialogFocus(dialog,trigger);},[modal]);
@@ -847,6 +850,7 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
   const latestDraft = useRef({ draft, tagText }); latestDraft.current = { draft, tagText };
   useEffect(() => {
     setDraft(current => syncSongSource(current, song));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [song.audioFormat, song.audioId, song.audioHistory, song.generation, song.instrumental, song.creationKind, song.creationSeconds, song.explicit, song.master?.songId, song.master?.audioId, song.projectId, song.sourceSessionId,song.createdAt,song.updatedAt]);
   const dirty = JSON.stringify({ ...draft, audioFormat: undefined, audioId: undefined }) !== JSON.stringify({ ...song, audioFormat: undefined, audioId: undefined }) || tagText !== song.tags.join(", ");
   useEffect(() => {

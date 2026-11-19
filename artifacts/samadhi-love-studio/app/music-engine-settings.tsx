@@ -16,6 +16,7 @@ export function useMusicEngine(scope=""){
     }catch(error){if(current===sequence.current)setError(error instanceof Error?error.message:"Music settings could not be read.");}
     finally{if(current===sequence.current)setBusy(false);}
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
   useEffect(()=>{setStatus(disconnectedEngine);void update();const refresh=()=>void update();window.addEventListener("focus",refresh);return()=>{sequence.current++;window.removeEventListener("focus",refresh);};},[scope]);
   return {status,error,busy,update};
 }

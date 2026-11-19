@@ -23,6 +23,7 @@ export function AudioPlayer({ src, label, onPosition }: { src: string; label: st
     attempt.current++;
     setFailed(false); setPlaying(false); setStarting(false); setBuffering(false);
     setPosition(0); setDuration(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
     return () => { attempt.current++; if (audio && !audio.paused) audio.pause(); };
   }, [src]);
   function pause() {

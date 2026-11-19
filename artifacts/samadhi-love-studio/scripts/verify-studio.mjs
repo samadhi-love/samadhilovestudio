@@ -31,6 +31,7 @@ const checks = [
   ["Public homepage and separate private Studio", ["scripts/test-public-home.mjs"]],
   ["Guided screens, legacy links and local video looks", ["scripts/test-studio-consolidation.mjs"]],
   ["TypeScript", ["node_modules/typescript/bin/tsc", "--noEmit", "--incremental", "false"]],
+  ["Effects and callbacks read current values (hook dependencies)", ["--max-old-space-size=4096", "scripts/check-hook-deps.mjs"]],
   ["Member registration and verified subscription billing", ["scripts/test-membership-billing.mjs"]],
   ["Member plans and registration controls", ["scripts/test-membership-controls.mjs"]],
   ["Credits, usage, account isolation and production limits", ["scripts/test-credits.mjs"]],
