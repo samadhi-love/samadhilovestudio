@@ -1,7 +1,8 @@
 import {serverStorage as env} from "./storage";
 import type {MusicEngine,MusicEngineStatus} from "../music-engine-data";
 const preferenceKey=(owner:string)=>`private/music-engine/${encodeURIComponent(owner)}.json`;
-export function falKey(){return (env as Cloudflare.Env&{FAL_KEY?:string}).FAL_KEY?.trim()??"";}
+// Secret names are case-sensitive; accept common spellings so a lowercase Replit Secret still works.
+export function falKey(){const e=env as Cloudflare.Env&Record<string,string|undefined>;return (e.FAL_KEY??e.Fal_key??e.Fal_Key??e.fal_key??e["FAL-KEY"]??e["fal-key"])?.trim()??"";}
 export async function musicEngineStatus(access:{id:string;role:string}):Promise<MusicEngineStatus>{
   if(access.role!=="owner")return {owner:false,preferred:"elevenlabs",engine:"elevenlabs",configured:false,notice:""};
   const saved=await env.BUCKET?.get(preferenceKey(access.id));
