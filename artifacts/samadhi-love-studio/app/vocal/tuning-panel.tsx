@@ -22,7 +22,7 @@ export function TuningPanel({ clip, buffer, pro, update, run, harmony }: {
   harmony?: (interval: number) => void;
 }) {
   const [detection, setDetection] = useState<{ start: number; end: number; notes: NoteEdit[] } | null>(null);
-  const [interval, setInterval] = useState(4);
+  const [harmonyInterval, setHarmonyInterval] = useState(4);
   const found = detection?.start === clip.start && detection.end === clip.end ? detection.notes : null;
   const t = clip.tuning;
   const tune = (changes: Partial<Tuning>) => update({ tuning: { ...t, ...changes }, bypass: false });
@@ -76,11 +76,11 @@ export function TuningPanel({ clip, buffer, pro, update, run, harmony }: {
     </div>}
     {pro && <div className="actions">
       <HelpField label="Harmony interval" tip="Make a pitch-shifted copy of this solo take. The new clip has its own level and pan.">
-        <select value={interval} onChange={e => setInterval(Number(e.target.value))}>
+        <select value={harmonyInterval} onChange={e => setHarmonyInterval(Number(e.target.value))}>
           <option value={3}>Minor third above (+3)</option><option value={4}>Major third above (+4)</option>
           <option value={7}>Fifth above (+7)</option><option value={-5}>Fourth below (−5)</option><option value={-12}>Octave below (−12)</option>
         </select></HelpField>
-      <button type="button" className="secondary" disabled={!harmony} onClick={() => harmony?.(interval)}>Add shifted harmony clip</button>
+      <button type="button" className="secondary" disabled={!harmony} onClick={() => harmony?.(harmonyInterval)}>Add shifted harmony clip</button>
     </div>}
   </div>;
 }
