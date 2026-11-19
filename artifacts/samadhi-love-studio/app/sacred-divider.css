@@ -1,0 +1,16 @@
+/* Sacred geometry marks: gold line art, purely decorative. */
+.sacred-mark{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1;vector-effect:non-scaling-stroke;overflow:visible}
+.sacred-mark *{vector-effect:non-scaling-stroke}
+
+.sacred-divider{display:flex;align-items:center;gap:18px;max-width:560px;margin:8px auto;color:#ffe2a9;opacity:.85}
+.sacred-divider__line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#ffe2a9aa)}
+.sacred-divider__line:last-child{background:linear-gradient(90deg,#ffe2a9aa,transparent)}
+.sacred-divider__mark{width:38px;height:38px;filter:drop-shadow(0 0 5px #ffd79466);animation:sacred-divider-turn 90s linear infinite}
+@keyframes sacred-divider-turn{to{transform:rotate(360deg)}}
+
+.sacred-line{display:inline-flex;align-items:center;gap:.7em}
+.sacred-line .sacred-mark{color:#ffe2a9;opacity:.9;filter:drop-shadow(0 0 3px #ffd79455)}
+
+@media(max-width:700px){.sacred-divider{gap:12px;max-width:300px}.sacred-divider__mark{width:30px;height:30px}}
+@media(prefers-reduced-motion:reduce){.sacred-divider__mark{animation:none}}
+@media(forced-colors:active){.sacred-divider,.sacred-line .sacred-mark{color:CanvasText;filter:none}.sacred-divider__line{background:CanvasText}}

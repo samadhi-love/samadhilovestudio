@@ -39,9 +39,8 @@
 .shell[data-cosmic-screen=guide]{--cosmic-accent:#ffe9a8;--cosmic-accent-2:#ffe9a8;--cosmic-neb:rgba(255,233,168,.14);--cosmic-neb-2:rgba(127,233,255,.12);--cosmic-neb-pos:50% 0%;--cosmic-title:"THE STAR CHART"}
 .shell[data-cosmic-screen=plan-credits]{--cosmic-accent:#ffd27a;--cosmic-accent-2:#ffe9a8;--cosmic-neb:rgba(255,210,122,.16);--cosmic-neb-2:rgba(167,123,255,.16);--cosmic-neb-pos:85% 0%;--cosmic-title:"THE FUEL STATION"}
 
-/* hide old frame rails where the cosmic theme applies */
-body:has(.shell[data-cosmic-screen]) .cosmic-frame,body:has(.member-shell) .cosmic-frame,body:has(.listener-shell) .cosmic-frame,body:has(.studio-auth) .cosmic-frame{display:none}
-body:has(.shell[data-cosmic-screen]),body:has(.member-shell),body:has(.listener-shell),body:has(.studio-auth){background:var(--cosmic-bg);color:var(--cosmic-text);padding:0}
+/* The sacred "I AM" border frames every page; keep the body padding it needs. */
+body:has(.shell[data-cosmic-screen]),body:has(.member-shell),body:has(.listener-shell),body:has(.studio-auth){background:var(--cosmic-bg);color:var(--cosmic-text)}
 
 /* ---------- Starfield & nebula (behind everything, no pointer) ---------- */
 .shell[data-cosmic-screen]{position:relative;isolation:isolate;background:var(--cosmic-bg)}

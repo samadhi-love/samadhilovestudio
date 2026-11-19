@@ -5,6 +5,7 @@ import { ArrowRight, Disc3, Play, Sparkles } from "lucide-react";
 import { brand } from "../brand";
 import { DivineSpark } from "../cosmic-channel";
 import { HologramSlogan } from "../hologram-slogan";
+import { SacredDivider, SacredLine } from "../sacred-divider";
 import { useCommunityResource } from "../community/client";
 import { artistHref, communityApi, songHref, type CommunityData, type Release } from "../community/data";
 import { CommunityPlayer } from "../community/player";
@@ -212,8 +213,10 @@ export function VersualLanding() {
         {[0, 1].map(k => <span key={k}>{styles.map(s => <b key={s}>{s}<i>✧</i></b>)}</span>)}
       </div></div>
 
+      <SacredDivider symbol="seed"/>
+
       <section className="vl-section">
-        <p className="vl-kicker">THE SCIENCE OF SOUND</p>
+        <p className="vl-kicker"><SacredLine symbols={["lotus", "seed"]}>THE SCIENCE OF SOUND</SacredLine></p>
         <h2 className="vl-h2">Everything vibrates.</h2>
         <p className="vl-sub">From a single string to the orbits of planets, the same laws of harmony run through it all. Your song is part of that pattern.</p>
         <div className="vl-grid3">
@@ -223,8 +226,10 @@ export function VersualLanding() {
         </div>
       </section>
 
+      <SacredDivider symbol="hexagram"/>
+
       <section className="vl-section">
-        <p className="vl-kicker">THE JOURNEY</p>
+        <p className="vl-kicker"><SacredLine symbols={["vesica", "hexagram"]}>THE JOURNEY</SacredLine></p>
         <h2 className="vl-h2">Receive. Create. Radiate.</h2>
         <div className="vl-grid3 vl-journey">
           <article className="vl-glass vl-card vl-c-cyan"><span className="vl-icon"><MicIcon/></span><span className="vl-step">01</span><h3>Receive</h3><p>A melody arrives. Hum it in, describe the feeling, or write your words in any language. It's saved the moment it lands.</p></article>
@@ -232,6 +237,8 @@ export function VersualLanding() {
           <article className="vl-glass vl-card vl-c-magenta"><span className="vl-icon"><SunIcon/></span><span className="vl-step">03</span><h3>Radiate</h3><p>Your lyrics glow in time with your voice on a cosmic visual — ready for Reels, Shorts and YouTube.</p></article>
         </div>
       </section>
+
+      <SacredDivider symbol="vesica"/>
 
       <section className="vl-section">
         <div className="vl-section-head"><h2 className="vl-h2">Every song becomes a moving sky.</h2><a className="vl-link" href="/community">Watch the community <ArrowRight size={16}/></a></div>
@@ -244,7 +251,11 @@ export function VersualLanding() {
         </div>
       </section>
 
+      <SacredDivider symbol="metatron"/>
+
       <Rising/>
+
+      <SacredDivider symbol="yantra"/>
 
       <section className="vl-section vl-close">
         <OrbitLogo size={56}/>
@@ -253,6 +264,8 @@ export function VersualLanding() {
         <a href="/creator" className="vl-btn vl-btn-primary vl-btn-lg"><Sparkles size={18}/> Let your song be heard</a>
         <p className="vl-fine">Free to start · No music skills needed · Private until you choose to share</p>
       </section>
+
+      <SacredDivider symbol="lotus"/>
 
       <StarPop/>
     </main>

@@ -127,7 +127,7 @@ test("motion is scoped, fully disabled for reduced motion, and phones have respo
   assert.match(css,/\.versual-landing \*,\.versual-landing \*:before,\.versual-landing \*:after\{animation:none !important;transition:none !important\}/);
   assert.match(css,/\.vl-pop,\.vl-quote-in,\.vl-star,\.vl-rays\{opacity:1 !important;transform:none !important\}/);
   assert.match(css,/@media\(max-width:767px\)/);
-  assert.match(css,/body:has\(\.versual-landing\) \.cosmic-frame\{display:none\}/);
+  assert.doesNotMatch(css,/\.cosmic-frame\{display:none\}/,'the sacred border stays visible on the front page');
 });
 test("offline DOM: reduced-motion quotes stop, playback uses the real engine, failure can retry",async()=>{
   const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.example.test/"});
@@ -181,4 +181,13 @@ test("static notices use the same brand without adding network access to vault s
     await writeFile(path.join(directory,"brand.json"),JSON.stringify({...fixture,name:""}));
     await assert.rejects(()=>syncBrandNotices(directory),/brand.json is missing name/);
   }finally{await rm(directory,{recursive:true,force:true});}
+});
+test("sacred geometry dividers sit between sections, each a different decorative symbol",()=>{
+  feed({releases:[]});const doc=parse();
+  const dividers=[...doc.querySelectorAll(".sacred-divider")];
+  assert.equal(dividers.length,6);
+  assert.equal(new Set(dividers.map(d=>d.dataset.symbol)).size,6);
+  assert.ok(dividers.every(d=>d.getAttribute("aria-hidden")==="true"));
+  assert.equal(doc.querySelectorAll(".vl-kicker .sacred-line .sacred-mark").length,4);
+  assert.equal(doc.querySelector(".vl-band").nextElementSibling,doc.querySelector(".divine-spark--banner"));
 });
