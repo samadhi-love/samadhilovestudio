@@ -205,7 +205,7 @@ export function Multitrack({ active, songs, input, initialSongId, saving, save, 
           {cloudStatus && <p role="status">{cloudStatus}</p>}<p className="muted">Account saves include original tracks, mix controls, the visual timeline, mappings and production notes. Use Save session copy for an alternate vibe in the same project; each copy is independently editable. Rendering is a separate step.</p>
         </section>
         <StemImporter archive={stemArchive} disabled={busy||saving||!recovery.ready} slots={maxMixTracks-tracks.length} importStems={importStems}/>
-        <MyVoicePicker disabled={busy||saving||!recovery.ready||tracks.length>=maxMixTracks} useVoice={async(blob,name)=>{await run(()=>add(blob,name));}}/>
+        <MyVoicePicker disabled={busy||saving||!recovery.ready||tracks.length>=maxMixTracks} onUseVoice={async(blob,name)=>{await run(()=>add(blob,name));}}/>
         <div className="field-grid">
           <HelpField label="Import a track" tip="Load an audio file as a separate track so you can trim, place, and mix it."><input type="file" accept={audioAccept + ",audio/*"} disabled={tracks.length >= maxMixTracks} onChange={event => {
             const file = event.target.files?.[0];

@@ -58,7 +58,7 @@ test("real engine routes performance to the mix, captures the original separatel
  let context:any;
  class Context {
   state="running";currentTime=2;destination=new GraphNode();sources:GraphNode[]=[];
-  constructor(){context=this;}
+  constructor(){context=this; /* eslint-disable-line @typescript-eslint/no-this-alias -- the test inspects this fake audio context */}
   createGain(){return new GraphNode();}createDelay(){return new GraphNode();}createDynamicsCompressor(){return new GraphNode();}
   createWaveShaper(){return new GraphNode();}createMediaStreamDestination(){return Object.assign(new GraphNode(),{stream:mixStream});}
   createMediaStreamSource(){return new GraphNode();}createBuffer(_channels:number,length:number,rate:number){return audioBuffer(length,rate);}

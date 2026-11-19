@@ -1191,7 +1191,7 @@ function LyricVideoProContent(props: Props) {
     try {
       const decoded = await audioBuffer();
       const analysis = analyzeAudio(decoded);
-      let variants: {} | { analysisAsset: string; soundtrackAsset: string } =
+      let variants: Record<string, never> | { analysisAsset: string; soundtrackAsset: string } =
         {};
       if (enhance) {
         const improved = await improveClarity(decoded, noise, task.signal);

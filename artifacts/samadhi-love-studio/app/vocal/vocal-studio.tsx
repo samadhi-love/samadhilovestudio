@@ -350,7 +350,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
       {!canAdd && <p className="muted">This session is at its clip or original recording limit.</p>}
       <label className="field">Selected take<select value={selection} disabled={settingsDisabled} onChange={e => setSelection(e.target.value)}>
         <option value="">Choose a take</option>{session.clips.map(clip => <option value={clip.id} key={clip.id}>{clip.name}</option>)}</select></label>
-      <MyVoicePicker disabled={settingsDisabled||!canAdd} revision={voiceRevision} useVoice={async(blob,name)=>{await job(()=>add(blob,name,"Lead vocal",playhead));}}/>
+      <MyVoicePicker disabled={settingsDisabled||!canAdd} revision={voiceRevision} onUseVoice={async(blob,name)=>{await job(()=>add(blob,name,"Lead vocal",playhead));}}/>
       {selected&&selected.role!=="Instrumental"&&<section className="voice-save-controls"><h3>Keep this original for future productions</h3>
         <label className="field">Voice recording name<input value={voiceName} maxLength={100} disabled={settingsDisabled} placeholder={selected.name} onChange={e=>setVoiceName(e.target.value)}/></label>
         <label className="checkline"><input type="checkbox" checked={voicePermission} disabled={settingsDisabled} onChange={e=>setVoicePermission(e.target.checked)}/> This is my voice, or I have the performer&apos;s permission to save and reuse it.</label>

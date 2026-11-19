@@ -246,7 +246,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
       shape:{negativeStyle,...(spark!==null?{spark}:{}),delivery:vocalOptions.delivery,character:vocalOptions.character},
     };
   }
-  function useSavedPrompt(preset:Template){
+  function applySavedPrompt(preset:Template){
     const shape=readSavedShape(preset);
     const applyShape=()=>{setNegativeStyle(shape?.negativeStyle??"");setSpark(shape?.spark??null);if(shape?.delivery||shape?.character)setVocalOptions(v=>({...v,...(shape.delivery?{delivery:shape.delivery}:{}),...(shape.character?{character:shape.character}:{})}));};
     const dna=readStyleDNA(preset);
@@ -448,7 +448,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
                 <div><strong>{prompt.name}</strong><p>{readStyleDNA(prompt)?"Sound + song map · ":""}{prompt.tags.join(" · ")||prompt.description}{prompt.notes.lyrics.trim()||prompt.notes.prompt.trim()?" · with words":""}</p></div>
                 {readSavedShape(prompt)?.voiceReferenceId&&<div className="saved-voice-reference"><p className="muted">Voice description plus a private reference clip, for your ears only. Using this sound applies the written description; the clip is never sent to a music provider and is not a voice clone.</p>{listenReference===prompt.id?<AudioPlayer src={`/api/studio/song-actions?voice=${encodeURIComponent(readSavedShape(prompt)!.voiceReferenceId!)}`} label={`Private voice reference for ${prompt.name}`}/>:<button type="button" className="text-button" data-testid={`button-listen-reference-${prompt.id}`} onClick={()=>setListenReference(prompt.id)}>Listen to reference</button>}</div>}
                 <div className="actions">
-                  <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>useSavedPrompt(prompt)}>Use</button>
+                  <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>applySavedPrompt(prompt)}>Use</button>
                   {favoritePrompt&&<button type="button" className="text-button" data-testid={`button-favorite-saved-prompt-${prompt.id}`} aria-pressed={!!prompt.favorite} aria-label={prompt.favorite?"Favorited":"Favorite"} disabled={busy}
                     onClick={()=>void favoritePrompt(prompt.id,!prompt.favorite)}><Star size={14} fill={prompt.favorite?"currentColor":"none"}/> {prompt.favorite?"Favorited":"Favorite"}</button>}
                 </div>
