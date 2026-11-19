@@ -105,8 +105,8 @@ body:has(.versual-landing):not(:has(.shell,.member-shell,.listener-shell,.studio
 .vs-shooting{position:absolute;left:62vw;top:12vh;width:140px;height:1px;background:linear-gradient(90deg,transparent,#d8f6ffcc 70%,#fff);transform-origin:right center;opacity:0;animation:vs-shoot 31s linear infinite 6s}
 @keyframes vs-shoot{0%{opacity:0;transform:rotate(-24deg) translateX(0)}1%{opacity:.85}3.5%{opacity:0;transform:rotate(-24deg) translateX(-38vw)}100%{opacity:0;transform:rotate(-24deg) translateX(-38vw)}}
 .vs-ship-route{position:absolute;left:0;top:0;opacity:0;will-change:transform,opacity}
-.vs-ship{display:block;width:96px;height:32px;overflow:visible;opacity:.82;filter:contrast(.88) brightness(.94)}
-.vs-ship-bank{transform-box:view-box;transform-origin:70px 20px;animation:vs-bank 14s ease-in-out infinite alternate}
+.vs-ship{display:block;width:110px;height:46px;overflow:visible;opacity:.82;filter:contrast(.88) brightness(.94)}
+.vs-ship-bank{transform-box:view-box;transform-origin:60px 25px;animation:vs-bank 14s ease-in-out infinite alternate}
 .vs-ship-wake{animation:vs-wake 3.2s ease-in-out infinite alternate}
 .vs-ship-engines{animation:vs-core 2.1s ease-in-out infinite alternate}
 .vs-nav{opacity:.15;animation:vs-nav 4.8s ease-in-out infinite}
@@ -114,12 +114,16 @@ body:has(.versual-landing):not(:has(.shell,.member-shell,.listener-shell,.studio
 @keyframes vs-bank{0%{transform:rotate(-.6deg) translateY(-.2px)}100%{transform:rotate(.5deg) translateY(.25px)}}
 @keyframes vs-wake{0%{opacity:.85}100%{opacity:.55}}
 @keyframes vs-core{0%{opacity:1}100%{opacity:.78}}
+/* Saucer underside lights chase around the ring. */
+.vs-saucer-light{animation:vs-saucer 2.4s ease-in-out infinite}
+.vs-saucer-light-1{animation-delay:-.4s}.vs-saucer-light-2{animation-delay:-.8s}.vs-saucer-light-3{animation-delay:-1.2s}.vs-saucer-light-4{animation-delay:-1.6s}.vs-saucer-light-5{animation-delay:-2s}
+@keyframes vs-saucer{0%,100%{opacity:.45}50%{opacity:1}}
 @keyframes vs-nav{0%,70%,100%{opacity:.15}78%{opacity:.95}86%{opacity:.2}}
 .vs-route-1{animation:vs-route-1 52s linear infinite 4s}
-.vs-route-1 .vs-ship{width:110px;height:37px;transform:rotate(-8deg)}
+.vs-route-1 .vs-ship{width:118px;height:49px;transform:rotate(-3deg)}
 @keyframes vs-route-1{0%{opacity:0;transform:translate(-140px,68vh)}2%{opacity:.7}26%{opacity:.7}28%,100%{opacity:0;transform:translate(104vw,40vh)}}
 .vs-route-2{animation:vs-route-2 58s linear infinite 30s}
-.vs-route-2 .vs-ship{width:84px;height:28px;transform:scaleX(-1) rotate(-6deg)}
+.vs-route-2 .vs-ship{width:126px;height:45px;transform:scaleX(-1) rotate(-4deg)}
 @keyframes vs-route-2{0%{opacity:0;transform:translate(104vw,22vh)}2%{opacity:.55}30%{opacity:.55}32%,100%{opacity:0;transform:translate(-120px,48vh)}}
 
 /* ---------- Four mirrored inner-corner constellations (foreground decoration, clear of rails) ---------- */
@@ -143,7 +147,7 @@ body:has(.versual-landing):not(:has(.shell,.member-shell,.listener-shell,.studio
   .vs-stars-mid{background-size:313px 287px,381px 341px}
   .vs-stars-near{background-size:519px 467px,623px 549px}
   .vs-nebula{filter:blur(35px)}
-  .vs-route-1 .vs-ship{width:62px;height:21px}.vs-route-2 .vs-ship{width:48px;height:16px}
+  .vs-route-1 .vs-ship{width:66px;height:28px}.vs-route-2 .vs-ship{width:70px;height:25px}
   .vs-shooting{width:80px}
 }
 /* Pause everything decorative while the tab is hidden. */

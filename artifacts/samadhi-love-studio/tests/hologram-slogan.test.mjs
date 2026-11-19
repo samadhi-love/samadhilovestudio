@@ -135,7 +135,7 @@ test("soft aqua guidance meets normal-text contrast on existing dark purple/gold
     const channels = hex.match(/../g).map(c => parseInt(c, 16) / 255).map(c => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
     return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
   };
-  for (const background of ["04030d", "1c1034", "2a1744", "443252"]) {
+  for (const background of ["04030d", "150c32", "1f1244", "1c1034", "2a1744", "443252"]) {
     assert.ok((luminance("b4e9ee") + 0.05) / (luminance(background) + 0.05) >= 4.5, background);
   }
 });

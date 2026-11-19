@@ -135,7 +135,7 @@ test("all nine screens retain their real IDs and themed five-entry navigation",a
 
 test("one canonical theme supplies colors, fonts, panels and accessible motion opt-out",async()=>{
   const css=await source("cosmic-theme.css"),layout=await source("layout.tsx");
-  for(const color of ["#04030d","#7fe9ff","#a77bff","#ff5fd2","#ffe9a8","#eef1ff","#c9cdf0","#a9afd8"])assert.ok(css.includes(color));
+  for(const color of ["#150c32","#7fe9ff","#a77bff","#ff5fd2","#ffe9a8","#eef1ff","#c9cdf0","#a9afd8"])assert.ok(css.includes(color));
   for(const font of ["Syne","Space Grotesk","Cormorant Garamond"])assert.ok(css.includes(font));
   assert.ok(layout.includes('"./cosmic-theme.css"'));
   assert.ok(layout.includes("serverHostname={serverHostname}"));

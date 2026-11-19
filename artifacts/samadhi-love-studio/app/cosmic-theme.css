@@ -2,11 +2,11 @@
    Scope: signed-in studio shell, standalone member/listener support pages and auth.
    The public .versual-landing keeps its own approved styles. Exported/preview canvases are never targeted. */
 :root{
-  --cosmic-bg:#04030d;--cosmic-panel:rgba(14,12,36,.7);--cosmic-panel-solid:#0e0c24;
+  --cosmic-bg:#150c32;--cosmic-panel:rgba(36,20,74,.72);--cosmic-panel-solid:#1f1244;
   --cosmic-cyan:#7fe9ff;--cosmic-violet:#a77bff;--cosmic-magenta:#ff5fd2;--cosmic-gold:#ffe9a8;
   --cosmic-text:#eef1ff;--cosmic-secondary:#c9cdf0;--cosmic-muted:#a9afd8;
-  --cosmic-line:rgba(167,123,255,.26);--cosmic-line-strong:rgba(127,233,255,.5);
-  --cosmic-well:rgba(6,5,20,.62);
+  --cosmic-line:rgba(226,190,120,.30);--cosmic-line-strong:rgba(127,233,255,.5);
+  --cosmic-well:rgba(22,12,48,.62);
   --cosmic-font-display:Syne,"Space Grotesk",system-ui,sans-serif;
   --cosmic-font-body:"Space Grotesk",system-ui,sans-serif;
   --cosmic-font-poetic:"Cormorant Garamond",Georgia,serif;
@@ -21,7 +21,7 @@
 
 /* ---------- Scope: variables & personality per screen ---------- */
 .shell[data-cosmic-screen],.member-shell,.listener-shell,.studio-auth{
-  --bg:var(--cosmic-bg);--side:rgba(8,7,24,.82);--panel:var(--cosmic-panel);--panel-hover:rgba(28,24,64,.78);
+  --bg:var(--cosmic-bg);--side:rgba(30,16,62,.82);--panel:var(--cosmic-panel);--panel-hover:rgba(54,32,104,.78);
   --border:var(--cosmic-line);--ink:var(--cosmic-text);--muted:var(--cosmic-muted);--soft:var(--cosmic-secondary);
   --well:var(--cosmic-well);--peach:var(--cosmic-accent-2);--pink:var(--cosmic-magenta);--purple:var(--cosmic-violet);--green:var(--cosmic-cyan);
   --room-border:color-mix(in srgb,var(--cosmic-accent) 45%,transparent);--room-tint:color-mix(in srgb,var(--cosmic-accent) 9%,transparent);
@@ -65,7 +65,8 @@ body:has(.shell[data-cosmic-screen]),body:has(.member-shell),body:has(.listener-
 .shell[data-cosmic-screen] :is(button,input,select,textarea){font-family:var(--cosmic-font-body)}
 
 /* ---------- Sidebar ---------- */
-.shell[data-cosmic-screen] .sidebar{background:linear-gradient(180deg,rgba(10,9,30,.86),rgba(6,5,18,.9));border-right:1px solid var(--cosmic-line);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow-y:auto}
+/* Purple-and-gold silk side panel on every signed-in screen. */
+.shell[data-cosmic-screen] .sidebar{background:linear-gradient(90deg,rgba(24,10,58,.55),rgba(30,14,66,.3)),url("/studio-scenes/sidebar-silk.png") center center / cover no-repeat,#2a1458;border-right:1px solid rgba(255,214,140,.38);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow-y:auto}
 .cosmic-brand{text-align:left;align-items:flex-start}
 .cosmic-brand img{filter:drop-shadow(0 0 8px rgba(127,233,255,.4))}
 .cosmic-brand span{min-width:0}
