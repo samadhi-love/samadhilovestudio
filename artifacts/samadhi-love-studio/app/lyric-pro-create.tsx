@@ -245,7 +245,7 @@ export function CaptionReadyCreate({
         <p className="lvp-note">
           Clear production may help recognition but cannot guarantee perfect
           words, accents, or synchronization. Music generation uses the
-          provider's available generated singers; saved Voice Design/TTS voices
+          provider&apos;s available generated singers; saved Voice Design/TTS voices
           are not selected or cloned for singing. Dialect and mixed-language
           results vary. Review the audio and captions.
         </p>
@@ -261,7 +261,7 @@ export function CaptionReadyCreate({
         <p className="lvp-note">
           Uses your ElevenLabs credits. Generating then automatically
           requests lyric alignment. Optional recognized-word checking is a
-          separate paid request. The provider's music response supplies audio
+          separate paid request. The provider&apos;s music response supplies audio
           rather than word timestamps, so Studio aligns the completed
           performance.
         </p>

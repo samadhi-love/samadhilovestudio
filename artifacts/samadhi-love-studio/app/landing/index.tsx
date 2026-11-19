@@ -222,7 +222,7 @@ export function VersualLanding() {
         <div className="vl-grid3">
           <article className="vl-glass vl-card vl-c-cyan"><StringDiagram/><p className="vl-tag">PHYSICS</p><h3>The harmonic series</h3><code>fₙ = n · v / 2L</code><p>A plucked string sings its note and, hidden inside it, every whole-number multiple of that note. Harmony is built into matter itself.</p></article>
           <article className="vl-glass vl-card vl-c-gold"><GoldenDiagram/><p className="vl-tag">SACRED GEOMETRY</p><h3>The golden ratio</h3><code>φ = (1 + √5) / 2 ≈ 1.618</code><p>The proportion found in shells, sunflowers and galaxies. Musicians have long used it to shape where a song turns and where it peaks.</p></article>
-          <article className="vl-glass vl-card vl-c-magenta"><SpheresDiagram/><p className="vl-tag">COSMOLOGY</p><h3>Music of the spheres</h3><code>E = h · ν</code><p>Pythagoras heard harmony in the heavens; Kepler found it in the planets' orbits. Light and sound are both waves — energy riding on frequency.</p></article>
+          <article className="vl-glass vl-card vl-c-magenta"><SpheresDiagram/><p className="vl-tag">COSMOLOGY</p><h3>Music of the spheres</h3><code>E = h · ν</code><p>Pythagoras heard harmony in the heavens; Kepler found it in the planets&apos; orbits. Light and sound are both waves — energy riding on frequency.</p></article>
         </div>
       </section>
 
@@ -232,7 +232,7 @@ export function VersualLanding() {
         <p className="vl-kicker"><SacredLine symbols={["vesica", "hexagram"]}>THE JOURNEY</SacredLine></p>
         <h2 className="vl-h2">Receive. Create. Radiate.</h2>
         <div className="vl-grid3 vl-journey">
-          <article className="vl-glass vl-card vl-c-cyan"><span className="vl-icon"><MicIcon/></span><span className="vl-step">01</span><h3>Receive</h3><p>A melody arrives. Hum it in, describe the feeling, or write your words in any language. It's saved the moment it lands.</p></article>
+          <article className="vl-glass vl-card vl-c-cyan"><span className="vl-icon"><MicIcon/></span><span className="vl-step">01</span><h3>Receive</h3><p>A melody arrives. Hum it in, describe the feeling, or write your words in any language. It&apos;s saved the moment it lands.</p></article>
           <article className="vl-glass vl-card vl-c-violet"><span className="vl-icon"><BarsIcon/></span><span className="vl-step">02</span><h3>Create</h3><p>Get a full song with vocals and world-music fusion. Keep your favourite take, redo any part, let it grow longer.</p></article>
           <article className="vl-glass vl-card vl-c-magenta"><span className="vl-icon"><SunIcon/></span><span className="vl-step">03</span><h3>Radiate</h3><p>Your lyrics glow in time with your voice on a cosmic visual — ready for Reels, Shorts and YouTube.</p></article>
         </div>

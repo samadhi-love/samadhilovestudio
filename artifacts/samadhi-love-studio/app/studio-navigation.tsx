@@ -53,14 +53,14 @@ export function ScreenContextHelp({ screen }: { screen: Screen }) {
 export const workspaceNavigation = (Object.keys(sectionLabels) as SectionView[]).map(id => ({ id, label: sectionLabels[id] }));
 
 type NavIcon = ComponentType<{ size?: number }>;
-const svg = (paths: React.ReactNode): NavIcon => ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>;
+const svg = (paths: React.ReactNode): NavIcon => Object.assign(({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>, { displayName: "NavGlyph" });
 /** Cosmic glyphs: four-point spark (Create), star (Your songs), lens (Video), resonance (Record), orbit (Explore). */
 const CreateGlyph = svg(<><path d="M12 2.5c.6 4.6 2.9 6.9 7.5 7.5-4.6.6-6.9 2.9-7.5 7.5-.6-4.6-2.9-6.9-7.5-7.5 4.6-.6 6.9-2.9 7.5-7.5Z"/><path d="M19 16.5c.2 1.6 1 2.3 2.5 2.5-1.5.2-2.3 1-2.5 2.5-.2-1.5-1-2.3-2.5-2.5 1.5-.2 2.3-.9 2.5-2.5Z"/></>);
 const SongsGlyph = svg(<><path d="m12 3 2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6-4.5-4.1 6-.7Z"/></>);
 const VideoGlyph = svg(<><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></>);
 const RecordGlyph = svg(<><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></>);
 const ExploreGlyph = svg(<><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(-25 12 12)"/><circle cx="20" cy="7" r=".9" fill="currentColor"/></>);
-const lucide = (Icon: typeof Globe2): NavIcon => ({ size }) => <Icon size={size}/>;
+const lucide = (Icon: typeof Globe2): NavIcon => Object.assign(({ size }: { size?: number }) => <Icon size={size}/>, { displayName: "NavIcon" });
 
 export const primaryScreens: { screen: Screen; label: string; icon: NavIcon; pro?: boolean }[] = [
   { screen: "create", label: "Create", icon: CreateGlyph },

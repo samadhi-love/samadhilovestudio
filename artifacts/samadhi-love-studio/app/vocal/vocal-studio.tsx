@@ -124,6 +124,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
   useEffect(() => { if (!active) stopPlayback(); }, [active]);
   useEffect(() => () => { if (processed) URL.revokeObjectURL(processed.url); }, [processed]);
   useEffect(() => { setProcessed(null); }, [selected]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(() => () => { if (mix) URL.revokeObjectURL(mix.url); }, [mix?.url]);
   useEffect(() => () => { if (stem) URL.revokeObjectURL(stem.url); }, [stem]);
   useEffect(() => {
@@ -147,6 +148,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     const url = URL.createObjectURL(wavAudio(buffer.getChannelData(0), buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : undefined));
     setSourceUrl(url);
     return () => URL.revokeObjectURL(url);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [selected?.source, session.id]);
   useEffect(() => {
     if (saved || (!session.sources.length && !revision.current)) return;
@@ -171,6 +173,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     if (!recovery.ready || saved || syncing || syncError || (!session.sources.length && !revision.current) || !session.name.trim()) return;
     const timer = window.setTimeout(() => { void persist(session); }, 450);
     return () => window.clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [session, saved, syncing, syncError, recovery.ready]);
 
   async function job(action: () => Promise<void>) {
@@ -275,6 +278,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
     imported.current = input;
     setRejectedTake({ blob: input.blob, title: input.title, role: input.role, at: playhead });
     void job(async () => { await add(input.blob, input.title, input.role, playhead); if (input.projectId) setSession(current => current.projectSongId ? current : { ...current, projectSongId: input.projectId }); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [active, input, busy, capturing]);
 
   return <div hidden={!active} className="vocal-workspace" ref={area} onPlayCapture={event => {
@@ -346,10 +350,10 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
       {!canAdd && <p className="muted">This session is at its clip or original recording limit.</p>}
       <label className="field">Selected take<select value={selection} disabled={settingsDisabled} onChange={e => setSelection(e.target.value)}>
         <option value="">Choose a take</option>{session.clips.map(clip => <option value={clip.id} key={clip.id}>{clip.name}</option>)}</select></label>
-      <MyVoicePicker disabled={settingsDisabled||!canAdd} revision={voiceRevision} useVoice={async(blob,name)=>{await job(()=>add(blob,name,"Lead vocal",playhead));}}/>
+      <MyVoicePicker disabled={settingsDisabled||!canAdd} revision={voiceRevision} onUseVoice={async(blob,name)=>{await job(()=>add(blob,name,"Lead vocal",playhead));}}/>
       {selected&&selected.role!=="Instrumental"&&<section className="voice-save-controls"><h3>Keep this original for future productions</h3>
         <label className="field">Voice recording name<input value={voiceName} maxLength={100} disabled={settingsDisabled} placeholder={selected.name} onChange={e=>setVoiceName(e.target.value)}/></label>
-        <label className="checkline"><input type="checkbox" checked={voicePermission} disabled={settingsDisabled} onChange={e=>setVoicePermission(e.target.checked)}/> This is my voice, or I have the performer's permission to save and reuse it.</label>
+        <label className="checkline"><input type="checkbox" checked={voicePermission} disabled={settingsDisabled} onChange={e=>setVoicePermission(e.target.checked)}/> This is my voice, or I have the performer&apos;s permission to save and reuse it.</label>
         <button type="button" className="secondary" disabled={settingsDisabled||syncing||!saved||!voicePermission} onClick={()=>void job(async()=>{
           const source=original.current.get(selected.source);if(!source)throw new Error("The original take is unavailable.");
           await sessionRequest(myVoiceUrl(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:session.id,sourceId:selected.source,name:voiceName.trim()||selected.name,mime:detectVoiceMime(new Uint8Array(await source.blob.slice(0,32).arrayBuffer()),source.blob.type),permission:voicePermission})});

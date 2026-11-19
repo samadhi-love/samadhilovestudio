@@ -63,6 +63,7 @@ export function MantraRecorder({ active, disabled, device, onCapture, save, open
   }
   useEffect(()=>{
     alive.current=true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
     return()=>{alive.current=false;++operation.current;engine.current?.dispose();captureCallback.current(false);};
   },[]);
   useEffect(()=>{if(!active){++operation.current;void stopRef.current();document.querySelectorAll<HTMLAudioElement>(".mantra-recorder audio").forEach(el=>el.pause());}},[active]);

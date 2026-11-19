@@ -128,6 +128,7 @@ export function CreateStudio({ seed, projects = [], historySongs = projects, voi
       const previous = experienceLevels.find(item => item.id === stored);
       if (previous) setLevel(previous.id);
     } catch { /* Level selection still works when browser storage is disabled. */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when this panel opens, on purpose
   }, []);
   useEffect(() => {
     active.current = true;

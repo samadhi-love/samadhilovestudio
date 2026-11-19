@@ -56,6 +56,55 @@ export async function generateFal(key:string,input:FalInput,accepted:(id:string)
   }
   throw new Error("ACE-Step is taking longer than expected. Your request is saved; check fal.ai history before confirming Try again.");
 }
+export const falLyricModel="fal-ai/any-llm";
+const lyricPath="/"+falLyricModel;
+/** Plain-text instructions only: never put keys, account data or private notes in this prompt. */
+export function falLyricRequest(input:{description:string;singing:string;duration:number;opening?:string;arrangement?:string;voice?:string;genres?:string}){
+  const minutes=Math.max(0.5,Math.min(6,input.duration/60));
+  const sections=minutes<1.2?"one verse and one chorus":minutes<2.5?"two verses, a chorus after each, and an optional short bridge":
+    minutes<4.5?"two or three verses, a repeated chorus and a bridge":"three verses, a repeated chorus, a bridge and a final chorus";
+  const system_prompt=["You write original, clean song lyrics for singers.",
+    "Return ONLY the lyrics. No title line, no commentary, no notes, no markdown.",
+    "Start every section with a heading in square brackets on its own line, such as [Verse 1], [Chorus], [Bridge], [Outro].",
+    `Structure: ${sections}. Keep lines short and singable with natural breath spaces.`,
+    "Never use profanity, sexual content, graphic violence, hate or degrading language. Do not copy existing songs.",
+  ].join("\n");
+  const prompt=[input.singing,`Song idea: ${input.description}`,input.genres&&`Genre and mood: ${input.genres}`,input.voice&&`Voice: ${input.voice}`,
+    input.opening&&`Opening: ${input.opening}`,input.arrangement&&`Follow this section order and these cues:\n${input.arrangement}`]
+    .filter(Boolean).join("\n").slice(0,4000);
+  return {prompt,system_prompt};
+}
+/** Remove anything an assistant adds around the lyrics; keep headings and sung lines only. */
+export function cleanFalLyrics(output:string){
+  const lines=output.replace(/\r/g,"").replace(/^```[^\n]*\n?|```$/gm,"").split("\n").map(line=>line.replace(/^\*\*(\[.+\])\*\*$/,"$1").trimEnd());
+  const first=lines.findIndex(line=>/^\s*\[[^\]]+\]\s*$/.test(line));
+  const body=(first>=0?lines.slice(first):lines).join("\n").replace(/\n{3,}/g,"\n\n").trim();
+  return body;
+}
+/** One lyric-writing request; costs about a tenth of a cent, never retried automatically after acceptance. */
+export async function writeFalLyrics(key:string,input:Parameters<typeof falLyricRequest>[0],api:FalClient=client){
+  const response=await api.request(key,lyricPath,{method:"POST",body:JSON.stringify(falLyricRequest(input)),signal:AbortSignal.timeout(30_000)});
+  if(!response.ok)throw new Error("The lyric writer could not start. Try again or add your own lyrics.");
+  const queued=await response.json() as {request_id?:string};
+  if(!queued.request_id||!/^[\w-]{1,128}$/.test(queued.request_id))throw new Error("The lyric writer did not return a valid reference. Try again or add your own lyrics.");
+  const deadline=api.now()+2*60_000;
+  for(let polls=0;polls<90&&api.now()<deadline;polls++){
+    const status=await api.request(key,`${lyricPath}/requests/${queued.request_id}/status`,{signal:AbortSignal.timeout(30_000)});
+    if(!status.ok)throw new Error("Could not check the lyric writer. Try again or add your own lyrics.");
+    const state=await status.json() as {status?:string};
+    if(state.status==="COMPLETED"){
+      const output=await api.request(key,`${lyricPath}/requests/${queued.request_id}`,{signal:AbortSignal.timeout(30_000)});
+      if(!output.ok)throw new Error("The lyric writer finished, but its words could not be read. Try again or add your own lyrics.");
+      const result=await output.json() as {output?:unknown};
+      const lyrics=typeof result.output==="string"?cleanFalLyrics(result.output):"";
+      if(!lyrics)throw new Error("The lyric writer returned no words. Try again or add your own lyrics.");
+      return lyrics;
+    }
+    if(state.status!=="IN_QUEUE"&&state.status!=="IN_PROGRESS")throw new Error("The lyric writer didn't finish. Try again or add your own lyrics.");
+    await api.wait(1500);
+  }
+  throw new Error("The lyric writer is taking too long. Try again or add your own lyrics.");
+}
 export async function downloadFalAudio(url:string,api:FalClient=client){
   const response=await api.media(url);
   const type=response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();

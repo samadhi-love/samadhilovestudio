@@ -26,6 +26,7 @@ export function SongSectionEditor({song,songs,owner,working,saved,initialAction=
  const [peaks,setPeaks]=useState<number[]>([]),[waveError,setWaveError]=useState(""),[waveBusy,setWaveBusy]=useState(false),[reload,setReload]=useState(0);
  const [languageChoice,setLanguageChoice]=useState<LanguageChoice>(()=>replacementLanguageChoice(song));
  const [generationInstrumental,setGenerationInstrumental]=useState(song.creationKind==="instrumental"||!!song.instrumental);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{setLanguageChoice(replacementLanguageChoice(source));setGenerationInstrumental(source.creationKind==="instrumental"||!!source.instrumental);},[source.id,source.audioId]);
  const sourcePlayer=useRef<HTMLAudioElement>(null),audition=useRef(false);
  const editIdentity=JSON.stringify([source.id,source.audioId,action,start,end,replacement?.id,replacement?.audioId,from,to,fade,at,action==="fade"?fadeOut:0,action==="paste"?clipboard:null]);
@@ -35,7 +36,9 @@ export function SongSectionEditor({song,songs,owner,working,saved,initialAction=
  const controller=useRef<AbortController|null>(null);useEffect(()=>{working(busy);return()=>working(false);},[busy,working]);useEffect(()=>()=>controller.current?.abort(),[]);
  useEffect(()=>{const task=new AbortController();void duration(songAudioUrl(source.id,source.audioId),task.signal).then(n=>{if(n>600.1)throw new Error("Section editing supports source songs up to ten minutes. Use Party Files for longer mixes.");setSeconds(n);if(initialAction==="insert"){setStart(n);setEnd(n);}else{setStart(0);setEnd(Math.min(15,n));}}).catch(e=>{if(!task.signal.aborted)setError((e as Error).message);});return()=>task.abort();},[source.id,source.audioId,reload,initialAction]);
  useEffect(()=>{const candidate=songs.find(s=>s.id===replacementId);if(candidate)setReplacement(candidate);},[replacementId,songs]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{if(!replacement)return;const task=new AbortController();void duration(songAudioUrl(replacement.id,replacement.audioId),task.signal).then(n=>{setReplacementDuration(n);setFrom(0);setTo(Math.min(n,Math.max(3,end-start)));}).catch(e=>{if(!task.signal.aborted)setError((e as Error).message);});return()=>task.abort();},[replacement?.id,replacement?.audioId]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
  useEffect(()=>{if(!pending)return;const value=URL.createObjectURL(pending.result.blob);setUrl(value);return()=>URL.revokeObjectURL(value);},[pending?.result.blob]);
  const plan=():AssemblyClip[]=>regionEditClips({sourceId:source.id,seconds,action,start,end,replacement:replacement?{id:replacement.id,from,to}:undefined,at,clipboard:clipboard?{id:clipboard.song.id,from:clipboard.from,to:clipboard.to}:undefined});
  let clips:AssemblyClip[]=[],target=0,planError="";try{clips=plan();target=assemblyDuration(planAudioAssembly(clips,fade,7200));}catch(e){planError=(e as Error).message;}

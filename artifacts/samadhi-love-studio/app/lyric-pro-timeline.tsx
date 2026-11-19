@@ -44,6 +44,7 @@ function ProTimelineContent({
     [selected, setSelected] = useState(0);
   useEffect(()=>{
     if(active&&editor.current){editor.current.open=true;if(request){if(request.index!==undefined)setSelected(Math.max(0,Math.min(request.index,project.cues.length-1)));editor.current.scrollIntoView?.({behavior:"smooth",block:"start"});}}
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[active,request?.id]);
   useEffect(()=>{if(selected>=project.cues.length)setSelected(0);},[selected,project.cues.length]);
   const windowSize = Math.max(5, p.duration / zoom),
@@ -96,11 +97,13 @@ function ProTimelineContent({
     };
     element.addEventListener("timeupdate", repeat);
     return () => element.removeEventListener("timeupdate", repeat);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [loop, cue?.time, cue?.end, selected, p.duration]);
   useEffect(
     () => () => {
       if (audio.current) audio.current.playbackRate = 1;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when this panel opens, on purpose
     [],
   );
   return (
@@ -499,7 +502,7 @@ function ProTimelineContent({
             })
           }
         >
-          Reset this format's layout
+          Reset this format&apos;s layout
         </button>
         <h3>Song sections &amp; changing scenery</h3>
         <button

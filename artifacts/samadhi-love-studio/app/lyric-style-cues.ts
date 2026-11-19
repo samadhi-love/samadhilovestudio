@@ -20,7 +20,8 @@ export function productionLyricChunks(lyrics: string, readStyles: boolean, repea
   if (parsed.errors.length) throw new Error(parsed.errors[0]);
   const rawLines = lyrics.split("\n"), cleanLines = parsed.text.split("\n");
   const sections: { text: string; genre?: string; directions?: string[] }[] = [];
-  let current = "", heading = "", genre: string|undefined, local: string[] = [], global: string[] = [];
+  let current = "", heading = "", genre: string|undefined, local: string[] = [];
+  const global: string[] = [];
   const emit = () => { if (current.trim()) sections.push({ text: current.trim(), genre, ...(global.length||local.length ? {directions:[...global,...local]} : {}) }); };
   for (let index=0; index<rawLines.length; index++) {
     const raw = rawLines[index], header = lyricStyleHeader(raw,names), cue = lyricStyleLine(raw);

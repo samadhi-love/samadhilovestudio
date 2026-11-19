@@ -47,6 +47,11 @@ import "./cosmic-views.css";
 
 /** A prefill handed to Create from recipes, World Sounds, helpers, Promote or legacy links. Never submits. */
 export type QuickSeed = { id: string; idea?: string; styles?: string[]; lyrics?: string; vocal?: string; instruments?: string; title?: string; custom?: boolean; projectId?: string; languageChoice?: LanguageChoice; panel?: "prompts" | "vocals" | "lyrics" | "style" | "recipes" | "pro"; ad?: MusicalAd; notice?: string };
+/** A recovered voice take is only reused when every field is the right kind. */
+function isMelodyTake(take:unknown):take is MelodyReferenceTake{
+  const t=take as Partial<MelodyReferenceTake>|null;
+  return !!t&&typeof t.id==="string"&&typeof Blob!=="undefined"&&t.blob instanceof Blob&&Number.isFinite(t.durationSeconds);
+}
 export function seedFromTemplate(t: Template, id: string): QuickSeed {
   return { id, custom: true, title: t.name, styles: t.tags, lyrics: t.notes.lyrics, vocal: t.notes.vocals, instruments: t.notes.instruments, idea: t.notes.prompt.split("\n\nOpening:")[0], notice: `Recipe "${t.name}" loaded. Review, then Create.` };
 }
@@ -107,6 +112,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   const [error, setError] = useState("");
   const [resultId, setResultId] = useState<string>();
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
   const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,negativeStyle,spark,wordsByStudio,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
@@ -118,7 +124,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     const recoveredTakes=Array.isArray(value.melodyTakes)?[...value.melodyTakes]:[];
     const priorDraft=value as typeof value & {melodyTake?:unknown;melodyDurationSeconds?:number};
     if(typeof Blob!=="undefined"&&priorDraft.melodyTake instanceof Blob)recoveredTakes.unshift({id:`recovered-${Date.now()}`,blob:priorDraft.melodyTake,durationSeconds:priorDraft.melodyDurationSeconds??30});
-    setMelodyTakes(recoveredTakes.filter((take:any)=>take&&typeof take.id==="string"&&typeof Blob!=="undefined"&&take.blob instanceof Blob&&Number.isFinite(take.durationSeconds)).map((take:any)=>({...take,durationSeconds:Math.max(1,Math.min(300,Math.round(take.durationSeconds)))})));
+    setMelodyTakes(recoveredTakes.filter(isMelodyTake).map(take=>({...take,durationSeconds:Math.max(1,Math.min(300,Math.round(take.durationSeconds)))})));
     setSongTitle(value.songTitle??"");setVoiceEdit(value.voiceEdit??null);setCustomMode(value.customMode===true);setVocalOptions({...defaultCreatorVocals,...value.vocalOptions});setOwnLyrics(value.ownLyrics===true);setLyrics(typeof value.lyrics==="string"?value.lyrics:"");
     if(validSongMap(value.songMap))setSongMap(value.songMap);setMapEnabled(value.mapEnabled===true);setIdea(value.idea);setChoice(recoverCreateChoice(value.choice));setOpeningMode(value.openingMode&&["auto","direct","short"].includes(value.openingMode)?value.openingMode:"auto");setGenreEdit(value.genreEdit);setInstrumentsEdit(value.instrumentsEdit);setCodeEdit(value.codeEdit);setAutoGenre(value.autoGenre);setUseHistory(value.useHistory);setFusionName(value.fusionName);setFusionVariation(value.fusionVariation);
     if(value.pendingTake){if(!(value.pendingTake.blob instanceof Blob))throw new Error("The device recording is unavailable. Check Your songs before retrying.");setPendingTake({...value.pendingTake,url:URL.createObjectURL(value.pendingTake.blob)});}else setPendingTake(undefined);
@@ -144,6 +150,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     setError("");if(next.notice)setPromptNotice(next.notice);
   }
   const appliedSeed=useRef("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{if(seed&&appliedSeed.current!==seed.id){appliedSeed.current=seed.id;applySeed(seed);}},[seed?.id]);
   const simple=!customMode;
   const adActive=customMode&&adMode;
@@ -184,6 +191,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
   const result = drafts.find(song => song.id === resultId && !song.deletedAt);
   useEffect(()=>{if(resultId){setTakeIds(ids=>[...ids.filter(id=>id!==resultId),resultId].slice(-8));setPlayStage("play");}},[resultId]);
   const covered=useRef("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{if(!autoCover||!result?.audioFormat||result.coverAsset||covered.current===result.id||saving||pending)return;covered.current=result.id;void autoCover(result).then(()=>setPromptNotice("Cover created automatically from your title.")).catch(()=>setPromptNotice("Song saved. Automatic cover could not save; use Create / animate cover to retry."));},[result?.id,result?.coverAsset,saving,pending,autoCover]);
   const busy = saving || pending || promptBusy || lyricBusy;
   async function writeWordsForMe(){
@@ -243,7 +251,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
       shape:{negativeStyle,...(spark!==null?{spark}:{}),delivery:vocalOptions.delivery,character:vocalOptions.character},
     };
   }
-  function useSavedPrompt(preset:Template){
+  function applySavedPrompt(preset:Template){
     const shape=readSavedShape(preset);
     const applyShape=()=>{setNegativeStyle(shape?.negativeStyle??"");setSpark(shape?.spark??null);if(shape?.delivery||shape?.character)setVocalOptions(v=>({...v,...(shape.delivery?{delivery:shape.delivery}:{}),...(shape.character?{character:shape.character}:{})}));};
     const dna=readStyleDNA(preset);
@@ -438,14 +446,14 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
               <input data-testid="input-search-saved-prompts" value={promptSearch} maxLength={100} placeholder="Search names, words or styles" onChange={event=>setPromptSearch(event.target.value)}/></label>
             <div className="actions">
               <label className="qc-check"><input data-testid="checkbox-favorites-only-prompts" type="checkbox" checked={favoritePromptsOnly} onChange={event=>setFavoritePromptsOnly(event.target.checked)}/> Favorites only</label>
-              <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save each confirmed song's sound automatically</label>
+              <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save each confirmed song&apos;s sound automatically</label>
             </div>
             <div className="saved-prompt-list" data-testid="saved-prompt-list">
               {promptLibraryItems.map(prompt=><article className="saved-prompt-item" key={prompt.id} data-testid={`saved-prompt-${prompt.id}`}>
                 <div><strong>{prompt.name}</strong><p>{readStyleDNA(prompt)?"Sound + song map · ":""}{prompt.tags.join(" · ")||prompt.description}{prompt.notes.lyrics.trim()||prompt.notes.prompt.trim()?" · with words":""}</p></div>
                 {readSavedShape(prompt)?.voiceReferenceId&&<div className="saved-voice-reference"><p className="muted">Voice description plus a private reference clip, for your ears only. Using this sound applies the written description; the clip is never sent to a music provider and is not a voice clone.</p>{listenReference===prompt.id?<AudioPlayer src={`/api/studio/song-actions?voice=${encodeURIComponent(readSavedShape(prompt)!.voiceReferenceId!)}`} label={`Private voice reference for ${prompt.name}`}/>:<button type="button" className="text-button" data-testid={`button-listen-reference-${prompt.id}`} onClick={()=>setListenReference(prompt.id)}>Listen to reference</button>}</div>}
                 <div className="actions">
-                  <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>useSavedPrompt(prompt)}>Use</button>
+                  <button type="button" className="secondary small" data-testid={`button-use-saved-prompt-${prompt.id}`} onClick={()=>applySavedPrompt(prompt)}>Use</button>
                   {favoritePrompt&&<button type="button" className="text-button" data-testid={`button-favorite-saved-prompt-${prompt.id}`} aria-pressed={!!prompt.favorite} aria-label={prompt.favorite?"Favorited":"Favorite"} disabled={busy}
                     onClick={()=>void favoritePrompt(prompt.id,!prompt.favorite)}><Star size={14} fill={prompt.favorite?"currentColor":"none"}/> {prompt.favorite?"Favorited":"Favorite"}</button>}
                 </div>

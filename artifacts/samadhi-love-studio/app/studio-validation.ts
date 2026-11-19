@@ -9,16 +9,21 @@ import { isSectionDirections } from "./song-section-directions";
 import { isInstrumental } from "./creation-guide";
 import { validReleaseMetadata } from "./project-assets";
 
+// Runtime guards for untrusted saved JSON: `any` lets each check read a field
+// that the same expression has just verified. Every field is checked before use.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
 const object = (v: unknown): v is Record<string, any> => !!v && typeof v === "object" && !Array.isArray(v);
 const text = (v: unknown): v is string => typeof v === "string";
 const id = (v: unknown): v is string => text(v) && /^[\w-]{1,100}$/.test(v);
 const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(text);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime guard, see above
 const optional = (v: unknown, check: (v: any) => boolean) => v === undefined || check(v);
 const validMelodyReference = (reference: unknown) => object(reference) && id(reference.assetId) &&
   ["audio/webm", "audio/wav", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/flac"].includes(reference.contentType) &&
   Number.isFinite(reference.durationSeconds) && reference.durationSeconds > 0 && reference.durationSeconds <= 300 &&
   text(reference.savedAt) && Number.isFinite(Date.parse(reference.savedAt));
 const notes = (v: unknown) => object(v) && Object.keys(fields).every(k => text(v[k]));
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime guard, see above
 function entries(v: unknown, check: (v: Record<string, any>) => boolean) {
   if (!Array.isArray(v)) return false;
   const ids = new Set<string>();

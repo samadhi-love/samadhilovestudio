@@ -35,6 +35,7 @@ export function useAccountWriting(kind:"simple"|"custom",writing:Writing,enabled
       }catch{if(active)setHydrated(key);}
     })();
     return()=>{active=false;};
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[scope,kind,key,device.ready,resetCount]);
   useEffect(()=>{
     const keepBlank=device.hasLocal&&!Object.values(writing).some(value=>value.trim());
@@ -67,6 +68,7 @@ export function useAccountWriting(kind:"simple"|"custom",writing:Writing,enabled
       if(inFlight.current===pending)inFlight.current=undefined;
     },forced.current?0:2200);
     return()=>{active=false;clearTimeout(timer);};
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[json,enabled,kind,scope,key,hydrated,device.ready,resetCount]);
   return {status,available:false,open(){},reset(next:Writing){
     forced.current=next;blocked.current=false;version.current=null;saved.current="";setHydrated("");setStatus("");setResetCount(n=>n+1);

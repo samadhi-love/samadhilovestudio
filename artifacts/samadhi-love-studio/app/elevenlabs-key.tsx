@@ -47,6 +47,7 @@ export function useElevenLabsKey() {
       window.removeEventListener("online", refresh);
       window.removeEventListener("focus", refresh);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once when this panel opens, on purpose
   }, []);
 
   return {

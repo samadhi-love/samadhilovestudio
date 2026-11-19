@@ -17,6 +17,32 @@ const eslintConfig = defineConfig([
     "vendor/**",
   ]),
   {
+    // Stale values in effects and callbacks caused real lost-save bugs. Every
+    // remaining exception is reviewed and carries its reason inline.
+    files: ["app/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/exhaustive-deps": "error",
+      // Deliberate: the public site, sign-in/sign-up/sign-out and the Studio are
+      // separate sections. Plain links give each a full load with fresh sign-in
+      // state; next/link is not used anywhere in this app.
+      "@next/next/no-html-link-for-pages": "off",
+      // React Compiler readiness rules. This app does not use the React
+      // Compiler; the flagged patterns ("latest value" refs, resetting state
+      // when an id changes, clocks read while drawing) were reviewed and
+      // behave correctly. Kept visible as warnings, not build errors.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/purity": "warn",
+    },
+  },
+  {
+    // Tests build partial fakes (fetch, AudioContext, MediaRecorder, route
+    // payloads); loose types there are deliberate. App code stays strict.
+    files: ["tests/**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
+  },
+  {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],
     rules: {
       // These files are vendored verbatim from shadcn@4.17.0. Keep the

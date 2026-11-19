@@ -61,6 +61,7 @@ export function useDraftRecovery<T>(name: string, value: T, restore: (value: T) 
     const hidden = () => { if (document.visibilityState === "hidden") flush(); };
     window.addEventListener("pagehide", flush); document.addEventListener("visibilitychange", hidden);
     return () => { flush(); window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", hidden); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [key]);
   useEffect(() => {
     let alive = true; const token=++generation.current; setReadyKey("");setLocalKey("");setStatus("");
@@ -83,7 +84,9 @@ export function useDraftRecovery<T>(name: string, value: T, restore: (value: T) 
       if(!alive||token!==generation.current)return;
       setReadyKey(key);
     }).catch(error => { if (alive) { setReadyKey(key); setStatus(error.message); } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
     return () => { alive = false; generation.current++; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [key]);
   useEffect(() => {
     if (!key || readyKey !== key || !enabled) return;
@@ -95,6 +98,7 @@ export function useDraftRecovery<T>(name: string, value: T, restore: (value: T) 
       }).catch(error => { if (token === generation.current) setStatus(error.message); });
     }, 400);
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [key, readyKey, value, enabled]);
   async function clear() {
     if (!key) return;

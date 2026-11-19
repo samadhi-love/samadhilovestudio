@@ -83,8 +83,7 @@ async function probe<T>(key: string, scope: Scope, path: string, timeout: number
   try{
    const result=await Promise.race([
     (async():Promise<Probe<T>>=>{
-  let response: Response;
-    response = await elevenLabsRequest(key, path, undefined, timeout);
+  const response = await elevenLabsRequest(key, path, undefined, timeout);
   trace.httpStatus=response.status;trace.phase="reading_response";
   if (!response.ok) return { ok: false, failure: await failureFromResponse(response, scope) };
   const data:unknown=await response.json();

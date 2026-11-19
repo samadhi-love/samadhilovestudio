@@ -35,11 +35,12 @@ export function logCheckFailure(trace:CheckTrace,error?:unknown){
 export async function observeProviderCheck<T>(requestId:string|undefined,operation:(trace:CheckTrace)=>Promise<T>){
   const trace:CheckTrace={requestId:requestId??randomUUID(),started:Date.now(),phase:"request"};
   const requests=new WeakSet<object>();
-  const listeners:[string,(event:any)=>void][]=[
-    ["undici:request:create",({request})=>{if(active.getStore()===trace){requests.add(request);trace.phase="request";}}],
+  const requestOf=(event:unknown)=>(event as {request:object}).request;
+  const listeners:[string,(event:unknown)=>void][]=[
+    ["undici:request:create",event=>{if(active.getStore()===trace){requests.add(requestOf(event));trace.phase="request";}}],
     ["undici:client:beforeConnect",()=>{if(active.getStore()===trace)trace.phase="connecting";}],
-    ["undici:client:sendHeaders",({request})=>{if(requests.has(request))trace.phase="waiting_response";}],
-    ["undici:request:headers",({request})=>{if(requests.has(request))trace.phase="reading_response";}],
+    ["undici:client:sendHeaders",event=>{if(requests.has(requestOf(event)))trace.phase="waiting_response";}],
+    ["undici:request:headers",event=>{if(requests.has(requestOf(event)))trace.phase="reading_response";}],
   ];
   for(const [name,listener]of listeners)channel(name).subscribe(listener);
   try{return await active.run(trace,()=>operation(trace));}

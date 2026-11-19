@@ -3,7 +3,7 @@ import "./cosmic-song-card.css";
 import { MusicLanguageSummary } from "./music-language-summary";
 import { languageForAudio } from "./music-language";
 import {deletionNotice,deletionDeadline,canRestoreSong} from "./song-deletion";
-import {createContext,useContext,useEffect,useId,useRef,useState,type KeyboardEvent,type ReactNode,type CSSProperties} from "react";
+import {createContext,memo,useContext,useEffect,useId,useRef,useState,type KeyboardEvent,type ReactNode,type CSSProperties} from "react";
 import {createPortal} from "react-dom";
 import {Trash2,Heart,Music2,MoreHorizontal,Play,Scissors,FastForward,RotateCcw,Film,Mic,Share2,Globe,Download,Copy,FolderPlus,Wrench,Undo2} from "lucide-react";
 import type {Folder,Song,Station} from "./studio-data";
@@ -31,7 +31,8 @@ export function SongHubProvider({value,children}:{value:SongHub;children:ReactNo
 type Sheet="tools"|"share"|"download"|"organize";
 type MenuItem={key:string;label:string;icon:ReactNode;run:()=>void;disabled?:boolean;danger?:boolean};
 
-export function SongCard({song,onReuse}:{song:Song;onReuse?:(song:Song)=>void}){
+// Re-draws only when its song, its reuse action or the shared song hub changes.
+export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:(song:Song)=>void}){
  const hub=useContext(Hub),id=useId(),[name,setName]=useState(song.name),[rename,setRename]=useState(false),[playlist,setPlaylist]=useState("");
  const [status,setStatus]=useState(""),[sheet,setSheet]=useState<Sheet>("tools");
  const [localOpen,setLocalOpen]=useState(false),[localPreview,setLocalPreview]=useState(false),[menu,setMenu]=useState(false);
@@ -133,4 +134,4 @@ export function SongCard({song,onReuse}:{song:Song;onReuse?:(song:Song)=>void}){
   </div>}
   {archived&&status&&<p role="status">{status}</p>}
  </article>;
-}
+});

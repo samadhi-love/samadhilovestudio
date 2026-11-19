@@ -75,7 +75,7 @@ test("A/B controls schedule both sources together, switch matched gains, pin a m
   let context: FakeContext;
   class FakeContext {
     currentTime = 10; destination = {}; closed = false;
-    constructor() { context = this; }
+    constructor() { context = this; /* eslint-disable-line @typescript-eslint/no-this-alias -- the test inspects this fake audio context */ }
     async resume() {} async close() { this.closed = true; }
     async decodeAudioData(data: ArrayBuffer) { const samples = new Float32Array(64).fill(new Uint8Array(data)[0] ? 0.25 : 0.5); return { duration: 10, numberOfChannels: 1, getChannelData: () => samples }; }
     createGain() { const node = { gain: { value: 0, setTargetAtTime(value: number) { this.value = value; } }, connect() { return this; }, disconnect() {} }; gains.push(node); return node; }

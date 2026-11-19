@@ -16,6 +16,7 @@ export function useMusicEngine(scope=""){
     }catch(error){if(current===sequence.current)setError(error instanceof Error?error.message:"Music settings could not be read.");}
     finally{if(current===sequence.current)setBusy(false);}
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
   useEffect(()=>{setStatus(disconnectedEngine);void update();const refresh=()=>void update();window.addEventListener("focus",refresh);return()=>{sequence.current++;window.removeEventListener("focus",refresh);};},[scope]);
   return {status,error,busy,update};
 }
@@ -23,12 +24,12 @@ export function MusicEngineSettings({access,advanced}:{access:ReturnType<typeof 
   if(!advanced||!access.status.owner)return null;
   return <section className="provider-settings" aria-label="Music engine">
     <h3>Music engine · Advanced</h3>
-    <label className="field">Owner's music engine<select value={access.status.preferred} disabled={access.busy} onChange={event=>void access.update(event.target.value as MusicEngine)}>
+    <label className="field">Owner&apos;s music engine<select value={access.status.preferred} disabled={access.busy} onChange={event=>void access.update(event.target.value as MusicEngine)}>
       <option value="ace-step">ACE-Step 1.5 · thinking quality</option><option value="elevenlabs">ElevenLabs</option>
     </select></label>
     <p className="muted">{access.status.notice||"ACE-Step is owner-funded and owner-only. Other creators keep their own ElevenLabs connection."}</p>
-    {!access.status.configured&&<p className="muted">To connect ACE-Step, create a fal.ai account and add FAL_KEY in this project's Secrets. Never paste it into chat. Then refresh this panel.</p>}
-    <p className="muted">Auto length uses Studio's song planner. ACE-Step sings supplied lyrics; automatic lyric writing and precise captions use your ElevenLabs connection. Your private hum takes are not sent to either engine.</p>
+    {!access.status.configured&&<p className="muted">To connect ACE-Step, create a fal.ai account and add FAL_KEY in this project&apos;s Secrets. Never paste it into chat. Then refresh this panel.</p>}
+    <p className="muted">Auto length uses Studio&apos;s song planner. With ACE-Step, the same fal.ai account also writes lyrics from your description (about a tenth of a cent); ElevenLabs is only a backup writer. Precise captions still use your ElevenLabs connection. Your private hum takes are not sent to either engine.</p>
     <button className="secondary" type="button" disabled={access.busy} onClick={()=>void access.update()}>Refresh engine status</button>
     {access.error&&<p role="alert">{access.error}</p>}
   </section>;

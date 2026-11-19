@@ -5,6 +5,8 @@ import {privacyEffects,finishPrivacyEffects} from "../../server/save-safety";
 import {changedCleanField} from "../../changed-clean-fields";
 import { stampSong } from "../../song-library";
 import { maxStudioBytes, privateHeaders, readStudio, saveConflict, writeStudio } from "./store";
+import { StorageFullError } from "./storage-full";
+import { applyStudioChanges, isStudioChanges } from "../../studio-changes";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "../../clean-content";
 import { isLyricProject } from "../../lyric-video-data";
 import { isDiscovery } from "../../music-workspace-data";
@@ -52,6 +54,16 @@ async function putWorkspace(request: Request) {
     return Response.json({ error: "The studio has reached its storage limit." }, { status: 413 });
   let input;
   try { input = JSON.parse(raw); } catch { return Response.json({ error: "Invalid workspace." }, { status: 400 }); }
+  // A save may send only what changed. Rebuild the full library from the stored
+  // copy at the same revision, then validate it exactly like a full save.
+  let stored: Awaited<ReturnType<typeof readStudio>> | undefined;
+  if (input && typeof input === "object" && input.changes !== undefined && input.data === undefined) {
+    if (env.STUDIO_ROW_STORAGE === "verified" || !Number.isSafeInteger(input.revision) || !isStudioChanges(input.changes))
+      return Response.json({ error: "Invalid workspace." }, { status: 400 });
+    stored = await readStudio(id);
+    if (stored.revision !== input.revision) return saveConflict();
+    input = { revision: input.revision, data: applyStudioChanges(structuredClone(stored.data ?? emptyCreatorStudio), input.changes) };
+  }
   if (!Number.isSafeInteger(input?.revision) || input.revision < 0 || !isStudio(input?.data))
     return Response.json({ error: "Invalid workspace." }, { status: 400 });
   const { revision, data } = input as { revision: number; data: Studio };
@@ -62,7 +74,7 @@ async function putWorkspace(request: Request) {
   if (data.songs.some(song => song?.sectionDirections !== undefined &&
     !isSectionDirections(song.sectionDirections)))
     return Response.json({ error: "Check the genres and vocal directions for each song section." }, { status: 400 });
-  const previous = await readStudio(id);
+  const previous = stored ?? await readStudio(id);
   if(data._storage&&previous.data)Object.assign(data,await rebaseUnchanged(data,previous.data));
    if (!data._storage && previous.revision !== revision) return saveConflict();
   const previousSongs = new Map((previous.data?.songs ?? []).map(song => [song.id, song]));
@@ -137,7 +149,7 @@ async function putWorkspace(request: Request) {
   if (new TextEncoder().encode(content).length > maxStudioBytes)
     return Response.json({ error: "The studio has reached its storage limit." }, { status: 413 });
   try {
-    const saved = await writeStudio(id, revision, content);
+    const saved = await writeStudio(id, revision, content, previous);
     if(!saved)return saveConflict();
     const committed=await readStudio(id);
     const pending=await finishPrivacyEffects(id,committed.data);
@@ -145,6 +157,7 @@ async function putWorkspace(request: Request) {
   } catch (error) {
     console.error("Studio save failed", {requestId:crypto.randomUUID(),errorType:error instanceof TypeError?"TypeError":"Error",at:new Date().toISOString()});
     if(error instanceof Error&&/malformed JSON|revision.conflict/i.test(error.message))return saveConflict();
+    if(error instanceof StorageFullError)return Response.json({ error: error.message }, { status: 413, ...options });
     return Response.json({ error: "The studio could not save your changes. Keep this page open and try again." }, { status: 503 });
   }
 }

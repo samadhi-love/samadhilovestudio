@@ -22,12 +22,18 @@ import { audioKey, maxStudioBytes, privateHeaders, readStudio, writeStudio } fro
 import { privateWorkspace } from "../../../studio-access";
 import { reserveCreatorGeneration } from "../../../creator-accounts";
 import {musicEngineStatus,falKey} from "../../../server/music-engine";
-import {falSongInput,generateFal,downloadFalAudio,FalRejected,falMusicModel,type FalInput} from "../../../server/fal-music";
+import {falSongInput,generateFal,downloadFalAudio,FalRejected,falMusicModel,writeFalLyrics,type FalInput} from "../../../server/fal-music";
 import {saveJobDocument} from "../../../server/job-runner";
 import { readBoundedText, recoverableRoute } from "../request-errors";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
+
+function writtenLyricsIssue(lyrics:string,profile?:LanguageProfile){
+  if(!performanceWeight(lyrics)||lyrics.length>5000)return "The lyric writer did not return usable lyrics. Try again or add your own lyrics.";
+  if(hasExplicitWords(lyrics))return "The written lyrics triggered the clean-content rules. Try a different description.";
+  return profile?generatedScriptIssue(profile,lyrics)??"":"";
+}
 
 function problem(error: string, status: number) {
   return Response.json({ error }, { status, headers: privateHeaders });
@@ -126,7 +132,7 @@ async function createMusic(request: Request) {
       }, text("lyrics"), typeof input.languagePrompt === "string" ? input.languagePrompt.slice(0,1600) : text("prompt"));
     } catch (error) { return problem((error as Error).message, 400); }
   }
-  const selectedEngine=input?.action==="song"?await musicEngineStatus(access):null;
+  const selectedEngine=input?.action==="song"||input?.action==="lyric-plan"?await musicEngineStatus(access):null;
   let useFal=selectedEngine?.engine==="ace-step";
   if(input?.action==="song"&&input.spark!==undefined&&!useFal)return problem("Spark is available with ACE-Step. Your words have not been sent.",400);
   let engineNotice=selectedEngine?.notice??"";
@@ -194,6 +200,14 @@ async function createMusic(request: Request) {
       const prompt = text("prompt").trim(), duration = creationDuration(input);
       if (!prompt || prompt.length > 1600 || !isTrackDuration(duration)) return problem("Describe the song and choose Auto or a length from 0:03 to 6:00.",400);
       if (access.role === "creator" && !managedProviderKey(request) && !await reserveCreatorGeneration(id)) return problem("This account reached its daily provider attempt limit.",429);
+      if(useFal){
+        let written="";
+        try{written=await writeFalLyrics(falKey(),{description:prompt,singing:singingDirection(languageProfile!),duration,opening:songOpenings[openingMode].direction});}
+        catch(error){if(!key)return problem(error instanceof Error?error.message:"The lyric writer could not finish. Try again or add your own lyrics.",502);}
+        const issue=written?writtenLyricsIssue(written,languageProfile!):"";
+        if(written&&!issue)return Response.json({lyrics:written,languageProfile},options);
+        if(!key)return problem(issue||"The lyric writer could not finish. Try again or add your own lyrics.",422);
+      }
       const response=await call("music/plan",{model_id:model,prompt:singingDirection(languageProfile!)+"\nCreate original clean lyrics with explicit section headings. Keep sung phrasing clear, leave breath spaces, and follow the requested language or dialect exactly. "+songOpenings[openingMode].direction+" "+prompt,music_length_ms:duration*1000});
       if(!response.ok)return problem(await elevenLabsFailureMessage(response,"music"),502);
       const plan=await response.json() as {chunks?:{text?:string}[]};
@@ -265,6 +279,7 @@ async function createMusic(request: Request) {
     const lyricPlan = suppliedLyrics.trim() ? lyricChunks(suppliedLyrics, direction, durationMs, sectionDirections,readLyricStyles) : null;
     if (suppliedLyrics.trim() && !lyricPlan) return problem("Choose a longer song for these lyrics or combine some sections.", 400);
     let plan: object | null = lyricPlan;
+    let falWriterProblem="";
     if (lyricPlan) {
       const directed = applyDirections(lyricPlan.chunks);
       if (directed.missing.length)
@@ -277,8 +292,25 @@ async function createMusic(request: Request) {
       return problem("This creator account reached its daily generation attempt limit. The limit resets at midnight UTC.", 429);
     if (suppliedLyrics.trim()) {
       draft.notes.lyrics = suppliedLyrics;
+    } else if (!instrumental&&useFal&&await (async()=>{
+      // Cheap path: the same fal.ai account writes the words (~$0.001) before ACE-Step sings them.
+      let written="";
+      try{written=await writeFalLyrics(falKey(),{description:prompt,singing:languageProfile?singingDirection(languageProfile):"",duration,opening:songOpenings[openingMode].direction,arrangement,voice,genres});}
+      catch(error){falWriterProblem=error instanceof Error?error.message:"The lyric writer could not finish.";return false;}
+      const issue=writtenLyricsIssue(written,languageProfile);
+      if(issue){falWriterProblem=issue;return false;}
+      const writtenPlan=lyricChunks(written,direction,durationMs,sectionDirections,readLyricStyles);
+      if(writtenPlan){
+        const directed=applyDirections(writtenPlan.chunks);
+        if(directed.missing.length){falWriterProblem="The lyric writer missed these sections: "+directed.missing.join(", ")+". Try again or add your own lyrics.";return false;}
+        plan={chunks:directed.chunks};
+      }
+      draft.notes.lyrics=written;
+      return true;
+    })()) {
+      // Lyrics written by the fal.ai writer; plan is set when the ElevenLabs backup can use it.
     } else if (!instrumental) {
-      if(!key)return problem("ACE-Step can sing your supplied lyrics. Connect ElevenLabs for automatic lyric writing, or add your own lyrics first.",400);
+      if(!key)return problem(falWriterProblem?falWriterProblem+" Add your own lyrics, or connect ElevenLabs as a backup writer.":"ACE-Step can sing your supplied lyrics. Connect ElevenLabs for automatic lyric writing, or add your own lyrics first.",falWriterProblem?502:400);
       const arrangementGuide = arrangement
         ? "\nFollow this section order and keep the indicated performers and delivery. Directions in braces are production cues. Keep spoken and whispered passages distinct from sung lyrics.\n" + (readLyricStyles?arrangement:applyChunkStyleCues([{text:arrangement}],false)[0].text)
         : "";
@@ -383,7 +415,7 @@ async function createMusic(request: Request) {
           errorType:error instanceof Error?error.name:"Error",
           ...(error instanceof FalRejected?{httpStatus:error.status}:{}),
         });
-        if(error instanceof FalRejected&&key){
+        if(error instanceof FalRejected&&key&&(plan||instrumental)){
           engineNotice="ACE-Step could not accept this song. Using your ElevenLabs connection instead.";
           draft.generation={...draft.generation!,provider:"ElevenLabs",model,compositionPlan:plan,outputIds:undefined};
         }else return preservedProblem(error instanceof Error?error.message:"ACE-Step could not finish. Check fal.ai history before confirming Try again; no backup was started.",502);

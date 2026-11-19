@@ -24,12 +24,14 @@ import type {RegionOperation} from "./song-region-actions";
 
 import { pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
-import { mergeSavedSong, syncSongSource } from "./song-save-merge";
+import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
+import { createSaveQueue } from "./save-queue";
+import { canSendChanges, studioChanges } from "./studio-changes";
 import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
 import { HelpControl, HelpField } from "./help-tip";
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
 import { audioAccept, audioFormatsLabel, artNames, emptyNotes, fields, freshSong, initialStudio, isAudioFormat, maxAudioBytes, songAudioUrl, stages, styles, tasks, type Field, type Folder, type Mix, type Song, type Studio, type Template } from "./studio-data";
 
@@ -49,15 +51,12 @@ import { AudioPlayer } from "./audio-player";
 import { ListenerSettings } from "./listener-settings";
 import { ReleaseTools } from "./release-tools";
 import { ArtistConsole } from "./community/artist-dashboard/studio";
-import { RecordingDesk } from "./recording-desk";
 import { PanelErrorBoundary } from "./panel-error-boundary";
 import {JobStatus} from "./job-status";
 import {makeSavedSongPrompt,savedPromptFromSong,sameSavedPrompt,type PromptDraft} from "./saved-song-prompts";
-import { Multitrack } from "./multitrack";
 import { VocalStudio } from "./vocal/vocal-studio";
 import type { Role } from "./vocal/session";
 import { SavedLyricVideos } from "./saved-lyric-videos";
-import { LyricVideoPro } from "./lyric-video-pro";
 import { CleanLyricsChecker } from "./clean-lyrics-checker";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "./clean-content";
 import { bestShortStart } from "./creation-shortcuts";
@@ -76,6 +75,12 @@ import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from ".
 import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
 import { StudioQuickTour } from "./studio-tour";
 import { SongSky, SongSkyToggle } from "./song-sky";
+// Heavy editors download only when first opened, not before the Studio can be used.
+const RecordingDesk = lazy(() => import("./recording-desk").then(m => ({ default: m.RecordingDesk })));
+const Multitrack = lazy(() => import("./multitrack").then(m => ({ default: m.Multitrack })));
+const LyricVideoPro = lazy(() => import("./lyric-video-pro").then(m => ({ default: m.LyricVideoPro })));
+const opening = <p className="muted" role="status">Opening…</p>;
+const noFolders: Folder[] = [];
 
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
@@ -148,7 +153,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [folderFilter, setFolderFilter] = useState("");
   const [libraryMode,setLibraryMode]=useState<"sky"|"list">("sky");
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const folders = data.folders ?? [];
+  const folders = data.folders ?? noFolders;
   const songTemplates = availableSongTemplates(data.templates);
   const [autoCaptionRequest, setAutoCaptionRequest] = useState<{ songId: string; id: string } | null>(null);
   const [coverBusy,setCoverBusy]=useState(false);
@@ -166,7 +171,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [templateEdit, setTemplateEdit] = useState<Template | null>(null);
   const [compareSong, setCompareSong] = useState("");
   const pendingSave = useRef(false);
+  const saveQueue = useRef<ReturnType<typeof createSaveQueue> | null>(null);
+  if (!saveQueue.current) saveQueue.current = createSaveQueue(() => pendingSave.current);
   const hasDraft = useRef(false);
+  // The library exactly as the server last confirmed it. Only set from server
+  // responses, so a changes-only save is always measured against stored data.
+  const confirmedRef = useRef<{ data: Studio; revision: number } | null>(null);
 
   async function load() {
     setError("");
@@ -181,6 +191,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       }
       if (result.workspace) setWorkspaceId(result.workspace);
       revisionRef.current=result.revision;setRevision(result.revision);
+      confirmedRef.current=result.data?{data:result.data,revision:result.revision}:null;
       setLoaded(true);
       if(result.warning)setError(result.warning);
     } catch (e) { setError(e instanceof Error ? e.message : "Studio unavailable. Try again."); }
@@ -202,6 +213,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   useEffect(() => { void load(); }, []);
   useEffect(()=>{
     if(view==="songs"&&loaded&&workspaceId&&!pendingSave.current&&!hasDraft.current)void recoverUnfinishedSongs(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[view,loaded,workspaceId]);
   const jobCompleted=useRef(()=>{});
   jobCompleted.current=()=>{if(!pendingSave.current&&!hasDraft.current)void load();};
@@ -226,6 +238,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   useEffect(()=>{applyLocationRef.current=applyLocation;navigateRef.current=navigate;});
   // Initial URL entry and back/forward both go through the resolver; the initial apply is deferred to a frame so it runs after mount.
   useEffect(()=>{const frame=requestAnimationFrame(()=>applyLocationRef.current(false));const pop=()=>{if(!applyLocationRef.current(false)){fromHistory.current=true;navigateRef.current("overview");fromHistory.current=false;}};window.addEventListener("popstate",pop);return()=>{cancelAnimationFrame(frame);window.removeEventListener("popstate",pop);};},[]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>{if(!loaded)return;const params=new URLSearchParams(window.location.search),recording=params.get("song");if(resolveLocation(window.location.search,window.location.hash)?.screen!=="songs"||!recording)return;const found=data.songs.find(s=>s.id===recording);if(found){setArchiveView(!!found.deletedAt);setSongExpanded(found.id);setSelected("");requestAnimationFrame(()=>document.querySelector(`[data-song-id="${found.id}"]`)?.scrollIntoView({block:"center"}));}},[loaded]);
   useEffect(() => {
     if (!toast) return;
@@ -237,14 +250,23 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     const close = (e: KeyboardEvent) => { if (e.key === "Escape" && !modalBusy) { if(modal==="tour")finishTour();else setModal(null); } };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [modal, modalBusy]);
 
   useEffect(()=>{if(!modal)return;const trigger=document.activeElement as HTMLElement|null;const dialog=document.querySelector<HTMLElement>('.modal-shade [role="dialog"]');if(dialog)return containDialogFocus(dialog,trigger);},[modal]);
 
-  async function saveRequest(url: string, request: RequestInit, message: string, next?: Studio, throwOnError = false) {
-    if (!loaded || pendingSave.current) return null;
+  // A save that arrives while another is running waits its turn instead of being
+  // dropped. Function arguments are evaluated when the save actually runs, so a
+  // queued save is built from the newest saved library and revision.
+  async function saveRequest(url: string, request: RequestInit | (() => RequestInit), message: string, next?: Studio | (() => Studio), throwOnError = false) {
+    if (!loaded) return null;
+    return saveQueue.current!(() => sendSaveRequest(url, request, message, next, throwOnError));
+  }
+  async function sendSaveRequest(url: string, prepare: RequestInit | (() => RequestInit), message: string, prepared?: Studio | (() => Studio), throwOnError = false) {
     pendingSave.current = true; setError(""); setSaving(true);
     try {
+      const request = typeof prepare === "function" ? prepare() : prepare;
+      const next = typeof prepared === "function" ? prepared() : prepared;
       const headers = new Headers(request.headers);
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
@@ -252,6 +274,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string;lyrics?:string } | null;
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
+        confirmedRef.current={data:result.data,revision:result.revision};
       }
       if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
         ? "The production result could not be confirmed. Keep this tab open and check Your songs and your provider history before generating again to avoid a duplicate charge."
@@ -259,6 +282,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       const savedData = result.data ?? next;
       if (savedData) {dataRef.current=savedData;setData(savedData);}
       revisionRef.current=result.revision;setRevision(result.revision); setToast(message);
+      confirmedRef.current=result.data?{data:result.data,revision:result.revision}:null;
       if(result.warning)setError(result.warning);
       return result;
     } catch (e) {
@@ -272,9 +296,23 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     setUndoPromptFavorite(null);
     const latest=dataRef.current;
     if(next.songs.some(s=>!!s.deletedAt!==!!latest.songs.find(old=>old.id===s.id)?.deletedAt)){releaseRequest.current++;setReleaseLoaded(false);}
-    return !!(await saveRequest("/api/studio", {
-      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ data: next, revision:revisionRef.current }),
-    }, message, next));
+    // Callers build `next` from this render's `data`. If anything newer was saved
+    // since (an earlier queued save, a finished job), replay only this edit's
+    // changes on top of it instead of sending the older copy back.
+    const base = data;
+    let payload: Studio | undefined;
+    const prepared = () => payload ??= dataRef.current === base ? next : rebaseStudio(base, next, dataRef.current);
+    // Send only what changed when the server-confirmed copy is current;
+    // otherwise (or if unsure) send the whole library as before.
+    const body = (payload: Studio) => {
+      const confirmed = confirmedRef.current;
+      return confirmed && confirmed.revision === revisionRef.current && canSendChanges(confirmed.data, payload)
+        ? { changes: studioChanges(confirmed.data, payload), revision: revisionRef.current }
+        : { data: payload, revision: revisionRef.current };
+    };
+    return !!(await saveRequest("/api/studio", () => ({
+      method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body(prepared())),
+    }), message, prepared));
   }
   async function createRequest(payload: Record<string, unknown>, message: string, throwOnError = false) {
     try{const result=await saveRequest("/api/studio/create", {
@@ -378,7 +416,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     if(action==="short-video"){
       if(navigate("lyric-video")){
         const id=uid(),look=lastUsedVideoLook(),sections=song.lyricVideo?.pro?.sections??[];
-        let duration=song.lyricVideo?.pro?.duration??song.creationSeconds??0;
+        const duration=song.lyricVideo?.pro?.duration??song.creationSeconds??0;
         const fallbackStart=bestShortStart(duration,sections,[],30);
         setLyricSongId(song.id);setSocialVideoRequest({id,songId:song.id,look,start:fallbackStart,seconds:30});
         if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});
@@ -510,21 +548,21 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   async function sendAudio(file: File, title: string, target: Song | null, instrumental?: { prompt: string; settings: Instrumental; arrangement?: string }, projectId?: string, sessionId?: string,creationId?:string) {
     const format = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (!isAudioFormat(format)) return null;
-    return saveRequest("/api/studio/audio", {
+    return saveRequest("/api/studio/audio", () => ({
       method: "POST",
       headers: {
         "X-Audio-Format": format,
         "X-Audio-Size": String(file.size),
         "X-Studio-Clean-Audio": "1",
         ...(target ? { "X-Song-Id": target.id } : { "X-Song-Title": encodeURIComponent(title) }),
-        "X-Studio-Revision": String(revision),
+        "X-Studio-Revision": String(revisionRef.current),
         ...(projectId && { "X-Project-Song-Id": projectId }),
         ...(sessionId && { "X-Source-Session-Id": sessionId }),
         ...(creationId&&{"X-Creation-Id":creationId}),
         ...(instrumental && { "X-Studio-Instrumental": encodeURIComponent(JSON.stringify(instrumental)) }),
       },
       body: file,
-    }, instrumental ? "Instrumental saved to Your songs" : target ? "Recording saved" : "Song uploaded");
+    }), instrumental ? "Instrumental saved to Your songs" : target ? "Recording saved" : "Song uploaded");
   }
   function editTemplate(template: Template | null, song?: Song) {
     setTemplateEdit(template ?? { id: uid(), name: song ? song.name + " Template" : "", description: song?.summary ?? "", tags: song?.tags ?? [], notes: song?.notes ?? { ...emptyNotes } });
@@ -569,7 +607,24 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const activeSong = cleanLibrary.find(s => s.stage === "Production") ?? cleanLibrary[0];
   const comparison = data.songs.find(s => s.id === compareSong && !s.deletedAt && !isExplicitSong(s)) ?? cleanLibrary.find(s => s.mixes.length >= 2) ?? cleanLibrary[0];
 
-  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{engine:musicEngine.status.engine,simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
+  // Song cards re-draw only when a value they show changes, not on every Studio
+  // update. Actions go through a ref, so they always run the newest version.
+  const hubActions = useRef({ save: saveSong, action: songAction, archive: archiveSong, duplicate: duplicateSong, publish: publishSong, playlist: addSongPlaylist, unlist: unlistSong });
+  hubActions.current = { save: saveSong, action: songAction, archive: archiveSong, duplicate: duplicateSong, publish: publishSong, playlist: addSongPlaylist, unlist: unlistSong };
+  const stableHubActions = useRef({
+    save: (song: Song, message?: string) => hubActions.current.save(song, message),
+    action: (action: SongAction, song: Song) => hubActions.current.action(action, song),
+    archive: (song: Song) => hubActions.current.archive(song),
+    duplicate: (song: Song) => hubActions.current.duplicate(song),
+    publish: (song: Song) => hubActions.current.publish(song),
+    playlist: (song: Song, id: string) => hubActions.current.playlist(song, id),
+    unlist: (song: Song) => hubActions.current.unlist(song),
+  }).current;
+  const hubBusy = saving || creating || releaseBusy;
+  const songHub = useMemo(() => ({ engine: musicEngine.status.engine, simple: beginner, busy: hubBusy, releases: releaseMap, releaseLoaded, folders, station: data.station,
+    stemsConnected: elevenLabs.connected, preview: songPreview, setPreview: setSongPreview, expanded: songExpanded, setExpanded: setSongExpanded, ...stableHubActions }),
+    [musicEngine.status.engine, beginner, hubBusy, releaseMap, releaseLoaded, folders, data.station, elevenLabs.connected, songPreview, songExpanded, stableHubActions]);
+  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={songHub}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
     <HologramScope primary={view === "overview" && !song && !pane ? "video-description" : "simple-view"}>
     <div className="cosmic-shell-sky" aria-hidden="true"><i/><i/><i/></div>
     <aside className="sidebar">
@@ -597,7 +652,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             save={station => commit({ ...data, station }, "Station updated")}/>
         </PanelErrorBoundary>}
         {loaded && !song && !pane && screenOf(view)==="record" && <RecordSwitch view={view} beginner={beginner} capturing={capturing} navigate={navigate}/>}
-        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
+        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><Suspense fallback={opening}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
           mixTake={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           vocalTake={(blob, title, narration, projectId) => { if (navigate("vocal-studio")) setVocalInput({ blob, title, projectId, role: narration ? "Narration" : "Lead vocal" }); }}
@@ -607,9 +662,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             const result = await sendAudio(file, title, target, undefined, projectId, undefined, saveId);
             return result?.songId ? { id: result.songId, name: target?.name ?? title } : null;
           }}
-          open={id => { setView("songs"); openSong(id, "Production"); }}/></PanelErrorBoundary>}
-        {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
-          save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></PanelErrorBoundary>}
+          open={id => { setView("songs"); openSong(id, "Production"); }}/></Suspense></PanelErrorBoundary>}
+        {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Suspense fallback={opening}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
+          save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></Suspense></PanelErrorBoundary>}
         {loaded && vocalOpened && <PanelErrorBoundary panel="record" visible={view==="vocal-studio"&&!song&&!pane}><VocalStudio active={view === "vocal-studio" && !song} saving={saving} initialSongId={workflowSong} input={vocalInput}
           projects={cleanLibrary} songs={cleanLibrary.filter(s=>s.audioFormat)}
           onCapture={active => { captureActive.current = active; setCapturing(active); }}
@@ -636,12 +691,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             send={seed => navigate("create", false, seed)}/> :
           view === "vocal-director" ? <VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed => navigate("create", false, seed)}/> :
           view === "recording" || view === "podcast" || view === "multitrack" || view === "vocal-studio" ? null : view === "promote" ? <PromoteScreen songs={cleanLibrary} songId={coverSongId} setSongId={setCoverSongId} creatorName={creatorName??"SAMADHI LOVE"} working={setCoverBusy} saveSong={saveSong} createAd={seed=>{if(navigate("overview"))setQuickSeed({...seed,id:uid()});}} openVideo={id=>{if(navigate("lyric-video")){setLyricSongId(id);setSocialVideoRequest({id:uid(),songId:id});}}}/> : view === "radio" ? creatorName || exploreTab!=="radio" ? null : <ListenerSettings songs={cleanLibrary}/> : view === "lyric-video" ?
-          <LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
+          <Suspense fallback={opening}><LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
             elevenLabs={elevenLabs} connectionSettings={connectionSettings} upload={() => openUpload(null, true)}
             generate={async payload=>{const result=await createRequest(payload,"Caption-ready song saved to My Originals");return result?.data?.songs.find(s=>s.id===result.songId);}}
             importFile={async (file,title)=>{const result=await sendAudio(file,title,null);return result?.data?.songs.find(s=>s.id===result.songId);}}
             persisted={(next,nextRevision)=>{dataRef.current=next;setData(next);revisionRef.current=nextRevision;setRevision(nextRevision);}}
-            persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/> : view === "distribution" ?
+            persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/></Suspense> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
           <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
             writeLyrics={async input=>(await createRequest({...input,action:"lyric-plan"},"Your words are ready to shape",true))?.lyrics}
@@ -813,6 +868,7 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
   const latestDraft = useRef({ draft, tagText }); latestDraft.current = { draft, tagText };
   useEffect(() => {
     setDraft(current => syncSongSource(current, song));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [song.audioFormat, song.audioId, song.audioHistory, song.generation, song.instrumental, song.creationKind, song.creationSeconds, song.explicit, song.master?.songId, song.master?.audioId, song.projectId, song.sourceSessionId,song.createdAt,song.updatedAt]);
   const dirty = JSON.stringify({ ...draft, audioFormat: undefined, audioId: undefined }) !== JSON.stringify({ ...song, audioFormat: undefined, audioId: undefined }) || tagText !== song.tags.join(", ");
   useEffect(() => {

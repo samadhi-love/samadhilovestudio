@@ -7,6 +7,7 @@ type SavedVideo = { id: string; at: string; source: string; extension: "mp4" | "
 export function SavedLyricVideos({ song }: { song: Song }) {
   const [files, setFiles] = useState<SavedVideo[]>([]), [next, setNext] = useState<string | null>(null), [loaded, setLoaded] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState("");
   const request = useRef<AbortController | null>(null), generation = useRef(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
   useEffect(() => { generation.current++; request.current?.abort(); setFiles([]); setNext(null); setLoaded(false); setError(""); setBusy(false); return () => { generation.current++; request.current?.abort(); }; }, [song.id]);
   const videos = song.lyricVideo?.pro?.exports?.filter(v => v.asset).slice(-3).reverse() ?? [];
   async function browse(cursor?: string) {

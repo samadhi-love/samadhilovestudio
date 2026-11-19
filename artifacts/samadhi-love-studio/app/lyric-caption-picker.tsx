@@ -305,6 +305,7 @@ export function CaptionTemplateDemo({
     }
     paint();
     return () => cancelAnimationFrame(frame);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [
     project.theme,
     project.motion,

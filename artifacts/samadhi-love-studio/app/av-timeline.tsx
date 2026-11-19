@@ -59,6 +59,7 @@ export function AVTimeline({ active, tracks, settings, change, patchTrack, songs
   function seek(time: number) { const wasPlaying = !!engine.current?.playing; engine.current?.seek(time); setPosition(time); if (wasPlaying) void play(time); }
   useEffect(() => {
     alive.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- counter ref is bumped on purpose so late results from this run are ignored
     return () => { alive.current = false; playRequest.current++; control.current?.abort(); void engine.current?.close().catch(() => {}); engine.current = null; urls.current.forEach(url => URL.revokeObjectURL(url)); };
   }, []);
   useEffect(() => {
@@ -71,6 +72,7 @@ export function AVTimeline({ active, tracks, settings, change, patchTrack, songs
   useEffect(() => {
     if (engine.current?.playing) void play(engine.current.time);
     if (position > duration) setPosition(Math.max(0, duration));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [tracks]);
   useEffect(() => {
     if (!active || !playing) return;
