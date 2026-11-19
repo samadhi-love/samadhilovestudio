@@ -353,7 +353,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, on
       <MyVoicePicker disabled={settingsDisabled||!canAdd} revision={voiceRevision} useVoice={async(blob,name)=>{await job(()=>add(blob,name,"Lead vocal",playhead));}}/>
       {selected&&selected.role!=="Instrumental"&&<section className="voice-save-controls"><h3>Keep this original for future productions</h3>
         <label className="field">Voice recording name<input value={voiceName} maxLength={100} disabled={settingsDisabled} placeholder={selected.name} onChange={e=>setVoiceName(e.target.value)}/></label>
-        <label className="checkline"><input type="checkbox" checked={voicePermission} disabled={settingsDisabled} onChange={e=>setVoicePermission(e.target.checked)}/> This is my voice, or I have the performer's permission to save and reuse it.</label>
+        <label className="checkline"><input type="checkbox" checked={voicePermission} disabled={settingsDisabled} onChange={e=>setVoicePermission(e.target.checked)}/> This is my voice, or I have the performer&apos;s permission to save and reuse it.</label>
         <button type="button" className="secondary" disabled={settingsDisabled||syncing||!saved||!voicePermission} onClick={()=>void job(async()=>{
           const source=original.current.get(selected.source);if(!source)throw new Error("The original take is unavailable.");
           await sessionRequest(myVoiceUrl(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:session.id,sourceId:selected.source,name:voiceName.trim()||selected.name,mime:detectVoiceMime(new Uint8Array(await source.blob.slice(0,32).arrayBuffer()),source.blob.type),permission:voicePermission})});

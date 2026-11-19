@@ -391,7 +391,7 @@ export function RecordingDesk({ active, requestedMode, songs, saving, onCapture,
           </div>
         </div>
         {takes.length > 0 && <section className="chamber-takes" aria-label="Tonight's takes">
-          <h3>Tonight's takes</h3>
+          <h3>Tonight&apos;s takes</h3>
           <ul>{takes.map(item => <li key={item.id} data-active={item.id === takeId}>
             <span>{item.name}</span>
             <button type="button" className="secondary small" disabled={busy || item.id === takeId} aria-pressed={item.id === takeId} onClick={() => chooseTake(item)}><Play size={14}/> {item.id === takeId ? "Open below" : "Listen"}</button>

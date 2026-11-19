@@ -2151,7 +2151,7 @@ function LyricVideoProContent(props: Props) {
                         disabled={busy}
                       />{" "}
                       I have permission to use the audio/video and confirm it
-                      meets Studio's existing clean-content rules.
+                      meets Studio&apos;s existing clean-content rules.
                     </label>
                     <label className="lvp-upload" id="lyric-song-upload">
                       <Upload size={20} /> Upload your own song or video
@@ -2168,7 +2168,7 @@ function LyricVideoProContent(props: Props) {
                     </label>
                     <p className="lvp-note">
                       Original audio uploads: up to 96 MB. Video imports: up to
-                      120 MB and ten minutes, subject to this browser's decoder.
+                      120 MB and ten minutes, subject to this browser&apos;s decoder.
                       Original videos are retained; their extracted audio is
                       re-encoded for Studio playback. Streaming-service
                       downloads are not supported.
@@ -2325,7 +2325,7 @@ function LyricVideoProContent(props: Props) {
                         </span>
                       </div>
                       <div className="lvp-source-confirm">
-                        <p className="lvp-note">Soundtrack version: {p.sourceAudioId}. Confirm after listening. Replacing a recording does not silently replace this video's saved source.</p>
+                        <p className="lvp-note">Soundtrack version: {p.sourceAudioId}. Confirm after listening. Replacing a recording does not silently replace this video&apos;s saved source.</p>
                         <button type="button" disabled={busy || !p.duration || (sourceChanged(song, project) && !allowOld)}
                           onClick={() => patchPro({ soundtrackConfirmed: soundtrackIdentity(project) })}>
                           {p.soundtrackConfirmed === soundtrackIdentity(project) ? "Soundtrack version confirmed" : "Confirm this soundtrack version"}
@@ -2530,7 +2530,7 @@ function LyricVideoProContent(props: Props) {
                               }
                             />
                             <p className="lvp-note">
-                              Lyrics from other apps are welcome. Use the exact sung words, including repeated choruses; headings such as [Verse] can stay. Up to 5,000 characters. Aligning creates a timed visual draft without altering the soundtrack or rewriting the song's saved lyrics. Review missing or changed words and correct timing in Caption editor.
+                              Lyrics from other apps are welcome. Use the exact sung words, including repeated choruses; headings such as [Verse] can stay. Up to 5,000 characters. Aligning creates a timed visual draft without altering the soundtrack or rewriting the song&apos;s saved lyrics. Review missing or changed words and correct timing in Caption editor.
                             </p>
                           </details>
                           <label className="lvp-check">

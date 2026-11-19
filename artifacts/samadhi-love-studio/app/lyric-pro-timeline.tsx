@@ -502,7 +502,7 @@ function ProTimelineContent({
             })
           }
         >
-          Reset this format's layout
+          Reset this format&apos;s layout
         </button>
         <h3>Song sections &amp; changing scenery</h3>
         <button

@@ -441,7 +441,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
               <input data-testid="input-search-saved-prompts" value={promptSearch} maxLength={100} placeholder="Search names, words or styles" onChange={event=>setPromptSearch(event.target.value)}/></label>
             <div className="actions">
               <label className="qc-check"><input data-testid="checkbox-favorites-only-prompts" type="checkbox" checked={favoritePromptsOnly} onChange={event=>setFavoritePromptsOnly(event.target.checked)}/> Favorites only</label>
-              <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save each confirmed song's sound automatically</label>
+              <label className="qc-check"><input data-testid="checkbox-auto-save-prompts" type="checkbox" checked={autoSavePrompts} disabled={busy||!setAutoSavePrompts} onChange={event=>setAutoSavePrompts?.(event.target.checked)}/> Save each confirmed song&apos;s sound automatically</label>
             </div>
             <div className="saved-prompt-list" data-testid="saved-prompt-list">
               {promptLibraryItems.map(prompt=><article className="saved-prompt-item" key={prompt.id} data-testid={`saved-prompt-${prompt.id}`}>
