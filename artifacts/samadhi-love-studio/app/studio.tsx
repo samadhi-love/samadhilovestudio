@@ -31,7 +31,7 @@ import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
 import { HelpControl, HelpField } from "./help-tip";
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
 import { audioAccept, audioFormatsLabel, artNames, emptyNotes, fields, freshSong, initialStudio, isAudioFormat, maxAudioBytes, songAudioUrl, stages, styles, tasks, type Field, type Folder, type Mix, type Song, type Studio, type Template } from "./studio-data";
 
@@ -51,15 +51,12 @@ import { AudioPlayer } from "./audio-player";
 import { ListenerSettings } from "./listener-settings";
 import { ReleaseTools } from "./release-tools";
 import { ArtistConsole } from "./community/artist-dashboard/studio";
-import { RecordingDesk } from "./recording-desk";
 import { PanelErrorBoundary } from "./panel-error-boundary";
 import {JobStatus} from "./job-status";
 import {makeSavedSongPrompt,savedPromptFromSong,sameSavedPrompt,type PromptDraft} from "./saved-song-prompts";
-import { Multitrack } from "./multitrack";
 import { VocalStudio } from "./vocal/vocal-studio";
 import type { Role } from "./vocal/session";
 import { SavedLyricVideos } from "./saved-lyric-videos";
-import { LyricVideoPro } from "./lyric-video-pro";
 import { CleanLyricsChecker } from "./clean-lyrics-checker";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "./clean-content";
 import { bestShortStart } from "./creation-shortcuts";
@@ -78,6 +75,11 @@ import { resolveLocation, screenHome, screenOf, studioUrl, type Screen } from ".
 import { ExploreScreen, PlanCreditsScreen, PromoteScreen, RadioSourceSwitch, RecordSwitch, SongSteps, type ExploreTab, type PlanTab, type RadioSource } from "./studio-screens";
 import { StudioQuickTour } from "./studio-tour";
 import { SongSky, SongSkyToggle } from "./song-sky";
+// Heavy editors download only when first opened, not before the Studio can be used.
+const RecordingDesk = lazy(() => import("./recording-desk").then(m => ({ default: m.RecordingDesk })));
+const Multitrack = lazy(() => import("./multitrack").then(m => ({ default: m.Multitrack })));
+const LyricVideoPro = lazy(() => import("./lyric-video-pro").then(m => ({ default: m.LyricVideoPro })));
+const opening = <p className="muted" role="status">Opening…</p>;
 
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
@@ -629,7 +631,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             save={station => commit({ ...data, station }, "Station updated")}/>
         </PanelErrorBoundary>}
         {loaded && !song && !pane && screenOf(view)==="record" && <RecordSwitch view={view} beginner={beginner} capturing={capturing} navigate={navigate}/>}
-        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
+        {loaded && deskOpened && <PanelErrorBoundary panel="record" visible={(view==="recording"||view==="podcast")&&!song&&!pane}><Suspense fallback={opening}><RecordingDesk active={(view === "recording" || view === "podcast") && !song} requestedMode={deskMode} songs={cleanLibrary} consolidated advanced={!beginner} beginSavedSong={id => { const savedSong = data.songs.find(item => item.id === id && !item.deletedAt); if (savedSong) songAction("make-like-this", savedSong); }}
           mixTake={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           vocalTake={(blob, title, narration, projectId) => { if (navigate("vocal-studio")) setVocalInput({ blob, title, projectId, role: narration ? "Narration" : "Lead vocal" }); }}
@@ -639,9 +641,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             const result = await sendAudio(file, title, target, undefined, projectId, undefined, saveId);
             return result?.songId ? { id: result.songId, name: target?.name ?? title } : null;
           }}
-          open={id => { setView("songs"); openSong(id, "Production"); }}/></PanelErrorBoundary>}
-        {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
-          save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></PanelErrorBoundary>}
+          open={id => { setView("songs"); openSong(id, "Production"); }}/></Suspense></PanelErrorBoundary>}
+        {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Suspense fallback={opening}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
+          save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></Suspense></PanelErrorBoundary>}
         {loaded && vocalOpened && <PanelErrorBoundary panel="record" visible={view==="vocal-studio"&&!song&&!pane}><VocalStudio active={view === "vocal-studio" && !song} saving={saving} initialSongId={workflowSong} input={vocalInput}
           projects={cleanLibrary} songs={cleanLibrary.filter(s=>s.audioFormat)}
           onCapture={active => { captureActive.current = active; setCapturing(active); }}
@@ -668,12 +670,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             send={seed => navigate("create", false, seed)}/> :
           view === "vocal-director" ? <VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed => navigate("create", false, seed)}/> :
           view === "recording" || view === "podcast" || view === "multitrack" || view === "vocal-studio" ? null : view === "promote" ? <PromoteScreen songs={cleanLibrary} songId={coverSongId} setSongId={setCoverSongId} creatorName={creatorName??"SAMADHI LOVE"} working={setCoverBusy} saveSong={saveSong} createAd={seed=>{if(navigate("overview"))setQuickSeed({...seed,id:uid()});}} openVideo={id=>{if(navigate("lyric-video")){setLyricSongId(id);setSocialVideoRequest({id:uid(),songId:id});}}}/> : view === "radio" ? creatorName || exploreTab!=="radio" ? null : <ListenerSettings songs={cleanLibrary}/> : view === "lyric-video" ?
-          <LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
+          <Suspense fallback={opening}><LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
             elevenLabs={elevenLabs} connectionSettings={connectionSettings} upload={() => openUpload(null, true)}
             generate={async payload=>{const result=await createRequest(payload,"Caption-ready song saved to My Originals");return result?.data?.songs.find(s=>s.id===result.songId);}}
             importFile={async (file,title)=>{const result=await sendAudio(file,title,null);return result?.data?.songs.find(s=>s.id===result.songId);}}
             persisted={(next,nextRevision)=>{dataRef.current=next;setData(next);revisionRef.current=nextRevision;setRevision(nextRevision);}}
-            persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/> : view === "distribution" ?
+            persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/></Suspense> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
           <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
             writeLyrics={async input=>(await createRequest({...input,action:"lyric-plan"},"Your words are ready to shape",true))?.lyrics}
