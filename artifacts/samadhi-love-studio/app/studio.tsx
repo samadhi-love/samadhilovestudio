@@ -31,7 +31,7 @@ import { ProjectAssets, ProjectComparison } from "./project-production";
 import { DraftRecoveryProvider, RecoveryPanel, useDraftRecovery } from "./draft-recovery";
 import {claimAutomaticSongRecovery,retryAutomaticSongRecovery} from "./song-recovery-session";
 import { HelpControl, HelpField } from "./help-tip";
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Trash2, ArrowDown, ArrowLeft, ArrowRight, Check, ChevronRight, Film, ClipboardList, Copy, FileText, GitCompareArrows, Layers3, ListMusic, LockKeyhole, Mic, Plus, Radio, Search, Settings2, Sparkles, Upload, X } from "lucide-react";
 import { audioAccept, audioFormatsLabel, artNames, emptyNotes, fields, freshSong, initialStudio, isAudioFormat, maxAudioBytes, songAudioUrl, stages, styles, tasks, type Field, type Folder, type Mix, type Song, type Studio, type Template } from "./studio-data";
 
@@ -80,6 +80,7 @@ const RecordingDesk = lazy(() => import("./recording-desk").then(m => ({ default
 const Multitrack = lazy(() => import("./multitrack").then(m => ({ default: m.Multitrack })));
 const LyricVideoPro = lazy(() => import("./lyric-video-pro").then(m => ({ default: m.LyricVideoPro })));
 const opening = <p className="muted" role="status">Opening…</p>;
+const noFolders: Folder[] = [];
 
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
@@ -152,7 +153,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [folderFilter, setFolderFilter] = useState("");
   const [libraryMode,setLibraryMode]=useState<"sky"|"list">("sky");
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const folders = data.folders ?? [];
+  const folders = data.folders ?? noFolders;
   const songTemplates = availableSongTemplates(data.templates);
   const [autoCaptionRequest, setAutoCaptionRequest] = useState<{ songId: string; id: string } | null>(null);
   const [coverBusy,setCoverBusy]=useState(false);
@@ -606,7 +607,24 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const activeSong = cleanLibrary.find(s => s.stage === "Production") ?? cleanLibrary[0];
   const comparison = data.songs.find(s => s.id === compareSong && !s.deletedAt && !isExplicitSong(s)) ?? cleanLibrary.find(s => s.mixes.length >= 2) ?? cleanLibrary[0];
 
-  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={{engine:musicEngine.status.engine,simple:beginner,busy:saving||creating||releaseBusy,releases:releaseMap,releaseLoaded,unlist:unlistSong,folders,station:data.station,stemsConnected:elevenLabs.connected,preview:songPreview,setPreview:setSongPreview,expanded:songExpanded,setExpanded:setSongExpanded,save:saveSong,action:songAction,archive:archiveSong,duplicate:duplicateSong,publish:publishSong,playlist:addSongPlaylist}}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
+  // Song cards re-draw only when a value they show changes, not on every Studio
+  // update. Actions go through a ref, so they always run the newest version.
+  const hubActions = useRef({ save: saveSong, action: songAction, archive: archiveSong, duplicate: duplicateSong, publish: publishSong, playlist: addSongPlaylist, unlist: unlistSong });
+  hubActions.current = { save: saveSong, action: songAction, archive: archiveSong, duplicate: duplicateSong, publish: publishSong, playlist: addSongPlaylist, unlist: unlistSong };
+  const stableHubActions = useRef({
+    save: (song: Song, message?: string) => hubActions.current.save(song, message),
+    action: (action: SongAction, song: Song) => hubActions.current.action(action, song),
+    archive: (song: Song) => hubActions.current.archive(song),
+    duplicate: (song: Song) => hubActions.current.duplicate(song),
+    publish: (song: Song) => hubActions.current.publish(song),
+    playlist: (song: Song, id: string) => hubActions.current.playlist(song, id),
+    unlist: (song: Song) => hubActions.current.unlist(song),
+  }).current;
+  const hubBusy = saving || creating || releaseBusy;
+  const songHub = useMemo(() => ({ engine: musicEngine.status.engine, simple: beginner, busy: hubBusy, releases: releaseMap, releaseLoaded, folders, station: data.station,
+    stemsConnected: elevenLabs.connected, preview: songPreview, setPreview: setSongPreview, expanded: songExpanded, setExpanded: setSongExpanded, ...stableHubActions }),
+    [musicEngine.status.engine, beginner, hubBusy, releaseMap, releaseLoaded, folders, data.station, elevenLabs.connected, songPreview, songExpanded, stableHubActions]);
+  return <DraftRecoveryProvider scope={workspaceId}><SongHubProvider value={songHub}><div className="shell" data-simple={beginner} data-workspace={song ? "songs" : view} data-cosmic-screen={modal==="connections"?"settings":modal==="help"||modal==="tour"?"guide":pane??(song?"songs":screenOf(view))}>
     <HologramScope primary={view === "overview" && !song && !pane ? "video-description" : "simple-view"}>
     <div className="cosmic-shell-sky" aria-hidden="true"><i/><i/><i/></div>
     <aside className="sidebar">
