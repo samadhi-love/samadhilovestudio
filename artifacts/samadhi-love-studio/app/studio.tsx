@@ -16,6 +16,8 @@ import {availableSongTemplates,isStudioPreset,songFromStarter} from "./song-pres
 import {CreditBadge} from "./credits/credit-panel";
 import {productionFetch} from "./credits/client";
 import {CosmicHomeHero,CosmicHomeSky,CosmicHomeStory} from "./cosmic-home";
+import {MyVoices} from "./my-voices";
+import {myVoiceUrl,type SavedVoice} from "./my-voice-data";
 import {wordsOnlyResult} from "./production-result";
 import { sameGenre, uniqueGenreNames } from "./music-genres";
 import { GenrePicker } from "./genre-picker";
@@ -158,6 +160,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const folders = data.folders ?? noFolders;
   const songTemplates = availableSongTemplates(data.templates);
   const [autoCaptionRequest, setAutoCaptionRequest] = useState<{ songId: string; id: string } | null>(null);
+  const [vocalVoiceId, setVocalVoiceId] = useState("");
   const [coverBusy,setCoverBusy]=useState(false);
   const [coverSongId,setCoverSongId]=useState("");
   const [sectionInitialAction,setSectionInitialAction]=useState<RegionOperation>("remove");
@@ -480,6 +483,14 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     document.getElementById("quick-create-heading")?.scrollIntoView({behavior:still?"auto":"smooth",block:"start"});
     window.setTimeout(()=>document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"],[data-testid="input-song-idea"]')?.focus({preventScroll:true}),still?0:400);
   }
+  // A saved voice becomes its own song, then opens LyriVid with automatic captions.
+  async function voiceLyricVideo(voice:SavedVoice){
+    const response=await fetch(myVoiceUrl(voice.id),{cache:"no-store"});
+    if(!response.ok)throw new Error("The saved voice could not be opened.");
+    const blob=await response.blob(),file=new File([blob],voice.name,{type:blob.type||voice.mime});
+    const result=await sendAudio(file,voice.name.slice(0,100),null);
+    if(result?.songId&&navigate("lyric-video")){setLyricSongId(result.songId);setAutoCaptionRequest({songId:result.songId,id:uid()});}
+  }
   function sendToCreate(seed:CreateSeed){if(navigate("overview"))setQuickSeed({...quickFromCreate(seed),id:uid()});}
   function openScreen(screen:Screen){
     if(screen==="plan-credits"){if(!canNavigate(null))return;setPane("plan-credits");setSelected("");try{window.history.pushState(null,"",`${window.location.pathname}?studio=plan-credits&section=${planTab}`);}catch{}window.scrollTo(0,0);return true;}
@@ -676,7 +687,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           open={id => { setView("songs"); openSong(id, "Production"); }}/></Suspense></PanelErrorBoundary>}
         {loaded && mixOpened && <PanelErrorBoundary panel="mix" visible={view==="multitrack"&&!song&&!pane}><Suspense fallback={opening}><Multitrack active={view === "multitrack" && !song} songs={workflowSong ? data.songs.filter(s => !s.deletedAt && !isExplicitSong(s) && (!s.creationDraft || s.id === workflowSong)) : cleanLibrary} initialSongId={workflowSong} input={mixInput} saving={saving} openLyrics={id=>{if(navigate("lyric-video"))setLyricSongId(id);}}
           save={async (file, title, projectId) => confirm("Confirm this mix contains clean content.") && !!(await sendAudio(file, title, null, undefined, projectId))}/></Suspense></PanelErrorBoundary>}
-        {loaded && vocalOpened && <PanelErrorBoundary panel="record" visible={view==="vocal-studio"&&!song&&!pane}><VocalStudio active={view === "vocal-studio" && !song} saving={saving} initialSongId={workflowSong} input={vocalInput}
+        {loaded && vocalOpened && <PanelErrorBoundary panel="record" visible={view==="vocal-studio"&&!song&&!pane}><VocalStudio active={view === "vocal-studio" && !song} saving={saving} initialSongId={workflowSong} initialVoiceId={vocalVoiceId} input={vocalInput}
           projects={cleanLibrary} songs={cleanLibrary.filter(s=>s.audioFormat)}
           onCapture={active => { captureActive.current = active; setCapturing(active); }}
           publish={async (file, title, projectId, sessionId) => (await sendAudio(file, title, null, undefined, projectId, sessionId))?.songId}
@@ -701,6 +712,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           view === "prompt-lab" ? <PromptLab key={promptSeed?.idea ?? "new"} seed={promptSeed} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy}
             send={seed => navigate("create", false, seed)}/> :
           view === "vocal-director" ? <VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed => navigate("create", false, seed)}/> :
+          view === "my-voices" ? <MyVoices useInSong={()=>{navigate("vocal-studio");}} makeVideo={voiceLyricVideo}/> :
           view === "recording" || view === "podcast" || view === "multitrack" || view === "vocal-studio" ? null : view === "promote" ? <PromoteScreen songs={cleanLibrary} songId={coverSongId} setSongId={setCoverSongId} creatorName={creatorName??"SAMADHI LOVE"} working={setCoverBusy} saveSong={saveSong} createAd={seed=>{if(navigate("overview"))setQuickSeed({...seed,id:uid()});}} openVideo={id=>{if(navigate("lyric-video")){setLyricSongId(id);setSocialVideoRequest({id:uid(),songId:id});}}}/> : view === "radio" ? creatorName || exploreTab!=="radio" ? null : <ListenerSettings songs={cleanLibrary}/> : view === "lyric-video" ?
           <Suspense fallback={opening}><LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
             elevenLabs={elevenLabs} connectionSettings={connectionSettings} upload={() => openUpload(null, true)}
@@ -710,7 +722,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/></Suspense> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
           <CosmicHomeHero begin={focusCreateBox} video={()=>{navigate("lyric-video");}}/>
-          <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
+          <QuickCreate singWithVoice={(songId,voice)=>{setWorkflowSong(songId);setVocalVoiceId(voice.id);navigate("vocal-studio");}} engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
             writeLyrics={async input=>(await createRequest({...input,action:"lyric-plan"},"Your words are ready to shape",true))?.lyrics}
             promptHelpers={apply=><PromptLab seed={null} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
             vocalHelpers={apply=><VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}

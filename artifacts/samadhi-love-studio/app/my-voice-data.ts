@@ -1,4 +1,12 @@
-export type SavedVoice = { id: string; name: string; duration: number; createdAt: string; mime: string };
+export type SavedVoice = { id: string; name: string; duration: number; createdAt: string; mime: string; verified?: boolean; speaker?: string };
+/** Each person keeps up to this many verified voices (adult, own voice, spoken consent on file). */
+export const verifiedVoiceLimit = 4;
+export const verifiedVoiceRules = { voiceMin: 10, voiceMax: 600, consentMin: 4, consentMax: 60, voiceBytes: 25 * 1024 * 1024, consentBytes: 4 * 1024 * 1024, nameMax: 60 } as const;
+/** The sentence each person reads aloud, in their own voice, before a voice is saved. */
+export function consentPhrase(speaker: string) {
+  return `My name is ${speaker.trim()}. This is my own voice. I am 18 or older, and I agree to use it in Versual Studio.`;
+}
+export const myVoiceConsentUrl = (id: string) => "/api/studio/my-voice?consent=" + encodeURIComponent(id);
 export const voiceMimeTypes = ["audio/wav", "audio/mpeg", "audio/webm", "audio/ogg", "audio/mp4", "audio/flac", "audio/x-wav", "application/octet-stream"];
 export const myVoiceUrl = (id?: string) => "/api/studio/my-voice" + (id ? "?id=" + encodeURIComponent(id) : "");
 export function detectVoiceMime(bytes:Uint8Array,fallback="application/octet-stream"){

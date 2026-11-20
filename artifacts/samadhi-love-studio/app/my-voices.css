@@ -1,0 +1,55 @@
+/* My Voices: four glowing voice places, cosmic violet and gold. */
+.my-voices{position:relative;display:flex;flex-direction:column;gap:18px;margin:0 0 28px;padding:36px clamp(16px,3vw,40px);border-radius:26px;border:1px solid #e6b86666;
+  background:radial-gradient(ellipse at 15% 0%,#4a1f8688,transparent 55%),radial-gradient(ellipse at 95% 100%,#0f3a5588,transparent 50%),linear-gradient(160deg,#24124e,#150c32)}
+.my-voices-eyebrow{margin:0;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:#d7c2ff}
+.my-voices h1{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-weight:700;font-size:clamp(32px,4.4vw,52px);line-height:1.05;
+  background:linear-gradient(90deg,#ffe9a8,#ff9fe6 50%,#7fe9ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.my-voices-lede{margin:0;max-width:720px;font-size:17px;line-height:1.6;color:#ece5fa}
+.my-voices-slots{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.my-voices-slot{display:flex;flex-direction:column;gap:8px;min-width:0;padding:20px;border-radius:20px;border:1px solid #ffe9a855;background:linear-gradient(160deg,#3b1670cc,#1d0f42cc)}
+.my-voices-slot.empty{align-items:center;justify-content:center;min-height:190px;border-style:dashed;border-color:#c9a8ff66;background:#ffffff08;text-align:center}
+.my-voices-slot h2{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:22px;color:#fff;overflow-wrap:anywhere}
+.my-voices-slot .orb{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;font-weight:700;font-size:20px;color:#2a1340;
+  background:radial-gradient(circle at 35% 30%,#fff4cf,#ffd27a 45%,#c9772a);box-shadow:0 0 28px #ffd27a66}
+.my-voices-slot.empty .orb{color:#d7c2ff;background:radial-gradient(circle at 35% 30%,#4b2c8a,#1d0f42);box-shadow:inset 0 0 0 1px #c9a8ff66}
+.my-voices-badge{margin:0;font-size:13px;font-weight:600;color:#a8f0d8}
+.my-voices-slot details summary{cursor:pointer;font-size:13px;color:#cdbfe8}
+.my-voices-add{min-height:44px;padding:0 20px;border:0;border-radius:999px;background:linear-gradient(90deg,#ffd27a,#ffb86b);color:#2a1340;font:inherit;font-weight:700;cursor:pointer}
+.my-voices-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.my-voices-actions .danger{color:#ffb3c7}
+.my-voices-add-panel{display:flex;flex-direction:column;gap:16px;padding:24px;border-radius:22px;border:1px solid #7fe9ff55;background:#0d1d3a99}
+.my-voices-add-panel h2{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:28px;color:#fff}
+.my-voices-add-panel h3{margin:0 0 6px;font-size:17px;color:#ffe9a8}
+.my-voices-step{display:grid;grid-template-columns:40px minmax(0,1fr);gap:14px;align-items:start}
+.my-voices-step .num{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:#ffe9a8;color:#2a1340;font-weight:700}
+.my-voices-step label{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;font-size:14px;color:#ddd3f2}
+.my-voices-step input{min-height:44px;border-radius:12px;border:1px solid #ffe9a855;background:#0f0828;color:#fff;font:inherit;padding:0 12px}
+.my-voices-phrase{margin:0 0 10px;padding:14px 16px;border-radius:14px;border-left:0;background:#ffe9a814;font-family:var(--cosmic-font-poetic,Georgia,serif);font-style:italic;font-size:21px;line-height:1.4;color:#ffe9a8}
+.my-voices-step-hint{margin:0 0 8px;color:#cdbfe8;font-size:14px}
+.my-voices-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.my-voices-rec{min-height:44px;padding:0 20px;border-radius:999px;border:1px solid #ff9fe6;background:#3b1650;color:#ffe0f6;font:inherit;font-weight:600;cursor:pointer}
+.my-voices-rec.live{border-color:#ff5f8a;background:#5a1630;animation:my-voices-pulse 1.4s ease-in-out infinite}
+.my-voices-upload{position:relative;display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:999px;border:1px solid #7fe9ff88;color:#dff8ff;cursor:pointer}
+.my-voices-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.my-voices-upload:focus-within{outline:2px solid #7fe9ff;outline-offset:3px}
+.my-voices-take{display:flex;align-items:center;gap:10px;margin-top:10px}
+.my-voices-take audio{max-width:100%}
+.my-voices-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:16px;color:#fff}
+.my-voices-check input{width:20px;height:20px;accent-color:#ffd27a}
+.my-voices-error{margin:0;color:#ffb3c7}
+.my-voices-status{margin:0;color:#a8f0d8}
+.my-voices-rules{margin:4px 0 0;font-size:14px;line-height:1.5;color:#cdbfe8}
+@keyframes my-voices-pulse{0%,100%{box-shadow:0 0 0 0 #ff5f8a66}50%{box-shadow:0 0 0 10px #ff5f8a00}}
+@media(max-width:1100px){.my-voices-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.my-voices-slots{grid-template-columns:1fr}.my-voices-step{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.my-voices-rec.live{animation:none}}
+
+/* Create's "Your voice" choice */
+.voice-choice{margin:14px 0 6px;padding:14px 16px;border:1px solid #ffe9a844;border-radius:16px;min-width:0}
+.voice-choice legend{padding:0 6px;font-weight:700;color:#ffe9a8}
+.voice-choice-options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.voice-choice-options button{min-height:44px;padding:0 16px;border-radius:999px;border:1px solid #ffffff33;background:#ffffff10;color:#f3eefc;font:inherit;cursor:pointer}
+.voice-choice-options button[aria-checked=true]{border-color:#ffe9a8;background:#ffe9a822;box-shadow:0 0 0 2px #ffe9a8 inset}
+.voice-choice-options .voice-choice-add{border-style:dashed;border-color:#7fe9ff99;color:#dff8ff}
+.voice-choice .my-voices-add-panel{margin-top:10px}
+.my-voices-step .my-voices-upload{flex-direction:row;margin:0;font-size:16px;color:#dff8ff}
