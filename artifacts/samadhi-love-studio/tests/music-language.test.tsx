@@ -10,6 +10,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { JSDOM } from "jsdom";
 import * as languages from "../app/music-language";
 import * as vocals from "../app/vocal-matching";
+import * as instrumentSounds from "../app/instrument-sounds";
 import { MusicLanguageControl } from "../app/music-language-control";
 import { promptLanguage } from "../app/prompt-language";
 import { musicCatalog } from "../app/music-catalog";
@@ -186,6 +187,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../music-language": languages,
     "../../../vocal-matching": vocals,
     "../../../musical-ad": { isMusicalAd: () => true },
+    "../../../instrument-sounds": instrumentSounds,
     "../../../song-cover": { titlesFromLyrics: () => [] },
     "../../../music-genres": { genreTags: () => [] },
     "../../../song-opening": openings,
@@ -442,4 +444,37 @@ test("canvas preview/export captions retain full shaped lines, RTL direction and
     for (const token of captionTokens(cue, 15)) assert.equal(text.slice(token.start, token.end), token.text);
     if (f.language === "ar" || f.language === "mixed" || f.language === "hi") assert.equal(ctx.letterSpacing, "0px");
   }
+});
+
+test("accents for English, Spanish and Portuguese: pick them, or ask for them in words",()=>{
+ const auto={language:"auto",dialect:""} as const;
+ for(const [prompt,language,dialect] of [
+  ["Sing it in a Southern accent, slow country ballad","en","en-US-south"],
+  ["Sing in Urban American English over a boom bap beat","en","en-US-urban"],
+  ["British accent vocals, indie pop","en","en-GB"],
+  ["Sing in Nigerian English with afrobeats drums","en","en-NG"],
+  ["Jamaican accent, reggae love song","en","en-x-jamaica"],
+  ["Sing in Indian English","en","en-IN"],
+  ["Sing in Mexican Spanish, a ranchera","es","es-MX"],
+  ["Puerto Rican Spanish vocals over reggaeton","es","es-x-caribbean"],
+  ["Sing in Brazilian Portuguese, bossa nova","pt","pt-BR"],
+ ] as const){
+  const profile=languages.resolveLanguage(auto,"",prompt);
+  assert.equal(profile.resolved,language,prompt);assert.equal(profile.dialect,dialect,prompt);
+  assert(languages.isLanguageProfile(profile),prompt);
+ }
+ // Picking the accent alone sets its language.
+ assert.equal(languages.resolveLanguage({language:"auto",dialect:"pt-BR"},"").resolved,"pt");
+ assert.equal(languages.resolveLanguage({language:"es",dialect:"es-MX",selected:true},"").dialect,"es-MX");
+ // Accents only go with their own language.
+ assert.throws(()=>languages.resolveLanguage({language:"es",dialect:"en-GB"},""),/compatible/);
+ assert.deepEqual(languages.dialectsFor("en"),["en-US-south","en-US-urban","en-GB","en-x-jamaica","en-NG","en-IN"]);
+ assert.deepEqual(languages.dialectsFor("fr"),[]);
+ // The singing direction names the accent and never says "Modern Standard Arabic" for it.
+ const sung=languages.singingDirection(languages.resolveLanguage({language:"en",dialect:"en-US-south",selected:true},""));
+ assert.match(sung,/Accent target: Southern US English; relaxed Southern US vowels/);
+ assert.doesNotMatch(sung,/Arabic/);
+ assert.match(languages.singingDirection(languages.resolveLanguage({language:"ar",dialect:"ar-EG",selected:true},"")),/not formal Modern Standard Arabic/);
+ // A genre word is not an accent request.
+ assert.equal(languages.resolveLanguage(auto,"","Southern soul groove with horns").dialect,"");
 });

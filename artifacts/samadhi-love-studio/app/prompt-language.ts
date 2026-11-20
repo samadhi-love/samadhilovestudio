@@ -1,5 +1,5 @@
 import type { LanguageChoice, MusicLanguage } from "./music-language";
-import { musicLanguages, musicDialects } from "./music-language-catalog";
+import { musicLanguages, musicDialects, dialectLanguage } from "./music-language-catalog";
 
 // These are input aliases, not claims of verified singing pronunciation.
 const extraAliases: [MusicLanguage, string[]][] = [
@@ -24,6 +24,15 @@ const dialectAliases: [NonNullable<LanguageChoice["dialect"]>, string[]][] = [
   ["ar-IQ", ["iraqi arabic", "عراقي", "بالعراقي"]],
   ["ar-MA", ["moroccan arabic", "moroccan darija", "مغربي", "بالمغربي"]],
   ["ar-PS", ["palestinian arabic", "فلسطيني", "بالفلسطيني"]],
+  ["en-US-south", ["southern accent", "southern drawl", "southern american english"]],
+  ["en-US-urban", ["urban accent", "african american english", "black american english", "aave"]],
+  ["en-GB", ["british accent", "uk english", "uk accent", "london accent"]],
+  ["en-x-jamaica", ["jamaican accent"]],
+  ["en-NG", ["nigerian accent"]],
+  ["en-IN", ["indian accent"]],
+  ["es-MX", ["mexican accent", "español mexicano"]],
+  ["es-x-caribbean", ["puerto rican spanish", "cuban spanish", "dominican spanish", "español caribeño"]],
+  ["pt-BR", ["brazilian accent", "português brasileiro", "portugues brasileiro"]],
 ];
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const instructionBefore = /(?:\b(?:sing|sung|singing|lyrics?|vocals?|language|chorus|verses?|write|in|en|auf)|باللغة|بلهجة|لهجة|غني|غنّي|أغنية|اغنية|غنية|كلمات|на)\s*(?:(?:in|is|are|only|the|a|an)\s*|[:=]\s*)*$/iu;
@@ -49,7 +58,7 @@ export function promptLanguage(prompt: string): LanguageChoice | undefined {
     collect(language as MusicLanguage, "", [...new Set(language === "other" ? [label] : words)]);
   }
   for (const [dialect, label] of Object.entries(musicDialects)) {
-    collect("ar", dialect as LanguageChoice["dialect"], [...new Set([label, ...label.split(" · "), ...(dialectAliases.find(([id]) => id === dialect)?.[1] ?? [])])]);
+    collect(dialectLanguage[dialect as keyof typeof dialectLanguage], dialect as LanguageChoice["dialect"], [...new Set([label, ...label.split(" · "), ...(dialectAliases.find(([id]) => id === dialect)?.[1] ?? [])])]);
   }
   // Prefer "Lebanese Arabic" over the shorter overlapping "Arabic".
   const mentions = candidates.filter(c => !candidates.some(other =>
