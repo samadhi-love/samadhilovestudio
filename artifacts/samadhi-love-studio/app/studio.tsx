@@ -498,10 +498,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     return navigate(screenHome[screen]);
   }
   function remix(song: Song) {
-    if (!isInstrumental(song.instrumental)) {
-      if (navigate("vocal-studio")) setWorkflowSong(song.id);
-      return;
-    }
+    // A sung song remixes into a fresh take in Create with its words, style, singer and language copied in.
+    // (Recording your own voice over it stays one tap away: Record my voice & mix.)
+    if (!isInstrumental(song.instrumental)) { songAction("make-like-this", song); return; }
     const settings = song.instrumental;
     navigate("create", false, { projectId: projectRoot(data.songs, song).id, title: song.name.slice(0, 86) + " · Remix", genres: uniqueGenreNames(song.tags),
       idea: song.notes.prompt.slice(0, 1000) || "A fresh arrangement of " + song.name,
@@ -972,7 +971,8 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
         <AudioActions song={song}/>
         <div className="actions">
           {!song.creationDraft && <button type="button" className="primary small" data-testid="button-open-release" onClick={() => setTab("Release")}>Publish or share in Community</button>}
-          {isInstrumental(song.instrumental) && <button type="button" className="secondary small" onClick={remix}>Remix in Motif Forge</button>}
+          {isInstrumental(song.instrumental) ? <button type="button" className="secondary small" onClick={remix}>Remix in Motif Forge</button>
+            : <button type="button" className="secondary small" onClick={remix} data-testid="button-remix-sung">Remix · new take like this</button>}
         </div>
         {isInstrumental(song.instrumental) ? <InstrumentalExports settings={song.instrumental} title={song.name} disabled={saving}/>
           : <SeparatedStems key={`stems:${song.audioId ?? song.id}`} songId={song.id} audioId={song.audioId} title={song.name} connected={stemsConnected} openMixer={mixStems}/>}

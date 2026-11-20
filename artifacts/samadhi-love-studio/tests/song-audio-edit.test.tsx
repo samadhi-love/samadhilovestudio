@@ -1,3 +1,4 @@
+import {readFileSync} from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import React,{act} from "react";
@@ -138,4 +139,19 @@ test("layering counts the open session, the song and the take together and rejec
  assert.throws(()=>assertLayerBudget(existing,[buf(160),buf(160)]),/512 MiB.*unchanged/);
  assert.equal(JSON.stringify(existing),snapshot);assert.equal(existing.length,1);
  assert.throws(()=>assertLayerBudget([buf(1),buf(1),buf(1),buf(1),buf(1)],[buf(1),buf(1)]),/Nothing was replaced/);
+});
+
+test("sung songs show Remix too: it starts a new take like this one (instrumentals keep their remix)",async()=>{
+ const dom=new JSDOM('<div id="card"></div>',{url:'https://studio.test'});Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
+ const{createRoot}=await import('react-dom/client'),root=createRoot(document.getElementById('card')!);
+ const song={...freshSong('sung','Sung song',0),audioId:'audio',audioFormat:'mp3' as const};let action='';
+ const hub:SongHub={busy:false,folders:[],stemsConnected:false,expanded:song.id,setExpanded(){},preview:'',setPreview(){},save:async()=>true,action:a=>{action=a;},archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
+ try{
+  await act(async()=>root.render(<SongHubProvider value={hub}><SongCard song={song}/></SongHubProvider>));
+  const remix=[...document.querySelectorAll('button')].find(b=>b.textContent==="Remix · new take like this");
+  assert.ok(remix,"a sung song has a Remix button");
+  await act(async()=>remix!.click());assert.equal(action,"remix");
+ }finally{await act(async()=>root.unmount());dom.window.close();}
+ const source=readFileSync("app/studio.tsx","utf8");
+ assert.match(source,/if \(!isInstrumental\(song\.instrumental\)\) \{ songAction\("make-like-this", song\); return; \}/,"Remix of a sung song copies it into Create");
 });
