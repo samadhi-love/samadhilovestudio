@@ -215,3 +215,14 @@ test("R&B gets soulful R&B phrasing in the ACE-Step prompt (hip hop keeps its ra
   assert.match(falSongInput({...base,genres:"R&B"}).prompt,/Soulful R&B vocal phrasing/);
   assert.match(falSongInput({...base,genres:"Hip-hop, R&B"}).prompt,/Rhythmic rapper delivery/);
 });
+
+test("picked instruments reach the engine with what they sound like, inside the 512-character limit",async()=>{
+  const {falSongInput}=api;
+  const base={prompt:"A love song",lyrics:"[Verse]\nHold me close",voice:"",genres:"Arabic pop",arrangement:"",duration:60,language:"en",instrumental:false,versions:1};
+  const prompt=falSongInput({...base,instruments:"Oud, Darbuka, 808 Bass"}).prompt;
+  assert.match(prompt,/Oud \(warm fretless lute, round plucked attack\), Darbuka \(goblet drum, deep doum and crisp tek\), 808 Bass \(deep booming sliding 808 sub bass\)/);
+  assert.equal(falSongInput({...base,instruments:"Glass harmonica"}).prompt.includes("Glass harmonica"),true,"unknown instruments stay as written");
+  // When the sound words would pass 512 characters, the plain names are sent instead (nothing dropped).
+  const long={...base,prompt:"x".repeat(430),instruments:"Oud, Darbuka, Qanun"};
+  const fitted=falSongInput(long).prompt;assert.ok(fitted.length<=512);assert.match(fitted,/Oud, Darbuka, Qanun/);assert.doesNotMatch(fitted,/fretless/);
+});
