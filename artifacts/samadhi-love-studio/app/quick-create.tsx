@@ -1,4 +1,5 @@
 "use client";
+import { SingerChoice, autoSinger, singerById } from "./singer-library";
 import { VoiceChoice } from "./my-voices";
 import type { SavedVoice } from "./my-voice-data";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
@@ -121,6 +122,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const [error, setError] = useState("");
   const [resultId, setResultId] = useState<string>();
   const [chosenVoice, setChosenVoice] = useState<SavedVoice | null>(null);
+  const [singerId, setSingerId] = useState("auto");
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
@@ -182,11 +184,16 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const code = simple?"":mapOn&&validSongMap(songMap)?mapArrangement(songMap):codeEdit ?? "";
   const targetBpm=mapOn?songMap.bpm:blueprint.bpm;
   const inferredPerformer=promptPerformer(idea);
-  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?inferredPerformer:vocalOptions.delivery;
-  const vocalDirection=instrumental?"":((customMode?voiceEdit:null)??[
+  // Singer library: Auto fits the genre (R&B/soul and hip hop → Black American soul/gospel and MC traditions); a picked singer wins over Auto.
+  const autoPick=autoSinger(idea,`${engineGenre} ${genre}`);
+  const chosenSinger=singerId==="auto"?autoPick:singerById(singerId);
+  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?(inferredPerformer??chosenSinger?.arrangement):vocalOptions.delivery;
+  // A chosen singer replaces the general genre match (keeps the engine's 512-character style limit safe).
+  const pickedSinger=singerId!=="auto"?chosenSinger:undefined;
+  const vocalDirection=instrumental?"":((customMode&&voiceEdit?[pickedSinger?.direction,voiceEdit].filter(Boolean).join(" "):null)??[
     creatorVocalDirection({...(simple?defaultCreatorVocals:vocalOptions),delivery:chosenPerformer??defaultCreatorVocals.delivery}),
-    matchVocalToSong(idea,genre,instruments),
-  ].join(" "));
+    chosenSinger?chosenSinger.direction:matchVocalToSong(idea,genre,instruments),
+  ].filter(Boolean).join(" "));
   let intentIssue="";
   if(!instrumental&&!localSketch) {
     try {
@@ -194,6 +201,8 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
     } catch (e) { intentIssue=e instanceof Error?e.message:"Choose the singing language."; }
     if(inferredPerformer&&vocalOptions.delivery!==defaultCreatorVocals.delivery&&inferredPerformer!==vocalOptions.delivery)
       intentIssue="Your singing arrangement conflicts with the description. Change the arrangement or description before creating.";
+    else if(singerId!=="auto"&&chosenSinger&&inferredPerformer&&inferredPerformer!==chosenSinger.arrangement&&inferredPerformer!=="Duet")
+      intentIssue=`You picked “${chosenSinger.name}”, but your description asks for a ${inferredPerformer.toLowerCase()}. Pick Auto or another singer, or change the description.`;
   }
   const songTiming=autoTrackTime({vocals:!instrumental,lyrics:useOwnLyrics?lyrics:"",bpm:blueprint.bpm,cinematic:false,prompt:idea,sectionCount:code.match(/^\s*\[[^\]\r\n]+\]\s*$/gm)?.length});
   const baseTiming=adActive?{seconds:adBrief.seconds,reason:"Based on your musical advertisement length."}:mapOn&&validSongMap(songMap)&&!songTiming.explicit?{seconds:mapSeconds(songMap),reason:"Based on your song map targets."}:songTiming;
@@ -532,6 +541,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
           </details>
         </div>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
+        {customMode&&!instrumental&&!localSketch&&<SingerChoice value={singerId} change={setSingerId} auto={autoPick} disabled={busy}/>}
         {singWithVoice&&!instrumental&&<VoiceChoice value={chosenVoice} change={setChosenVoice} disabled={busy}/>}
         <div className="forge-launch">
         {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">

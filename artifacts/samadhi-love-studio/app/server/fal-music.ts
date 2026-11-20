@@ -14,6 +14,7 @@ export function falSongInput(input:{prompt:string;lyrics:string;voice:string;gen
   const style=[input.genres,input.voice,input.instruments,input.prompt].filter(Boolean).join("; ");
   const delivery=/\b(hip[\s-]?hop|rap|trap)\b/i.test(style)?"Rhythmic rapper delivery and genre-matched flow":
     /\bgospel\b/i.test(style)?"Expressive gospel lead and gospel phrasing":
+    /\b(r&b|rnb|neo.?soul|soul)\b/i.test(style)?"Soulful R&B vocal phrasing with smooth runs and warm dynamics":
     /\breggae\b/i.test(style)?"Reggae vocal phrasing and relaxed syncopation":
     /\bafrobeats?\b/i.test(style)?"Afrobeats vocal rhythm and melodic phrasing":"Genre-matched vocal phrasing";
   const prompt=[input.instrumental?"Instrumental":delivery,input.dialect&&`Singing dialect: ${input.dialect}`,input.voice,input.genres,input.instruments,input.prompt,...cues,input.arrangement].filter(Boolean);

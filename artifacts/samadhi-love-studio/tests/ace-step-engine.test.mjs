@@ -208,3 +208,10 @@ test("owner engine card is hidden in Simple and for non-owners; no cloning claim
   assert.equal(renderToStaticMarkup(React.createElement(api.MusicEngineSettings,{access:{...access,status:{...access.status,owner:false}},advanced:true})),"");
   const source=readFileSync("app/quick-create.tsx","utf8");assert.match(source,/Compare your takes/);assert.match(source,/favoriteTake/);assert.match(source,/makeTwoVersions&&!localSketch&&!falActive/);
 });
+
+test("R&B gets soulful R&B phrasing in the ACE-Step prompt (hip hop keeps its rapper flow)",async()=>{
+  const {falSongInput}=api;
+  const base={prompt:"A love song",lyrics:"[Verse]\nHold me close",voice:"",instruments:"",arrangement:"",duration:60,language:"en",instrumental:false,versions:1};
+  assert.match(falSongInput({...base,genres:"R&B"}).prompt,/Soulful R&B vocal phrasing/);
+  assert.match(falSongInput({...base,genres:"Hip-hop, R&B"}).prompt,/Rhythmic rapper delivery/);
+});
