@@ -217,9 +217,6 @@ function LyricVideoProContent(props: Props) {
     [songId, setSongId] = useState(initialSongId),
     [step, setStep] = useState(0);
   const song = tracks.find((s) => s.id === songId);
-  const [workspaceSkin, setWorkspaceSkin] = useState<"cosmic" | "light">(
-    "cosmic",
-  );
   const [libraryTab, setLibraryTab] = useState<"backgrounds" | "lyrics">(
     "backgrounds",
   );
@@ -242,22 +239,6 @@ function LyricVideoProContent(props: Props) {
     null,
   );
   const [starterBackground, setStarterBackground] = useState("");
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("samadhi-lyric-workspace-skin") === "light")
-        setWorkspaceSkin("light");
-    } catch {
-      /* Optional appearance preference. */
-    }
-  }, []);
-  function chooseWorkspaceSkin(skin: "cosmic" | "light") {
-    setWorkspaceSkin(skin);
-    try {
-      localStorage.setItem("samadhi-lyric-workspace-skin", skin);
-    } catch {
-      /* The selected appearance still applies in this tab. */
-    }
-  }
   const [project, setProject] = useState<LyricProject | null>(null),
     [time, setTime] = useState(0),
     [playing, setPlaying] = useState(false),
@@ -1798,7 +1779,7 @@ function LyricVideoProContent(props: Props) {
   return (
     <div
       className={mode === "classic" ? "lvp-classic-host" : "lyric-video-pro"}
-      data-skin={workspaceSkin}
+      data-skin="cosmic"
       data-observatory="true"
       onPlayCapture={(event) => {
         const active = event.target;
@@ -1835,26 +1816,6 @@ function LyricVideoProContent(props: Props) {
               >
                 Backgrounds &amp; lyric styles
               </button>
-              <div
-                className="lvp-skin-switch"
-                role="group"
-                aria-label="Workspace appearance"
-              >
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "cosmic"}
-                  onClick={() => chooseWorkspaceSkin("cosmic")}
-                >
-                  Cosmic
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "light"}
-                  onClick={() => chooseWorkspaceSkin("light")}
-                >
-                  Light
-                </button>
-              </div>
             </>
           )}
           <button
