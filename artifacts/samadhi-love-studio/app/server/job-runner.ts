@@ -3,7 +3,6 @@ import {createStudioJob,readStudioJob,startStudioJob,finishStudioJob,failStudioJ
 import {freshSong,emptyCreatorStudio,type Studio} from "../studio-data";
 import {readStudio,writeStudio} from "../api/studio/store";
 import {jobExecution} from "../credits/production";
-import {logEvent,withJob} from "./request-context";
 
 export type SavedWork={route:"/api/studio/create"|"/api/studio/lyric-sync";input:Record<string,unknown>;accepted:string|null};
 const key=(owner:string,id:string,part:string)=>`private/jobs/${encodeURIComponent(owner)}/${id}/${part}.json`;
@@ -42,16 +41,14 @@ export async function enqueueWork(owner:string,songId:string,work:SavedWork,exec
   const saved=await readJobDocument<SavedWork>(owner,id,"request");
   if(!saved||JSON.stringify(saved)!==JSON.stringify(work))throw new Error("This reference already belongs to different work.");
   const created=await createStudioJob(owner,{id,songId,type:work.route.endsWith("/create")?"music-generation":"lyric-sync"});
-  return {id,task:created.created?withJob(id,()=>runWork(owner,id,songId,work,execute,source,role)):null};
+  return {id,task:created.created?runWork(owner,id,songId,work,execute,source,role):null};
 }
 async function runWork(owner:string,id:string,songId:string,work:SavedWork,execute:(request:Request)=>Promise<Response>,source:Request,role:"owner"|"creator"){
   if(running.has(id))return;
   running.add(id);
   let heartbeat:ReturnType<typeof setInterval>|undefined;
-  const started=Date.now(),type=work.route.endsWith("/create")?"music-generation":"lyric-sync";
   try{
     await startStudioJob(owner,id);
-    logEvent("job.start",{type});
     heartbeat=setInterval(()=>{void env.DB?.prepare("UPDATE studio_jobs SET updated_at=? WHERE owner=? AND id=? AND status='working'").bind(Date.now(),owner,id).run().catch(()=>{});},30000);
     const headers=new Headers({"Content-Type":"application/json",origin:new URL(source.url).origin});
     headers.set("X-Production-Id",id);
@@ -67,11 +64,9 @@ async function runWork(owner:string,id:string,songId:string,work:SavedWork,execu
     const {data:unusedData,revision:unusedRevision,...musicBody}=raw;
     const body=work.route.endsWith("/create")?{...musicBody,songId}:raw;
     await saveJobDocument(owner,id,"result",{status:response.status,body,retryable:!response.ok&&!execution.providerStarted});
-    logEvent(response.ok?"job.done":"job.failed",{type,status:response.status,providerStarted:execution.providerStarted,ms:Date.now()-started},response.ok?"info":"error");
     if(response.ok)await finishStudioJob(owner,id);
     else await failStudioJob(owner,id,execution.providerStarted?"The provider may already have billed this attempt. Check My Songs and your provider history; this request won't be replayed.":"No provider request was sent. Your saved writing is safe. You can try again.");
   }catch{
-    logEvent("job.unconfirmed",{type,ms:Date.now()-started},"error");
     // Never replay an ambiguous paid call. Its durable input remains available.
     try{await failStudioJob(owner,id,"This attempt could not be confirmed. Check My Songs and your provider history. Studio won't replay this request.");}catch{/* Startup/status reconciliation will close a stale lease. */}
   }finally{

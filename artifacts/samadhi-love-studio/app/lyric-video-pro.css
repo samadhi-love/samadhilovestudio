@@ -309,10 +309,13 @@
   border-radius: 18px;
   padding: 13px;
 }
-/* The video scrolls with the page like everything else (no floating in the middle). */
+/* Only the playing video follows the scroll, so it is never out of reach. */
 .lvp-sticky-preview {
-  position: static;
+  position: sticky;
+  top: 90px;
+  z-index: 2;
   padding-bottom: 8px;
+  background: inherit;
 }
 .lvp-sticky-preview .lvp-video-preview.vertical { width:min(100%,calc(58svh * 9 / 16)); }
 .lvp-video-preview {
@@ -1025,7 +1028,8 @@
   margin-top: 20px;
 }
 .lvp-library-preview {
-  position: static;
+  position: sticky;
+  top: 100px;
   border: 1px solid #d9dce8;
   border-radius: 14px;
   padding: 12px;

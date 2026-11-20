@@ -4,11 +4,10 @@ import { serveAudio } from "../../studio/audio-response";
 import { readStudio, privateHeaders } from "../../studio/store";
 import { eligibleSong, publicRelease, query } from "../../../community/store";
 import { jamendoTrack, libraryAsset } from "../../../party/server";
-import { traced } from "../../../server/request-context";
 export const dynamic = "force-dynamic";
 const fail = (error: string, status = 404) =>
   Response.json({ error }, { status, headers: privateHeaders });
-async function GETHandler(request: Request) {
+export async function GET(request: Request) {
   const access = await studioAccess();
   if (!access.id) return fail("Sign in to play party audio.", 401);
   const params = new URL(request.url).searchParams;
@@ -116,4 +115,3 @@ async function GETHandler(request: Request) {
     );
   }
 }
-export const GET=traced(GETHandler);

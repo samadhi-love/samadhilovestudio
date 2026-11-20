@@ -17,7 +17,6 @@ import {
   type LibraryAsset,
   type SetRow,
 } from "../../party/server";
-import { traced } from "../../server/request-context";
 
 export const dynamic = "force-dynamic";
 const reply = (data: object, status = 200) =>
@@ -28,7 +27,7 @@ const idValid = (id: unknown): id is string =>
 const text = (value: unknown, max: number) =>
   typeof value === "string" ? value.trim().slice(0, max) : "";
 const clean = (value: string) => value && !hasExplicitWords(value);
-async function GETHandler(request: Request) {
+export async function GET(request: Request) {
   const access = await studioAccess();
   if (!access.id) return fail("Sign in to open Party Mix.", 401);
   try {
@@ -81,7 +80,7 @@ async function readInput(request: Request) {
   }
   return JSON.parse(await new Blob(chunks as BlobPart[]).text());
 }
-async function POSTHandler(request: Request) {
+export async function POST(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return fail("Open Party Mix directly to make changes.", 403);
   const access = await studioAccess();
@@ -423,5 +422,3 @@ async function POSTHandler(request: Request) {
     );
   }
 }
-export const GET=traced(GETHandler);
-export const POST=traced(POSTHandler);

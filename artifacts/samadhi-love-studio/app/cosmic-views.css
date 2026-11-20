@@ -182,12 +182,7 @@
 /* Begin a song · Just Begin / Shape It */
 .nebula-forge .just-begin { display: grid; gap: 14px; margin-top: 18px; }
 .nebula-forge .jb-vision { font-size: .95rem; letter-spacing: .02em; }
-/* The whole vision stays readable: 4 lines to start, grows to ~10, then a visible side scroll bar. */
-.nebula-forge .jb-vision textarea, .nebula-forge [data-testid="input-song-idea"] { min-height: 7.2em; max-height: 16em; height: auto; field-sizing: content; resize: vertical; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; padding: 16px 20px; border-radius: 20px; scrollbar-width: thin; scrollbar-color: rgba(212,175,255,.75) rgba(255,255,255,.06); }
-.nebula-forge .jb-vision textarea { font-size: 1.1rem; }
-.nebula-forge .jb-vision textarea::-webkit-scrollbar, .nebula-forge [data-testid="input-song-idea"]::-webkit-scrollbar { width: 10px; }
-.nebula-forge .jb-vision textarea::-webkit-scrollbar-thumb, .nebula-forge [data-testid="input-song-idea"]::-webkit-scrollbar-thumb { background: rgba(212,175,255,.75); border-radius: 10px; }
-.nebula-forge .jb-vision textarea::-webkit-scrollbar-track, .nebula-forge [data-testid="input-song-idea"]::-webkit-scrollbar-track { background: rgba(255,255,255,.06); border-radius: 10px; }
+.nebula-forge .jb-vision textarea { min-height: 0; height: auto; resize: none; overflow: hidden; white-space: nowrap; padding: 18px 22px; font-size: 1.15rem; border-radius: 999px; }
 .nebula-forge .jb-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; }
 .nebula-forge .shape-it { display: grid; gap: 12px; margin-top: 18px; }
 .nebula-forge .shape-it > .qc-fold > summary, .nebula-forge .shape-it > .qc-more > summary { font-weight: 600; letter-spacing: .02em; cursor: pointer; padding: 6px 0; }
@@ -204,12 +199,8 @@
 .nebula-forge .shape-scale { display: flex; justify-content: space-between; font-size: .8rem; color: var(--cv-muted); }
 .nebula-forge .qc-take-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; }
 @media (max-width: 760px) {
-  .nebula-forge .jb-vision textarea { font-size: 1rem; }
+  .nebula-forge .jb-vision textarea { font-size: 1rem; white-space: normal; border-radius: 20px; }
   .nebula-forge .qc-modes { width: 100%; } .nebula-forge .qc-modes button { flex: 1; }
   .nebula-forge .qc-create { width: 100%; justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { .nebula-forge .shape-chip { transition: none; } .nebula-forge .shape-chip:hover:not(:disabled) { transform: none; } }
-
-/* One-tap prompt saving sits right under the box it saves. */
-.nebula-forge .prompt-quick-save { display: flex; align-items: center; gap: 12px; margin: -4px 0 6px; font-size: .9rem; }
-.nebula-forge .prompt-quick-save .text-button { color: var(--cv-gold, #e8c66a); }

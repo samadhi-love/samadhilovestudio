@@ -2,7 +2,7 @@
 import {cosmicScrollBehavior} from "./cosmic-motion";
 
 import { useState } from "react";
-import { Activity, CircleHelp, CreditCard, Menu, Settings2, ShieldCheck, UserRound, X } from "lucide-react";
+import { CircleHelp, CreditCard, Menu, Settings2, ShieldCheck, UserRound, X } from "lucide-react";
 import type { ComponentType } from "react";
 import { screenHome, screenOf, screenSections, type Screen, type SectionView } from "./studio-routes";
 import { HelpTip } from "./help-tip";
@@ -123,7 +123,6 @@ export function StudioNavigation({ activeView, activeScreen, activeUtility, owne
             {changeBeginner && <WorkspaceModeSwitch beginner={beginner} change={changeBeginner}/>}
             {owner && <a className="studio-nav-entry" href="/community/moderation" target="_blank" rel="noreferrer"><ShieldCheck size={15}/><span>Community Moderation</span></a>}
             {owner && <a className="studio-nav-entry" href="/admin"><ShieldCheck size={15}/><span>Launch administration</span></a>}
-            {owner && <a className="studio-nav-entry" href="/admin/status" data-testid="nav-app-status"><Activity size={15}/><span>App status</span></a>}
           </div>}
         </div>
       </div>

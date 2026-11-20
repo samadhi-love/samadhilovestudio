@@ -240,18 +240,6 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     setLyrics(labeled.text.slice(0,5000));setLyricStatus(`Song parts added for you: ${labeled.parts.join(" · ")}. Change any part below if it's not right.`);
     return labeled.text;
   }
-  const [quickSaved,setQuickSaved]=useState<{what:"vision"|"lyrics";text:string}|null>(null);
-  /** One-tap save of the prompt in front of the user (typed or written by the app) into Your Sounds. */
-  async function savePromptNow(what:"vision"|"lyrics"){
-    if(!savePrompt)return;
-    const words=what==="lyrics"?lyrics.trim():idea.trim();
-    if(!words)return;
-    const draft=currentPromptDraft();
-    setQuickSaved({what,text:"Saving…"});
-    const saved=await savePrompt({...draft,idea:idea.trim(),lyrics:what==="lyrics"?words:draft.lyrics,
-      name:(promptName.trim()||(customMode?songTitle.trim():"")||(what==="lyrics"?`Lyrics · ${idea.trim()||words}`:idea.trim())).slice(0,72)||"My prompt"});
-    setQuickSaved({what,text:saved?"Saved to Your Sounds ✓":"Couldn't save just now. Your words are still here."});
-  }
   function currentPromptDraft(confirmedSong=false):PromptDraft{
     return {
       name:(promptName.trim()||(customMode?songTitle.trim():"")||idea.trim().slice(0,72)||"My saved prompt").slice(0,100),
@@ -391,8 +379,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
         </div>
         {simple?<div className="just-begin" data-testid="panel-just-begin">
           <label className="field qc-field jb-vision">Your Vision
-            <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
-          {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+            <textarea data-testid="input-song-description" rows={1} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
           {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
           <div className="jb-row">
             <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics="" prompt={idea} disabled={busy}/>
@@ -403,14 +390,12 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
           <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
           <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Your Words</summary>
             <label className="field qc-field">Your Vision <span className="muted">· optional</span>
-              <textarea data-testid="input-song-idea" rows={4} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
-            {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+              <textarea data-testid="input-song-idea" rows={2} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
             {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
             <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Vision expanded with local style suggestions. Review it before you Begin; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
             <label className="field qc-field">Lyrics
               <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}} onPaste={e=>{const field=e.currentTarget;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
             </label>
-            {savePrompt&&!instrumental&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-lyrics" disabled={busy||!lyrics.trim()} onClick={()=>void savePromptNow("lyrics")}>☆ Save these lyrics</button>{quickSaved?.what==="lyrics"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
             {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
             <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>

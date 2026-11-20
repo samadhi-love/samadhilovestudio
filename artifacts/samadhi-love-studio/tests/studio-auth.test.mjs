@@ -189,8 +189,6 @@ function ownerFixture({ user = { userId: "owner-id", email: "owner@example.test"
   });
   const endpoint = compile("../app/api/studio/claim-owner/route.ts", {
     "cloudflare:workers": { env }, "../../../studio-access": access,
-    // Request IDs/logging are covered by tests/observability.test.mjs; here the claim logic alone is under test.
-    "../../../server/request-context": { traced: handler => handler, ownerAction: () => {} },
   });
   return { ...access, ...endpoint, writes: () => writes };
 }
