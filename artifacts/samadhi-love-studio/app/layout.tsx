@@ -25,6 +25,7 @@ import "./creator-workspace.css";
 import "./mobile-studio.css";
 import "./creative-play.css";
 import "./background-chooser.css";
+import "./create-video-box.css";
 import "./singer-library.css";
 import "./cosmic-theme.css";
 

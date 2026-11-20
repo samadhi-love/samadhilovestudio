@@ -16,6 +16,22 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### "Make your video" box beside "Begin a song"
+- **Request:** "make a box on the side to handle make your video… you should see
+  the screen and then move the song to it" + "make sure it is easy for phone…
+  video cancels voice so it is just background" → GO.
+- **Changed (nothing removed):**
+  - Create page: a **Make your video** box sits beside Begin a song on a computer
+    and under it on a phone. A phone-shaped screen shows your pick right away:
+    any gallery background, or your own photo, video or camera clip ("Yours").
+  - Put a song in by **dragging** it onto the screen (also your takes on the left)
+    or tapping **Use in video**. Play it to hear it over the picture with its words.
+  - **Make my video** opens LyriVid with the song, look and photo or clip filled in.
+  - A video's own sound is always off; the camera records picture only.
+  - Picker fix: picture rows no longer squash on narrow screens.
+- **Proof:** new tests in `tests/create-video-box.test.tsx`; screenshots checked
+  at 390 px and 1280 px wide; full suite green.
+
 ### Audit fixes 1–7 ("GO DO NOT REMOVE MAKE IT PERFECT")
 - **Request:** the 16-item working audit, then "GO DO NOT REMOVE MAKE IT PERFECT GO GO GO".
 - **Changed (nothing removed):**
