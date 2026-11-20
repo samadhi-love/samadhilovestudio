@@ -16,7 +16,7 @@ export async function Portal({ requested }: { requested?: "owner" | "subscriber"
     return <SubscriberRoom signOut={chatGPTSignOutPath("/subscriber")} ownerPreview={access.role === "owner"}/>;
   return <main className="listener-shell">
     <div className="listener-hero">
-      <img src="/favicon.svg" alt=""/>
+      <img src="/favicon.svg" alt="" width={48} height={48}/>
       <p className="eyebrow">{brand.name} · PRIVATE TEST</p>
       <h1>{requested === "owner" ? "Owner sign-in" : "Find your frequency."}</h1>
       <p>{access.role === "subscriber" ? "This account has subscriber access. Switch accounts to enter the owner studio." : `Sign in with your ${brand.name} account. Your old host's login does not automatically transfer here.`}</p>

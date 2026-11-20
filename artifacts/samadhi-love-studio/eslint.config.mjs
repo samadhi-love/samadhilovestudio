@@ -26,6 +26,10 @@ const eslintConfig = defineConfig([
       // separate sections. Plain links give each a full load with fresh sign-in
       // state; next/link is not used anywhere in this app.
       "@next/next/no-html-link-for-pages": "off",
+      // next/image is not used: covers and media come from private, signed-in
+      // API routes and in-browser blobs. Every <img> reserves its space through
+      // width/height attributes or a sized CSS box (reviewed: no layout jumps).
+      "@next/next/no-img-element": "off",
       // React Compiler readiness rules. This app does not use the React
       // Compiler; the flagged patterns ("latest value" refs, resetting state
       // when an id changes, clocks read while drawing) were reviewed and

@@ -257,7 +257,9 @@ test("Simple view note retains exact SSR text and accessible words; only the Sim
   assert.equal(document.body.textContent, text);
   assert.equal(document.querySelector('[role="img"]').getAttribute("aria-label"), text);
   const navigation = readFileSync(new URL("../app/studio-navigation.tsx", import.meta.url), "utf8");
-  assert.match(navigation, /beginner \? <HologramSimpleViewNote\/> : "Advanced view · Pro screens are available below"/);
+  // Simplified navigation (119fe3c) shows the note only in Simple view; Advanced view shows no note.
+  assert.match(navigation, /\{beginner && <p className="studio-mode-note"><HologramSimpleViewNote\/><\/p>\}/);
+  assert.doesNotMatch(navigation, /Advanced view · Pro screens are available below/);
 });
 for (const reduced of [false, true]) test(`Simple view note shares the once-only decode and respects reduced motion: ${reduced}`, async () => {
   const view = await fixture({ reduced, component: HologramSimpleViewNote });
