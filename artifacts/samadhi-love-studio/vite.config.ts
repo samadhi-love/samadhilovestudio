@@ -8,6 +8,14 @@ import { connectorPreview } from "./scripts/vite/connector-preview-plugin.mjs";
 import { studioWorkerSecrets } from "./scripts/worker-secrets.mjs";
 import path from "node:path";
 import {syncBrandNotices} from "./scripts/brand-assets.mjs";
+import { execSync } from "node:child_process";
+
+/** Which code is running: the git commit at build time, so /health can say what is live. */
+function buildVersion() {
+  let commit = "unknown";
+  try { commit = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim() || commit; } catch { /* no git: still build */ }
+  return JSON.stringify({ commit, builtAt: new Date().toISOString() });
+}
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
@@ -49,6 +57,7 @@ export default defineConfig(async ({ command }) => {
   if (command === "build") return {
     resolve: { alias: { "cloudflare:workers": path.resolve("scripts/storage/node-bindings.mjs") } },
     plugins: [vinext(), sites({ mockAuth: false })],
+    define: { "import.meta.env.VITE_STUDIO_VERSION": JSON.stringify(buildVersion()) },
   };
   // Preview alone uses isolated local D1/R2 emulation.
   const { cloudflare } = await import("@cloudflare/vite-plugin");

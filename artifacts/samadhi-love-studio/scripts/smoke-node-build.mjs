@@ -29,6 +29,10 @@ try {
     const response = await fetch(origin + path);
     assert.equal(response.status, expected, `${path}: ${await response.text()}`);
   }
+  // /health says which build is running (fake storage here, so status is 503, but the version is present).
+  const health = await (await fetch(origin + "/health")).json();
+  assert.match(health.version?.commit ?? "", /^([0-9a-f]{7,}|unknown)$/, "health shows the running commit");
+  assert.doesNotMatch(JSON.stringify(health), /fixture|secret|token/i, "health never exposes secrets");
   const response = await fetch(origin + "/api/studio/claim-owner", { method: "POST", headers: { Origin: "https://attacker.test" } });
   assert.equal(response.status, 403);
   const proxied = await fetch(origin + "/api/studio/claim-owner", { method: "POST", headers: {
