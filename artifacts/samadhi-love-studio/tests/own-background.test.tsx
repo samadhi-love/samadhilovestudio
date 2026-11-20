@@ -79,7 +79,7 @@ test("any connected camera: pick a camera, take a photo, or record a short clip"
   await act(async()=>q("qv-chip-yours")!.click());
   await act(async()=>q("own-bg-camera")!.click());await settle();
   assert.ok(q("own-camera"),"live camera view opens inside the picker");
-  const select=q("own-camera-select") as HTMLSelectElement;
+  const select=q("own-camera-select") as unknown as HTMLSelectElement;
   assert.deepEqual([...select.options].map(o=>o.textContent),["Default camera","Front camera","USB webcam"],"only cameras are listed");
   await act(async()=>{select.value="usb";select.dispatchEvent(new window.Event("change",{bubbles:true}));});await settle();
   assert.deepEqual((asked.at(-1)!.video as any).deviceId,{exact:"usb"},"the chosen camera is used");

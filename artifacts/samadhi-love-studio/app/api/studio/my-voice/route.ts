@@ -5,7 +5,10 @@ import { uuid, validSession } from "../../../vocal/session";
 import { consentPhrase, detectVoiceMime, verifiedVoiceLimit, verifiedVoiceRules as rules, voiceMimeTypes } from "../../../my-voice-data";
 import { privateHeaders } from "../store";
 import { readBoundedText, recoverableRoute, RequestBodyError } from "../request-errors";
-import { traced } from "../../../server/request-context";
+import { logEvent, traced } from "../../../server/request-context";
+import { consentMatches, hearConsent } from "../../../server/consent-check";
+import { resolveElevenLabsKey } from "../elevenlabs/vault";
+import { falKey } from "../../../server/music-engine";
 export const dynamic = "force-dynamic";
 const problem=(error:string,status:number)=>Response.json({error},{status,headers:privateHeaders});
 const consentKey=(account:string,id:string)=>`my-voice-consent/v1/${encodeURIComponent(account)}/${id}`;
@@ -45,14 +48,26 @@ async function saveVerified(request:Request,bucket:R2Bucket,account:string,prefi
   const voice=await audio(form,"voice",rules.voiceBytes),consent=await audio(form,"consent",rules.consentBytes);
   if(!voice||!consent)return problem("Both recordings must be real audio: your voice and your spoken consent.",400);
   if(await verifiedCount(bucket,prefix)>=verifiedVoiceLimit)return problem(`You already have ${verifiedVoiceLimit} verified voices. Delete one to add another.`,409);
+  // Listen to the consent clip: the person must really say the sentence on screen.
+  const heard=await hearConsent(consent.bytes,consent.mime,{elevenLabs:await resolveElevenLabsKey(account).catch(()=>null),fal:falKey()});
+  let consentHeard="not-checked",heardBy="";
+  if("text" in heard){
+    const check=consentMatches(heard.text,consentPhrase(speaker));
+    logEvent("my-voice.consent-check",{engine:heard.engine,matched:check.matched,score:check.score,missing:check.missing.join("|")});
+    if(!check.matched){
+      const said=heard.text.trim().replace(/\s+/g," ").slice(0,160);
+      return problem(`Your consent clip didn't match the sentence on screen${said?` (we heard: “${said}”)`:" (we heard no words)"}${check.missing.length?`. Be sure to say “${check.missing.join("”, “")}”`:""}. Read the sentence exactly as shown, record it again, then save. Nothing was saved.`,422);
+    }
+    consentHeard="matched";heardBy=heard.engine;
+  }else logEvent("my-voice.consent-check",{engine:"none",matched:false,unavailable:heard.unavailable});
   const id=crypto.randomUUID(),at=new Date().toISOString();
-  const kept=await bucket.put(consentKey(account,id),consent.bytes,{onlyIf:{etagDoesNotMatch:"*"},httpMetadata:{contentType:consent.mime},customMetadata:{speaker,consentText:consentPhrase(speaker),recordedAt:at,duration:String(consentSeconds)}});
+  const kept=await bucket.put(consentKey(account,id),consent.bytes,{onlyIf:{etagDoesNotMatch:"*"},httpMetadata:{contentType:consent.mime},customMetadata:{speaker,consentText:consentPhrase(speaker),recordedAt:at,duration:String(consentSeconds),consentHeard,...(heardBy?{heardBy}:{})}});
   if(!kept)return problem("Your consent clip could not be kept, so nothing was saved. Try again.",409);
-  const saved=await bucket.put(prefix+id,voice.bytes,{onlyIf:{etagDoesNotMatch:"*"},httpMetadata:{contentType:voice.mime},customMetadata:{name,speaker,duration:String(Math.round(voiceSeconds*10)/10),verified:"1",consentAt:at,adultConfirmed:"1",ownVoiceConfirmed:"1"}});
+  const saved=await bucket.put(prefix+id,voice.bytes,{onlyIf:{etagDoesNotMatch:"*"},httpMetadata:{contentType:voice.mime},customMetadata:{name,speaker,duration:String(Math.round(voiceSeconds*10)/10),verified:"1",consentAt:at,adultConfirmed:"1",ownVoiceConfirmed:"1",consentHeard}});
   if(!saved){await bucket.delete(consentKey(account,id));return problem("Your voice could not save. Nothing was kept; try again.",409);}
   // Two saves at once must not pass the limit: the later one steps back.
   if(await verifiedCount(bucket,prefix)>verifiedVoiceLimit){await bucket.delete([prefix+id,consentKey(account,id)]);return problem(`You already have ${verifiedVoiceLimit} verified voices. Delete one to add another.`,409);}
-  return Response.json({voice:{id,name,speaker,duration:Math.round(voiceSeconds*10)/10,mime:voice.mime,createdAt:at,verified:true}},{headers:privateHeaders});
+  return Response.json({voice:{id,name,speaker,duration:Math.round(voiceSeconds*10)/10,mime:voice.mime,createdAt:at,verified:true,consentHeard:consentHeard==="matched"}},{headers:privateHeaders});
 }
 async function handle(request:Request){
   const access=await privateWorkspace();if(!access)return problem("Sign in to your private voice collection.",401);
@@ -70,7 +85,7 @@ async function handle(request:Request){
     const cursor=url.searchParams.get("cursor");if(cursor&&cursor.length>2048)return problem("Invalid voice page.",400);
     const options:R2ListOptions & {include:string[]}={prefix,include:["customMetadata","httpMetadata"],limit:100,...(cursor?{cursor}:{})};
     const page=await bucket.list(options);
-    return Response.json({voices:page.objects.map(file=>({id:file.key.slice(prefix.length),name:file.customMetadata?.name??"Saved voice",duration:Number(file.customMetadata?.duration??0),mime:file.httpMetadata?.contentType??"application/octet-stream",createdAt:file.uploaded.toISOString(),verified:file.customMetadata?.verified==="1",...(file.customMetadata?.speaker?{speaker:file.customMetadata.speaker}:{})})),next:page.truncated?page.cursor:null},{headers:privateHeaders});
+    return Response.json({voices:page.objects.map(file=>({id:file.key.slice(prefix.length),name:file.customMetadata?.name??"Saved voice",duration:Number(file.customMetadata?.duration??0),mime:file.httpMetadata?.contentType??"application/octet-stream",createdAt:file.uploaded.toISOString(),verified:file.customMetadata?.verified==="1",...(file.customMetadata?.consentHeard==="matched"?{consentHeard:true}:{}),...(file.customMetadata?.speaker?{speaker:file.customMetadata.speaker}:{})})),next:page.truncated?page.cursor:null},{headers:privateHeaders});
   }
   if(request.headers.get("origin")!==url.origin)return problem("Open Studio directly to save a voice.",403);
   if(request.method==="DELETE"){

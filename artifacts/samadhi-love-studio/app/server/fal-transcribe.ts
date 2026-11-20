@@ -25,7 +25,7 @@ export function heardWordsFromChunks(chunks:unknown):HeardWord[]{
   return words;
 }
 /** One transcription request for a short-lived private audio link. Polls a bounded time; never resubmits. */
-export async function transcribeWithFal(key:string,audioUrl:string,language:string|undefined,api:Client=client){
+export async function transcribeWithFal(key:string,audioUrl:string,language:string|undefined,api:Client=client,maxWaitMs=4*60_000){
   const body={audio_url:audioUrl,task:"transcribe",chunk_level:"word",...(language&&language!=="auto"?{language}:{})};
   let response:Response;
   try{response=await api.request(key,path,{method:"POST",body:JSON.stringify(body),signal:AbortSignal.timeout(30_000)});}
@@ -33,7 +33,7 @@ export async function transcribeWithFal(key:string,audioUrl:string,language:stri
   if(!response.ok)throw new FalSyncFailed(`submit-http-${response.status}`,"fal.ai did not accept the word-timing request.");
   const queued=await response.json() as {request_id?:string};
   if(!queued.request_id||!/^[\w-]{1,128}$/.test(queued.request_id))throw new FalSyncFailed("submit-no-id","fal.ai returned no request reference.");
-  const deadline=api.now()+4*60_000;
+  const deadline=api.now()+maxWaitMs;
   for(let polls=0;polls<160&&api.now()<deadline;polls++){
     const status=await api.request(key,`${path}/requests/${queued.request_id}/status`,{signal:AbortSignal.timeout(30_000)});
     if(!status.ok)throw new FalSyncFailed(`status-http-${status.status}`,"Could not check fal.ai word timing.");
