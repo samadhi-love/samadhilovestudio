@@ -114,6 +114,7 @@ async function syncLyrics(request: Request) {
       confidenceAvailable: false, warnings, engine: aligning ? "ElevenLabs forced alignment" : "ElevenLabs Scribe v2",
       vocalSections: cues.map(c=>({start:c.time,end:c.end})),
     };
+    logEvent("caption.sync",{ok:true,mode,lines:cues.length,engine:savedResult.engine,window:!!window});
     try{await saveCaptionRecovery(id,song.id,sourceId,savedResult);}
     catch{warnings.push("Your captions are ready, but the private recovery copy could not save. Save this project before leaving.");}
     return Response.json(savedResult, { headers: privateHeaders });

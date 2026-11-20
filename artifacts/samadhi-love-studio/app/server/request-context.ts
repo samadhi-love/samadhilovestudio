@@ -32,14 +32,26 @@ export function withJob<T>(jobId: string, run: () => T): T {
   return store.run({ requestId: parent?.requestId ?? jobId, route: parent?.route ?? "job", jobId }, run);
 }
 
+type Sink = (entry: Record<string, unknown>) => Promise<unknown>;
+const historySink = () => (globalThis as { __studioEventHistory?: Sink }).__studioEventHistory;
+/** Called once by the event history module to receive important events. */
+export function setEventHistory(sink: Sink) { (globalThis as { __studioEventHistory?: Sink }).__studioEventHistory = sink; }
+const keep = /^(job\.(done|failed|unconfirmed)|provider\.call|caption\.sync|lyric-sync\.(problem|crash)|api\.failure|client\.crash|owner\.action)$/;
 export function logEvent(event: string, fields: Record<string, Field> = {}, level: "info" | "error" = "info") {
   const context = store.getStore();
-  const line = JSON.stringify({
+  const entry = {
     level, event, at: new Date().toISOString(),
     requestId: context?.requestId, jobId: context?.jobId, route: context?.route,
     ...fields,
-  });
+  };
+  const line = JSON.stringify(entry);
   if (level === "error") console.error(line); else console.log(line);
+  // Important events are also kept in the owner's 30-day history. The history
+  // registers itself when storage loads (app/server/storage.ts); it is never
+  // awaited and can never break or slow a request.
+  if (keep.test(event) || event === "api.request" && Number(fields.status) >= 500) {
+    try { void historySink()?.(entry)?.catch(() => {}); } catch { /* history is best effort */ }
+  }
 }
 
 /** Puts the request ID on the response. A route that already returned its own
@@ -62,8 +74,9 @@ export function routeLabel(path: string) {
 export function traced<T extends unknown[]>(handler: (...args: T) => Response | Promise<Response>) {
   return async (...args: T): Promise<Response> => {
     const request = args[0] instanceof Request ? args[0] : undefined;
-    const requestId = requestIdFor(request), started = Date.now();
     const route = request ? routeLabel(new URL(request.url).pathname) : "studio";
+    if (store.getStore()?.route === route) return handler(...args); // already traced by an outer wrapper
+    const requestId = requestIdFor(request), started = Date.now();
     return withRequestContext({ requestId, route }, async () => {
       try {
         const response = await handler(...args);
@@ -77,4 +90,10 @@ export function traced<T extends unknown[]>(handler: (...args: T) => Response | 
       }
     });
   };
+}
+
+/** Owner/account action log: who did what, when, under which request ID. Details must be
+ * short, non-private facts (an engine name, a plan, a count) — never keys or song content. */
+export function ownerAction(action: string, actor: string, details: Record<string, Field> = {}) {
+  logEvent("owner.action", { action, actor, ...details });
 }

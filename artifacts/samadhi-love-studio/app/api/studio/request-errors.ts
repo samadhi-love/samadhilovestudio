@@ -1,6 +1,6 @@
 import { privateHeaders } from "./store";
 import { StorageFullError } from "./storage-full";
-import { logEvent, requestIdFor, routeLabel, stampRequestId, withRequestContext } from "../../server/request-context";
+import { currentRequest, logEvent, requestIdFor, routeLabel, stampRequestId, withRequestContext } from "../../server/request-context";
 
 export class RequestBodyError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -32,10 +32,13 @@ export async function readBoundedText(request: Request, maxBytes: number) {
 export function recoverableRoute<T extends unknown[]>(handler: (...args: T) => Promise<Response>, message: string) {
   return async (...args: T): Promise<Response> => {
     const request = args[0] instanceof Request ? args[0] : undefined;
-    const requestId = requestIdFor(request);
     const route = request ? routeLabel(new URL(request.url).pathname) : handler.name || "studio";
+    // A wrapper inside another wrapper for the same route (or a job's own request)
+    // keeps the outer ID and does not log the same request twice.
+    const outer = currentRequest(), nested = outer?.route === route;
+    const requestId = nested ? outer.requestId : requestIdFor(request);
     const started = Date.now();
-    return withRequestContext({ requestId, route }, async () => {
+    const run = async () => {
       let response: Response;
       try { response = await handler(...args); }
       catch (error) {
@@ -50,9 +53,11 @@ export function recoverableRoute<T extends unknown[]>(handler: (...args: T) => P
           response = Response.json({ error: message, requestId, retryable: true }, { status: 503, headers: { ...privateHeaders, "X-Studio-Request-Id": requestId } });
         }
       }
+      if (nested) return response;
       const own = stampRequestId(response, requestId);
       logEvent("api.request", { method: request?.method, status: response.status, ms: Date.now() - started, ...(own ? { linkedRequestId: own } : {}) }, response.status >= 500 ? "error" : "info");
       return response;
-    });
+    };
+    return nested ? run() : withRequestContext({ requestId, route }, run);
   };
 }

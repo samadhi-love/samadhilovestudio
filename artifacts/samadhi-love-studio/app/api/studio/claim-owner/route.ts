@@ -1,6 +1,6 @@
 import { serverStorage as env } from "../../../server/storage";
 import { ownerSetup } from "../../../studio-access";
-import { traced } from "../../../server/request-context";
+import { ownerAction, traced } from "../../../server/request-context";
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
 async function POSTHandler(request: Request) {
@@ -13,6 +13,7 @@ async function POSTHandler(request: Request) {
   const result = await env.BUCKET.put("private/setup/owner-claim-v1.json",
     JSON.stringify({ userId: setup.userId, claimedAt: new Date().toISOString() }),
     { onlyIf: { etagDoesNotMatch: "*" }, httpMetadata: { contentType: "application/json" } });
+  if (result) ownerAction("owner.claim", setup.userId);
   return Response.json(result ? { claimed: true } : { error: "Owner setup changed in another tab. Reload this page." },
     { status: result ? 200 : 409, headers });
 }
