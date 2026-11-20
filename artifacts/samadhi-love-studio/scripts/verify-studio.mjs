@@ -18,6 +18,7 @@ const checks = [
   ["Durable background jobs and safe interruption recovery", ["--test", "tests/background-jobs.test.mjs", "tests/durable-processing.test.mjs"]],
   ["Safe retries, health, panel recovery, private diagnostics and input guards", ["--test", "tests/self-healing.test.mjs"]],
   ["Animated lyric backgrounds: kids, USA and New York", ["--test", "tests/animated-scenes.test.mjs"]],
+  ["Backup lyric timing: fal Whisper + lyric matching when ElevenLabs cannot time a song", ["--test", "tests/caption-backup.test.mjs"]],
   ["Traceability: request IDs, structured logs and AI-call logs without private data", ["--test", "tests/observability.test.mjs"]],
   ["Mantra phrase repetition, echo, microphone cleanup and safe recording saves", ["scripts/test-mantra.mjs"]],
   ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],

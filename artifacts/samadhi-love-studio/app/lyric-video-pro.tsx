@@ -1055,10 +1055,8 @@ function LyricVideoProContent(props: Props) {
       edit(fallbackProject);setStep(2);setStatus(warning);
     };
     if(next.pro.approvedLyrics.trim()&&!lyricLines(next.pro.approvedLyrics).length){setStep(1);setLyricsEditorOpen(true);setError("Paste the words actually sung, not only section headings. No caption processing was started.");return;}
-    if (!elevenLabs.connected) {
-      rough("the voice-matching service (ElevenLabs) isn't connected");
-      return;
-    }
+    // Even without ElevenLabs, the server may time the words with its backup engine (fal Whisper).
+    // If neither is available, the server says so and rough timing is used with that reason.
     if (sourceChanged(song, next) && !allowOld) {
       setError(
         "This song has a newer recording. Choose the saved original or realign the current recording.",
