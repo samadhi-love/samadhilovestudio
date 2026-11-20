@@ -15,7 +15,8 @@ import { LayerOverSong } from "../layer-over-song";
 import { myVoiceUrl, detectVoiceMime } from "../my-voice-data";
 import { Capture } from "./capture";
 import { EffectsPanel } from "./effects-panel";
-import { audibleClips, mixLength, renderVocal, stereoWav } from "./render";
+import { audibleClips, mixLength, renderVocal, songClips, stereoWav } from "./render";
+import { productionFetch } from "../credits/client";
 import { ClipControls, ClipTimeline } from "./timeline";
 import { encodeMp3 } from "./mp3";
 import { TuningPanel } from "./tuning-panel";
@@ -96,6 +97,9 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
   const saved = lastSaved === session;
   useEffect(()=>{setVoiceName("");setVoicePermission(false);setVoiceStatus("");},[session.id,selected?.source]);
   const currentMix = mix?.session === session ? mix : null;
+  // What you hear while recording (includes guide tracks); the saved mix never does.
+  const [monitor, setMonitor] = useState<{ session: Session; audio: AudioBuffer } | null>(null);
+  const currentMonitor = monitor?.session === session ? monitor : null;
   const mixName = (session.name.trim().replace(/[\\/:*?"<>|]/g, "-") || "Vocal mix");
   const sourceLength = selected ? session.sources.find(source => source.id === selected.source)?.duration ?? selected.end : 0;
   const canAdd = session.sources.length < maxSources && session.clips.length < maxClips;
@@ -133,7 +137,9 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
     return () => URL.revokeObjectURL(url);
   }, [currentMix?.mp3]);
   useEffect(() => { setMix(null); setStem(null); setPublished(""); }, [session]);
-  useEffect(() => { if (initialSongId) { setSongId(initialSongId); setSession(current => current.projectSongId ? current : { ...current, projectSongId: initialSongId }); } }, [initialSongId]);
+  useEffect(() => { setSingReady(false); }, [session.id]);
+  // An empty session follows the song you just chose ("Sing it"); a session with recordings keeps its project.
+  useEffect(() => { if (initialSongId) { setSongId(initialSongId); setSession(current => current.projectSongId && current.sources.length ? current : { ...current, projectSongId: initialSongId }); } }, [initialSongId]);
   useEffect(() => {
     let valid = true;
     void allSessions()
@@ -258,20 +264,73 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
   }
 
   async function add(blob: Blob, name: string, role: Role, at: number, projectSongId?: string) {
-    if (!canAdd) throw new Error("This session is full. Start another session to add more recordings.");
-    const audio = await decode(blob);
-    assertAudioBudget([...original.current.values()].map(a => a.buffer), audio.buffer);
-    const duration = Math.min(sessionSeconds, audio.buffer.duration);
-    if (session.sources.reduce((total, source) => total + source.duration, 0) + duration > maxSourceSeconds)
-      throw new Error("This session can hold up to 48 minutes of source audio within its memory budget. Start another session for more takes.");
-    const placement = recordedPlacement(duration, at, sessionSeconds);
-    const source = { id: crypto.randomUUID(), name: hasExplicitWords(name) ? role : name.trim().slice(0, 100) || role, duration };
-    const clip: Clip = { id: crypto.randomUUID(), source: source.id, name: source.name, role, ...placement,
-      volume: 1, pan: 0, mute: false, solo: false, bypass: false, effects: { ...dry }, tuning: { ...noTuning }, fadeIn: 0, fadeOut: 0 };
-    original.current.set(source.id, audio); uploads.current.set(source.id, blob);
-    patch({ projectSongId: session.projectSongId ?? projectSongId, sources: [...session.sources, source], clips: [...session.clips, clip] });
-    setSelection(clip.id); setRejectedTake(null); setSyncError("");
+    return addTracks([{ blob, name, role, at }], projectSongId);
   }
+  /** Adds tracks in one change. A guide track is heard while recording but never saved into the song. */
+  async function addTracks(items: { blob: Blob; name: string; role: Role; at: number; guide?: boolean; volume?: number }[], projectSongId?: string) {
+    if (session.sources.length + items.length > maxSources || session.clips.length + items.length > maxClips) throw new Error("This session is full. Start another session to add more recordings.");
+    const sources: Session["sources"] = [], clips: Clip[] = [];
+    let total = session.sources.reduce((sum, source) => sum + source.duration, 0);
+    for (const item of items) {
+      const audio = await decode(item.blob);
+      assertAudioBudget([...original.current.values()].map(a => a.buffer), audio.buffer);
+      const duration = Math.min(sessionSeconds, audio.buffer.duration);
+      total += duration;
+      if (total > maxSourceSeconds)
+        throw new Error("This session can hold up to 48 minutes of source audio within its memory budget. Start another session for more takes.");
+      const placement = recordedPlacement(duration, item.at, sessionSeconds);
+      const source = { id: crypto.randomUUID(), name: hasExplicitWords(item.name) ? item.role : item.name.trim().slice(0, 100) || item.role, duration };
+      clips.push({ id: crypto.randomUUID(), source: source.id, name: source.name, role: item.role, ...placement,
+        volume: item.volume ?? 1, pan: 0, mute: false, solo: false, bypass: false, effects: { ...dry }, tuning: { ...noTuning }, fadeIn: 0, fadeOut: 0,
+        ...(item.guide ? { guide: true } : {}) });
+      original.current.set(source.id, audio); uploads.current.set(source.id, item.blob);
+      sources.push(source);
+    }
+    patch({ projectSongId: session.projectSongId ?? projectSongId, sources: [...session.sources, ...sources], clips: [...session.clips, ...clips] });
+    setSelection(clips.at(-1)?.id ?? ""); setRejectedTake(null); setSyncError("");
+  }
+
+  // ---- Sing along: the AI song becomes music + a guide voice you follow in your headphones ----
+  const singSong = projects.find(item => item.id === (session.projectSongId ?? songId)) ?? songs.find(item => item.id === (session.projectSongId ?? songId));
+  const hasGuide = session.clips.some(clip => clip.guide);
+  const [singReady, setSingReady] = useState(false);
+  const setupPending = useRef(false);
+  async function singAlong() {
+    const target = singSong;
+    if (!target?.audioFormat) return;
+    if (!confirm("Studio will split this song into the music and the AI singer (uses ElevenLabs once). The AI singer is only a guide in your headphones; your saved song has only your voice. Continue?")) return;
+    await job(async () => {
+      const response = await productionFetch("/api/studio/stems", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId: target.id, audioId: target.audioId ?? target.id, mode: "two_stems_v1", confirmed: true }) });
+      if (!response.ok) throw new Error(((await response.json().catch(() => ({}))) as { error?: string }).error ?? "The song couldn't be split. Your song is unchanged.");
+      const archive = await response.blob();
+      if (archive.size > 120 * 1024 * 1024) throw new Error("The split came back too large for a session. Your song is unchanged.");
+      const { unzipSync } = await import("fflate");
+      const files = Object.entries(unzipSync(new Uint8Array(await archive.arrayBuffer()), {
+        filter: file => file.originalSize <= 80 * 1024 * 1024 && /\.(mp3|wav|m4a|flac|ogg)$/i.test(file.name) }));
+      const voice = files.find(([name]) => /vocal/i.test(name) && !/back|instrument|accomp|no[-_ ]?vocal/i.test(name));
+      const music = files.find(([name]) => name !== voice?.[0]);
+      if (!voice || !music) throw new Error("The split didn't return both the music and the voice. Your song is unchanged.");
+      const blob = ([name, bytes]: [string, Uint8Array]) => new Blob([bytes.slice().buffer as ArrayBuffer], { type: /\.wav$/i.test(name) ? "audio/wav" : "audio/mpeg" });
+      await addTracks([
+        { blob: blob(music), name: `${target.name.slice(0, 80)} · music`, role: "Instrumental", at: 0 },
+        { blob: blob(voice), name: "AI guide voice · not in your song", role: "Background vocal", at: 0, guide: true, volume: 0.8 },
+      ], target.id);
+      if (!session.name.trim() || session.name === emptySession().name) setSession(current => ({ ...current, name: `${target.name.slice(0, 70)} · my voice` }));
+      setupPending.current = true;
+    });
+  }
+  // After the tracks land: prepare what you hear while recording (music + guide) and turn on overdub.
+  useEffect(() => {
+    if (!setupPending.current || busy) return;
+    setupPending.current = false;
+    void job(async () => {
+      const listen = await renderVocal(audibleClips(session.clips), getSource, session, { length: mixLength(session.clips) });
+      setMonitor({ session, audio: listen });
+      setOverdub(true); setRole("Lead vocal"); setSingReady(true);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once after the sing-along tracks are added
+  }, [session, busy]);
 
   useEffect(() => {
     if (!active || !input || input === imported.current || busy || capturing) return;
@@ -315,13 +374,24 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
       </div>
       {syncError && <p className="notice" role="alert">{syncError}</p>}
     </section>
+    {singSong?.audioFormat && singSong.creationKind !== "instrumental" && !hasGuide && <section className="panel form-panel sing-along" data-testid="sing-along">
+      <h3>Sing along to “{singSong.name}”</h3>
+      <p>One tap splits the song into the music and the AI singer. You hear the AI singer as a guide in your headphones while you record. <strong>Only your voice goes into your song.</strong></p>
+      <button type="button" className="primary" disabled={settingsDisabled || busy || !canAdd} onClick={() => void singAlong()} data-testid="button-sing-along">🎤 Set up sing-along</button>
+      <p className="muted">Uses ElevenLabs once to split the song. Your original song is not changed.</p>
+    </section>}
+    {hasGuide && <section className="panel form-panel sing-along" data-testid="sing-along-ready">
+      <h3>{singReady ? "Ready. Put on headphones and press Record" : "Sing-along tracks are in this session"}</h3>
+      <p>Your role is <strong>Lead vocal</strong>. The track named “AI guide voice” plays only in your headphones. When you are done, press <strong>Render mix</strong> and <strong>Save mix to Song Library</strong>, then <strong>Make lyric video</strong>.</p>
+      {singSong?.notes.lyrics.trim() && <details open className="sing-lyrics"><summary>Words to sing</summary><pre>{singSong.notes.lyrics}</pre></details>}
+    </section>}
     <section className="panel form-panel vocal-overdub" aria-label="Recording accompaniment">
       <HelpControl subject="Overdub with rendered mix" tip="Play the current rendered mix in your headphones from the timeline playhead while recording a new clip.">
-        <label className="checkline"><input type="checkbox" checked={overdub} disabled={!currentMix || settingsDisabled} onChange={e => setOverdub(e.target.checked)}/> Overdub with rendered mix</label>
+        <label className="checkline"><input type="checkbox" checked={overdub} disabled={(!currentMix && !currentMonitor) || settingsDisabled} onChange={e => setOverdub(e.target.checked)}/> Overdub with rendered mix</label>
       </HelpControl>
       <p className="muted">Render the arrangement to enable backing playback while you record. Use headphones to keep it out of the mic.</p>
     </section>
-    <Capture bpm={session.bpm} backing={overdub && currentMix ? currentMix.audio : undefined} position={playhead} retakePosition={selected?.at} busy={busy || saving || !canAdd || !recovery.ready} onCapture={captureChanged} retake={!!selected && selected.role !== "Instrumental"}
+    <Capture bpm={session.bpm} backing={overdub ? (currentMonitor ?? currentMix)?.audio : undefined} position={playhead} retakePosition={selected?.at} busy={busy || saving || !canAdd || !recovery.ready} onCapture={captureChanged} retake={!!selected && selected.role !== "Instrumental"}
       beforeRecord={stopPlayback} role={role} setRole={setRole} onTake={(blob, nextRole, retake, offsetMs) => {
         const take = { blob, title: (retake ? selected?.role ?? nextRole : nextRole) + " " + (session.sources.length + 1),
           role: retake ? selected?.role ?? nextRole : nextRole, at: (retake ? selected?.at ?? playhead : playhead) - offsetMs / 1000 };
@@ -436,10 +506,13 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
             <label className="checkline"><input type="checkbox" checked={session.masterLimiter} onChange={e => patch({ masterLimiter: e.target.checked })}/> Master limiter</label></HelpControl>
         </div>}
         <div className="actions">
-          <button type="button" className="primary" disabled={!audibleClips(session.clips).length} onClick={() => job(async () => {
+          <button type="button" className="primary" disabled={!songClips(session.clips).length} onClick={() => job(async () => {
             stopPlayback();
-            const audio = await renderVocal(audibleClips(session.clips), getSource, session, { length: mixLength(session.clips) });
+            // The saved song never includes guide tracks (like the AI singer you followed).
+            const audio = await renderVocal(songClips(session.clips), getSource, session, { length: mixLength(session.clips) });
             const blob = stereoWav(audio);
+            if (audibleClips(session.clips).some(clip => clip.guide))
+              setMonitor({ session, audio: await renderVocal(audibleClips(session.clips), getSource, session, { length: mixLength(session.clips) }) });
             setPublished(""); setMix({ session, audio, blob, url: URL.createObjectURL(blob) });
           })}>{busy ? "Processing audio…" : "Render mix"}</button>
           {selected && <button type="button" className="secondary" onClick={() => job(async () => {

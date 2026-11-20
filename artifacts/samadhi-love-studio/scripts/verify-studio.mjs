@@ -23,6 +23,7 @@ const checks = [
   ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],
   ["Cosmic main page: welcome, worlds, wisdom and a decoration-only sky", ["scripts/test-cosmic-home.mjs"]],
   ["My Voices: four verified places, spoken consent, adults only, sing and lyric video", ["scripts/test-my-voices-screen.mjs"]],
+  ["Sing along: AI guide in headphones only, your voice saved, mix opens in LyriVid with captions", ["scripts/test-sing-along.mjs"]],
   ["Vibe matching, stem motion and caption release kits", ["scripts/test-vibe-release.mjs"]],
   ["AI visual generation, durable job recovery and private media", ["scripts/test-visual-generation.mjs"]],
   ["Style DNA, bounded song maps and genuine stem analysis", ["scripts/test-style-dna.mjs"]],

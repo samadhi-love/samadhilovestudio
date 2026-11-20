@@ -99,7 +99,7 @@ test("in Create: pick the AI singer or a saved voice, add one right there, and s
     await act(async()=>h.root.render(<Harness/>));
     assert.equal(h.q("voice-choice-ai")!.getAttribute("aria-checked"),"true","the AI singer is the default");
     await h.click(`voice-choice-${voice(1).id}`);
-    assert.match(h.q("text-voice-choice")!.textContent!,/sing it with “Voice 1” in Vocal Studio/);
+    assert.match(h.q("text-voice-choice")!.textContent!,/Sing it with Voice 1.*only your voice goes into your song/);
     await h.click("voice-choice-add");
     assert.ok(h.q("add-voice"),"Add a voice opens right inside Create");
     const name=h.q("input-voice-name") as HTMLInputElement;

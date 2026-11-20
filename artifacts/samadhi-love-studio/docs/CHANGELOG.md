@@ -16,6 +16,21 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### Your recorded voice → your song → lyric video (sing-along)
+- **Request:** "make sure we can use the recorded voice into making the song and
+  it goes to lyric video" → chose "AI guide + music".
+- **Changed:**
+  - Vocal Studio **Set up sing-along** (one tap) splits the AI song once into
+    the music and the AI singer. The singer becomes a **guide track**: heard in
+    your headphones while you record, never in your saved song. Words to sing
+    are shown, and recording is ready (Lead vocal, overdub on).
+  - **Make lyric video** after saving your mix opens that mix (your voice), not
+    the project's pinned master, and its words start timing to your voice.
+  - The Create "Your voice" wording now says exactly what happens.
+- Builds on the other chat's "My Voices" work (`2fba52d`).
+- **Commit:** see "Sing along…" after `2fba52d`.
+- **Tests:** `tests/sing-along.test.tsx` (5) · `tests/my-voices-screen.test.tsx`.
+
 ### One background picker everywhere you make a video
 - **Request:** "keep all backgrounds for video making in same area, easy to find,
   either by title on flat boxes and picture, also by tab groups… all in same

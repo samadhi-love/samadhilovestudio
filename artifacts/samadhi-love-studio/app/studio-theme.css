@@ -585,3 +585,8 @@ button.help-tip-button:focus-visible { outline: 2px solid #a7e8d5; outline-offse
 .quick-create .optional-song-controls { margin:12px 0; }
 .quick-create .optional-song-controls > summary { cursor:pointer; font-weight:600; padding:10px 0; }
 @media (max-width:600px) { .simple-workspace-tools { padding:10px; } .simple-workspace-tools .actions { display:flex; flex-wrap:wrap; } .simple-workspace-tools .secondary { flex:1 1 auto; text-align:center; } }
+/* Sing along: AI song → music + guide voice; only your voice is saved */
+.sing-along { border: 1px solid #c9a7ff88; border-radius: 16px; }
+.sing-along h3 { margin-top: 0; }
+.sing-lyrics { margin-top: .6rem; }
+.sing-lyrics pre { white-space: pre-wrap; font: inherit; line-height: 1.6; max-height: 260px; overflow-y: auto; padding: .6rem .8rem; border-radius: 12px; background: #120f2a; scrollbar-width: thin; }

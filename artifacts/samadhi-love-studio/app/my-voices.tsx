@@ -206,7 +206,7 @@ export function VoiceChoice({ value, change, disabled }: { value: SavedVoice | n
       {voices?.map(v => <button key={v.id} type="button" role="radio" aria-checked={value?.id === v.id} data-testid={`voice-choice-${v.id}`} onClick={() => change(v)}>🎤 {v.name}</button>)}
       {voices && room && !adding && <button type="button" className="voice-choice-add" data-testid="voice-choice-add" onClick={() => setAdding(true)}>+ Add a voice</button>}
     </div>
-    <p className="muted" data-testid="text-voice-choice">{value ? `After your song is made, sing it with “${value.name}” in Vocal Studio. Your voice joins the song; the AI makes the music.` : "The AI singer performs your song. Choose one of your saved voices to sing it yourself after it's made."}</p>
+    <p className="muted" data-testid="text-voice-choice">{value ? `After your song is made, tap “Sing it with ${value.name}”. You sing along with the AI singer as a guide in your headphones, and only your voice goes into your song. Then make its lyric video.` : "The AI singer performs your song. Choose one of your saved voices to sing it yourself after it's made."}</p>
     {loadError && <p className="muted" role="status">{loadError} <button type="button" className="text-button" onClick={() => void load()}>Try again</button></p>}
     {adding && <AddVoice cancel={() => setAdding(false)} saved={voice => { setVoices(list => [...(list ?? []), voice]); setAdding(false); change(voice); }}/>}
   </fieldset>;

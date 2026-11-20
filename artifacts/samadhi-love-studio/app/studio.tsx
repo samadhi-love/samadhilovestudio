@@ -26,7 +26,7 @@ import {sortSongs,type SongSort} from "./song-library";
 import {SaveVoiceReference} from "./save-voice-reference";
 import type {RegionOperation} from "./song-region-actions";
 
-import { pinnedMaster, projectRoot } from "./project-assets";
+import { lyricVideoFor, pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
 import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
 import { createSaveQueue } from "./save-queue";
@@ -694,7 +694,16 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           sendMix={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           openSong={(id, step) => {
-            const target = data.songs.find(s => s.id === id);
+            const target = dataRef.current.songs.find(s => s.id === id) ?? data.songs.find(s => s.id === id);
+            // "Make lyric video" opens the mix with YOUR voice (never the project's pinned master),
+            // and its words start timing to your voice right away.
+            if (target && step === "video") {
+              if (!navigate("lyric-video")) return;
+              const open = lyricVideoFor(target);
+              setLyricSongId(open.songId);
+              setAutoCaptionRequest(open.autoCaptions ? { songId: open.songId, id: uid() } : null);
+              return;
+            }
             if (target) openWorkflow(step === "production" ? "edit" : step, target);
           }}/></PanelErrorBoundary>}
         {loaded && tentOpened && <PanelErrorBoundary panel="world-sounds" visible={view==="international-tent"&&!song&&!pane}><InternationalMusicTent active={view === "international-tent" && !song} send={seed => seed.sectionDirections?.length&&!beginner ? navigate("create", false, seed) : sendToCreate(seed)} copy={copy} openVocalStudio={() => navigate("vocal-studio")}/></PanelErrorBoundary>}
