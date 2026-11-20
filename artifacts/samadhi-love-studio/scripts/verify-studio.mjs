@@ -21,6 +21,7 @@ const checks = [
   ["Traceability: request IDs, structured logs and AI-call logs without private data", ["--test", "tests/observability.test.mjs"]],
   ["Mantra phrase repetition, echo, microphone cleanup and safe recording saves", ["scripts/test-mantra.mjs"]],
   ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],
+  ["Cosmic main page: welcome, worlds, wisdom and a decoration-only sky", ["scripts/test-cosmic-home.mjs"]],
   ["Vibe matching, stem motion and caption release kits", ["scripts/test-vibe-release.mjs"]],
   ["AI visual generation, durable job recovery and private media", ["scripts/test-visual-generation.mjs"]],
   ["Style DNA, bounded song maps and genuine stem analysis", ["scripts/test-style-dna.mjs"]],

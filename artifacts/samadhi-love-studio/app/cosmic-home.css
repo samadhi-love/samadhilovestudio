@@ -1,0 +1,126 @@
+/* Cosmic home: the Create (main) page's welcome, story and decorative sky. */
+
+/* ---------- Sky behind the page (main is already its own stacking layer) ---------- */
+.cosmic-home-sky{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.cosmic-home-streak{position:absolute;height:70px;border-radius:999px;filter:blur(30px);opacity:.34;animation:ch-drift 20s ease-in-out infinite}
+.cosmic-home-streak.s1{width:62%;left:-12%;top:6%;--r:-18deg;background:linear-gradient(90deg,#ff5fd2,#a77bff,#7fe9ff)}
+.cosmic-home-streak.s2{width:70%;right:-20%;top:34%;--r:14deg;animation-duration:25s;background:linear-gradient(90deg,#ffd27a,#ff8fb8,#a77bff)}
+.cosmic-home-streak.s3{width:56%;left:-10%;top:60%;--r:-10deg;animation-duration:22s;background:linear-gradient(90deg,#6ad6b4,#3fc8d8,#5b8cff)}
+.cosmic-home-streak.s4{width:50%;right:-8%;top:86%;--r:20deg;animation-duration:28s;background:linear-gradient(90deg,#a77bff,#ff5fd2)}
+.cosmic-home-shoot{position:absolute;width:160px;height:2px;border-radius:2px;background:linear-gradient(90deg,#fff,#ffe9a800);opacity:0;animation:ch-shoot 10s linear infinite}
+.cosmic-home-shoot.t1{right:12%;top:3%}.cosmic-home-shoot.t2{right:34%;top:38%;animation-delay:3.5s}.cosmic-home-shoot.t3{right:6%;top:66%;animation-delay:7s}
+.cosmic-home-planet{position:absolute;border-radius:50%;animation:ch-float 10s ease-in-out infinite}
+.cosmic-home-planet i{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%) rotateX(72deg) rotate(-18deg)}
+.cosmic-home-planet.p-gold{width:210px;height:210px;left:-80px;top:4%;background:radial-gradient(circle at 32% 30%,#fff4cf 0%,#ffd27a 22%,#c9772a 58%,#4a1d10 100%);box-shadow:0 0 60px #ffd27a55}
+.cosmic-home-planet.p-gold i{width:350px;height:350px;border:10px solid #ffe9a84d;box-shadow:0 0 24px #ffe9a833}
+.cosmic-home-planet.p-violet{width:290px;height:290px;right:-130px;top:30%;animation-duration:14s;background:repeating-linear-gradient(170deg,#c9a8ff 0 16px,#8f6ad8 16px 30px,#5b3aa8 30px 46px),#6a44c0;box-shadow:inset -60px -40px 80px #1d0f42,0 0 70px #a77bff55}
+.cosmic-home-planet.p-moon{width:70px;height:70px;left:1%;top:55%;animation-duration:7s;background:radial-gradient(circle at 35% 30%,#e8fdff,#7fe9ff 45%,#1f6a8a);box-shadow:0 0 40px #7fe9ff77}
+.cosmic-home-planet.p-rose{width:120px;height:120px;right:2%;top:80%;animation-duration:12s;background:radial-gradient(circle at 35% 30%,#ffe0f6,#ff8fb8 45%,#8a1f5a);box-shadow:0 0 50px #ff9fe666}
+.cosmic-home-planet.p-rose i{width:205px;height:205px;border:6px solid #ff9fe64d}
+.cosmic-home-planet.p-mint{width:36px;height:36px;right:8%;top:1.5%;animation-duration:6s;background:radial-gradient(circle at 35% 30%,#f6fff9,#a8f0d8 50%,#2b7a62);box-shadow:0 0 26px #a8f0d888}
+.cosmic-home-lyre{position:absolute;right:1.5%;top:20%;width:160px;opacity:.7;fill:#ffe9a8;stroke:#ffe9a866;stroke-width:.8}
+.cosmic-home-note{position:absolute;font-family:Georgia,serif;line-height:1;opacity:0;text-shadow:0 0 14px currentColor;animation:ch-rise 11s ease-in-out infinite}
+.cosmic-home-note[data-tone="0"]{color:#ffe9a8}.cosmic-home-note[data-tone="1"]{color:#ff9fe6}.cosmic-home-note[data-tone="2"]{color:#7fe9ff}
+.cosmic-home-note[data-tone="3"]{color:#a8f0d8}.cosmic-home-note[data-tone="4"]{color:#c9a8ff}.cosmic-home-note[data-tone="5"]{color:#ffd27a}
+/* Sayings live only in real empty margins (very wide screens), never over content. */
+.cosmic-home-saying{display:none;position:absolute;width:118px;margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-style:italic;font-size:15px;line-height:1.4;text-align:center;animation:ch-glow 7s ease-in-out infinite}
+.cosmic-home-saying.left{left:12px}.cosmic-home-saying.right{right:12px}
+.cosmic-home-saying[data-tone="0"]{color:#ffe9a8}.cosmic-home-saying[data-tone="1"]{color:#a8f0d8}.cosmic-home-saying[data-tone="2"]{color:#c9a8ff}
+.cosmic-home-saying[data-tone="3"]{color:#7fe9ff}.cosmic-home-saying[data-tone="4"]{color:#ff9fe6}
+@media(min-width:1940px){.cosmic-home-saying{display:block}}
+
+/* ---------- Hero ---------- */
+.cosmic-home-hero{position:relative;isolation:isolate;overflow:hidden;margin:0 0 22px;padding:56px clamp(18px,4vw,48px) 50px;border-radius:28px;text-align:center;
+  border:1px solid #e6b86680;background:linear-gradient(160deg,#24124eee,#170c36ee);box-shadow:0 0 0 6px #e6b86614,0 30px 90px #00000055;
+  display:flex;flex-direction:column;align-items:center;gap:18px}
+.cosmic-home-iam{position:absolute;left:50%;z-index:1;padding:3px 16px;border:1px solid #e6b86680;border-radius:999px;background:#1d0f42;
+  font-family:var(--cosmic-font-poetic,Georgia,serif);font-weight:600;font-size:13px;letter-spacing:.5em;color:#ffe9a8}
+.cosmic-home-iam.top{top:10px;transform:translateX(-50%)}.cosmic-home-iam.bottom{bottom:10px;transform:translateX(-50%)}
+.cosmic-home-flower{position:absolute;z-index:-1;width:min(620px,140%);aspect-ratio:1;left:50%;top:50%;translate:-50% -50%;opacity:.16;stroke:#ffe9a8;stroke-width:.6;animation:ch-spin 120s linear infinite}
+.cosmic-home-eyebrow{margin:0;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:#d7c2ff}
+.cosmic-home-slogan{margin:0;max-width:16ch;font-family:var(--cosmic-font-poetic,Georgia,serif);font-weight:700;font-size:clamp(36px,6vw,74px);line-height:1.04;
+  background:linear-gradient(90deg,#ffe9a8,#ff9fe6 45%,#7fe9ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cosmic-home-lede{margin:0;max-width:700px;font-size:clamp(16px,1.6vw,19px);line-height:1.6;color:#ece5fa}
+.cosmic-home-quote{margin:4px 0 0;max-width:680px;min-height:84px;animation:ch-fade .9s ease both}
+.cosmic-home-quote blockquote{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-style:italic;font-size:clamp(19px,2vw,24px);line-height:1.4;color:#ffe9a8}
+.cosmic-home-quote figcaption{margin-top:6px;font-size:14px;color:#cdbfe8}
+.cosmic-home-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.cosmic-home-cta{min-height:48px;padding:0 28px;border-radius:999px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:transform .15s ease,box-shadow .2s ease}
+.cosmic-home-cta:hover{transform:translateY(-1px)}
+.cosmic-home-cta.gold{border:0;background:linear-gradient(90deg,#ffd27a,#ffb86b);color:#2a1340}
+.cosmic-home-cta.gold:hover{box-shadow:0 10px 36px #ffd27a55}
+.cosmic-home-cta.cyan{border:1px solid #7fe9ff;background:#0d1d3a99;color:#e4faff}
+.cosmic-home-cta.cyan:hover{box-shadow:0 10px 36px #7fe9ff44}
+.cosmic-home-cta:focus-visible,.cosmic-home-world:focus-visible{outline:2px solid #7fe9ff;outline-offset:3px}
+
+/* ---------- Story below the song box ---------- */
+.cosmic-home-story{display:flex;flex-direction:column;gap:30px;margin:28px 0}
+.cosmic-home-block{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+.cosmic-home-block h2,.cosmic-home-wisdom h2{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-weight:700;font-size:clamp(28px,3.6vw,42px);color:#fff}
+.cosmic-home-kicker{margin:0;font-size:12px;letter-spacing:.3em;text-transform:uppercase}
+.cosmic-home-kicker.cyan{color:#7fe9ff}.cosmic-home-kicker.gold{color:#ffd27a}
+.cosmic-home-intro{margin:0;max-width:620px;color:#ddd3f2}
+.cosmic-home-pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;width:100%;margin-top:8px;text-align:left}
+.cosmic-home-pillars article{display:flex;flex-direction:column;gap:10px;padding:26px;border-radius:22px;border:1px solid}
+.cosmic-home-pillars article>span{font-size:32px;line-height:1}
+.cosmic-home-pillars h3{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:24px}
+.cosmic-home-pillars p{margin:0;line-height:1.6;color:#ece5fa}
+.cosmic-home-pillars .rose{background:linear-gradient(160deg,#3b1670,#22104a);border-color:#ff9fe655}.cosmic-home-pillars .rose>span,.cosmic-home-pillars .rose h3{color:#ffd3f3}
+.cosmic-home-pillars .gold{background:linear-gradient(160deg,#3d2a0f,#22104a);border-color:#ffd27a66}.cosmic-home-pillars .gold>span,.cosmic-home-pillars .gold h3{color:#ffe9a8}
+.cosmic-home-pillars .cyan{background:linear-gradient(160deg,#0f3a55,#22104a);border-color:#7fe9ff66}.cosmic-home-pillars .cyan>span,.cosmic-home-pillars .cyan h3{color:#c8f6ff}
+.cosmic-home-worlds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;width:100%;margin-top:8px}
+.cosmic-home-world{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:148px;padding:20px;border-radius:20px;border:1px solid #ffffff26;
+  color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.cosmic-home-world:hover{transform:translateY(-3px);border-color:#ffe9a8;box-shadow:0 12px 40px #ffe9a826}
+.cosmic-home-world .glyph{font-size:26px;line-height:1}
+.cosmic-home-world strong{font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:21px}
+.cosmic-home-world span:last-child{font-size:14px;line-height:1.5;color:#eee7fb}
+.cosmic-home-world[data-world=cosmic]{background:linear-gradient(150deg,#4b1d8f,#1d0f42)}.cosmic-home-world[data-world=cosmic] .glyph{color:#c9a8ff}
+.cosmic-home-world[data-world=mantra]{background:linear-gradient(150deg,#1f4d5c,#1d0f42)}.cosmic-home-world[data-world=mantra] .glyph{color:#a8f0d8}
+.cosmic-home-world[data-world=gospel]{background:linear-gradient(150deg,#6a4310,#1d0f42)}.cosmic-home-world[data-world=gospel] .glyph{color:#ffd27a}
+.cosmic-home-world[data-world=afro]{background:linear-gradient(150deg,#7a3010,#1d0f42)}.cosmic-home-world[data-world=afro] .glyph{color:#ffb86b}
+.cosmic-home-world[data-world=soul]{background:linear-gradient(150deg,#6d1550,#1d0f42)}.cosmic-home-world[data-world=soul] .glyph{color:#ff9fe6}
+.cosmic-home-world[data-world=urban]{background:linear-gradient(150deg,#24305e,#1d0f42)}.cosmic-home-world[data-world=urban] .glyph{color:#a9b3ff}
+.cosmic-home-world[data-world=ocean]{background:linear-gradient(150deg,#0f4a6a,#1d0f42)}.cosmic-home-world[data-world=ocean] .glyph{color:#7fe9ff}
+.cosmic-home-world[data-world=celebrate]{background:linear-gradient(150deg,#5c1a6e,#1d0f42)}.cosmic-home-world[data-world=celebrate] .glyph{color:#ffe9a8}
+.cosmic-home-wisdom{display:flex;flex-direction:column;gap:24px;padding:40px clamp(16px,3vw,36px);border-radius:26px;border:1px solid #c9a8ff55;background:radial-gradient(ellipse at 50% 0%,#4a1f86 0%,#1a0f3c 70%);text-align:center}
+.cosmic-home-wisdom>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;text-align:left}
+.cosmic-home-wisdom figure{margin:0;display:flex;flex-direction:column;gap:10px;padding:22px;border-radius:18px;border:1px solid #ffffff1f;background:#ffffff0d}
+.cosmic-home-wisdom blockquote{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-style:italic;font-size:19px;line-height:1.45}
+.cosmic-home-wisdom figcaption{font-size:13px;color:#cdbfe8}
+.cosmic-home-wisdom figure[data-tone="0"] blockquote{color:#ffe9a8}.cosmic-home-wisdom figure[data-tone="1"] blockquote{color:#ff9fe6}.cosmic-home-wisdom figure[data-tone="2"] blockquote{color:#7fe9ff}
+.cosmic-home-wisdom figure[data-tone="3"] blockquote{color:#a8f0d8}.cosmic-home-wisdom figure[data-tone="4"] blockquote{color:#c9a8ff}.cosmic-home-wisdom figure[data-tone="5"] blockquote{color:#ffd27a}
+.cosmic-home-river{overflow:hidden;white-space:nowrap;padding:4px 0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-weight:600;font-size:22px;letter-spacing:.28em;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.cosmic-home-river>div{display:inline-block;animation:ch-river 60s linear infinite}
+.cosmic-home-river--gold{color:#ffe9a8;text-shadow:0 0 18px #ffd27a88}
+.cosmic-home-river--rose{color:#ff9fe6;text-shadow:0 0 18px #ff5fd288}
+.cosmic-home-wave{display:block;width:100%;height:64px}
+.cosmic-home-wave path{fill:none;stroke-linecap:round;stroke-dasharray:6 10;animation:ch-wave 14s linear infinite}
+
+@media(max-width:1100px){.cosmic-home-worlds,.cosmic-home-wisdom>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+  .cosmic-home-worlds,.cosmic-home-wisdom>div{grid-template-columns:1fr}
+  .cosmic-home-hero{padding:46px 16px 44px;border-radius:22px}
+  .cosmic-home-planet.p-gold{width:120px;height:120px;left:-60px}.cosmic-home-planet.p-gold i{width:200px;height:200px;border-width:6px}
+  .cosmic-home-planet.p-violet{width:160px;height:160px;right:-90px}
+  .cosmic-home-lyre{display:none}
+  .cosmic-home-river{font-size:17px}
+}
+
+@keyframes ch-spin{to{rotate:360deg}}
+@keyframes ch-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ch-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+@keyframes ch-rise{0%{transform:translateY(0) rotate(-8deg);opacity:0}15%,85%{opacity:.55}100%{transform:translateY(-160px) rotate(10deg);opacity:0}}
+@keyframes ch-drift{0%,100%{transform:translateX(-4%) rotate(var(--r,-18deg))}50%{transform:translateX(4%) rotate(var(--r,-18deg))}}
+@keyframes ch-shoot{0%{transform:translate(0,0) rotate(-28deg);opacity:0}6%{opacity:1}22%{transform:translate(-520px,280px) rotate(-28deg);opacity:0}100%{opacity:0;transform:translate(-520px,280px) rotate(-28deg)}}
+@keyframes ch-river{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes ch-wave{to{stroke-dashoffset:-400}}
+@keyframes ch-glow{0%,100%{opacity:.55}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .cosmic-home-sky *,.cosmic-home-flower,.cosmic-home-quote,.cosmic-home-river>div,.cosmic-home-wave path{animation:none !important}
+  .cosmic-home-note{opacity:.45}.cosmic-home-shoot{display:none}
+}
+
+/* Jumping to the song box leaves room for the sticky bars above it. */
+#quick-create-heading{scroll-margin-top:110px}

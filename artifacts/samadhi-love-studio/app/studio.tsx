@@ -15,6 +15,7 @@ import {NewSongForm,SongTemplateBrowser} from "./new-song-form";
 import {availableSongTemplates,isStudioPreset,songFromStarter} from "./song-presets";
 import {CreditBadge} from "./credits/credit-panel";
 import {productionFetch} from "./credits/client";
+import {CosmicHomeHero,CosmicHomeSky,CosmicHomeStory} from "./cosmic-home";
 import {wordsOnlyResult} from "./production-result";
 import { sameGenre, uniqueGenreNames } from "./music-genres";
 import { GenrePicker } from "./genre-picker";
@@ -473,6 +474,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     return true;
   }
   function quickFromCreate(seed:CreateSeed):Omit<QuickSeed,"id">{return {projectId:seed.projectId,idea:seed.idea,styles:seed.genres,lyrics:seed.lyrics,vocal:seed.vocal,title:seed.title,custom:!!(seed.lyrics||seed.vocal||seed.genres?.length),notice:"Loaded into Create. Review, then press Create when you are ready."};}
+  // The main page's welcome and worlds lead straight into the song box.
+  function focusCreateBox(){
+    const still=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById("quick-create-heading")?.scrollIntoView({behavior:still?"auto":"smooth",block:"start"});
+    window.setTimeout(()=>document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"],[data-testid="input-song-idea"]')?.focus({preventScroll:true}),still?0:400);
+  }
   function sendToCreate(seed:CreateSeed){if(navigate("overview"))setQuickSeed({...quickFromCreate(seed),id:uid()});}
   function openScreen(screen:Screen){
     if(screen==="plan-credits"){if(!canNavigate(null))return;setPane("plan-credits");setSelected("");try{window.history.pushState(null,"",`${window.location.pathname}?studio=plan-credits&section=${planTab}`);}catch{}window.scrollTo(0,0);return true;}
@@ -636,6 +643,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
       <div className="sidebar-bottom"><p className="studio-motto">From the silence<br/>comes the light.</p><div className="private"><div className="avatar">S</div><div><strong>{creatorName ?? "Samadhi"}</strong><small>{creatorName ? "Private creator workspace" : "Owner workspace"}</small></div><LockKeyhole size={13}/></div><a className="owner-signout" href={signOut} target="_top">Sign out</a></div>
     </aside>
     <main>
+      {loaded && view==="overview" && !song && !pane && <CosmicHomeSky/>}
       <header className="topbar"><div className="breadcrumb"><span>Studio</span><ChevronRight size={14}/><strong>{song ? song.name : pane==="plan-credits" ? "Plan & Credits" : workspaceNavigation.find(n => n.id === view)?.label}</strong><ScreenContextHelp screen={pane??(song?"songs":screenOf(view))}/></div>
         <div className="topbar-actions"><CreditBadge/><button type="button" className="secondary small" onClick={connectionSettings} aria-label="Settings"><Settings2 size={16}/><span>Settings</span></button>
           <button className="primary" disabled={!loaded || saving} onClick={() => beginner ? navigate("overview") : newSong()}><Plus size={17}/> {beginner ? "Create music" : "New song"}</button></div></header>
@@ -701,6 +709,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             persisted={(next,nextRevision)=>{dataRef.current=next;setData(next);revisionRef.current=nextRevision;setRevision(nextRevision);}}
             persistBusy={active=>{pendingSave.current=active;setSaving(active);}} dirty={active=>{hasDraft.current=active;}}/></Suspense> : view === "distribution" ?
           <ReleaseTools initialSongId={workflowSong} songs={cleanLibrary} saving={saving} save={saveSong}/> : view === "overview" ? <>
+          <CosmicHomeHero begin={focusCreateBox} video={()=>{navigate("lyric-video");}}/>
           <QuickCreate engine={musicEngine.status} favoriteTake={async id=>{const song=dataRef.current.songs.find(s=>s.id===id);if(song)await saveSong({...song,favorite:true},"Favourite take kept; both recordings stay saved");}} seed={quickSeed} recipes={songTemplates} editRecipe={t=>editTemplate(t&&isStudioPreset(t.id)?{...t,id:uid(),name:(t.name+" (my recipe)").slice(0,100)}:t)}
             writeLyrics={async input=>(await createRequest({...input,action:"lyric-plan"},"Your words are ready to shape",true))?.lyrics}
             promptHelpers={apply=><PromptLab seed={null} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy} send={seed=>apply({...quickFromCreate(seed),id:uid(),custom:true})}/>}
@@ -732,6 +741,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             saveSketch={async (file, title, prompt, arrangement, settings,saveId) =>
               (await sendAudio(file, title, null, { prompt, arrangement, settings },undefined,undefined,saveId))?.songId}/>
           <section className="panel form-panel creator-visual-gateway" aria-label="Make your creation visual"><h2>Make your creation visual</h2><p className="muted"><HologramVideoDescription/></p><div className="actions"><button type="button" className="primary" disabled={creating||saving} onClick={()=>{if(navigate("lyric-video")){setLyricSongId("");setAutoCaptionRequest(null);}}}>Browse lyric video templates</button><label className="field">Auto lyric video from My Music<select value="" disabled={creating||saving} onChange={e=>{if(e.target.value&&navigate("lyric-video")){setLyricSongId(e.target.value);const target=cleanLibrary.find(s=>s.id===e.target.value);setAutoCaptionRequest(target&&!target.lyricVideo?.cues.length&&target.creationKind!=="instrumental"&&!isInstrumental(target.instrumental)?{songId:target.id,id:uid()}:null);}}}><option value="">Choose a saved song…</option>{cleanLibrary.filter(s=>s.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label></div></section>
+          <CosmicHomeStory pickWorld={world=>{setQuickSeed({id:uid(),idea:world.idea,styles:[...world.styles]});focusCreateBox();}}/>
           {!beginner && <section className="studio-shortcuts" aria-label="Studio quick actions">
             {([{ label: "Music Creation", target: "overview", icon: Sparkles, hint: "Start with an idea" },
               { label: "Your songs", target: "songs", icon: ListMusic, hint: "Upload and organize" },
