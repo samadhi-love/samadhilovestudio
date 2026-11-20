@@ -2240,8 +2240,8 @@ function LyricVideoProContent(props: Props) {
                 {song && project && p && (
                   <><button type="button" className="mobile-preview-toggle" aria-expanded={mobilePreview} aria-controls="mobile-video-preview" onClick={()=>setMobilePreview(!mobilePreview)}>{mobilePreview?"Hide preview · focus on editing":"Show video preview"}</button><p className="mobile-context-note">Phone exports start at 720p to reduce memory use. Keep Studio visible and your screen awake during rendering. Download the result and check playback before sharing. Existing project framing stays unchanged.</p><div className="lvp-workspace" data-mobile-preview={mobilePreview}>
                     <aside className="lvp-preview-panel" id="mobile-video-preview">
-                      <VideoFormatPicker value={project.format} change={format=>edit(applyVideoShape(project,format))} disabled={busy} resolution={resolution}/>
-                      <VibeLookPicker project={project} change={edit} disabled={busy}/>
+                      {/* The playing video stays in view while the page scrolls; its choices sit below it. */}
+                      <div className="lvp-sticky-preview" data-testid="sticky-video-preview">
                       <div className={`lvp-video-preview ${project.format}`}>
                         <canvas
                           ref={canvas}
@@ -2312,6 +2312,9 @@ function LyricVideoProContent(props: Props) {
                           )
                         }
                       />
+                      </div>
+                      <VideoFormatPicker value={project.format} change={format=>edit(applyVideoShape(project,format))} disabled={busy} resolution={resolution}/>
+                      <VibeLookPicker project={project} change={edit} disabled={busy}/>
                       <div className="lvp-preview-label">
                         <span>
                           {shortTime(time)} / {shortTime(p.duration)}

@@ -302,14 +302,22 @@
   margin-top: 18px;
 }
 .lvp-preview-panel {
-  position: sticky;
-  top: 90px;
+  align-self: stretch;
   min-width: 0;
   background: linear-gradient(150deg, #f4f3f9, #fff);
   border: 1px solid #dee1ea;
   border-radius: 18px;
   padding: 13px;
 }
+/* Only the playing video follows the scroll, so it is never out of reach. */
+.lvp-sticky-preview {
+  position: sticky;
+  top: 90px;
+  z-index: 2;
+  padding-bottom: 8px;
+  background: inherit;
+}
+.lvp-sticky-preview .lvp-video-preview.vertical { width:min(100%,calc(58svh * 9 / 16)); }
 .lvp-video-preview {
   border-radius: 12px;
   overflow: hidden;
@@ -672,8 +680,10 @@
   .lvp-workspace {
     grid-template-columns: 1fr;
   }
-  .lvp-preview-panel {
+  .lvp-sticky-preview {
     position: static;
+  }
+  .lvp-preview-panel {
     max-width: 560px;
     width: 100%;
     margin: auto;
