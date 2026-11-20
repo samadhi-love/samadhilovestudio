@@ -11,6 +11,7 @@ import { applyLyricBackground } from "./lyric-background-picker";
 import { applyCreatorVideoLook, applyVideoShape, creatorVideoLooks } from "./creator-video-presets";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
 import type { Song } from "./studio-data";
+import type { OwnBackground } from "./own-background";
 
 export { suggestedThemes } from "./background-chooser";
 
@@ -20,9 +21,12 @@ export function QuickVideoPanel(props: {
   edit: (next: LyricProject) => void; make: () => void; progress: number | null;
   blocked: { text: string; step: number }[]; latest?: { url: string; extension: string; format: VideoFormat };
   addWords: () => void; fixWords: () => void; openFineTune: (step: number) => void;
+  /** Your own photo, video or camera ("Yours" tab). */
+  own?: OwnBackground;
 }) {
   const { project, busy } = props;
-  const customBackground = !!project.pro?.background;
+  // Your own photo or video is on: no gallery box shows as picked.
+  const customBackground = !!props.own?.active || !!project.pro?.background;
   const isSelected = (key: BackgroundKey) => {
     if (customBackground) return false;
     const [kind, id] = key.split(":");
@@ -59,7 +63,7 @@ export function QuickVideoPanel(props: {
 
       <div className="qv-step qv-vibe" id="qv-vibe" data-testid="qv-vibe">
         <span className="qv-kicker">2 · Vibe · background, lettering and motion</span>
-        <BackgroundChooser song={props.song} disabled={busy} isSelected={isSelected} pick={pick}
+        <BackgroundChooser song={props.song} disabled={busy} isSelected={isSelected} pick={pick} own={props.own}
           extra={<button type="button" className="qv-link" disabled={busy} onClick={() => props.openFineTune(3)}>More lettering and motion</button>}/>
       </div>
 

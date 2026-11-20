@@ -13,11 +13,12 @@ import { videoThemes, type VideoTheme } from "./lyric-video-data";
 import { lyricBackgroundGroups } from "./lyric-background-picker";
 import { creatorVideoLooks } from "./creator-video-presets";
 import type { Song } from "./studio-data";
+import { OwnBackgroundPanel, type OwnBackground } from "./own-background";
 
 export type BackgroundKey = `theme:${string}` | `look:${string}`;
-type Tab = "song" | "looks" | keyof typeof lyricBackgroundGroups;
+type Tab = "song" | "yours" | "looks" | keyof typeof lyricBackgroundGroups;
 const tabNames: Record<Tab, string> = {
-  song: "For this song", looks: "Complete looks", kids: "Kids", usa: "USA and New York", world: "World",
+  song: "For this song", yours: "Yours · photo, video, camera", looks: "Complete looks", kids: "Kids", usa: "USA and New York", world: "World",
   sacred: "Sacred", scenes: "Cosmic and scenes", colors: "Colors",
 };
 
@@ -50,14 +51,16 @@ export function BackgroundChooser(props: {
   song?: Pick<Song, "name" | "notes" | "tags"> | null; disabled?: boolean;
   isSelected: (key: BackgroundKey) => boolean; pick: (key: BackgroundKey) => void;
   extra?: React.ReactNode;
+  /** Your own photo, video or camera. The "Yours" tab shows only where it is given. */
+  own?: OwnBackground;
 }) {
-  const [tab, setTab] = useState<Tab>("song");
+  const [tab, setTab] = useState<Tab>(() => props.own?.active ? "yours" : "song");
   const [query, setQuery] = useState("");
   const words = query.trim().toLowerCase();
   // Typing searches every background and complete look by name, whatever tab is open.
   const themes: VideoTheme[] = words
     ? allThemes.filter(id => `${videoThemes[id].title} ${tabNames[groupOf(id) ?? "song"]}`.toLowerCase().includes(words))
-    : tab === "song" ? suggestedThemes(props.song) : tab === "looks" ? [] : [...lyricBackgroundGroups[tab].themes];
+    : tab === "song" ? suggestedThemes(props.song) : tab === "looks" || tab === "yours" ? [] : [...lyricBackgroundGroups[tab].themes];
   const looks = words ? creatorVideoLooks.filter(l => `${l.name} ${l.vibe} ${l.category}`.toLowerCase().includes(words)) : tab === "looks" ? creatorVideoLooks : [];
   const surprise = () => {
     const pool = suggestedThemes(props.song).filter(id => !props.isSelected(`theme:${id}`));
@@ -71,10 +74,11 @@ export function BackgroundChooser(props: {
         {query && <button type="button" className="qv-link" aria-label="Clear search" onClick={() => setQuery("")}><X size={14} aria-hidden="true" /></button>}
       </label>
       <div className="qv-chips" role="tablist" aria-label="Background groups">
-        {(Object.keys(tabNames) as Tab[]).map(id => (
+        {(Object.keys(tabNames) as Tab[]).filter(id => id !== "yours" || props.own).map(id => (
           <button type="button" role="tab" key={id} aria-selected={!words && tab === id} className="qv-chip" onClick={() => { setTab(id); setQuery(""); }} data-testid={`qv-chip-${id}`}>{tabNames[id]}</button>
         ))}
       </div>
+      {!words && tab === "yours" && props.own ? <div className="qv-grid qv-grid-own" data-testid="qv-grid" role="tabpanel" aria-label={tabNames.yours}><OwnBackgroundPanel own={props.own} disabled={props.disabled} /></div> :
       <div className="qv-grid" data-testid="qv-grid" role="tabpanel" aria-label={words ? `Results for ${query}` : tabNames[tab]}>
         {themes.map(id => (
           <button type="button" key={id} className="qv-card" disabled={props.disabled} aria-pressed={props.isSelected(`theme:${id}`)}
@@ -87,7 +91,7 @@ export function BackgroundChooser(props: {
             <span className="qv-art" style={backgroundArt(look.theme)} aria-hidden="true" /><span className="qv-name">{look.name} <small>· look</small></span>
           </button>))}
         {!themes.length && !looks.length && <p className="lvp-note" role="status">No background called “{query}”. Try another word, or pick a tab.</p>}
-      </div>
+      </div>}
       <div className="qv-row">
         <button type="button" disabled={props.disabled} onClick={surprise} data-testid="qv-surprise"><Dice5 size={15} aria-hidden="true" /> Surprise me</button>
         {props.extra}

@@ -20,3 +20,17 @@
 .quick-background-pick h3 { margin: 0 0 8px; font-size: 16px; }
 .shell .lyric-video-pro .bg-chooser .bg-search, .shell .bg-chooser .bg-search { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; }
 .shell .lyric-video-pro .bg-chooser .bg-search input, .shell .bg-chooser .bg-search input { flex: 1; width: auto; min-width: 0; margin: 0; border: 0; background: transparent; box-shadow: none; padding: 6px 0; min-height: 0; color: inherit; }
+/* "Yours": your photo, your video, your camera. */
+.bg-chooser .qv-grid-own { display: block; max-height: none; }
+.bg-chooser .own-bg { display: grid; gap: 8px; }
+.bg-chooser .own-bg-status { margin: 0; font-size: 13px; color: #e6e0ff; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bg-chooser .own-bg-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.shell .bg-chooser .own-bg-card, .bg-chooser .own-bg-card { position: relative; align-items: center; justify-content: center; gap: 6px; padding: 14px 8px; border: 1px dashed #9b7ad8; background: #1b1638; text-align: center; color: #e6e0ff; }
+.bg-chooser .own-bg-card .qv-name { padding: 0; }
+.bg-chooser .own-bg-card:focus-within { border-color: #f3d29d; }
+.bg-chooser .own-bg-card.is-disabled { opacity: .55; cursor: not-allowed; }
+.bg-chooser .own-bg-file { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.bg-chooser .own-camera { display: grid; gap: 8px; }
+.bg-chooser .own-camera video { width: 100%; max-height: 240px; border-radius: 12px; background: #000; object-fit: contain; }
+.shell .bg-chooser .own-camera-pick, .bg-chooser .own-camera-pick { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.shell .bg-chooser .own-camera-pick select, .bg-chooser .own-camera-pick select { width: auto; margin: 0; }

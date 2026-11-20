@@ -150,7 +150,7 @@ type Props = {
   coverVideoRequest?:{id:string;songId:string;asset:string;overlay:OverlayStyle}|null;
   createSong?:()=>void;
   advanced?:boolean;
-  socialVideoRequest?: {songId:string;id:string;look?:string;photoAsset?:string;audioId?:string;start?:number;seconds?:number}|null;
+  socialVideoRequest?: {songId:string;id:string;look?:string;photoAsset?:string;footage?:{asset:string;duration:number};audioId?:string;start?:number;seconds?:number}|null;
   autoCaptionRequest?: { songId: string; id: string } | null;
   songs: Song[];
   initialSongId: string;
@@ -852,7 +852,7 @@ function LyricVideoProContent(props: Props) {
     handledSocialRequest.current=request.id;
     if(recovery){setError("Resolve the available recovery copy before changing this video's excerpt. Your saved project is preserved.");return;}
     if(request.audioId&&request.audioId!==p.sourceAudioId){setError("This recording changed. Open its current version before preparing the video; your saved design is preserved.");return;}
-    const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;let next=applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
+    const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;let next=applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset,request.footage);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[props.socialVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   const handledCover=useRef("");
@@ -1516,10 +1516,10 @@ function LyricVideoProContent(props: Props) {
     try{for(const file of files){await validateDesign(file);const asset=await uploadLyricAsset(p.sourceSongId,"background",file,task.signal);photos.push({asset,name:file.name.slice(0,100)});patchPro({useTemplateBackground:false,backgroundVideo:undefined,adPhotoStory:{motion:"zoom",fit:"contain",transition:"dissolve",prompt:"",...p.adPhotoStory,photos:[...photos]}});}setStatus("Ad photos saved privately. Review the animated preview, add your logo, then export MP4.");}
     catch(error){message(error,"Some photos could not save. Already saved photos remain in your story; retry the missing ones.");}finally{controller.current=null;setOperation("");}
   }
-  async function uploadProductVideo(file:File){
-    if(!p||busy)return;setOperation("Checking product video");setError("");const task=new AbortController();controller.current=task;let decoder:FootageDecoder|undefined;
-    try{decoder=await openFootage(file,task.signal);const asset=await uploadLyricAsset(p.sourceSongId,"sourceVideo",file,task.signal);patchPro({useTemplateBackground:false,adPhotoStory:undefined,backgroundVideo:{asset,duration:decoder.duration,trimStart:0,trimEnd:decoder.duration,loop:true,fit:"contain"}});setStatus("Product video saved privately. Its original audio is muted; your song stays the soundtrack.");}
-    catch(error){message(error,"The product clip could not save. Your song is unchanged.");}finally{decoder?.dispose();controller.current=null;setOperation("");}
+  async function uploadProductVideo(file:File,fit:"contain"|"cover"="contain"){
+    if(!p||busy)return;setOperation(fit==="cover"?"Checking your video":"Checking product video");setError("");const task=new AbortController();controller.current=task;let decoder:FootageDecoder|undefined;
+    try{decoder=await openFootage(file,task.signal);const asset=await uploadLyricAsset(p.sourceSongId,"sourceVideo",file,task.signal);patchPro({useTemplateBackground:false,adPhotoStory:undefined,backgroundVideo:{asset,duration:decoder.duration,trimStart:0,trimEnd:decoder.duration,loop:true,fit}});setStatus(fit==="cover"?"Your video is the background now. It loops, its own sound is muted, and your song stays the soundtrack.":"Product video saved privately. Its original audio is muted; your song stays the soundtrack.");}
+    catch(error){message(error,fit==="cover"?"Your video could not save. Your song is unchanged.":"The product clip could not save. Your song is unchanged.");}finally{decoder?.dispose();controller.current=null;setOperation("");}
   }
   async function applyGeneratedVisual(job:VisualJob,scene:boolean){
     if(busy)throw new Error("Finish the current action before applying a visual.");
@@ -2419,7 +2419,12 @@ function LyricVideoProContent(props: Props) {
                       <QuickVideoPanel song={song} project={project} time={time} busy={busy} edit={edit} make={() => void exportVideo()} progress={progress}
                         captionState={captionState} blocked={exportChecks.filter(check => check.level === "block").map(check => ({ text: check.text, step: check.step }))}
                         latest={outputs.at(-1)} addWords={() => { openFineTune(1); setLyricsEditorOpen(true); }} fixWords={() => openCaptionEditor(Math.max(0, project.cues.findLastIndex(c => c.time <= time)))}
-                        openFineTune={openFineTune}/>
+                        openFineTune={openFineTune} own={{
+                          active: project.pro?.backgroundVideo && !project.pro.useTemplateBackground ? "video" : project.pro?.background && project.pro.useTemplateBackground !== false ? "photo" : null,
+                          photo: file => uploadOwnBackground(file, "all"),
+                          video: file => uploadProductVideo(file, "cover"),
+                          clear: () => edit(applyLyricBackground(project, project.theme, "all", time)),
+                        }}/>
                       <details className="lvp-finetune" id="lvp-finetune" open={fineTune} onToggle={e => setFineTune((e.currentTarget as HTMLDetailsElement).open)} data-testid="details-fine-tune">
                       <summary>Fine-tune · fix words, timing, fonts, animation, AI visuals, ads, versions</summary>
                       <nav className="lvp-stepper" aria-label="Fine-tune sections">

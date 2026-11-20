@@ -6,4 +6,4 @@ export type PlayChoices={energy:keyof typeof playEnergies;mood:keyof typeof play
 export const defaultPlayChoices:PlayChoices={energy:'balanced',mood:'hopeful',look:'cosmic'};
 export function validPlayChoices(value:unknown):value is PlayChoices{const v=value as PlayChoices;return !!v&&Object.hasOwn(playEnergies,v.energy)&&Object.hasOwn(playMoods,v.mood)&&Object.hasOwn(playLooks,v.look);}
 export function playDirection(value:PlayChoices){return `${playEnergies[value.energy]} ${playMoods[value.mood]} Preserve the supplied lyrics and use an original melody.`;}
-export type PlayVisualRequest={look?:string;photo?:File};
+export type PlayVisualRequest={look?:string;photo?:File;video?:File};
