@@ -14,7 +14,9 @@ export function elevenLabsTransport(input:RequestInfo|URL,init:RequestInit={}) {
   // their method rather than accidentally treating a paid POST as a safe GET.
   const inheritedMethod=typeof input==="object"&&"method" in input&&typeof input.method==="string"?input.method:"GET";
   const method=(init.method??inheritedMethod).toUpperCase();
-  const send=()=>fetch(input,{...init,redirect:"manual"});
+  // Node's fetch (Replit) refuses a streamed body without duplex:"half".
+  const streamed=typeof ReadableStream!=="undefined"&&init.body instanceof ReadableStream?{duplex:"half"}:{};
+  const send=()=>fetch(input,{...init,...streamed,redirect:"manual"} as RequestInit);
   // Production IDs deduplicate our app, but provider billing idempotency is not
   // guaranteed. Never replay POST music/plans/alignment/stems/visual requests.
   return method==="GET"||method==="HEAD"?retryRead(send,{signal:init.signal??undefined}):send();
