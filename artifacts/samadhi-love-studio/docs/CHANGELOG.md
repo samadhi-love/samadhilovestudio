@@ -34,7 +34,7 @@ request → what changed → the commit → the tests that prove it.
     creator account changes, owner claim, ElevenLabs key save/remove/default, and
     history setup.
   - A route wrapped twice now logs one line under one ID.
-- **Commit:** see the commit titled "Owner Status page…" (directly after 08f57bd).
+- **Commit:** `a7835ab`
 - **Tests:** `tests/observability.test.mjs` (12; real SQLite) ·
   `tests/app-status.test.tsx` (2; renders the page) · full suite.
 
