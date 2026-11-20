@@ -408,8 +408,8 @@ function bubbles(c: Ctx, w: number, h: number, t: number, m: number) {
     c.globalAlpha = 0.55; c.strokeStyle = "#e8fbff"; c.lineWidth = Math.max(1, r * 0.18); c.beginPath(); c.arc(x, y, r, 0, TAU); c.stroke();
     c.globalAlpha = 0.7; c.fillStyle = "#ffffff"; c.beginPath(); c.arc(x - r * 0.35, y - r * 0.35, r * 0.22, 0, TAU); c.fill();
   }
-  c.globalCompositeOperation = "lighter"; c.globalAlpha = 0.07; c.fillStyle = "#bff6ff";
-  for (let i = 0; i < 8; i++) { c.beginPath(); c.ellipse((rnd(i, 73) * w + Math.sin(t * 0.7 + i) * w * 0.08), h * (0.1 + rnd(i, 74) * 0.5), w * 0.12, h * 0.03, Math.sin(t * 0.4 + i), 0, TAU); c.fill(); }
+  c.globalCompositeOperation = "lighter"; c.globalAlpha = 0.035; c.fillStyle = "#bff6ff";
+  for (let i = 0; i < 8; i++) { c.beginPath(); c.ellipse((rnd(i, 73) * w + Math.sin(t * 0.7 + i) * w * 0.08), h * (0.1 + rnd(i, 74) * 0.5), w * 0.07, h * 0.018, Math.sin(t * 0.4 + i), 0, TAU); c.fill(); }
   c.restore();
 }
 /** Night fireworks (kept for photos taken after dark). */

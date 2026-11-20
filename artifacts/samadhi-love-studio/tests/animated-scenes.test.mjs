@@ -28,12 +28,13 @@ test("all 7 animated scenes draw in every video shape without errors, and they a
   assert.equal(api.drawAnimatedScene(recorder(),"cosmic",100,100,1),false,"other backgrounds are untouched");
 });
 
-test("new scenes are in the picker (Kids songs, USA & New York) with a preview picture, and are animated, not still photos",()=>{
+test("new scenes are in the picker (Kids songs, USA & New York) with a preview picture, and use a real photo with live motion on top",()=>{
   assert.deepEqual([...api.lyricBackgroundGroups.kids.themes],["balloons","meadow","undersea","lullaby"]);
   assert.deepEqual([...api.lyricBackgroundGroups.usa.themes],["flag","liberty","nycnight"]);
   for(const id of api.animatedScenes){
     const theme=api.videoThemes[id];
-    assert.equal(theme.image,"","drawn live so it animates");
+    assert.equal(theme.image,`/lyric-art/photo/${id}.webp`,"realistic photo background");
+    assert.ok(existsSync("public"+theme.image),`${id} photo exists`);
     assert.ok(existsSync("public"+theme.thumb),`${id} preview exists`);
     assert.equal(theme.colors.length,4);
   }

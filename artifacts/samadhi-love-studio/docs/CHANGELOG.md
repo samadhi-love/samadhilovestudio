@@ -30,7 +30,7 @@ request → what changed → the commit → the tests that prove it.
   while the building below stays still. Photos come from a one-time script
   (`scripts/generate-scene-photos.mjs`, about $0.06 each, never retried) that
   records each photo's source in `public/lyric-art/photo/SOURCES.json`.
-- **Commit:** see "Animated backgrounds…" after `9c2d0e1`.
+- **Commits:** `a05e353` (scenes + motion) · `1daecb2` (photos, made by Replit with the script) · photos connected in the commit after it.
 - **Tests:** `tests/animated-scenes.test.mjs` (all scenes, all shapes, they move;
   photo motion; flag cloth) · `tests/lyric-visual-template.test.ts` (46 designs).
 

@@ -312,8 +312,8 @@ export function LyricBackgroundPicker({
                 className={`lvp-background-art scene-${id}`}
                 aria-hidden="true"
                 style={{
-                  backgroundImage: theme.image || ("thumb" in theme && theme.thumb)
-                    ? `url(${theme.image || ("thumb" in theme ? theme.thumb : "")})`
+                  backgroundImage: ("thumb" in theme && theme.thumb) || theme.image
+                    ? `url(${("thumb" in theme && theme.thumb) || theme.image})`
                     : `radial-gradient(ellipse at 50% 25%,${theme.colors[0]},${theme.colors[1]} 50%,${theme.colors[2]})`,
                 }}
               >
