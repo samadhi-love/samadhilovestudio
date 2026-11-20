@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Film, Headphones, Lock, Megaphone, Mic, Scissors, Send, Sparkles, Video } from "lucide-react";
+import { Film, Headphones, Lock, Megaphone, Mic, Scissors, Send, Sparkles, Video, AudioLines } from "lucide-react";
 import type { QuickSeed } from "./quick-create";
 import type { SectionView } from "./studio-routes";
 import { BrandLogoDesigner } from "./brand-logo-designer";
@@ -97,7 +97,7 @@ export function RecordSwitch({ view, beginner, capturing, navigate }: { view: Se
   const vocal = view === "vocal-studio";
   return <div className="record-switch" data-testid="record-switch">
     <div className="record-mode-toggle" role="radiogroup" aria-label="Record mode">
-      {([["recording", "Voice", Mic], ["podcast", "Podcast", Headphones]] as const).map(([id, label, Icon]) =>
+      {([["recording", "Voice", Mic], ["podcast", "Podcast", Headphones], ["my-voices", "My Voices", AudioLines]] as const).map(([id, label, Icon]) =>
         <button key={id} type="button" role="radio" data-testid={`radio-record-${id}`} aria-checked={view === id} disabled={capturing && view !== id} onClick={() => navigate(id)}><Icon size={16}/> {label}</button>)}
     </div>
     {(!beginner || vocal) && <button type="button" className="record-pro-fold" data-testid="toggle-vocal-studio" aria-expanded={vocal} disabled={capturing} onClick={() => navigate(vocal ? "recording" : "vocal-studio")}>
