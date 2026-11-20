@@ -16,6 +16,23 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### LyriVid in 3 taps: Song → Vibe → Make it
+- **Request:** "where you make video and backgrounds are far and so many options…
+  like bom bom bom done" → "do not delete backgrounds, make it accessible without
+  having to scroll a long page… recommend a good plan and go".
+- **Changed:** a 3-tap panel beside the live preview. **Song** (words start timing
+  to the voice on their own, also when opened from the LyriVid tab). **Vibe** has
+  chips for every collection (For this song, Complete looks, Kids, USA and New
+  York, World, Sacred, Cosmic and scenes, Colors); all 46 backgrounds sit in one
+  short box with its own scroll bar, plus Surprise me. **Make it** has Phone,
+  YouTube or Square, then Make my video, with Download right there. Every other
+  tool moved into a closed **Fine-tune** drawer; nothing was removed. Repeated
+  pickers under the preview were folded away.
+- **Commit:** see "LyriVid in 3 taps…" after `b9bd6c7`.
+- **Tests:** `tests/quick-video-panel.test.tsx` (auto captions once, never over
+  saved or recovered timing or instrumentals; all 46 backgrounds reachable;
+  Fine-tune starts closed; For this song suggestions) · full suite.
+
 ### Animated backgrounds: 4 kids, US flag, Statue of Liberty, New York at night
 - **Request:** "4 different animated pictures that fit kids songs… copyright safe…
   couple with US flag and Statue of Liberty and one NYC at night" → "make the
