@@ -44,6 +44,14 @@ export const videoThemes = {
   arctic: { title: "Arctic Ice", colors: ["#6faabe", "#285069", "#0c2338", "#d8fbff"], image: "" },
   terra: { title: "Terracotta Glow", colors: ["#b87756", "#654134", "#241b28", "#ffdfb9"], image: "" },
   peacock: { title: "Peacock Teal", colors: ["#398a8e", "#274458", "#0b202f", "#bfffee"], image: "" },
+  // Animated scenes drawn in code (app/lyric-animated-scenes.ts): original, copyright-safe art.
+  balloons: { title: "Balloon Party", colors: ["#ff8fab", "#7cc8ff", "#3a2a6b", "#ffffff"], image: "", thumb: "/lyric-art/animated/balloons.webp" },
+  meadow: { title: "Rainbow Meadow", colors: ["#8ac926", "#63c5ff", "#1d4d2b", "#ffffff"], image: "", thumb: "/lyric-art/animated/meadow.webp" },
+  undersea: { title: "Under the Sea", colors: ["#48cae4", "#0077b6", "#03045e", "#e0fbff"], image: "", thumb: "/lyric-art/animated/undersea.webp" },
+  lullaby: { title: "Starry Lullaby", colors: ["#b9a6e8", "#2b1055", "#141e5b", "#fff1b8"], image: "", thumb: "/lyric-art/animated/lullaby.webp" },
+  flag: { title: "Stars & Stripes", colors: ["#b22234", "#1d3557", "#0d1b3e", "#ffffff"], image: "", thumb: "/lyric-art/animated/flag.webp" },
+  liberty: { title: "Liberty Torch", colors: ["#f2715a", "#7a2e6b", "#1b1446", "#ffe8c2"], image: "", thumb: "/lyric-art/animated/liberty.webp" },
+  nycnight: { title: "New York at Night", colors: ["#ffd27a", "#16224a", "#070b1f", "#fff3d6"], image: "", thumb: "/lyric-art/animated/nycnight.webp" },
 } as const;
 
 export type VideoTheme = keyof typeof videoThemes;

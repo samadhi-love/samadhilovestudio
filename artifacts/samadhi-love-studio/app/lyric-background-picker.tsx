@@ -8,6 +8,14 @@ import {
 } from "./lyric-video-data";
 
 export const lyricBackgroundGroups = {
+  kids: {
+    name: "Kids songs · animated",
+    themes: ["balloons", "meadow", "undersea", "lullaby"],
+  },
+  usa: {
+    name: "USA & New York · animated",
+    themes: ["flag", "liberty", "nycnight"],
+  },
   world: {
     name: "Cosmic world music",
     themes: ["silkroad", "lotusrhythm", "earthbeat"],
@@ -168,7 +176,11 @@ export function LyricBackgroundPicker({
 }) {
   const [group, setGroup] = useState<keyof typeof lyricBackgroundGroups>(
     initialGroup ??
-      (lyricBackgroundGroups.world.themes.some((id) => id === project.theme)
+      (lyricBackgroundGroups.kids.themes.some((id) => id === project.theme)
+        ? "kids"
+        : lyricBackgroundGroups.usa.themes.some((id) => id === project.theme)
+        ? "usa"
+        : lyricBackgroundGroups.world.themes.some((id) => id === project.theme)
         ? "world"
         : lyricBackgroundGroups.sacred.themes.some((id) => id === project.theme)
         ? "sacred"
@@ -300,8 +312,8 @@ export function LyricBackgroundPicker({
                 className={`lvp-background-art scene-${id}`}
                 aria-hidden="true"
                 style={{
-                  backgroundImage: theme.image
-                    ? `url(${theme.image})`
+                  backgroundImage: theme.image || ("thumb" in theme && theme.thumb)
+                    ? `url(${theme.image || ("thumb" in theme ? theme.thumb : "")})`
                     : `radial-gradient(ellipse at 50% 25%,${theme.colors[0]},${theme.colors[1]} 50%,${theme.colors[2]})`,
                 }}
               >

@@ -17,6 +17,7 @@ const checks = [
   ["Per-song storage and shared backend boundaries", ["--test", "tests/song-row-storage.test.mjs", "tests/backend-boundaries.test.mjs"]],
   ["Durable background jobs and safe interruption recovery", ["--test", "tests/background-jobs.test.mjs", "tests/durable-processing.test.mjs"]],
   ["Safe retries, health, panel recovery, private diagnostics and input guards", ["--test", "tests/self-healing.test.mjs"]],
+  ["Animated lyric backgrounds: kids, USA and New York", ["--test", "tests/animated-scenes.test.mjs"]],
   ["Traceability: request IDs, structured logs and AI-call logs without private data", ["--test", "tests/observability.test.mjs"]],
   ["Mantra phrase repetition, echo, microphone cleanup and safe recording saves", ["scripts/test-mantra.mjs"]],
   ["Singing languages, dialects and prompt interpretation", ["scripts/test-music-languages.mjs"]],

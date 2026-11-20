@@ -59,10 +59,11 @@ const project: LyricProject = {
 };
 test("existing twelve-design collections and cosmic world music have distinct available designs", () => {
   const ids = Object.values(lyricBackgroundGroups).flatMap((g) => g.themes);
-  assert.equal(ids.length, 39);
-  assert.equal(new Set(ids).size, 39);
+  assert.equal(ids.length, 46); // 39 + 4 kids + 3 USA & New York animated scenes
+  assert.equal(new Set(ids).size, 46);
+  const sizes: Record<string, number> = { world: 3, kids: 4, usa: 3 };
   for (const [name,group] of Object.entries(lyricBackgroundGroups)) {
-    assert.equal(group.themes.length, name === "world" ? 3 : 12);
+    assert.equal(group.themes.length, sizes[name] ?? 12);
     for (const id of group.themes) {
       assert(isLyricProject({ ...project, theme: id }));
       if (videoThemes[id].image)

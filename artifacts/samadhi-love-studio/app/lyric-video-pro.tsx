@@ -2891,7 +2891,7 @@ function LyricVideoProContent(props: Props) {
                           <span className="lvp-kicker">STEP 2 · LOOK</span>
                           <h2>Choose your look</h2>
                           <VibeLookPicker project={project} change={edit} disabled={busy} title="Featured vibes"/>
-                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all 36 designs</h3>
+                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all {Object.keys(videoThemes).length} designs</h3>
                           <LyricBackgroundPicker
                             initialGroup="sacred"
                             project={project}

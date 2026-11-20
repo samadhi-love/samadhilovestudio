@@ -16,6 +16,24 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### Animated backgrounds: 4 kids, US flag, Statue of Liberty, New York at night
+- **Request:** "4 different animated pictures that fit kids songs… copyright safe…
+  couple with US flag and Statue of Liberty and one NYC at night" → "make the
+  real pictures more realistic" → "AI photos + motion", kids realistic too →
+  "need a better flag" (flag across the top, White House behind).
+- **Changed:** two new background groups, **Kids songs** (Balloon Party, Rainbow
+  Meadow, Under the Sea, Starry Lullaby) and **USA & New York** (Stars & Stripes,
+  Liberty Torch, New York at Night). They're drawn and animated in code
+  (original art) and work right away. When the AI photos are added, each scene
+  shows its photo with live motion on top: twinkling lights found in the photo,
+  shimmering water, rising bubbles and floating light, and the flag ripples
+  while the building below stays still. Photos come from a one-time script
+  (`scripts/generate-scene-photos.mjs`, about $0.06 each, never retried) that
+  records each photo's source in `public/lyric-art/photo/SOURCES.json`.
+- **Commit:** see "Animated backgrounds…" after `9c2d0e1`.
+- **Tests:** `tests/animated-scenes.test.mjs` (all scenes, all shapes, they move;
+  photo motion; flag cloth) · `tests/lyric-visual-template.test.ts` (46 designs).
+
 ### Owner Status page, 30-day history, owner action log, targets
 - **Request:** "GO" on recommendations 6–10 of the traceability review: a status
   panel, success targets, an owner action log, logs kept beyond Replit, and this
