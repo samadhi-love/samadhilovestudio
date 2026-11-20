@@ -15,6 +15,7 @@ import {NewSongForm,SongTemplateBrowser} from "./new-song-form";
 import {availableSongTemplates,isStudioPreset,songFromStarter} from "./song-presets";
 import {CreditBadge} from "./credits/credit-panel";
 import {productionFetch} from "./credits/client";
+import {wordsOnlyResult} from "./production-result";
 import { sameGenre, uniqueGenreNames } from "./music-genres";
 import { GenrePicker } from "./genre-picker";
 import {SongCard,SongHubProvider,type SongAction} from "./song-card";
@@ -276,6 +277,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
         confirmedRef.current={data:result.data,revision:result.revision};
       }
+      if (wordsOnlyResult(response.ok, result)) { setToast(message); return result; }
       if (!response.ok || !result || !Number.isSafeInteger(result.revision)) throw new Error(result?.error ?? (url === "/api/studio/create"
         ? "The production result could not be confirmed. Keep this tab open and check Your songs and your provider history before generating again to avoid a duplicate charge."
         : "The save could not be confirmed. Keep this tab open and retry."));
