@@ -3,6 +3,7 @@ import { privateWorkspace } from "../../../studio-access";
 import { privateHeaders } from "../store";
 import { testElevenLabs } from "./provider";
 import { keyStatus, removeElevenLabsKey, resolveElevenLabsKey, saveElevenLabsKey, validElevenLabsKey } from "./vault";
+import { ownerAction, traced } from "../../../server/request-context";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
@@ -11,7 +12,7 @@ function problem(error: string, status: number) {
   return Response.json({ error }, { ...options, status });
 }
 
-export async function GET() {
+async function GETHandler() {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to your creator workspace.", 401);
   const id = access.id;
@@ -42,6 +43,7 @@ async function manageConnection(request: Request) {
     const { status, etag } = await keyStatus(id);
     if (request.method === "DELETE") {
       if (!await removeElevenLabsKey(id, access.role === "owner")) return problem("The secure credential store is unavailable.", 503);
+      ownerAction("elevenlabs-key.remove", id, { role: access.role });
       return Response.json((await keyStatus(id)).status, options);
     }
     if (!status.available) return problem("The secure credential store is unavailable. Try again later.", 503);
@@ -59,6 +61,7 @@ async function manageConnection(request: Request) {
       const defaultProvider = status.defaultProvider && check.musicAccess !== "unavailable";
       if (!await saveElevenLabsKey(id, key, check, defaultProvider, etag))
         return problem("Connection settings changed in another tab. Reload and try again.", 409);
+      ownerAction("elevenlabs-key.save", id, { role: access.role, musicAccess: check.musicAccess });
       return Response.json({ ...status, saved: true, defaultProvider, ...check,owner:access.role==="owner",requestId }, responseOptions);
     }
 
@@ -72,13 +75,15 @@ async function manageConnection(request: Request) {
       return problem("Pass Test Connection before setting ElevenLabs as the default.", 422);
     if (!await saveElevenLabsKey(id, key, check, checking ? status.defaultProvider : true, etag))
       return problem("Connection settings changed in another tab. Reload and try again.", 409);
+    if (!checking) ownerAction("elevenlabs.set-default", id, { role: access.role });
     return Response.json({ ...status, ...check, defaultProvider: checking ? status.defaultProvider : true,owner:access.role==="owner",requestId }, responseOptions);
   } catch {
     return problem("Could not manage the ElevenLabs connection. Try again.", 503);
   }
 }
 
-export const PUT = manageConnection;
-export const POST = manageConnection;
-export const PATCH = manageConnection;
-export const DELETE = manageConnection;
+export const PUT=traced(manageConnection);
+export const POST=traced(manageConnection);
+export const PATCH=traced(manageConnection);
+export const DELETE=traced(manageConnection);
+export const GET=traced(GETHandler);

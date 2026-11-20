@@ -1,0 +1,72 @@
+{
+  "balloons": {
+    "file": "/lyric-art/photo/balloons.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "Colorful helium balloons in red, yellow, blue, green, pink and purple floating upward into a bright blue summer sky with soft white clouds, joyful children's birthday party mood, warm sunlight, gentle bokeh. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa31-44db-7a92-ab19-5e271d9e1c5a",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:21:48.028Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "meadow": {
+    "file": "/lyric-art/photo/meadow.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "A vivid rainbow arching over a lush green meadow full of colorful wildflowers, a few butterflies, fluffy white clouds in a blue sky, soft morning sunlight, cheerful and gentle, no people. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa31-7694-7c50-8280-178d44d95f08",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:21:57.724Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "undersea": {
+    "file": "/lyric-art/photo/undersea.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "Underwater photograph of a bright, healthy coral reef with friendly colorful tropical fish, sunbeams shining down through clear turquoise water, small rising bubbles, cheerful and calm, no divers. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa31-9c79-7421-a157-03f2da9b074f",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:22:10.399Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "lullaby": {
+    "file": "/lyric-art/photo/lullaby.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "A large glowing crescent moon in a deep blue and violet night sky full of twinkling stars above soft moonlit clouds and a calm sleepy countryside with gentle hills, peaceful bedtime mood. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa31-cdf2-7e51-95c5-7f2abf05cc0d",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:22:23.164Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "flag": {
+    "file": "/lyric-art/photo/flag.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "A large American flag with 50 stars and 13 red and white stripes waving dramatically across the top half of the frame in the foreground, close to the camera and slightly soft, with the White House, its fountain, green lawn and red flower beds sharp in the lower half of the background, cloudy blue sky, patriotic and bright. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa31-ffce-7602-aca4-42a282801bcb",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:22:32.851Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "liberty": {
+    "file": "/lyric-art/photo/liberty.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "Aerial view at golden hour of the Statue of Liberty on its star-shaped granite base on Liberty Island, green patina statue in the left-center, the calm harbor water with a few small boats, the Manhattan skyline glowing in warm sunset light on the horizon, soft orange and pink clouds. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa32-25a7-7c20-863a-53a55d261fc9",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:22:42.302Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  },
+  "nycnight": {
+    "file": "/lyric-art/photo/nycnight.jpg",
+    "model": "fal-ai/flux-pro/v1.1-ultra",
+    "prompt": "The New York City Manhattan skyline at blue hour seen from across the Hudson River, skyscrapers lit with warm golden and white lights, a tall art-deco spire tower in the center, colorful light reflections shimmering on the calm river water, deep blue sky. photorealistic, professional photograph, natural light, high detail, centered composition with the main subject in the middle third, no text, no words, no logos, no watermarks, no brand signs",
+    "falRequestId": "01a1fa32-4a92-7490-8afd-04a2c94f7905",
+    "width": 2752,
+    "height": 1536,
+    "createdAt": "2026-11-20T18:22:54.786Z",
+    "rights": "Original AI-generated image created for Versual Studio (fal.ai output terms). Statue of Liberty and US flag are public domain."
+  }
+}

@@ -13,7 +13,7 @@ const q=<T extends Element=HTMLElement>(id:string)=>document.querySelector<T>(`[
 const base={connected:true,saving:false,drafts:[],settings:()=>{},guided:()=>{},openDrafts:()=>{},saveSketch:async()=>undefined};
 async function shapeIt(h:Awaited<ReturnType<typeof setup>>){await act(async()=>q<HTMLButtonElement>("tab-mode-custom")!.click());await act(async()=>{for(const d of document.querySelectorAll("details"))(d as HTMLDetailsElement).open=true;});}
 
-test("Just Begin exposes only Your Vision, language, No Vocals and Begin",async()=>{
+test("Just Begin exposes only Your Vision (with Save this prompt), language, No Vocals and Begin",async()=>{
  const h=await setup();
  try{
   await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>"s"} savedPrompts={[]} savePrompt={async()=>undefined} recipes={[{id:"r",name:"R",description:"",tags:[],notes:{lyrics:"",prompt:"",vocals:"",instruments:"",cover:"",video:"",promotion:""}} as Template]}/>));
@@ -25,6 +25,8 @@ test("Just Begin exposes only Your Vision, language, No Vocals and Begin",async(
   assert.deepEqual(controls,["input-song-description","Singing language","checkbox-instrumental"]);
   assert.match(panel.textContent!,/No Vocals/);
   assert.equal(q("button-create-song")!.textContent!.trim(),"Begin");
+  assert.equal(q<HTMLTextAreaElement>("input-song-description")!.rows,4,"vision shows several lines, not one hidden line");
+  assert.ok(q<HTMLButtonElement>("button-save-vision")!.disabled,"nothing to save yet");
   for(const hidden of ["input-lyrics","saved-prompt-library","select-recipe","checkbox-make-two-versions","text-create-summary","text-version-cost","section-advanced-options","button-help-describe","input-negative-style"])assert.equal(q(hidden),null,hidden);
   assert.doesNotMatch(document.body.textContent!,/credits|Make 2 versions|My prompts/i);
  }finally{await h.close();}
@@ -210,4 +212,34 @@ test("two takes default on: ACE-Step makes one request for two takes without a c
    assert.equal(sent.length,2);assert.equal("versions" in sent[0],false);assert.equal(sent[1].projectId,"take-1");assert.match(sent[1].title,/Version 2$/);
   }finally{await h.close();}
  }
+});
+
+test("Save this prompt saves the vision (typed or app-written) and lyrics into Your Sounds with one tap",async()=>{
+ const h=await setup();const saved:PromptDraft[]=[];
+ try{
+  await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>"s"} savedPrompts={[]} savePrompt={async d=>{saved.push(d);return makeSavedSongPrompt(d,"p"+saved.length);}}/>));
+  const vision="Uplifting Afrobeats-soul song about unity, 100 BPM, warm log drums, gospel choir on the chorus";
+  await h.input(q<HTMLTextAreaElement>("input-song-description")!,vision);
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.equal(saved.length,1);assert.equal(saved[0].idea,vision);assert.equal(saved[0].name,vision.slice(0,72));
+  assert.match(document.body.textContent!,/Saved to Your Sounds ✓/);
+  await shapeIt(h);
+  assert.equal(q<HTMLTextAreaElement>("input-song-idea")!.rows,4);
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.equal(saved.length,2);assert.equal(saved[1].idea,vision);
+  await h.input(q<HTMLTextAreaElement>("input-lyrics")!,"[Verse]\nWe rise as one");
+  await act(async()=>q<HTMLButtonElement>("button-save-lyrics")!.click());
+  assert.equal(saved.length,3);assert.equal(saved[2].lyrics,"[Verse]\nWe rise as one");assert.equal(saved[2].idea,vision);assert.match(saved[2].name,/^Lyrics · /);
+ }finally{await h.close();}
+});
+
+test("a failed prompt save says so and keeps the words",async()=>{
+ const h=await setup();
+ try{
+  await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>"s"} savedPrompts={[]} savePrompt={async()=>undefined}/>));
+  await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A calm gospel song");
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.match(document.body.textContent!,/Couldn't save just now/);
+  assert.equal(q<HTMLTextAreaElement>("input-song-description")!.value,"A calm gospel song");
+ }finally{await h.close();}
 });

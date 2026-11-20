@@ -1,3 +1,4 @@
+import { traced } from "../../server/request-context";
 import{serverStorage as env}from"../../server/storage";
 import{studioAccess,privateWorkspace}from"../../studio-access";
 import{readStudio,privateHeaders}from"../studio/store";
@@ -45,4 +46,4 @@ async function handle(request:Request){const access=await studioAccess();if(!acc
  return Response.json(publicRadio(state,access.id,moderator,!!workspace,Date.now(),songs),{headers:privateHeaders});
 }
 async function route(request:Request){try{return await handle(request);}catch(e){return problem(e instanceof RadioError?e.message:"The station could not update. Try again.",e instanceof RadioError?e.status:503);}}
-export const GET=route;export const POST=route;
+export const GET=traced(route);export const POST=traced(route);

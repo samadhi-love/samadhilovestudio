@@ -5,10 +5,11 @@ import { hasExplicitWords } from "../../../clean-content";
 import { mixLicense, sources } from "../../../party/data";
 import type { LibraryAsset } from "../../../party/server";
 import { privateHeaders } from "../../studio/store";
+import { traced } from "../../../server/request-context";
 export const dynamic = "force-dynamic";
 const reply = (data: object, status = 200) =>
   Response.json(data, { status, headers: privateHeaders });
-export async function POST(request: Request) {
+async function POSTHandler(request: Request) {
   const access = await studioAccess();
   if (
     access.role !== "owner" ||
@@ -163,3 +164,4 @@ export async function POST(request: Request) {
     );
   }
 }
+export const POST=traced(POSTHandler);

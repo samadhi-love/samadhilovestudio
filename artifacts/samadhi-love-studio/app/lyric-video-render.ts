@@ -1,3 +1,4 @@
+import { drawAnimatedScene, drawPhotoMotion, drawWavingPhoto, isAnimatedScene } from "./lyric-animated-scenes";
 import { captionColors, videoThemes, type LyricProject } from "./lyric-video-data";
 import { drawTemplateCaptions } from "./lyric-caption-render";
 import { drawSignatureOverlay } from "./lyric-visual-layers";
@@ -46,7 +47,13 @@ export function drawLyricVideo(ctx: CanvasRenderingContext2D, time: number, proj
     const w = image.naturalWidth * scale, h = image.naturalHeight * scale;
     const shiftX = project.motion === "drift" ? width * 0.024 * Math.sin(motion / 8) : 0;
     const shiftY = project.motion === "drift" ? height * 0.021 * Math.sin(motion / 13) : 0;
-    ctx.drawImage(image, (width - w) / 2 + shiftX, (height - h) / 2 + shiftY, w, h);
+    const rect = { x: (width - w) / 2 + shiftX, y: (height - h) / 2 + shiftY, w, h };
+    // Photo backgrounds for the animated scenes get live motion on top; the flag photo waves.
+    if (project.theme === "flag" && isAnimatedScene(project.theme)) drawWavingPhoto(ctx, image, rect, motion);
+    else ctx.drawImage(image, rect.x, rect.y, w, h);
+    drawPhotoMotion(ctx, project.theme, image, rect, width, height, motion);
+  } else if (drawAnimatedScene(ctx, project.theme, width, height, motion)) {
+    // Animated scene drawn (balloons, meadow, undersea, lullaby, flag, liberty, nycnight).
   } else if (project.theme === "nature") {
     ctx.fillStyle = ink;
     ctx.beginPath();

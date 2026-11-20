@@ -1,4 +1,6 @@
 "use client";
+import { isInstrumental } from "./creation-guide";
+import { QuickVideoPanel, type CaptionState } from "./quick-video-panel";
 import {cosmicScrollBehavior} from "./cosmic-motion";
 import {brand} from "./brand";
 import {PanelErrorBoundary} from "./panel-error-boundary";
@@ -11,7 +13,6 @@ import {activeAdMedia} from "./active-visual-source";
 import {CreatorLookBrowser,SocialVideoTools} from "./creator-video-tools";
 import {applyPlayVisual} from "./creative-video-handoff";
 import {applySocialVideoPreset,applyVideoShape,creatorVideoLooks,shortClipRange,suggestedHookStart} from "./creator-video-presets";
-import {VideoFormatPicker} from "./video-format-picker";
 import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
 import {savedLyricsForAudio} from "./caption-ready-lyrics";
@@ -217,9 +218,6 @@ function LyricVideoProContent(props: Props) {
     [songId, setSongId] = useState(initialSongId),
     [step, setStep] = useState(0);
   const song = tracks.find((s) => s.id === songId);
-  const [workspaceSkin, setWorkspaceSkin] = useState<"cosmic" | "light">(
-    "cosmic",
-  );
   const [libraryTab, setLibraryTab] = useState<"backgrounds" | "lyrics">(
     "backgrounds",
   );
@@ -242,22 +240,6 @@ function LyricVideoProContent(props: Props) {
     null,
   );
   const [starterBackground, setStarterBackground] = useState("");
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("samadhi-lyric-workspace-skin") === "light")
-        setWorkspaceSkin("light");
-    } catch {
-      /* Optional appearance preference. */
-    }
-  }, []);
-  function chooseWorkspaceSkin(skin: "cosmic" | "light") {
-    setWorkspaceSkin(skin);
-    try {
-      localStorage.setItem("samadhi-lyric-workspace-skin", skin);
-    } catch {
-      /* The selected appearance still applies in this tab. */
-    }
-  }
   const [project, setProject] = useState<LyricProject | null>(null),
     [time, setTime] = useState(0),
     [playing, setPlaying] = useState(false),
@@ -270,7 +252,14 @@ function LyricVideoProContent(props: Props) {
   const [lyricsEditorOpen,setLyricsEditorOpen]=useState(false);
   const [captionRecovery,setCaptionRecovery]=useState<CaptionRecovery|null>(null);
   const captionEditSequence=useRef(0);
-  function openCaptionEditor(index?:number){setStep(2);setCaptionEditRequest({id:++captionEditSequence.current,index});}
+  // Fine-tune drawer: every advanced tool, closed until the owner asks for it.
+  const [fineTune, setFineTune] = useState(false);
+  const autoAfterRecovery = useRef("");
+  function openFineTune(target: number) {
+    setStep(target); setFineTune(true);
+    requestAnimationFrame(() => document.getElementById("lvp-finetune")?.scrollIntoView({ block: "start", behavior: cosmicScrollBehavior() }));
+  }
+  function openCaptionEditor(index?:number){setStep(2);setFineTune(true);setCaptionEditRequest({id:++captionEditSequence.current,index});}
   const [mobilePreview,setMobilePreview]=useState(true);
   useEffect(()=>{if(window.matchMedia("(max-width:640px)").matches)setResolution(720);},[]);
   const [resolution, setResolution] = useState<1080 | 720>(1080),
@@ -403,12 +392,12 @@ function LyricVideoProContent(props: Props) {
   }
   function openVisualChoices() {
     if (song && project) {
+      // Backgrounds and looks live in the Vibe box beside the preview.
       setMode("existing");
-      setStep(3);
       requestAnimationFrame(() =>
         document
-          .getElementById("lyric-look-controls")
-          ?.scrollIntoView({ block: "start", behavior: cosmicScrollBehavior() }),
+          .getElementById("qv-vibe")
+          ?.scrollIntoView({ block: "center", behavior: cosmicScrollBehavior() }),
       );
     } else {
       setMode("start");
@@ -525,8 +514,11 @@ function LyricVideoProContent(props: Props) {
         ? 3
         : prior?.cues.length
           ? 2
-          : 0,
+          : 1,
     );
+    setFineTune(false);
+    // Words start on their own for songs with vocals (after saved-caption recovery is checked).
+    autoAfterRecovery.current = !prior?.cues.length && song.creationKind !== "instrumental" && !isInstrumental(song.instrumental) && props.autoCaptionRequest?.songId !== song.id ? song.id : "";
     setSavedState(
       prior?.pro ? "Saved project loaded" : "Lyrics retrieved from the song",
     );
@@ -816,6 +808,7 @@ function LyricVideoProContent(props: Props) {
     let active=true;
     const opened=current.current;
     if(!opened?.pro)return;
+    const autoSync=()=>{if(active&&autoAfterRecovery.current===song.id&&!controller.current&&current.current===opened&&!opened.cues.length){autoAfterRecovery.current="";void generateCaptions();}};
     void fetch(`/api/studio/lyric-sync/recovery?song=${encodeURIComponent(song.id)}&audio=${encodeURIComponent(p.sourceAudioId)}`,{cache:"no-store"}).then(async recoveryResponse=>{
       if(recoveryResponse.ok){
         const saved=await recoveryResponse.json() as {recovery?:CaptionRecovery};
@@ -826,11 +819,12 @@ function LyricVideoProContent(props: Props) {
       }
       return fetch(`/api/studio/jobs?songId=${encodeURIComponent(song.id)}&captions=1`,{cache:"no-store"});
     }).then(async response=>{
-      if(!response?.ok)return;
+      if(response===null)return; // a recovery copy was found; the owner chooses what to do with it
+      if(!response.ok){autoSync();return;}
       const saved=await response.json() as {captions?:SyncResponse;sourceAudioId?:string;text?:string};
       const source=opened.pro!;
-      if(!active||controller.current||current.current!==opened||saved.sourceAudioId!==source.sourceAudioId||!saved.captions?.cues?.length)return;
-      if(saved.text?.trim()!==source.approvedLyrics.trim()&&source.approvedLyrics.trim())return;
+      if(!active||controller.current||current.current!==opened||saved.sourceAudioId!==source.sourceAudioId||!saved.captions?.cues?.length){autoSync();return;}
+      if(saved.text?.trim()!==source.approvedLyrics.trim()&&source.approvedLyrics.trim()){autoSync();return;}
       const cues=saved.captions.cues as LyricCue[];
       const approved=source.approvedLyrics.trim()?source.approvedLyrics:cues.map(c=>c.text).join("\n");
       const next:LyricProject={...opened,cues,pro:{...source,approvedLyrics:approved,sections:sectionsFromLyrics(approved,cues,source.duration),alignment:{engine:saved.captions.engine??"Recovered sync",at:new Date().toISOString(),audioId:source.sourceAudioId,reviewed:false,warnings:saved.captions.warnings??[]}}};
@@ -875,6 +869,9 @@ function LyricVideoProContent(props: Props) {
     setMode("existing");
     setSongId(id);
   }
+  const captionState: CaptionState = /align|transcrib|sync/i.test(operation) ? "timing"
+    : !project?.cues.length ? "none" : p?.alignment?.reviewed ? "reviewed"
+    : !p?.alignment || p.alignment.engine === "Rough timing" ? "rough" : "synced";
   const originalUrl = p ? sourceUrl(p.sourceSongId, p.sourceAudioId) : "";
   const soundtrackUrl =
     p?.useEnhancedSoundtrack && p.soundtrackAsset
@@ -1045,19 +1042,21 @@ function LyricVideoProContent(props: Props) {
     const next = current.current;
     if (!next?.pro || !song || busy) return;
     const pro=next.pro;
-    const rough=()=>{
+    // Never fall back silently: say why precise sync didn't happen, so it can be fixed.
+    const rough=(reason:string)=>{
+      const why=`Precise sync didn't work: ${reason.replace(/\.?$/,".")}`;
       const lines=lyricLines(pro.approvedLyrics);
-      if(!lines.length||!pro.duration){setLyricsEditorOpen(true);setStep(1);setStatus("No words could be recovered. Paste the sung lyrics and Studio can give them rough timing.");return;}
-      if(next.cues.length){setStatus("Precise sync didn't finish. Your existing timing was kept; use Estimated timing if you want a new rough draft.");return;}
+      if(!lines.length||!pro.duration){setLyricsEditorOpen(true);setStep(1);setStatus(`${why} No words could be recovered. Paste the sung lyrics and Studio can give them rough timing.`);return;}
+      if(next.cues.length){setStatus(`${why} Your existing timing was kept; use Estimated timing if you want a new rough draft.`);return;}
       const cues=estimatedCues(lines,pro.duration);
-      const warning="Rough timing only — these lines were spread across the recording, not matched to the voice. Listen and adjust them by hand.";
+      const warning=`${why} Rough timing only — these lines were spread across the recording, not matched to the voice. Listen and adjust them by hand.`;
       const fallbackProject:LyricProject={...next,cues,pro:{...pro,sections:sectionsFromLyrics(pro.approvedLyrics,cues,pro.duration),alignment:{engine:"Rough timing",at:new Date().toISOString(),audioId:pro.sourceAudioId,reviewed:false,warnings:[warning]}}};
       if(!isLyricProject(fallbackProject)){setStatus("The lyrics need shorter lines before rough timing can be added. Your writing is kept.");return;}
       edit(fallbackProject);setStep(2);setStatus(warning);
     };
     if(next.pro.approvedLyrics.trim()&&!lyricLines(next.pro.approvedLyrics).length){setStep(1);setLyricsEditorOpen(true);setError("Paste the words actually sung, not only section headings. No caption processing was started.");return;}
     if (!elevenLabs.connected) {
-      rough();
+      rough("the voice-matching service (ElevenLabs) isn't connected");
       return;
     }
     if (sourceChanged(song, next) && !allowOld) {
@@ -1171,8 +1170,8 @@ function LyricVideoProContent(props: Props) {
       setStatus(
         "Captions are on the preview. Listen at the beginning, middle, and end, then mark the review complete.",
       );
-    } catch {
-      if(!task.signal.aborted)rough();
+    } catch (error) {
+      if(!task.signal.aborted)rough((error as Error)?.message||"the sync service did not answer");
     } finally {
       controller.current = null;
       setOperation("");
@@ -1798,7 +1797,7 @@ function LyricVideoProContent(props: Props) {
   return (
     <div
       className={mode === "classic" ? "lvp-classic-host" : "lyric-video-pro"}
-      data-skin={workspaceSkin}
+      data-skin="cosmic"
       data-observatory="true"
       onPlayCapture={(event) => {
         const active = event.target;
@@ -1835,26 +1834,6 @@ function LyricVideoProContent(props: Props) {
               >
                 Backgrounds &amp; lyric styles
               </button>
-              <div
-                className="lvp-skin-switch"
-                role="group"
-                aria-label="Workspace appearance"
-              >
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "cosmic"}
-                  onClick={() => chooseWorkspaceSkin("cosmic")}
-                >
-                  Cosmic
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "light"}
-                  onClick={() => chooseWorkspaceSkin("light")}
-                >
-                  Light
-                </button>
-              </div>
             </>
           )}
           <button
@@ -2068,7 +2047,7 @@ function LyricVideoProContent(props: Props) {
           ) : (
             mode !== "start" && (
               <>
-                <nav className="lvp-stepper" aria-label="Lyric video workflow">
+                {!(song && project && p) && <nav className="lvp-stepper" aria-label="Lyric video workflow">
                   {steps.map((item, i) => (
                     <button
                       type="button"
@@ -2085,7 +2064,7 @@ function LyricVideoProContent(props: Props) {
                       {item.label}
                     </button>
                   ))}
-                </nav>
+                </nav>}
                 <div className="lvp-source-bar" id="lyric-source-picker">
                   <label>
                     Song or original
@@ -2313,8 +2292,6 @@ function LyricVideoProContent(props: Props) {
                         }
                       />
                       </div>
-                      <VideoFormatPicker value={project.format} change={format=>edit(applyVideoShape(project,format))} disabled={busy} resolution={resolution}/>
-                      <VibeLookPicker project={project} change={edit} disabled={busy}/>
                       <div className="lvp-preview-label">
                         <span>
                           {shortTime(time)} / {shortTime(p.duration)}
@@ -2327,6 +2304,7 @@ function LyricVideoProContent(props: Props) {
                               : "Untouched source soundtrack"}
                         </span>
                       </div>
+                      <details className="lvp-preview-more" data-testid="details-preview-tools"><summary>Soundtrack and caption tools</summary>
                       <div className="lvp-source-confirm">
                         <p className="lvp-note">Soundtrack version: {p.sourceAudioId}. Confirm after listening. Replacing a recording does not silently replace this video&apos;s saved source.</p>
                         <button type="button" disabled={busy || !p.duration || (sourceChanged(song, project) && !allowOld)}
@@ -2350,6 +2328,7 @@ function LyricVideoProContent(props: Props) {
                         Captions appear directly on the video. Correct timing in
                         Review or expand Professional editor.
                       </p>
+                      </details>
                       {sourceChanged(song, project) && (
                         <div className="lvp-error">
                           <strong>
@@ -2439,6 +2418,21 @@ function LyricVideoProContent(props: Props) {
                       </div>
                     </aside>
                     <main className="lvp-controls">
+                      <QuickVideoPanel song={song} project={project} time={time} busy={busy} edit={edit} make={() => void exportVideo()} progress={progress}
+                        captionState={captionState} blocked={exportChecks.filter(check => check.level === "block").map(check => ({ text: check.text, step: check.step }))}
+                        latest={outputs.at(-1)} addWords={() => { openFineTune(1); setLyricsEditorOpen(true); }} fixWords={() => openCaptionEditor(Math.max(0, project.cues.findLastIndex(c => c.time <= time)))}
+                        openFineTune={openFineTune}/>
+                      <details className="lvp-finetune" id="lvp-finetune" open={fineTune} onToggle={e => setFineTune((e.currentTarget as HTMLDetailsElement).open)} data-testid="details-fine-tune">
+                      <summary>Fine-tune · fix words, timing, fonts, animation, AI visuals, ads, versions</summary>
+                      <nav className="lvp-stepper" aria-label="Fine-tune sections">
+                        {steps.map((item, i) => (
+                          <button type="button" key={item.label} disabled={busy || (item.go === 4 && !project.cues.length)}
+                            aria-current={item.covers.includes(step) ? "step" : undefined}
+                            onClick={() => setStep(item.go === 1 && project.cues.length ? 2 : item.go)}>
+                            <b>{i + 1}</b>{item.label}
+                          </button>
+                        ))}
+                      </nav>
                       {step === 1 && (
                         <section className="lvp-panel">
                           <span className="lvp-kicker">STEP 1 · WORDS</span>
@@ -2928,7 +2922,7 @@ function LyricVideoProContent(props: Props) {
                           <span className="lvp-kicker">STEP 2 · LOOK</span>
                           <h2>Choose your look</h2>
                           <VibeLookPicker project={project} change={edit} disabled={busy} title="Featured vibes"/>
-                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all 36 designs</h3>
+                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all {Object.keys(videoThemes).length} designs</h3>
                           <LyricBackgroundPicker
                             initialGroup="sacred"
                             project={project}
@@ -3700,6 +3694,7 @@ function LyricVideoProContent(props: Props) {
                           {versionsLimit < versions.length && <button type="button" onClick={() => setVersionsLimit(n => n + 100)}>Show more saved versions</button>}
                           {versionsNext && <><p>More saved versions remain in storage. Load the next page to include them; the newest snapshot may be on another page.</p><button type="button" disabled={versionsBusy || busy} onClick={() => void loadVersions(song.id, versionsNext)}>Load next history page</button></>}
                         </fieldset>
+                      </details>
                       </details>
                     </main>
                   </div></>

@@ -8,3 +8,5 @@ import {storageBindings} from "./storage-service";
 export {storageBindings} from "./storage-service";
 // Reads remain request-scoped: never cache an owner's binding or credentials.
 export const serverStorage:Cloudflare.Env=storageBindings(bindings);
+// Turns on the owner's 30-day event history for every server route that uses storage.
+import "./event-store";
