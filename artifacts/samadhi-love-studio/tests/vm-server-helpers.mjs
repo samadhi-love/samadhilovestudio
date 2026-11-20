@@ -13,6 +13,7 @@ function compile(file,globals){
   const {outputText}=ts.transpileModule(readFileSync(source,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}});
   const exports={};vm.runInNewContext(outputText,{exports,URL,Request,Response,Headers,AbortSignal,setTimeout,clearTimeout,...globals,require(name){
     if(name==="./provider-check-diagnostics")return compile("provider-check-diagnostics.ts",globals);
+    if(name==="./request-context")return compile("request-context.ts",globals);
     if(name.startsWith("node:"))return nodeRequire(name);
     if(name==="./storage-service")return compile("storage-service.ts",globals);
     if(name==="../../scripts/storage/retry.mjs")return compile("../../scripts/storage/retry.mjs",globals);

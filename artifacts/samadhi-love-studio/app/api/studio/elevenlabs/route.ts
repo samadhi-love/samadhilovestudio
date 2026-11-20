@@ -3,6 +3,7 @@ import { privateWorkspace } from "../../../studio-access";
 import { privateHeaders } from "../store";
 import { testElevenLabs } from "./provider";
 import { keyStatus, removeElevenLabsKey, resolveElevenLabsKey, saveElevenLabsKey, validElevenLabsKey } from "./vault";
+import { traced } from "../../../server/request-context";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
@@ -11,7 +12,7 @@ function problem(error: string, status: number) {
   return Response.json({ error }, { ...options, status });
 }
 
-export async function GET() {
+async function GETHandler() {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to your creator workspace.", 401);
   const id = access.id;
@@ -78,7 +79,8 @@ async function manageConnection(request: Request) {
   }
 }
 
-export const PUT = manageConnection;
-export const POST = manageConnection;
-export const PATCH = manageConnection;
-export const DELETE = manageConnection;
+export const PUT=traced(manageConnection);
+export const POST=traced(manageConnection);
+export const PATCH=traced(manageConnection);
+export const DELETE=traced(manageConnection);
+export const GET=traced(GETHandler);

@@ -4,6 +4,7 @@ import { isExplicitSong } from "../../../clean-content";
 import { privateHeaders, readStudio, audioKey } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
 import { validRecognitionWav, validRightsReview, type RecordingMatch } from "../../../rights-data";
+import { traced } from "../../../server/request-context";
 export const dynamic = "force-dynamic";
 const problem = (error: string, status: number) => Response.json({ error }, { status, headers: privateHeaders });
 const json = (value: unknown) => Response.json(value, { headers: privateHeaders });
@@ -60,4 +61,4 @@ async function handle(request: Request) {
   await bucket.put(cacheKey,JSON.stringify(check),{httpMetadata:{contentType:"application/json"}});return json({check});
 }
 const route=recoverableRoute(handle,"The rights review could not finish. Saved recordings are unchanged.");
-export const GET=route;export const PUT=route;export const POST=route;
+export const GET=traced(route);export const PUT=traced(route);export const POST=traced(route);

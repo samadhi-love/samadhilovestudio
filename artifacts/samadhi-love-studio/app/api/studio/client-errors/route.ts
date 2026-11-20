@@ -1,9 +1,10 @@
 import {privateWorkspace} from "../../../studio-access";
 import {validateDiagnostic} from "../../../crash-diagnostics";
 import {readBoundedText,RequestBodyError} from "../request-errors";
+import { traced } from "../../../server/request-context";
 const recent=new Map<string,{start:number;count:number}>();
 const headers={"Cache-Control":"private, no-store"};
-export async function POST(request:Request) {
+async function POSTHandler(request:Request) {
   if(request.headers.get("origin")!==new URL(request.url).origin)return Response.json({error:"Open Studio directly."},{status:403,headers});
   const access=await privateWorkspace();
   if(!access)return Response.json({error:"Sign in to report a Studio error."},{status:401,headers});
@@ -20,3 +21,4 @@ export async function POST(request:Request) {
   console.error("Studio client failure",{...value,receivedAt:new Date(now).toISOString()});
   return Response.json({requestId:value.requestId},{status:202,headers:{...headers,"X-Studio-Request-Id":String(value.requestId)}});
 }
+export const POST=traced(POSTHandler);

@@ -1,3 +1,4 @@
+import * as asyncHooks from "node:async_hooks";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -26,7 +27,8 @@ function fixture(metered,fal=false,role="owner") {
   const notation=compile("../app/lyric-notation.ts",{});
   const opening=compile("../app/song-opening.ts",{"./lyric-notation":notation});
   const duration=compile("../app/track-duration.ts",{"./lyric-notation":notation,"./song-opening":opening});
-  const requests = compile("../app/api/studio/request-errors.ts", { "./store": { privateHeaders: {} }, "./storage-full": { StorageFullError: class StorageFullError extends Error {} } });
+  const context = compile("../app/server/request-context.ts", { "node:async_hooks": asyncHooks });
+  const requests = compile("../app/api/studio/request-errors.ts", { "./store": { privateHeaders: {} }, "./storage-full": { StorageFullError: class StorageFullError extends Error {} }, "../../server/request-context": context });
   class CreditError extends Error { constructor(message, status = 400) { super(message); this.status = status; } }
   const api = compile("../app/credits/production.ts", {
     "cloudflare:workers": { env: { STUDIO_CREDITS_ENABLED: metered ? "1" : undefined } },

@@ -17,11 +17,12 @@ import { privateWorkspace } from "../../studio-access";
 import { isStudio } from "../../studio-validation";
 import { readBoundedText, recoverableRoute } from "./request-errors";
 import { rebaseUnchanged } from "../../../scripts/storage/song-rows.mjs";
+import { traced } from "../../server/request-context";
 
 export const dynamic = "force-dynamic";
 const options = { headers: privateHeaders };
 
-export async function GET() {
+async function GETHandler() {
   const access = await privateWorkspace();
   if (!access) return Response.json({ error: "Sign in to open your studio." }, { status: 401 });
   try {
@@ -163,3 +164,4 @@ async function putWorkspace(request: Request) {
 }
 
 export const PUT = recoverableRoute(putWorkspace, "The studio could not save. Your edits are still in this tab; try again.");
+export const GET=traced(GETHandler);

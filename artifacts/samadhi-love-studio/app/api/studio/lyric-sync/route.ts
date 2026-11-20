@@ -15,10 +15,13 @@ import { readBoundedText, recoverableRoute } from "../request-errors";
 import { privateWorkspace } from "../../../studio-access";
 import {clipCaptionTimes} from "../../../caption-edit-continuity";
 import {saveCaptionRecovery} from "../../../server/caption-recovery";
+import {logEvent} from "../../../server/request-context";
 
 export const dynamic = "force-dynamic";
 
 function problem(error: string, status: number) {
+  // These reasons are Studio's own fixed sentences (never lyrics or provider text), so they are safe to log.
+  logEvent("lyric-sync.problem", { status, reason: error }, status >= 500 ? "error" : "info");
   return Response.json({ error }, { status, headers: privateHeaders });
 }
 
@@ -114,7 +117,8 @@ async function syncLyrics(request: Request) {
     try{await saveCaptionRecovery(id,song.id,sourceId,savedResult);}
     catch{warnings.push("Your captions are ready, but the private recovery copy could not save. Save this project before leaving.");}
     return Response.json(savedResult, { headers: privateHeaders });
-  } catch {
+  } catch (error) {
+    logEvent("lyric-sync.crash", { errorType: error instanceof Error ? error.name : "Unknown" }, "error");
     return problem("Automatic sync could not finish. Try again or adjust the captions manually.", 502);
   }
 }
