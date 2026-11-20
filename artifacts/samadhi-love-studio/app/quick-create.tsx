@@ -40,7 +40,8 @@ import { songBlueprint } from "./song-blueprint";
 import { songAudioUrl, type Song } from "./studio-data";
 import { autoTrackTime, formatTrackTime, parseTrackTime, maxGeneratedSongSeconds } from "./track-duration";
 import { TrackLengthControl } from "./track-length-control";
-import { expandSongDescription, insertLyricSection } from "./creation-shortcuts";
+import { expandSongDescription } from "./creation-shortcuts";
+import { autoSongParts, partNames, relabelPart, songPartHeadings, type PartName } from "./auto-song-parts";
 import { MelodyReferenceRecorder, type MelodyReferenceTake } from "./melody-reference-recorder";
 import "./cosmic-views.css";
 
@@ -232,13 +233,12 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
     setCustomMode(custom);setError("");
     if(!custom&&choice==="sketch"){setChoice("instrumental");setPromptNotice("Built-in sketch is a Custom advanced option. Simple uses your music account.");}
   }
-  function addLyricSection(section:string){
-    const field=lyricInput.current;
-    const start=field?.selectionStart??lyrics.length,end=field?.selectionEnd??start;
-    const inserted=insertLyricSection(lyrics,start,end,section);
-    setLyrics(inserted.text.slice(0,5000));setOwnLyrics(true);setError("");
-    const restoreCursor=()=>{const target=lyricInput.current;if(target){target.focus();const cursor=Math.min(inserted.cursor,inserted.text.length);target.setSelectionRange(cursor,cursor);}};
-    if(typeof window.requestAnimationFrame==="function")window.requestAnimationFrame(restoreCursor);else window.setTimeout(restoreCursor,0);
+  // Beginners never place [Verse]/[Chorus] themselves: plain lyrics are labeled for them.
+  function labelSongParts(text:string){
+    const labeled=autoSongParts(text);
+    if(!labeled)return text;
+    setLyrics(labeled.text.slice(0,5000));setLyricStatus(`Song parts added for you: ${labeled.parts.join(" · ")}. Change any part below if it's not right.`);
+    return labeled.text;
   }
   function currentPromptDraft(confirmedSong=false):PromptDraft{
     return {
@@ -307,6 +307,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
       catch (error) { setError((error as Error).message); return; }
     }
     if(makeTwoVersions&&!localSketch&&!falActive&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
+    const sung=useOwnLyrics?labelSongParts(lyrics):"";
     setError(""); setPending(true);
     try {
       const described = simple
@@ -325,7 +326,7 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
         const blob = await renderInstrumental(take);
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
-        const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:useOwnLyrics?lyrics:"",voice:vocalDirection,instruments:engineInstruments,genres:engineGenre,...(customMode&&caps.negativeStyle&&negativeStyle.trim()?{negativeStyle:negativeStyle.trim().slice(0,500)}:{}),...(customMode&&caps.spark&&spark!==null?{spark}:{}),autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
+        const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:sung,voice:vocalDirection,instruments:engineInstruments,genres:engineGenre,...(customMode&&caps.negativeStyle&&negativeStyle.trim()?{negativeStyle:negativeStyle.trim().slice(0,500)}:{}),...(customMode&&caps.spark&&spark!==null?{spark}:{}),autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
         const answer=await generateSong({...input,...(falActive?{versions:makeTwoVersions?2 as const:1 as const}:{})});
         const made=typeof answer==="string"?answer:answer?.songId;
         if(made){
@@ -393,9 +394,9 @@ export function QuickCreate({ engine,favoriteTake,proProduction, seed=null, reci
             {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
             <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Vision expanded with local style suggestions. Review it before you Begin; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
             <label className="field qc-field">Lyrics
-              <div className="lyric-section-chips" role="group" aria-label="Add song part">{["Intro","Verse","Pre-Chorus","Chorus","Bridge","Outro"].map(section=><button key={section} type="button" className="chip" data-testid={`chip-lyric-${section.toLowerCase().replace(/[^a-z]+/g,"-")}`} disabled={instrumental} onClick={()=>{setWordsByStudio(false);addLyricSection(section);}}>[{section}]</button>)}</div>
-              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your own sections, or choose Write them for me."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}}/>
+              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}} onPaste={e=>{const field=e.currentTarget;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
             </label>
+            {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
             <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
             {lyricStatus&&<p role="status" data-testid="text-lyric-status">{lyricStatus}</p>}
