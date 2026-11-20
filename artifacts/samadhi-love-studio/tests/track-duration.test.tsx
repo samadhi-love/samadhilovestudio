@@ -13,10 +13,10 @@ import type {ElevenLabsKey} from "../app/elevenlabs-key";
 const base={vocals:true,lyrics:"",beginner:true,bpm:120,cinematic:false};
 test("Auto follows whole-song prompt durations and treats maximums as limits",()=>{
   for(const [prompt,expected] of [["A four-minute song",240],["An eight minute song",360],["A 3:47 song",227],["3 minutes 30 seconds",210],["A 90-second jingle",90],["A six-minute song",360],["A 30-second intro then a 4-minute song",240],["Intro lasts 30 seconds. Make the whole song 3:30",210],["Duration 3.5 min",210]] as const)assert.equal(autoTrackTime({...base,prompt}).seconds,expected,prompt);
-  assert.equal(autoTrackTime({...base,prompt:"A song up to six minutes"}).seconds,180);
+  assert.equal(autoTrackTime({...base,prompt:"A song up to six minutes"}).seconds,210);
   assert.equal(autoTrackTime({...base,prompt:"A 5-minute song, maximum 4 minutes"}).seconds,240);
   assert.equal(autoTrackTime({...base,prompt:"Maximum 1.11 minutes"}).seconds,66);
-  assert.equal(autoTrackTime({...base,prompt:"A dance song at 140 BPM"}).seconds,180);
+  assert.equal(autoTrackTime({...base,prompt:"A dance song at 140 BPM"}).seconds,195);
   assert.equal(autoTrackTime({...base,prompt:"A ten-minute song"}).seconds,360);
   assert(autoTrackTime({...base,prompt:"An eight-minute song"}).overLimit);
 });
@@ -26,7 +26,7 @@ test("Auto uses template targets and lyric structure without counting production
   const words="Love and light together";
   assert.equal(autoTrackTime({...base,lyrics:words}).seconds,autoTrackTime({...base,lyrics:"{genre: "+"House ".repeat(120)+"}\n"+words}).seconds);
   assert.equal(autoTrackTime({...base,lyrics:"love ".repeat(1200)}).seconds,360);
-  assert.equal(autoTrackTime({...base,prompt:"An extended dance song"}).seconds,180);
+  assert.equal(autoTrackTime({...base,prompt:"An extended dance song"}).seconds,270);
   assert.equal(autoTrackTime({...base,lyrics:words,templateSeconds:300}).seconds,autoTrackTime({...base,lyrics:words}).seconds);
   assert(autoTrackTime({...base,lyrics:"extraordinarily ".repeat(40)}).seconds>autoTrackTime({...base,lyrics:"love ".repeat(40)}).seconds,"use the composition planner's performed-text weights, not just whitespace word counts");
   assert.equal(autoTrackTime({...base,prompt:"A short teaser"}).seconds,60);
@@ -34,6 +34,14 @@ test("Auto uses template targets and lyric structure without counting production
   for(const bpm of [NaN,0,1,50,120,180,1000])for(const cinematic of [true,false])for(const vocals of [true,false])assert(isTrackDuration(autoTrackTime({...base,bpm,cinematic,vocals}).seconds));
 });
 
+test("described songs are not all 3:00: the style sets a natural length, and lyric songs get a short intro",()=>{
+  const lengths=Object.fromEntries(["A peaceful mantra for morning meditation","A gospel ballad about grace","A hip hop track about the city","A song about my grandmother"].map(p=>[p,autoTrackTime({...base,prompt:p}).seconds]));
+  assert.deepEqual(lengths,{"A peaceful mantra for morning meditation":300,"A gospel ballad about grace":225,"A hip hop track about the city":195,"A song about my grandmother":210});
+  assert.equal(creationDuration({prompt:"A peaceful mantra for morning meditation"}),300,"quoting and generation agree");
+  assert.equal(autoTrackTime({...base,prompt:"A gospel ballad, 2 minutes"}).seconds,120,"a requested length still wins");
+  const words="love ".repeat(110);
+  assert.equal(autoTrackTime({...base,lyrics:words}).seconds,70,"about 12 seconds of intro and ending, not 30");
+});
 async function setup(){
   const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:"https://studio.test"});
   Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,localStorage:dom.window.localStorage,requestAnimationFrame:()=>0,IS_REACT_ACT_ENVIRONMENT:true});
@@ -52,7 +60,7 @@ test("Quick Create sends the displayed automatic duration instead of its old fix
     window.confirm=()=>true;await customCreate();
     assert((document.querySelector('.track-length-control input[type="checkbox"]') as HTMLInputElement).checked);
     assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: Auto.*Uses your ElevenLabs credits/);
-    await h.input(creationIdea(),"A joyful song");await h.submit();assert.equal(duration,180,"no forced 90-second beginner limit");
+    await h.input(creationIdea(),"A joyful song");await h.submit();assert.equal(duration,210,"no forced 90-second beginner limit; a natural length for an unstyled description");
     await h.select("direct");await h.input(creationIdea(),"A four-minute joyful song");await h.submit();assert.equal(duration,240);assert.equal(opening,"direct");assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/Length: Auto/);
     await h.input(creationIdea(),"An eight-minute joyful song");await h.submit();assert.equal(duration,240);assert.match(document.body.textContent!,/up to 6:00/);
     await h.input(creationIdea(),"A 30-second joyful hook");await h.submit();assert.equal(duration,30);
@@ -78,8 +86,8 @@ test("server duration resolution shares the six-minute cap and natural Auto targ
   for(const seconds of [0,2,361,480,600,NaN]){assert(!isTrackDuration(seconds));assert(Number.isNaN(creationDuration({duration:seconds})));}
   assert.equal(parseTrackTime("6:00"),360);assert.equal(parseTrackTime("6:01"),null);
   assert(trackLengthPresets.every(seconds=>seconds<=360));
-  assert.equal(creationDuration({prompt:"An uplifting song"}),180);
-  assert.equal(creationDuration({duration:"auto",prompt:"A slow full-length anthem"}),180);
+  assert.equal(creationDuration({prompt:"An uplifting song"}),210);
+  assert.equal(creationDuration({duration:"auto",prompt:"A slow full-length anthem"}),225);
   const lyrics="[Verse]\n"+("Carry the light with me\n".repeat(12))+"[Chorus]\nWe rise together";
   const natural=autoTrackTime({...base,lyrics}).seconds;
   assert.equal(creationDuration({autoLength:true,duration:180,lyrics}),natural);

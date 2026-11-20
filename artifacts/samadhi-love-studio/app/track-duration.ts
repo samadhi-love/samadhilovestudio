@@ -48,6 +48,14 @@ function promptTimes(prompt: string) {
 }
 
 /** Duration planning only; it does not estimate word timestamps or change approved lyrics. */
+/** Natural song length for a description with no lyrics yet. */
+export function styleSeconds(prompt:string){
+  if(/\b(?:mantra|meditat\w*|ambient|healing|sound ?bath|chant\w*|kirtan|bhajan|lullaby|relax\w*|sleep|yoga|drone)\b/i.test(prompt))return 300;
+  if(/\b(?:extended|epic|journey)\b/i.test(prompt))return 270;
+  if(/\b(?:ballad|gospel|worship|soul|r&b|rnb|slow|acoustic|folk|reggae|love song|anthem)\b/i.test(prompt))return 225;
+  if(/\b(?:rap|hip[ -]?hop|trap|drill|dance|edm|house|techno|pop|punk|afrobeats?|dancehall|party)\b/i.test(prompt))return 195;
+  return 210;
+}
 export function autoTrackTime({ vocals, lyrics, bpm, cinematic, prompt="", templateSeconds, sectionCount=0 }: {
   vocals: boolean; lyrics: string; beginner?: boolean; bpm: number; cinematic: boolean;
   prompt?: string; templateSeconds?: number; sectionCount?: number;
@@ -60,12 +68,12 @@ export function autoTrackTime({ vocals, lyrics, bpm, cinematic, prompt="", templ
   const words=vocals?performanceWeight(lyrics):0;
   const lyricSections=lyrics.split(/\r?\n/).filter(line=>productionHeader(line)).length;
   const sections=Math.max(Number.isFinite(sectionCount)?sectionCount:0,lyricSections||(prompt.match(/\[(?:intro|verse[^\]]*|chorus|bridge|drop|outro|finale)\]/gi)??[]).length);
-  if(words)return finish(Math.round((30+words*60/110+Math.min(30,sections*3))/5)*5,"Based on your lyric length and section structure, with intro/outro space.");
+  if(words)return finish(Math.round((12+words*60/110+Math.min(30,sections*3))/5)*5,"Based on your lyric length and section structure, with a short intro and ending.");
   if(isTrackDuration(templateSeconds))return finish(templateSeconds,"Based on your template’s target duration.");
   if(/\b(?:short|teaser|promo|jingle|stinger|loop)\b/i.test(prompt))return finish(vocals?60:30,"A short format requested in your prompt.");
-  // Composition plans require a numeric duration; use a natural three-minute
-  // target rather than forcing a short beginner demo or a tempo-derived limit.
-  return finish(180,"Auto length: a natural three-minute target when no lyrics or specific length are supplied.");
+  // No words yet: the description's style sets a natural length, so songs are
+  // not all the same 3:00. Quoting and generation share this, so it's fixed per prompt.
+  return finish(styleSeconds(prompt),"Auto length: a natural length for the style you described.");
 }
 
 /** The same duration is used by quoting and generation; Auto never bypasses the cap. */
