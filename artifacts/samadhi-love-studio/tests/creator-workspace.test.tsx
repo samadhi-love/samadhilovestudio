@@ -51,16 +51,41 @@ test("Create help is local, lyric chips insert at the cursor, and two versions r
   assert.equal(requests.length,2);assert.equal(requests[1].projectId,"version-1");assert.equal(requests[1].title.endsWith("Version 2"),true);
  }finally{await h.close();}
 });
-test("lyrics chips appear in Custom mode and insert a part at the cursor",async()=>{
- const h=await setup();
+test("plain lyrics get Verse, Pre-Chorus, Chorus, Bridge and Outro labels automatically, can be changed, and are sung labeled",async()=>{
+ const h=await setup(),requests:any[]=[];h.dom.window.confirm=()=>true;
  try{
-  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>undefined} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `song-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.button("Shape It").click());
+  assert.equal(document.querySelector('[aria-label="Add song part"]'),null,"no manual part buttons to learn");
+  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
+  const chorus="We are one under heaven\nOne heart, one sky\nWe are one under heaven\nLove will never die";
+  await h.input(lyrics,["I woke up in the silence\nThe stars were fading slow\nI heard a voice inside me\nSaying it's time to go","And the light is rising\nRising in me",chorus,"I walked into the morning\nThe river called my name\nThe old me left behind me\nI'll never be the same","And the light is rising\nRising in me",chorus,"When the world is breaking\nHold on, hold on\nThe night is only waiting\nFor the dawn",chorus,"One heart\nOne sky"].join("\n\n"));
+  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
+  const headings=lyrics.value.split("\n").filter(l=>l.startsWith("["));
+  assert.deepEqual(headings,["[Verse 1]","[Pre-Chorus]","[Chorus]","[Verse 2]","[Pre-Chorus]","[Chorus]","[Bridge]","[Chorus]","[Outro]"]);
+  assert.match(document.querySelector('[data-testid="text-lyric-status"]')!.textContent!,/Song parts added for you/);
+  const parts=[...document.querySelectorAll('[data-testid="song-parts"] select')] as unknown as HTMLSelectElement[];
+  assert.equal(parts.length,9);
+  await h.select(parts[8],"Chorus");
+  assert.equal(lyrics.value.split("\n").filter(l=>l.startsWith("[")).at(-1),"[Chorus]","a tapped change rewrites only that label");
+  assert.match(lyrics.value,/One heart\nOne sky$/,"the words are untouched");
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert(requests.length>=1);assert.match(requests[0].lyrics,/^\[Verse 1\]\nI woke up/);
+ }finally{await h.close();}
+});
+test("lyrics typed without blurring are still labeled when the song is made; writer-labeled lyrics are left exactly as written",async()=>{
+ const h=await setup(),requests:any[]=[];h.dom.window.confirm=()=>true;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `song-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
   await act(async()=>h.button("Shape It").click());
   const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
-  await h.input(lyrics,"First line");
-  lyrics.setSelectionRange(5,5);
-  await act(async()=>h.button("[Verse]").click());
-  assert.equal(lyrics.value,"First\n\n[Verse]\n\n line");
+  await h.input(lyrics,"Om shanti shanti\nPeace in every breath\n\nI sit beneath the mountain\nThe wind becomes my song\n\nOm shanti shanti\nPeace in every breath");
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(requests[0].lyrics,"[Chorus]\nOm shanti shanti\nPeace in every breath\n\n[Verse]\nI sit beneath the mountain\nThe wind becomes my song\n\n[Chorus]\nOm shanti shanti\nPeace in every breath");
+  const own="[Hook]\nMy own map\n\n[Verse]\nMy words";
+  await h.input(lyrics,own);
+  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
+  assert.equal(lyrics.value,own);
  }finally{await h.close();}
 });
 test("owner ACE-Step requests two takes once, compares both, and keeps a favourite without a double-cost dialog",async()=>{
