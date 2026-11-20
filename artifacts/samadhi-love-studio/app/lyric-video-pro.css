@@ -1387,16 +1387,7 @@
 .qv-words-synced, .qv-words-reviewed { color: #9ff0c8; }
 .qv-words-rough, .qv-words-none { color: #f4ce93; }
 .lyric-video-pro .qv-link { background: none; border: 0; color: #c9a7ff; text-decoration: underline; padding: 2px 4px; min-height: 0; cursor: pointer; }
-.qv-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
-.lyric-video-pro .qv-chip { flex: none; font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid #6f61a0; background: #1b1638; color: #e6e0ff; min-height: 0; }
-.lyric-video-pro .qv-chip[aria-selected="true"] { background: #c9a7ff; color: #1a1033; border-color: #c9a7ff; }
 /* All the cards for a collection sit in this short box with its own scroll bar: no long page scroll. */
-.qv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 268px; overflow-y: auto; padding: 2px 4px 2px 0; scrollbar-width: thin; scrollbar-color: #9b7ad8 #1b1638; }
-.qv-grid::-webkit-scrollbar { width: 8px; } .qv-grid::-webkit-scrollbar-thumb { background: #9b7ad8; border-radius: 8px; } .qv-grid::-webkit-scrollbar-track { background: #1b1638; border-radius: 8px; }
-.shell .lyric-video-pro .qv-card, .lyric-video-pro .qv-card { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0; border: 2px solid transparent; background: none; box-shadow: none; border-radius: 12px; cursor: pointer; text-align: left; min-height: 0; height: auto; color: inherit; }
-.lyric-video-pro .qv-card[aria-pressed="true"] { border-color: #f3d29d; }
-.qv-art { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 10px; background-size: cover; background-position: center; }
-.qv-name { font-size: 12px; color: #e6e0ff; padding: 0 4px 4px; line-height: 1.3; }
 .qv-shapes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
 .lyric-video-pro .qv-shapes button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .lyric-video-pro .qv-shapes button[aria-pressed="true"] { border-color: #f3d29d; color: #f3d29d; }
@@ -1410,6 +1401,4 @@
 .lvp-finetune > .lvp-stepper { margin: 4px 0 10px; }
 .lvp-preview-more { margin: 8px 0; border: 1px solid #6f61a044; border-radius: 12px; padding: 2px 10px; }
 .lvp-preview-more > summary { cursor: pointer; padding: 8px 0; font-size: 13px; color: #cfdbef; }
-.shell .lyric-video-pro .qv-card[aria-pressed="true"] { border-color: #f3d29d; box-shadow: 0 0 0 2px #f3d29d66; }
-.shell .lyric-video-pro .qv-chip[aria-selected="true"] { background: #c9a7ff; color: #1a1033; border-color: #c9a7ff; }
 .shell .lyric-video-pro .qv-shapes button[aria-pressed="true"] { border-color: #f3d29d; color: #f3d29d; }

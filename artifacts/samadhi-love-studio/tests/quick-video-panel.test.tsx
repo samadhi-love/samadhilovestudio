@@ -86,3 +86,31 @@ test("'For this song' suggests the right collections from the song itself",()=>{
   assert.ok(suggestedThemes(song("Om Shanti","mantra meditation")).includes("lotus"));
   for(const id of suggestedThemes(song("Anything")))assert.ok(id in videoThemes);
 });
+
+test("find any background by typing its name, from any tab",async()=>{
+  const h=await open({cues:[{text:"Love is here",time:0,end:5}]});
+  try{
+    const input=q("bg-search") as HTMLInputElement;
+    const type=async(text:string)=>act(async()=>{const set=Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,"value")!.set!;set.call(input,text);input.dispatchEvent(new window.Event("input",{bubbles:true}));});
+    await type("liberty");
+    assert.deepEqual([...document.querySelectorAll<HTMLElement>('[data-testid^="qv-theme-"]')].map(e=>e.dataset.testid),["qv-theme-liberty"]);
+    await type("sea");
+    assert.ok(q("qv-theme-undersea"),"Under the Sea");
+    await type("zzzz");
+    assert.match(q("qv-grid")!.textContent!,/No background called/);
+    await act(async()=>q("qv-chip-kids")!.click());
+    assert.equal(input.value,"","picking a tab clears the search");
+    assert.ok(q("qv-theme-balloons"));
+  }finally{await h.close();}
+});
+
+test("a background picked on the Create page is the one the video opens with",async()=>{
+  const {applyPlayVisual}=await import("../app/creative-video-handoff");
+  const base=freshSong("x","X",0);
+  const project={theme:"cosmic" as const,motion:"drift" as const,format:"vertical" as const,cues:[{text:"Hi",time:0,end:1}],pro:newProSettings(base,30)};
+  assert.equal(applyPlayVisual(project,"theme:nycnight").theme,"nycnight");
+  assert.equal(applyPlayVisual(project,"theme:not-a-background").theme,"cosmic","unknown keys change nothing");
+  assert.equal(applyPlayVisual(project,"look:sacred-gold").theme,"masters");
+  assert.equal(applyPlayVisual(project,"sacred-gold").theme,"masters","older saved choices still work");
+  assert.deepEqual(applyPlayVisual(project,"theme:flag").cues,project.cues,"words and timing untouched");
+});

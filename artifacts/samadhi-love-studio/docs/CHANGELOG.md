@@ -16,6 +16,19 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### One background picker everywhere you make a video
+- **Request:** "keep all backgrounds for video making in same area, easy to find,
+  either by title on flat boxes and picture, also by tab groups… all in same
+  creation area. Easy is the key."
+- **Changed:** one shared picker (`app/background-chooser.tsx`) with a search box
+  ("Find a background by name"), group tabs and picture boxes with names. It's
+  used on the Create page's "make it visual" step (replacing the 3-item Look
+  dropdown) and in LyriVid's Vibe box. The pick carries straight into the video,
+  and the last pick is remembered.
+- **Commit:** see "One background picker…" after `2127f01`.
+- **Tests:** `tests/quick-video-panel.test.tsx` (search by name, handoff) ·
+  `tests/creative-play.test.tsx` (Create page pick → video).
+
 ### LyriVid in 3 taps: Song → Vibe → Make it
 - **Request:** "where you make video and backgrounds are far and so many options…
   like bom bom bom done" → "do not delete backgrounds, make it accessible without

@@ -9,10 +9,14 @@ test('Simple creation preserves separate takes and hands the selected recording 
   await act(async()=>h.root.render(<Screen/>));await customCreate();await oneTake();await act(async()=>h.button('Just Begin').click());await englishCreation();
   await describe('A hopeful 90-second pop song about sending love. Sing in English.');
   await act(async()=>h.button('Begin').click());assert.equal(calls[0].duration,90);assert.match(calls[0].prompt,/hopeful/);assert.equal(library.length,1);
-  const controls=[...document.querySelectorAll('.play-controls select')] as unknown as HTMLSelectElement[];
-  await act(async()=>{controls[0].value='sacred';controls[0].dispatchEvent(new h.dom.window.Event('change',{bubbles:true}));});
+  assert.equal(document.querySelectorAll('.play-controls select').length,0,"the background is picked where the video is made, not in a separate dropdown");
   await act(async()=>h.button('Try a new take').click());assert.equal(calls.length,2);assert.equal(calls[1].prompt,calls[0].prompt,"Changing a video look does not silently change the music description");assert.equal(library.length,2);assert.equal(library[1].id,'take-1');
-  await act(async()=>h.button('Keep this · make it visual').click());await act(async()=>h.button('Make my video').click());assert.equal(visuals[0].song.id,'take-2');assert.equal(visuals[0].short,true);assert.equal(visuals[0].visual.look,'sacred-gold');assert.equal(library.length,2);assert.equal(published,0);
+  await act(async()=>h.button('Keep this · make it visual').click());
+  const pick=(id:string)=>document.querySelector<HTMLElement>(`[data-testid="${id}"]`)!;
+  assert.ok(pick('create-background-pick'),"the same background picker as LyriVid");
+  await act(async()=>pick('qv-chip-usa').click());await act(async()=>pick('qv-theme-nycnight').click());
+  assert.equal(pick('qv-theme-nycnight').getAttribute('aria-pressed'),'true');
+  await act(async()=>h.button('Make my video').click());assert.equal(visuals[0].song.id,'take-2');assert.equal(visuals[0].short,true);assert.equal(visuals[0].visual.look,'theme:nycnight');assert.equal(library.length,2);assert.equal(published,0);
   failed=true;await act(async()=>h.button('Begin').click());assert.match(document.body.textContent!,/previous songs are safe/);assert.equal(library.length,2);assert.equal(published,0);
  }finally{await h.close();}
 });
