@@ -24,6 +24,7 @@ import "./song-presets.css";
 import "./creator-workspace.css";
 import "./mobile-studio.css";
 import "./creative-play.css";
+import "./background-chooser.css";
 import "./cosmic-theme.css";
 
 export const metadata: Metadata = {

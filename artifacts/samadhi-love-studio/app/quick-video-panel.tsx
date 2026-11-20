@@ -5,39 +5,14 @@
  * each collection and its own scroll bar, so nothing needs a long page scroll.
  * Everything else lives in the Fine-tune drawer below (nothing removed).
  */
-import { useState } from "react";
-import { Check, Dice5, Download, Film, Music2, PenLine, Smartphone, Square, Tv } from "lucide-react";
-import { videoThemes, type LyricProject, type VideoFormat, type VideoTheme } from "./lyric-video-data";
-import { applyLyricBackground, lyricBackgroundGroups } from "./lyric-background-picker";
+import { Check, Download, Film, Music2, PenLine, Smartphone, Square, Tv } from "lucide-react";
+import { type LyricProject, type VideoFormat, type VideoTheme } from "./lyric-video-data";
+import { applyLyricBackground } from "./lyric-background-picker";
 import { applyCreatorVideoLook, applyVideoShape, creatorVideoLooks } from "./creator-video-presets";
+import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
 import type { Song } from "./studio-data";
 
-type Chip = "song" | "looks" | keyof typeof lyricBackgroundGroups;
-const chipNames: Record<Chip, string> = {
-  song: "For this song", looks: "Complete looks", kids: "Kids", usa: "USA and New York", world: "World",
-  sacred: "Sacred", scenes: "Cosmic and scenes", colors: "Colors",
-};
-
-/** Picks the collections that fit the song first (kids, USA, sacred, party…), then sensible defaults. */
-export function suggestedThemes(song: Pick<Song, "name" | "notes" | "tags">): VideoTheme[] {
-  const text = `${song.name} ${song.notes.prompt} ${song.tags.join(" ")}`.toLowerCase();
-  const picks: VideoTheme[] = [];
-  const add = (...ids: VideoTheme[]) => ids.forEach(id => { if (!picks.includes(id)) picks.push(id); });
-  if (/kid|child|lullab|nursery|baby|birthday|school|abc|toddler|bedtime|sleep/.test(text)) add("balloons", "meadow", "undersea", "lullaby");
-  if (/america|usa|u\.s\.|patriot|freedom|liberty|flag|4th of july|independence|new york|nyc|brooklyn|manhattan|city/.test(text)) add("flag", "liberty", "nycnight");
-  if (/god|jesus|christ|mary|angel|pray|prayer|gospel|worship|mantra|om\b|kriya|buddha|sacred|spirit|soul|medit|heal/.test(text)) add("archangel", "masters", "lotus", "temple", "mandala", "jesus");
-  if (/dance|party|club|edm|house|techno|pop|hype/.test(text)) add("futuristic", "portal", "nebula", "nycnight", "balloons");
-  if (/ocean|sea|beach|water|summer/.test(text)) add("undersea", "ocean", "lake");
-  if (/love|heart|romance|r&b|rnb/.test(text)) add("rose", "sunset", "lunar");
-  add("cosmic", "celestial", "nebula", "silkroad", "lake", "portal");
-  return picks.slice(0, 8);
-}
-
-function art(theme: VideoTheme) {
-  const item = videoThemes[theme] as { image: string; thumb?: string; colors: readonly string[] };
-  const picture = item.thumb || item.image;
-  return picture ? { backgroundImage: `url(${picture})` } : { backgroundImage: `radial-gradient(ellipse at 50% 25%,${item.colors[0]},${item.colors[1]} 50%,${item.colors[2]})` };
-}
+export { suggestedThemes } from "./background-chooser";
 
 export type CaptionState = "timing" | "none" | "rough" | "synced" | "reviewed";
 export function QuickVideoPanel(props: {
@@ -47,14 +22,17 @@ export function QuickVideoPanel(props: {
   addWords: () => void; fixWords: () => void; openFineTune: (step: number) => void;
 }) {
   const { project, busy } = props;
-  const [chip, setChip] = useState<Chip>("song");
   const customBackground = !!project.pro?.background;
-  const themes: VideoTheme[] = chip === "song" ? suggestedThemes(props.song)
-    : chip === "looks" ? [] : [...lyricBackgroundGroups[chip].themes];
-  const choose = (theme: VideoTheme) => props.edit(applyLyricBackground(project, theme, "all", props.time));
-  const surprise = () => {
-    const pool = suggestedThemes(props.song).filter(id => id !== project.theme);
-    if (pool.length) choose(pool[Math.floor(Math.random() * pool.length)]);
+  const isSelected = (key: BackgroundKey) => {
+    if (customBackground) return false;
+    const [kind, id] = key.split(":");
+    if (kind === "theme") return project.theme === id;
+    const look = creatorVideoLooks.find(l => l.id === id);
+    return !!look && project.theme === look.theme && project.captionTemplate === look.caption;
+  };
+  const pick = (key: BackgroundKey) => {
+    const [kind, id] = key.split(":");
+    props.edit(kind === "look" ? applyCreatorVideoLook(project, id) : applyLyricBackground(project, id as VideoTheme, "all", props.time));
   };
   const shapes: { id: VideoFormat; label: string; Icon: typeof Smartphone }[] = [
     { id: "vertical", label: "Phone", Icon: Smartphone }, { id: "wide", label: "YouTube", Icon: Tv }, { id: "square", label: "Square", Icon: Square },
@@ -81,29 +59,8 @@ export function QuickVideoPanel(props: {
 
       <div className="qv-step qv-vibe" id="qv-vibe" data-testid="qv-vibe">
         <span className="qv-kicker">2 · Vibe · background, lettering and motion</span>
-        <div className="qv-chips" role="tablist" aria-label="Background collections">
-          {(Object.keys(chipNames) as Chip[]).map(id => (
-            <button type="button" role="tab" key={id} aria-selected={chip === id} className="qv-chip" onClick={() => setChip(id)} data-testid={`qv-chip-${id}`}>{chipNames[id]}</button>
-          ))}
-        </div>
-        <div className="qv-grid" data-testid="qv-grid" role="tabpanel" aria-label={chipNames[chip]}>
-          {chip === "looks"
-            ? creatorVideoLooks.map(look => (
-              <button type="button" key={look.id} className="qv-card" disabled={busy} title={look.vibe}
-                aria-pressed={!customBackground && project.theme === look.theme && project.captionTemplate === look.caption}
-                onClick={() => props.edit(applyCreatorVideoLook(project, look.id))} data-testid={`qv-look-${look.id}`}>
-                <span className="qv-art" style={art(look.theme)} aria-hidden="true" /><span className="qv-name">{look.name}</span>
-              </button>))
-            : themes.map(id => (
-              <button type="button" key={id} className="qv-card" disabled={busy} aria-pressed={!customBackground && project.theme === id}
-                onClick={() => choose(id)} data-testid={`qv-theme-${id}`}>
-                <span className="qv-art" style={art(id)} aria-hidden="true" /><span className="qv-name">{videoThemes[id].title}</span>
-              </button>))}
-        </div>
-        <div className="qv-row">
-          <button type="button" disabled={busy} onClick={surprise} data-testid="qv-surprise"><Dice5 size={15} aria-hidden="true" /> Surprise me</button>
-          <button type="button" className="qv-link" disabled={busy} onClick={() => props.openFineTune(3)}>More lettering and motion</button>
-        </div>
+        <BackgroundChooser song={props.song} disabled={busy} isSelected={isSelected} pick={pick}
+          extra={<button type="button" className="qv-link" disabled={busy} onClick={() => props.openFineTune(3)}>More lettering and motion</button>}/>
       </div>
 
       <div className="qv-step" data-testid="qv-make">
