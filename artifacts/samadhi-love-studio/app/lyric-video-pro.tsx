@@ -217,9 +217,6 @@ function LyricVideoProContent(props: Props) {
     [songId, setSongId] = useState(initialSongId),
     [step, setStep] = useState(0);
   const song = tracks.find((s) => s.id === songId);
-  const [workspaceSkin, setWorkspaceSkin] = useState<"cosmic" | "light">(
-    "cosmic",
-  );
   const [libraryTab, setLibraryTab] = useState<"backgrounds" | "lyrics">(
     "backgrounds",
   );
@@ -242,22 +239,6 @@ function LyricVideoProContent(props: Props) {
     null,
   );
   const [starterBackground, setStarterBackground] = useState("");
-  useEffect(() => {
-    try {
-      if (localStorage.getItem("samadhi-lyric-workspace-skin") === "light")
-        setWorkspaceSkin("light");
-    } catch {
-      /* Optional appearance preference. */
-    }
-  }, []);
-  function chooseWorkspaceSkin(skin: "cosmic" | "light") {
-    setWorkspaceSkin(skin);
-    try {
-      localStorage.setItem("samadhi-lyric-workspace-skin", skin);
-    } catch {
-      /* The selected appearance still applies in this tab. */
-    }
-  }
   const [project, setProject] = useState<LyricProject | null>(null),
     [time, setTime] = useState(0),
     [playing, setPlaying] = useState(false),
@@ -1045,19 +1026,21 @@ function LyricVideoProContent(props: Props) {
     const next = current.current;
     if (!next?.pro || !song || busy) return;
     const pro=next.pro;
-    const rough=()=>{
+    // Never fall back silently: say why precise sync didn't happen, so it can be fixed.
+    const rough=(reason:string)=>{
+      const why=`Precise sync didn't work: ${reason.replace(/\.?$/,".")}`;
       const lines=lyricLines(pro.approvedLyrics);
-      if(!lines.length||!pro.duration){setLyricsEditorOpen(true);setStep(1);setStatus("No words could be recovered. Paste the sung lyrics and Studio can give them rough timing.");return;}
-      if(next.cues.length){setStatus("Precise sync didn't finish. Your existing timing was kept; use Estimated timing if you want a new rough draft.");return;}
+      if(!lines.length||!pro.duration){setLyricsEditorOpen(true);setStep(1);setStatus(`${why} No words could be recovered. Paste the sung lyrics and Studio can give them rough timing.`);return;}
+      if(next.cues.length){setStatus(`${why} Your existing timing was kept; use Estimated timing if you want a new rough draft.`);return;}
       const cues=estimatedCues(lines,pro.duration);
-      const warning="Rough timing only — these lines were spread across the recording, not matched to the voice. Listen and adjust them by hand.";
+      const warning=`${why} Rough timing only — these lines were spread across the recording, not matched to the voice. Listen and adjust them by hand.`;
       const fallbackProject:LyricProject={...next,cues,pro:{...pro,sections:sectionsFromLyrics(pro.approvedLyrics,cues,pro.duration),alignment:{engine:"Rough timing",at:new Date().toISOString(),audioId:pro.sourceAudioId,reviewed:false,warnings:[warning]}}};
       if(!isLyricProject(fallbackProject)){setStatus("The lyrics need shorter lines before rough timing can be added. Your writing is kept.");return;}
       edit(fallbackProject);setStep(2);setStatus(warning);
     };
     if(next.pro.approvedLyrics.trim()&&!lyricLines(next.pro.approvedLyrics).length){setStep(1);setLyricsEditorOpen(true);setError("Paste the words actually sung, not only section headings. No caption processing was started.");return;}
     if (!elevenLabs.connected) {
-      rough();
+      rough("the voice-matching service (ElevenLabs) isn't connected");
       return;
     }
     if (sourceChanged(song, next) && !allowOld) {
@@ -1171,8 +1154,8 @@ function LyricVideoProContent(props: Props) {
       setStatus(
         "Captions are on the preview. Listen at the beginning, middle, and end, then mark the review complete.",
       );
-    } catch {
-      if(!task.signal.aborted)rough();
+    } catch (error) {
+      if(!task.signal.aborted)rough((error as Error)?.message||"the sync service did not answer");
     } finally {
       controller.current = null;
       setOperation("");
@@ -1798,7 +1781,7 @@ function LyricVideoProContent(props: Props) {
   return (
     <div
       className={mode === "classic" ? "lvp-classic-host" : "lyric-video-pro"}
-      data-skin={workspaceSkin}
+      data-skin="cosmic"
       data-observatory="true"
       onPlayCapture={(event) => {
         const active = event.target;
@@ -1835,26 +1818,6 @@ function LyricVideoProContent(props: Props) {
               >
                 Backgrounds &amp; lyric styles
               </button>
-              <div
-                className="lvp-skin-switch"
-                role="group"
-                aria-label="Workspace appearance"
-              >
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "cosmic"}
-                  onClick={() => chooseWorkspaceSkin("cosmic")}
-                >
-                  Cosmic
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={workspaceSkin === "light"}
-                  onClick={() => chooseWorkspaceSkin("light")}
-                >
-                  Light
-                </button>
-              </div>
             </>
           )}
           <button

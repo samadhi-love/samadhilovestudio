@@ -5,10 +5,11 @@ import { privateWorkspace, studioAccess } from "../../studio-access";
 import { engage, problem, reply, streamRelease } from "../../community/engagement";
 import { manageRelease, moderate } from "../../community/manage";
 import { loadArtistDashboard, loadCommunity, loadModeration, validId } from "../../community/store";
+import { traced } from "../../server/request-context";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+async function GETHandler(request: Request) {
   const params = new URL(request.url).searchParams;
   try {
     const access = await studioAccess();
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+async function POSTHandler(request: Request) {
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return problem("Open the Studio directly to make this change.", 403);
   const access = await studioAccess();
@@ -86,3 +87,5 @@ export async function POST(request: Request) {
 export async function HEAD(request: Request) {
   return new URL(request.url).searchParams.has("audio") ? GET(request) : new Response(null, { status: 405 });
 }
+export const GET=traced(GETHandler);
+export const POST=traced(POSTHandler);

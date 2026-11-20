@@ -4,12 +4,14 @@ import { creatorAccounts } from "../../../../db/schema";
 import { studioAccess } from "../../../studio-access";
 import { privateHeaders } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
+import { ownerAction } from "../../../server/request-context";
 
 export const dynamic = "force-dynamic";
 
 async function updateAccount(request: Request) {
   const reply = (error: string, status: number) => Response.json({ error }, { status, headers: privateHeaders });
-  if ((await studioAccess()).role !== "owner") return reply("Owner access is required.", 403);
+  const owner = await studioAccess();
+  if (owner.role !== "owner") return reply("Owner access is required.", 403);
   if (request.headers.get("origin") !== new URL(request.url).origin) return reply("Open the Studio directly to manage accounts.", 403);
   const raw = await readBoundedText(request, 4096);
   if (raw.length > 1024) return reply("Invalid account settings.", 400);
@@ -19,6 +21,7 @@ async function updateAccount(request: Request) {
     return reply("Choose a daily limit between 0 and 100.", 400);
   const rows = await getDb().update(creatorAccounts).set({ suspended: input.suspended, limit: input.limit })
     .where(eq(creatorAccounts.id, input.id)).returning({ id: creatorAccounts.id });
+  if (rows.length) ownerAction("creator-account.update", owner.id ?? "owner", { account: input.id, suspended: input.suspended, dailyLimit: input.limit });
   return rows.length ? Response.json({ saved: true }, { headers: privateHeaders }) : reply("Creator account unavailable.", 404);
 }
 export const PATCH = recoverableRoute(updateAccount, "Account settings could not save. Reload the current settings and retry.");

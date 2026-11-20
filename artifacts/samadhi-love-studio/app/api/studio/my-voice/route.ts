@@ -5,6 +5,7 @@ import { uuid, validSession } from "../../../vocal/session";
 import { voiceMimeTypes } from "../../../my-voice-data";
 import { privateHeaders } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
+import { traced } from "../../../server/request-context";
 export const dynamic = "force-dynamic";
 const problem=(error:string,status:number)=>Response.json({error},{status,headers:privateHeaders});
 async function handle(request:Request){
@@ -35,4 +36,4 @@ async function handle(request:Request){
   return Response.json({voice:{id:voiceId,name:input.name.trim(),duration:source.duration,mime,createdAt:new Date().toISOString()}},{headers:privateHeaders});
 }
 const route=recoverableRoute(handle,"Your voice recording could not save or load. Existing originals are preserved.");
-export const GET=route;export const POST=route;
+export const GET=traced(route);export const POST=traced(route);
