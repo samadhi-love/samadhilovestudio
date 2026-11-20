@@ -1,3 +1,4 @@
+import { describeInstruments } from "../../../instrument-sounds";
 import {isMusicalAd} from "../../../musical-ad";
 import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, musicDialects,type LanguageProfile } from "../../../music-language";
 import { vocalStyles } from "../../../vocal-matching";
@@ -268,7 +269,7 @@ async function createMusic(request: Request) {
     draft.notes.vocals = voice;
     draft.notes.instruments=instruments;
     if(genres)draft.tags=genreTags(genres);
-    const direction = [languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+instruments, songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", voice && "Vocal direction: " + voice, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
+    const direction = [languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+describeInstruments(instruments), songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", voice && "Vocal direction: " + voice, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
     const durationMs = duration * 1000;
 
     const bpm = /\b\d{2,3}\s*BPM\b/i.exec(prompt)?.[0] ?? "";

@@ -26,7 +26,7 @@ import {sortSongs,type SongSort} from "./song-library";
 import {SaveVoiceReference} from "./save-voice-reference";
 import type {RegionOperation} from "./song-region-actions";
 
-import { pinnedMaster, projectRoot } from "./project-assets";
+import { lyricVideoFor, pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
 import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
 import { createSaveQueue } from "./save-queue";
@@ -165,7 +165,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [coverSongId,setCoverSongId]=useState("");
   const [sectionInitialAction,setSectionInitialAction]=useState<RegionOperation>("remove");
   const [coverVideoRequest,setCoverVideoRequest]=useState<{id:string;songId:string;asset:string;overlay:OverlayStyle}|null>(null);
-  const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;audioId?:string;start?:number;seconds?:number}|null>(null);
+  const [socialVideoRequest,setSocialVideoRequest]=useState<{id:string;songId:string;look?:string;photoAsset?:string;footage?:{asset:string;duration:number};audioId?:string;start?:number;seconds?:number}|null>(null);
   const [lyricSongId, setLyricSongId] = useState("");
   const [modal, setModal] = useState<"new" | "upload" | "template" | "help" | "tour" | "connections" | "cover" | "logo" | "sections" | "stems-midi" | "save-voice" | null>(null);
   const [undoPromptFavorite,setUndoPromptFavorite]=useState<{id:string;favorite?:boolean}|null>(null);
@@ -498,10 +498,9 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     return navigate(screenHome[screen]);
   }
   function remix(song: Song) {
-    if (!isInstrumental(song.instrumental)) {
-      if (navigate("vocal-studio")) setWorkflowSong(song.id);
-      return;
-    }
+    // A sung song remixes into a fresh take in Create with its words, style, singer and language copied in.
+    // (Recording your own voice over it stays one tap away: Record my voice & mix.)
+    if (!isInstrumental(song.instrumental)) { songAction("make-like-this", song); return; }
     const settings = song.instrumental;
     navigate("create", false, { projectId: projectRoot(data.songs, song).id, title: song.name.slice(0, 86) + " · Remix", genres: uniqueGenreNames(song.tags),
       idea: song.notes.prompt.slice(0, 1000) || "A fresh arrangement of " + song.name,
@@ -694,7 +693,16 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           sendMix={(blob, title, projectId) => { if (navigate("multitrack")) setMixInput({ blob, title, projectId }); }}
           layerOverSong={(blob,title,songId)=>{if(navigate("multitrack"))setMixInput({blob,title,baseSongId:songId,projectId:songId});}}
           openSong={(id, step) => {
-            const target = data.songs.find(s => s.id === id);
+            const target = dataRef.current.songs.find(s => s.id === id) ?? data.songs.find(s => s.id === id);
+            // "Make lyric video" opens the mix with YOUR voice (never the project's pinned master),
+            // and its words start timing to your voice right away.
+            if (target && step === "video") {
+              if (!navigate("lyric-video")) return;
+              const open = lyricVideoFor(target);
+              setLyricSongId(open.songId);
+              setAutoCaptionRequest(open.autoCaptions ? { songId: open.songId, id: uid() } : null);
+              return;
+            }
             if (target) openWorkflow(step === "production" ? "edit" : step, target);
           }}/></PanelErrorBoundary>}
         {loaded && tentOpened && <PanelErrorBoundary panel="world-sounds" visible={view==="international-tent"&&!song&&!pane}><InternationalMusicTent active={view === "international-tent" && !song} send={seed => seed.sectionDirections?.length&&!beginner ? navigate("create", false, seed) : sendToCreate(seed)} copy={copy} openVocalStudio={() => navigate("vocal-studio")}/></PanelErrorBoundary>}
@@ -746,7 +754,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
             return true;
           }}/></div>}
              simpleExperience={beginner} recordVoice={()=>navigate("recording")} uploadOwn={()=>openUpload(null,true)} autoCover={async song=>{const blob=await coverPng(song.name,creatorName??"SAMADHI LOVE",coverStyleForTitle(song.name));const asset=await uploadLyricAsset(song.id,"background",blob);if(!await saveSong({...song,coverAsset:asset},"Cover created from your title"))throw new Error("Cover save not confirmed.");}} savedPrompts={data.templates.filter(t=>t.id.startsWith("prompt-"))} savePrompt={saveReusablePrompt} favoritePrompt={favoriteReusablePrompt} autoSavePrompts={data.autoSavePrompts===true} setAutoSavePrompts={enabled=>{void setPromptAutoSave(enabled);}} connected={elevenLabs.connected} saving={saving} drafts={data.songs} working={setCreating}
-            makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
+            makeVideo={async(song,short,visual)=>{const photoAsset=visual?.photo?await uploadLyricAsset(song.id,"background",visual.photo,undefined,song.audioId??song.id):undefined;let footage:{asset:string;duration:number}|undefined;if(visual?.video){const {openFootage}=await import("./advertising-footage");const decoder=await openFootage(visual.video);const duration=decoder.duration;decoder.dispose();footage={asset:await uploadLyricAsset(song.id,"sourceVideo",visual.video,undefined,song.audioId??song.id),duration};}if(navigate("lyric-video")){setLyricSongId(song.id);if(short||song.musicalAd)setSocialVideoRequest({id:uid(),songId:song.id,look:visual?.look,photoAsset,footage,audioId:song.audioId??song.id});if(!song.lyricVideo?.cues.length&&song.creationKind!=="instrumental")setAutoCaptionRequest({songId:song.id,id:uid()});}}} publish={song=>void publishSong(song)} settings={connectionSettings} guided={() => navigate("create")} openDrafts={() => navigate("create", true)}
             connectionChecking={elevenLabs.operation==="GET"} connectionError={elevenLabs.error||elevenLabs.status.error} refreshConnection={()=>{void elevenLabs.update("GET");}}
             generateSong={async input => {const result=await createRequest({ ...input, action: "song" }, "Song saved privately to Your songs", true);return result?.songId?{songId:result.songId,songIds:result.songIds,warning:result.warning}:undefined;}}
              saveMelodyReference={saveMelodyReference}
@@ -963,7 +971,8 @@ function SongEditor({ release, song, tab, setTab, saving, folders, save, copy, b
         <AudioActions song={song}/>
         <div className="actions">
           {!song.creationDraft && <button type="button" className="primary small" data-testid="button-open-release" onClick={() => setTab("Release")}>Publish or share in Community</button>}
-          {isInstrumental(song.instrumental) && <button type="button" className="secondary small" onClick={remix}>Remix in Motif Forge</button>}
+          {isInstrumental(song.instrumental) ? <button type="button" className="secondary small" onClick={remix}>Remix in Motif Forge</button>
+            : <button type="button" className="secondary small" onClick={remix} data-testid="button-remix-sung">Remix · new take like this</button>}
         </div>
         {isInstrumental(song.instrumental) ? <InstrumentalExports settings={song.instrumental} title={song.name} disabled={saving}/>
           : <SeparatedStems key={`stems:${song.audioId ?? song.id}`} songId={song.id} audioId={song.audioId} title={song.name} connected={stemsConnected} openMixer={mixStems}/>}

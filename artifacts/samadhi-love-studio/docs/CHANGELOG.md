@@ -16,6 +16,62 @@ request → what changed → the commit → the tests that prove it.
 
 ## 2026-11-20
 
+### "Make your video" box beside "Begin a song"
+- **Request:** "make a box on the side to handle make your video… you should see
+  the screen and then move the song to it" + "make sure it is easy for phone…
+  video cancels voice so it is just background" → GO.
+- **Changed (nothing removed):**
+  - Create page: a **Make your video** box sits beside Begin a song on a computer
+    and under it on a phone. A phone-shaped screen shows your pick right away:
+    any gallery background, or your own photo, video or camera clip ("Yours").
+  - Put a song in by **dragging** it onto the screen (also your takes on the left)
+    or tapping **Use in video**. Play it to hear it over the picture with its words.
+  - **Make my video** opens LyriVid with the song, look and photo or clip filled in.
+  - A video's own sound is always off; the camera records picture only.
+  - Picker fix: picture rows no longer squash on narrow screens.
+- **Proof:** new tests in `tests/create-video-box.test.tsx`; screenshots checked
+  at 390 px and 1280 px wide; full suite green.
+
+### Audit fixes 1–7 ("GO DO NOT REMOVE MAKE IT PERFECT")
+- **Request:** the 16-item working audit, then "GO DO NOT REMOVE MAKE IT PERFECT GO GO GO".
+- **Changed (nothing removed):**
+  1. **Singer library** — 12 AI singers; Auto picks by genre and description
+     (hip hop and R&B → a Black American MC or soul lead). `bb204ad`
+  2. **Backup lyric timing** — when ElevenLabs can't time a song, fal Whisper
+     hears the words and matches them to your lyrics. `a392a07`
+  3. **"Yours" background tab** (Create page and LyriVid) — upload a photo, a
+     short video (up to 60 s, loops, fills the frame), or take a photo / record a
+     15 s clip with any connected camera. Picking a gallery picture switches back;
+     your clip stays saved. `ac11138`
+  4. **My Voices listens to the consent** — the spoken sentence is checked with
+     speech-to-text (ElevenLabs Scribe, then fal Whisper). Silence, other words or
+     "I don't agree" are refused and nothing is saved. `c371c53`
+  5. **Instrument sounds** — the engine is told what each picked instrument
+     sounds like, only when it fits ACE-Step's 512 characters. `f2c8f48`
+  6. **Accents** — Southern US, Urban American, British, Jamaican, Nigerian and
+     Indian English; Mexican and Caribbean Spanish; Brazilian Portuguese. `4d62e8c`
+  7. **Remix for sung songs** — "Remix · new take like this" copies the song into
+     Create. `335908f`
+- **Not done (needs Samadhi):** 8. automatic posting to TikTok, YouTube, Instagram
+  needs your own developer accounts and each platform's approval.
+- **Proof:** 376/376 node tests, 46/46 script suites, verify:studio 0, typecheck 0,
+  build 0. No paid calls in tests.
+
+### Your recorded voice → your song → lyric video (sing-along)
+- **Request:** "make sure we can use the recorded voice into making the song and
+  it goes to lyric video" → chose "AI guide + music".
+- **Changed:**
+  - Vocal Studio **Set up sing-along** (one tap) splits the AI song once into
+    the music and the AI singer. The singer becomes a **guide track**: heard in
+    your headphones while you record, never in your saved song. Words to sing
+    are shown, and recording is ready (Lead vocal, overdub on).
+  - **Make lyric video** after saving your mix opens that mix (your voice), not
+    the project's pinned master, and its words start timing to your voice.
+  - The Create "Your voice" wording now says exactly what happens.
+- Builds on the other chat's "My Voices" work (`2fba52d`).
+- **Commit:** see "Sing along…" after `2fba52d`.
+- **Tests:** `tests/sing-along.test.tsx` (5) · `tests/my-voices-screen.test.tsx`.
+
 ### One background picker everywhere you make a video
 - **Request:** "keep all backgrounds for video making in same area, easy to find,
   either by title on flat boxes and picture, also by tab groups… all in same

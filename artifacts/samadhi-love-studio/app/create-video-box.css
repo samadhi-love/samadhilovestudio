@@ -1,0 +1,41 @@
+/* "Make your video" beside "Begin a song". Side by side on a computer, stacked on a phone. */
+.qc-split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 980px) { .qc-split { grid-template-columns: minmax(0, 700px) minmax(330px, 1fr); } }
+.cvb { min-width: 0; margin-top: 1.15rem; padding: clamp(.75rem, 2.5vw, 1.25rem); border-radius: 14px; background: #10202df0; border: 1px solid #c9a7ff88; color: #eef5f9; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.cvb h2 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+/* Screen on the left, the chosen song beside it; your songs run full width underneath (computer and phone). */
+.cvb-stage { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; }
+.cvb-side { display: contents; }
+.cvb-songs, .cvb-more { grid-column: 1 / -1; }
+.cvb-screen { position: relative; flex: none; width: clamp(130px, 38vw, 170px); aspect-ratio: 9 / 16; border-radius: 18px; border: 3px solid #e6e0ff55; overflow: hidden; background-color: #120f2a; background-image: radial-gradient(ellipse at 50% 25%, #3b2a6b, #120f2a 70%); background-size: cover; background-repeat: no-repeat; background-position: 50% 50%; display: flex; align-items: flex-end; justify-content: center; animation: cvb-drift 14s ease-in-out infinite alternate; }
+.cvb-screen.is-over { border-color: #f3d29d; box-shadow: 0 0 0 3px #f3d29d66; }
+.cvb-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cvb-drop { position: absolute; top: 40%; left: 8px; right: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border: 2px dashed #f3d29d; border-radius: 12px; background: #120f2acc; color: #f3d29d; font-size: 12px; text-align: center; }
+.cvb-words { position: relative; z-index: 1; margin: 0 8px 18%; padding: 4px 8px; border-radius: 8px; background: #0b0b1a99; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.3; text-align: center; text-shadow: 0 1px 3px #000; animation: cvb-word .5s ease-out; overflow-wrap: anywhere; }
+@keyframes cvb-word { from { transform: translateY(8px); } to { transform: none; } }
+@keyframes cvb-drift { from { background-position: 35% 50%; } to { background-position: 65% 50%; } }
+@media (prefers-reduced-motion: reduce) { .cvb-screen, .cvb-words { animation: none; } }
+.cvb-hint, .cvb-note { margin: 0; font-size: .85rem; color: #c9d6de; }
+.cvb-chosen { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; background: #c9a7ff22; border: 1px solid #c9a7ff88; min-width: 0; }
+.cvb-chosen strong { order: -1; grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; line-height: 1.3; }
+.cvb-chosen small { color: #c9d6de; font-size: .8rem; }
+.shell .cvb .cvb-play, .cvb .cvb-play { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: #c9a7ff; color: #1a1033; border: 0; }
+.cvb-songs { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 236px; overflow-y: auto; }
+.cvb-songs li { display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 6px; border-radius: 10px; border: 1px solid #55717e; background: #1b1638; cursor: grab; min-width: 0; }
+.cvb-songs li[aria-current] { border-color: #f3d29d; }
+.cvb-songs li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
+.cvb-grip { flex: none; color: #9b8fc2; }
+.shell .cvb .cvb-songs button, .cvb .cvb-songs button { flex: none; min-height: 40px; padding: 4px 10px; font-size: .8rem; border-radius: 10px; }
+.cvb-more { display: grid; gap: 4px; font-size: .85rem; }
+.shell .cvb .cvb-make, .cvb .cvb-make { width: 100%; min-height: 52px; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+[draggable="true"] { -webkit-user-drag: element; }
+/* Phones: everything thumb-sized. */
+@media (max-width: 640px) {
+  .cvb-screen { width: 34vw; }
+  .cvb-chosen { grid-template-columns: auto; justify-items: start; }
+  .cvb-chosen small { display: none; }
+  .cvb-songs { max-height: 200px; }
+  .shell .cvb .own-bg-card, .cvb .own-bg-card { min-height: 88px; }
+  .shell .cvb .qv-chip, .cvb .qv-chip { min-height: 36px; font-size: 13px; }
+}
+@media (max-width: 360px) { .cvb-screen { width: 42vw; } }

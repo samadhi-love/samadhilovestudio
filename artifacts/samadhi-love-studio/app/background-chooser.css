@@ -1,5 +1,5 @@
 /* The one background picker (Create page and LyriVid). Works on any page. */
-.bg-chooser { display: grid; gap: 8px; }
+.bg-chooser { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
 .bg-search { display: flex; align-items: center; gap: 8px; border: 1px solid #6f61a0; border-radius: 12px; padding: 4px 10px; background: #120f2a; color: #e6e0ff; }
 .bg-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font-size: 14px; padding: 6px 0; outline: none; box-shadow: none; }
 .bg-search:focus-within { border-color: #c9a7ff; }
@@ -7,11 +7,12 @@
 .shell .bg-chooser .qv-chip, .bg-chooser .qv-chip { flex: none; font-size: 12px; padding: 5px 11px; min-height: 0; border-radius: 999px; border: 1px solid #6f61a0; background: #1b1638; color: #e6e0ff; cursor: pointer; }
 .shell .bg-chooser .qv-chip[aria-selected="true"], .bg-chooser .qv-chip[aria-selected="true"] { background: #c9a7ff; color: #1a1033; border-color: #c9a7ff; }
 /* All the boxes for a tab (or a search) sit in this short area with its own scroll bar. */
-.bg-chooser .qv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 268px; overflow-y: auto; padding: 2px 4px 2px 0; scrollbar-width: thin; scrollbar-color: #9b7ad8 #1b1638; }
+.bg-chooser .qv-grid { display: grid; grid-auto-rows: max-content; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 268px; overflow-y: auto; padding: 2px 4px 2px 0; scrollbar-width: thin; scrollbar-color: #9b7ad8 #1b1638; }
 .bg-chooser .qv-grid::-webkit-scrollbar { width: 8px; } .bg-chooser .qv-grid::-webkit-scrollbar-thumb { background: #9b7ad8; border-radius: 8px; } .bg-chooser .qv-grid::-webkit-scrollbar-track { background: #1b1638; border-radius: 8px; }
 .shell .bg-chooser .qv-card, .bg-chooser .qv-card { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0; height: auto; min-height: 0; border: 2px solid transparent; border-radius: 12px; background: none; box-shadow: none; color: inherit; cursor: pointer; text-align: left; }
 .shell .bg-chooser .qv-card[aria-pressed="true"], .bg-chooser .qv-card[aria-pressed="true"] { border-color: #f3d29d; box-shadow: 0 0 0 2px #f3d29d66; }
-.bg-chooser .qv-art { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 10px; background-size: cover; background-position: center; }
+/* A fixed picture height keeps rows from overlapping on narrow screens. */
+.bg-chooser .qv-art { display: block; flex: none; width: 100%; height: 64px; border-radius: 10px; background-size: cover; background-position: center; }
 .bg-chooser .qv-name { font-size: 12px; color: #e6e0ff; padding: 0 4px 4px; line-height: 1.3; }
 .bg-chooser .qv-name small { color: #b1bbd6; }
 .bg-chooser .qv-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -20,3 +21,17 @@
 .quick-background-pick h3 { margin: 0 0 8px; font-size: 16px; }
 .shell .lyric-video-pro .bg-chooser .bg-search, .shell .bg-chooser .bg-search { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; }
 .shell .lyric-video-pro .bg-chooser .bg-search input, .shell .bg-chooser .bg-search input { flex: 1; width: auto; min-width: 0; margin: 0; border: 0; background: transparent; box-shadow: none; padding: 6px 0; min-height: 0; color: inherit; }
+/* "Yours": your photo, your video, your camera. */
+.bg-chooser .qv-grid-own { display: block; max-height: none; }
+.bg-chooser .own-bg { display: grid; gap: 8px; }
+.bg-chooser .own-bg-status { margin: 0; font-size: 13px; color: #e6e0ff; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bg-chooser .own-bg-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.shell .bg-chooser .own-bg-card, .bg-chooser .own-bg-card { position: relative; align-items: center; justify-content: center; gap: 6px; padding: 14px 8px; border: 1px dashed #9b7ad8; background: #1b1638; text-align: center; color: #e6e0ff; }
+.bg-chooser .own-bg-card .qv-name { padding: 0; }
+.bg-chooser .own-bg-card:focus-within { border-color: #f3d29d; }
+.bg-chooser .own-bg-card.is-disabled { opacity: .55; cursor: not-allowed; }
+.bg-chooser .own-bg-file { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.bg-chooser .own-camera { display: grid; gap: 8px; }
+.bg-chooser .own-camera video { width: 100%; max-height: 240px; border-radius: 12px; background: #000; object-fit: contain; }
+.shell .bg-chooser .own-camera-pick, .bg-chooser .own-camera-pick { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.shell .bg-chooser .own-camera-pick select, .bg-chooser .own-camera-pick select { width: auto; margin: 0; }

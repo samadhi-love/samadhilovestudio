@@ -118,7 +118,7 @@ export function MyVoices({ useInSong, makeVideo }: { useInSong: () => void; make
         return <li key={voice.id} className="my-voices-slot" data-testid={`voice-${voice.id}`}>
           <span className="orb" aria-hidden="true">♪</span>
           <h2>{voice.name}</h2>
-          <p className="my-voices-badge">✓ Verified{voice.speaker ? ` · ${voice.speaker}` : ""}</p>
+          <p className="my-voices-badge">✓ Verified{voice.speaker ? ` · ${voice.speaker}` : ""}{voice.consentHeard ? " · consent words heard" : ""}</p>
           <p className="muted">{clock(voice.duration)} · saved {new Date(voice.createdAt).toLocaleDateString()}</p>
           <AudioPlayer src={myVoiceUrl(voice.id)} label={`Listen to ${voice.name}`}/>
           <details><summary>Consent recording</summary><AudioPlayer src={myVoiceConsentUrl(voice.id)} label={`Consent recording for ${voice.name}`}/></details>
@@ -178,7 +178,7 @@ export function AddVoice({ cancel, saved }: { cancel: () => void; saved: (voice:
     <div className="my-voices-step"><span className="num">2</span><div>
       <h3>Say it in your own voice</h3>
       {phrase ? <blockquote className="my-voices-phrase" data-testid="text-consent-phrase">“{phrase}”</blockquote> : <p className="muted">Type your name above to see the sentence.</p>}
-      {phrase && <Recorder label="consent" hint="Press record and read the sentence aloud." t={consent} testid="consent"/>}
+      {phrase && <Recorder label="consent" hint="Press record and read the sentence aloud, word for word. We listen to it to check it matches." t={consent} testid="consent"/>}
     </div></div>
     <div className="my-voices-step"><span className="num">3</span><div>
       <h3>Sing or speak</h3>
@@ -206,7 +206,7 @@ export function VoiceChoice({ value, change, disabled }: { value: SavedVoice | n
       {voices?.map(v => <button key={v.id} type="button" role="radio" aria-checked={value?.id === v.id} data-testid={`voice-choice-${v.id}`} onClick={() => change(v)}>🎤 {v.name}</button>)}
       {voices && room && !adding && <button type="button" className="voice-choice-add" data-testid="voice-choice-add" onClick={() => setAdding(true)}>+ Add a voice</button>}
     </div>
-    <p className="muted" data-testid="text-voice-choice">{value ? `After your song is made, sing it with “${value.name}” in Vocal Studio. Your voice joins the song; the AI makes the music.` : "The AI singer performs your song. Choose one of your saved voices to sing it yourself after it's made."}</p>
+    <p className="muted" data-testid="text-voice-choice">{value ? `After your song is made, tap “Sing it with ${value.name}”. You sing along with the AI singer as a guide in your headphones, and only your voice goes into your song. Then make its lyric video.` : "The AI singer performs your song. Choose one of your saved voices to sing it yourself after it's made."}</p>
     {loadError && <p className="muted" role="status">{loadError} <button type="button" className="text-button" onClick={() => void load()}>Try again</button></p>}
     {adding && <AddVoice cancel={() => setAdding(false)} saved={voice => { setVoices(list => [...(list ?? []), voice]); setAdding(false); change(voice); }}/>}
   </fieldset>;

@@ -7,6 +7,11 @@ export function audibleClips(clips: Clip[]) {
   return clips.filter(clip => !clip.mute && (!solo || clip.solo));
 }
 
+/** What goes into the saved song: audible tracks without guide tracks. */
+export function songClips(clips: Clip[]) {
+  return audibleClips(clips).filter(clip => !clip.guide);
+}
+
 export function mixLength(clips: Clip[]) {
   return Math.max(0, ...clips.map(clip => clip.at + clip.end - clip.start)) + (clips.some(c => !c.bypass && (c.effects.reverb || c.effects.delay)) ? 1.25 : 0);
 }

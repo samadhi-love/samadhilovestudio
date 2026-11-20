@@ -1,6 +1,6 @@
 import { promptLanguage } from "./prompt-language";
-import { musicLanguages, musicDialects, type MusicLanguage } from "./music-language-catalog";
-export { musicLanguages, musicDialects, type MusicLanguage } from "./music-language-catalog";
+import { musicLanguages, musicDialects, dialectLanguage, accentSound, type MusicLanguage } from "./music-language-catalog";
+export { musicLanguages, musicDialects, dialectLanguage, accentSound, dialectsFor, type MusicLanguage } from "./music-language-catalog";
 export type LanguageChoice = { language: "auto" | MusicLanguage; dialect: "" | keyof typeof musicDialects; selected?: boolean };
 // Remember an explicit choice (including English) separately from the default.
 export const defaultLanguageChoice: LanguageChoice = { language: "auto", dialect: "", selected: false };
@@ -30,14 +30,14 @@ export function isLanguageChoice(value: unknown): value is LanguageChoice {
   const v = value as LanguageChoice;
   return (v.selected === undefined || typeof v.selected === "boolean") &&
     (v.language === "auto" || Object.hasOwn(musicLanguages, v.language)) &&
-    (v.dialect === "" || Object.hasOwn(musicDialects, v.dialect) && ["auto", "ar", "mixed"].includes(v.language));
+    (v.dialect === "" || Object.hasOwn(musicDialects, v.dialect) && ["auto", "mixed", dialectLanguage[v.dialect]].includes(v.language));
 }
 export function isLanguageProfile(value: unknown): value is LanguageProfile {
   const p = value as LanguageProfile;
   return isLanguageChoice(value) && Object.hasOwn(musicLanguages, p.resolved) &&
     ["selected", "script-suggestion", "prompt", "default"].includes(p.source) &&
     (p.language === "auto" || p.language === p.resolved) &&
-    (!p.dialect || ["ar", "mixed"].includes(p.resolved));
+    (!p.dialect || p.resolved === "mixed" || dialectLanguage[p.dialect] === p.resolved);
 }
 /** Conservative suggestions only. Ambiguous input falls back to English.
  * Never use an English production brief as evidence of the intended singing language.
@@ -90,9 +90,11 @@ export function resolveLanguage(choice: LanguageChoice, lyrics: string, prompt =
   const explicit = choice.language !== "auto" && choice.selected !== false;
   const requestedLanguage = requested?.language === "auto" ? undefined : requested?.language;
   const detected = explicit || requestedLanguage ? undefined : suggestLyricLanguage(lyrics);
-  const inferred = explicit ? undefined : requestedLanguage ?? detected ?? (choice.dialect ? "ar" : undefined);
+  const inferred = explicit ? undefined : requestedLanguage ?? detected ?? (choice.dialect ? dialectLanguage[choice.dialect] : undefined);
   const resolved: MusicLanguage = explicit ? choice.language as MusicLanguage : inferred ?? "en";
-  const dialect = ["ar", "mixed"].includes(resolved) ? (explicit ? choice.dialect : requested?.dialect || choice.dialect) : "";
+  const fits = (d: LanguageChoice["dialect"]) => !!d && (resolved === "mixed" || dialectLanguage[d] === resolved);
+  const wanted = explicit ? choice.dialect : requested?.dialect || choice.dialect;
+  const dialect = fits(wanted) ? wanted : "";
   return { ...choice, language: resolved, dialect, resolved, source: explicit ? "selected" : requestedLanguage ? "prompt" : detected ? "script-suggestion" : choice.dialect ? "selected" : "default" };
 }
 /** Directions belong in plan styles, never substituted into displayed approved words. */
@@ -103,7 +105,8 @@ export function singingDirection(profile: LanguageProfile): string {
     profile.resolved === "mixed" ? "Preserve every passage's original language and script, including code-switching. Do not translate or romanize any passage." :
       "Write original lyrics in this language when no lyrics are supplied. Preserve supplied words and script exactly; never translate or romanize them.",
     profile.dialect === "ar-LB" ? "Lebanese Arabic dialect target: natural conversational Lebanese Levantine phrasing, not formal Modern Standard Arabic or Egyptian Arabic. For newly written Arabic passages use idiomatic Lebanese vocabulary such as shu, baddi, hayda and mish where appropriate, written in Arabic script. Lebanese vocal articulation and colloquial vowel patterns; conversational phrasing, not formal case endings. Preserve any supplied lyrics, including their dialect and mixed-language passages. Dialect fidelity is not guaranteed." : "",
-    profile.dialect && profile.dialect !== "ar-LB" ? `Dialect target: ${musicDialects[profile.dialect]}; colloquial vocabulary and vocal pronunciation, not formal Modern Standard Arabic. Do not rewrite supplied lyrics. Fidelity is unverified.` : "",
+    profile.dialect && profile.dialect !== "ar-LB" && dialectLanguage[profile.dialect] === "ar" ? `Dialect target: ${musicDialects[profile.dialect]}; colloquial vocabulary and vocal pronunciation, not formal Modern Standard Arabic. Do not rewrite supplied lyrics. Fidelity is unverified.` : "",
+    profile.dialect && dialectLanguage[profile.dialect] !== "ar" ? `Accent target: ${musicDialects[profile.dialect]}; ${accentSound[profile.dialect] ?? "natural pronunciation"}. Sing supplied lyrics exactly as written; do not rewrite them. Fidelity is unverified.` : "",
   ].filter(Boolean).join(" ");
 }
 export function languageStyles<T extends { positive_styles?: unknown }>(chunks: T[], profile: LanguageProfile): T[] {

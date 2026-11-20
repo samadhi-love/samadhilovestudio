@@ -3,7 +3,10 @@ import { sendProviderAudio } from "../elevenlabs/audio-upload";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "../../../clean-content";
-import { alignLyricLines, captionsFromTranscript } from "../../../lyric-alignment";
+import { alignLyricLines, alignLyricsToHeardWords, captionsFromTranscript } from "../../../lyric-alignment";
+import type { LyricCue } from "../../../lyric-video-data";
+import { FalSyncFailed, transcribeWithFal } from "../../../server/fal-transcribe";
+import { falKey } from "../../../server/music-engine";
 import { compareLyrics, reviewTiming, proLanguages } from "../../../lyric-pro-data";
 import { lyricAssetKey } from "../lyric-assets/route";
 import { lyricLines } from "../../../lyric-video-data";
@@ -38,7 +41,8 @@ async function syncLyrics(request: Request) {
   let key: string | null;
   try { key = managedProviderKey(request) ?? await resolveElevenLabsKey(id); }
   catch { return problem("Could not read the saved ElevenLabs key. Update it in Settings → AI Music Providers.", 503); }
-  if (!key) return problem("Open Settings → AI Music Providers to connect ElevenLabs.", 400);
+  const backupReady = !!falKey() && typeof (env.BUCKET as { presignGet?: unknown } | undefined)?.presignGet === "function";
+  if (!key && !backupReady) return problem("Open Settings → AI Music Providers to connect ElevenLabs.", 400);
   if (input?.mode !== "auto" && input?.mode !== "align" && input?.mode !== "transcribe" && input?.mode !== "audit") return problem("Choose an automatic caption option.", 400);
   let text = typeof input.text === "string" ? input.text : "";
 
@@ -80,16 +84,48 @@ async function syncLyrics(request: Request) {
     const aligning = mode === "align";
     const execution=jobExecution.get(request);
     if(execution)execution.providerStarted=true;
-    const response = await sendProviderAudio(audio, format, key, aligning ? { text: lines.join("\n") } : {
-      model_id: "scribe_v2", timestamps_granularity: "word", tag_audio_events: "true", diarize: "true",
-      ...(input.language && input.language !== "auto" ? { language_code: input.language } : {}),
-    }, aligning ? "forced-alignment" : "speech-to-text", deadline);
-    if (response.status === 401 || response.status === 403)
-      return problem("Check your ElevenLabs key and enable Speech to Text or Forced Alignment permissions.", 422);
-    if (response.status === 429) return problem("ElevenLabs is busy or your account limit was reached. Try again in a moment.", 429);
-    if (!response.ok) return problem("ElevenLabs could not process this recording. Try a shorter or clearer vocal track.", 502);
-    const result = await response.json() as { characters?: unknown; words?: unknown; text?: unknown; language_code?: string; language_probability?: number };
-    let cues = aligning ? alignLyricLines(lines, result,{splitPauses:true}) : captionsFromTranscript(result.words);
+    const storageKey = input.analysisAsset && /^[\w-]{1,80}$/.test(input.analysisAsset) ? lyricAssetKey(id,song.id,input.analysisAsset) : audioKey(id,sourceId);
+    type Timed = { cues: LyricCue[] | null | undefined; result: { text?: unknown; language_code?: string; language_probability?: number }; engine: string };
+    // 1) ElevenLabs (forced alignment with known lyrics, or speech-to-text).
+    let timed: Timed | null = null, firstProblem: { message: string; status: number } | null = null;
+    if (key) {
+      const response = await sendProviderAudio(audio, format, key, aligning ? { text: lines.join("\n") } : {
+        model_id: "scribe_v2", timestamps_granularity: "word", tag_audio_events: "true", diarize: "true",
+        ...(input.language && input.language !== "auto" ? { language_code: input.language } : {}),
+      }, aligning ? "forced-alignment" : "speech-to-text", deadline);
+      if (response.status === 401 || response.status === 403) firstProblem = { message: "Check your ElevenLabs key and enable Speech to Text or Forced Alignment permissions.", status: 422 };
+      else if (response.status === 429) firstProblem = { message: "ElevenLabs is busy or your account limit was reached. Try again in a moment.", status: 429 };
+      else if (!response.ok) firstProblem = { message: "ElevenLabs could not process this recording. Try a shorter or clearer vocal track.", status: 502 };
+      else {
+        const result = await response.json() as { characters?: unknown; words?: unknown; text?: unknown; language_code?: string; language_probability?: number };
+        const cues = aligning ? alignLyricLines(lines, result,{splitPauses:true}) : captionsFromTranscript(result.words);
+        if (cues?.length) timed = { cues, result, engine: aligning ? "ElevenLabs forced alignment" : "ElevenLabs Scribe v2" };
+        else firstProblem = { message: "The vocals could not be timed reliably. Check the lyrics against the recording or use manual timing.", status: 422 };
+      }
+    }
+    // 2) Backup: fal Whisper hears the words (private 10-minute link), matched to your lyrics. One try, never resubmitted.
+    if (!timed && backupReady && mode !== "audit") {
+      try {
+        const link = (env.BUCKET as unknown as { presignGet: (key: string, expires?: number) => string }).presignGet(storageKey, 600);
+        const heard = await transcribeWithFal(falKey()!, link, input.language);
+        if (aligning) {
+          const matched = alignLyricsToHeardWords(lines, heard.words, { duration: duration ?? undefined });
+          if (matched) timed = { cues: matched.cues, result: { text: heard.text, language_code: heard.language }, engine: "fal Whisper + lyric matching" };
+        } else {
+          const cues = captionsFromTranscript(heard.words.map(w => ({ text: w.text, start: w.start, end: w.end ?? w.start + 0.3, type: "word" })));
+          if (cues?.length) timed = { cues, result: { text: heard.text, language_code: heard.language }, engine: "fal Whisper" };
+        }
+        if (!timed) logEvent("lyric-sync.backup", { ok: false, reason: "low-match" }, "error");
+      } catch (error) {
+        logEvent("lyric-sync.backup", { ok: false, reason: error instanceof FalSyncFailed ? error.reason : "error" }, "error");
+      }
+    }
+    if (!timed) {
+      const failed = firstProblem ?? { message: "The vocals could not be timed reliably. Check the lyrics against the recording or use manual timing.", status: 422 };
+      return problem(failed.message, failed.status);
+    }
+    const result = timed.result;
+    let cues = timed.cues;
     if (!cues?.length) return problem("The vocals could not be timed reliably. Check the lyrics against the recording or use manual timing.", 422);
     if (cues.length > 200 || cues.some(cue => cue.text.length > 180) || cues.map(cue => cue.text).join("\n").length > 5000)
       return problem("The caption draft is too long. Try a shorter recording or paste the lyrics you want to time.", 422);
@@ -111,7 +147,7 @@ async function syncLyrics(request: Request) {
     if(clippedLines)warnings.push(`${clippedLines} caption lines were clipped to the recording end.`);
     if (duration) warnings.push(...reviewTiming(cues,duration).slice(0,20).map(f=>`Line ${f.index+1}: ${f.message}`));
     const savedResult={cues,window,clippedLines,language: result.language_code, languageProbability: result.language_probability,
-      confidenceAvailable: false, warnings, engine: aligning ? "ElevenLabs forced alignment" : "ElevenLabs Scribe v2",
+      confidenceAvailable: false, warnings, engine: timed.engine,
       vocalSections: cues.map(c=>({start:c.time,end:c.end})),
     };
     logEvent("caption.sync",{ok:true,mode,lines:cues.length,engine:savedResult.engine,window:!!window});

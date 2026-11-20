@@ -39,6 +39,8 @@ export type Clip = {
   id: string; source: string; name: string; role: Role; start: number; end: number; at: number;
   volume: number; pan: number; mute: boolean; solo: boolean; bypass: boolean; effects: Effects; tuning: Tuning;
   fadeIn: number; fadeOut: number; bus?: Bus; automation?: VolumePoint[];
+  /** A guide track (e.g. the AI singer to follow): heard while recording, never in the saved song. */
+  guide?: boolean;
 };
 export type Session = {
   version: 1; id: string; name: string; bpm: number; sources: Source[]; clips: Clip[];
@@ -90,7 +92,8 @@ function validateSession(value: unknown): value is Session {
       between(c.start, 0, source.duration) && between(c.end, c.start + 0.045, source.duration + 0.001) &&
       between(c.at, 0, sessionSeconds) && c.at + c.end - c.start <= sessionSeconds + 0.001 &&
       between(c.volume, 0, 1.5) && between(c.pan, -1, 1) && [c.mute, c.solo, c.bypass].every(b => typeof b === "boolean") &&
-      between(c.fadeIn, 0, 5) && between(c.fadeOut, 0, 5) && effects(c.effects) && tuning(c.tuning);
+      between(c.fadeIn, 0, 5) && between(c.fadeOut, 0, 5) && effects(c.effects) && tuning(c.tuning) &&
+      (c.guide === undefined || typeof c.guide === "boolean");
   });
 }
 

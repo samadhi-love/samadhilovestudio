@@ -1,4 +1,4 @@
-export type SavedVoice = { id: string; name: string; duration: number; createdAt: string; mime: string; verified?: boolean; speaker?: string };
+export type SavedVoice = { id: string; name: string; duration: number; createdAt: string; mime: string; verified?: boolean; speaker?: string; consentHeard?: boolean };
 /** Each person keeps up to this many verified voices (adult, own voice, spoken consent on file). */
 export const verifiedVoiceLimit = 4;
 export const verifiedVoiceRules = { voiceMin: 10, voiceMax: 600, consentMin: 4, consentMax: 60, voiceBytes: 25 * 1024 * 1024, consentBytes: 4 * 1024 * 1024, nameMax: 60 } as const;

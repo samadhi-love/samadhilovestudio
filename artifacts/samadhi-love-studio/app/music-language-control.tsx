@@ -1,5 +1,5 @@
 "use client";
-import { musicLanguages, musicDialects, musicCapabilityRegistry, resolveLanguage, type LanguageChoice, type LanguageProfile } from "./music-language";
+import { musicLanguages, musicDialects, dialectsFor, musicCapabilityRegistry, resolveLanguage, type LanguageChoice, type LanguageProfile } from "./music-language";
 
 export function MusicLanguageControl({ value, change, lyrics = "", prompt = "", disabled = false, compact = false, detailsOnly = false }: {
   value: LanguageChoice; change: (next: LanguageChoice) => void; lyrics?: string; prompt?: string; disabled?: boolean; compact?: boolean; detailsOnly?: boolean;
@@ -15,7 +15,7 @@ export function MusicLanguageControl({ value, change, lyrics = "", prompt = "", 
     {!detailsOnly && <><label className="field" style={compact ? {display:"flex",alignItems:"center",gap:8} : undefined}>Language:
       <select aria-label="Singing language" style={compact ? {maxWidth:250,minWidth:0} : undefined} value={value.selected === false ? "auto" : value.language} onChange={e => {
         const language = e.target.value as LanguageChoice["language"];
-        change({ language, selected: language !== "auto", dialect: ["ar", "mixed"].includes(language) ? value.dialect : "" });
+        change({ language, selected: language !== "auto", dialect: value.dialect && (language === "auto" || dialectsFor(language).includes(value.dialect)) ? value.dialect : "" });
       }}>
         <option value="auto">Auto · English by default</option>
         {Object.entries(musicLanguages).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -24,10 +24,10 @@ export function MusicLanguageControl({ value, change, lyrics = "", prompt = "", 
     <p className="muted" role="status" data-testid="text-singing-language">Singing in {singingName} ({reason}) · <button type="button" onClick={event => event.currentTarget.closest("fieldset")?.querySelector("select")?.focus()}>change</button></p></>}
     {!compact && <>
     <details open={compact ? undefined : true}><summary>Dialect & language details</summary>
-    <label className="field">Dialect (optional)
-      <select value={value.dialect} disabled={!resolved || !["ar", "mixed"].includes(resolved)} onChange={e => change({ ...value, language: resolved ?? "en", selected: true, dialect: e.target.value as LanguageChoice["dialect"] })}>
-        <option value="">No dialect target</option>
-        {Object.entries(musicDialects).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+    <label className="field">Dialect or accent (optional)
+      <select value={value.dialect} disabled={!resolved || !dialectsFor(resolved).length} onChange={e => change({ ...value, language: resolved ?? "en", selected: true, dialect: e.target.value as LanguageChoice["dialect"] })}>
+        <option value="">{resolved && dialectsFor(resolved).length ? "No dialect or accent target" : "No accents for this language yet"}</option>
+        {(resolved ? dialectsFor(resolved) : []).map(id => <option key={id} value={id}>{musicDialects[id]}</option>)}
       </select>
     </label>
     <p className="muted">Your supplied lyrics are never translated. Use Mixed languages for code-switching; keep each passage in its own script.</p>

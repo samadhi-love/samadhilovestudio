@@ -1,4 +1,5 @@
 import {falRequest,falMediaRequest} from "./ai-provider";
+import {describeInstruments} from "../instrument-sounds";
 export const falMusicModel="fal-ai/ace-step-1.5";
 const path="/"+falMusicModel;
 export class FalRejected extends Error { constructor(public status:number){super("fal.ai rejected this request before accepting a generation.");} }
@@ -14,10 +15,13 @@ export function falSongInput(input:{prompt:string;lyrics:string;voice:string;gen
   const style=[input.genres,input.voice,input.instruments,input.prompt].filter(Boolean).join("; ");
   const delivery=/\b(hip[\s-]?hop|rap|trap)\b/i.test(style)?"Rhythmic rapper delivery and genre-matched flow":
     /\bgospel\b/i.test(style)?"Expressive gospel lead and gospel phrasing":
+    /\b(r&b|rnb|neo.?soul|soul)\b/i.test(style)?"Soulful R&B vocal phrasing with smooth runs and warm dynamics":
     /\breggae\b/i.test(style)?"Reggae vocal phrasing and relaxed syncopation":
     /\bafrobeats?\b/i.test(style)?"Afrobeats vocal rhythm and melodic phrasing":"Genre-matched vocal phrasing";
-  const prompt=[input.instrumental?"Instrumental":delivery,input.dialect&&`Singing dialect: ${input.dialect}`,input.voice,input.genres,input.instruments,input.prompt,...cues,input.arrangement].filter(Boolean);
-  const compact=[...new Set(prompt)].join("; ");
+  const directions=(instruments:string)=>[...new Set([input.instrumental?"Instrumental":delivery,input.dialect&&`Singing dialect: ${input.dialect}`,input.voice,input.genres,instruments,input.prompt,...cues,input.arrangement].filter(Boolean))].join("; ");
+  // Tell the engine what each picked instrument sounds like, when it fits in the 512 characters.
+  const described=directions(describeInstruments(input.instruments));
+  const compact=described.length<=512?described:directions(input.instruments);
   if(compact.length>512)throw new Error("These combined directions exceed ACE-Step's 512-character limit. Using ElevenLabs without dropping your directions.");
   const bpm=Number(/\b(\d{2,3})\s*bpm\b/i.exec(style)?.[1]);
   return {prompt:compact,lyrics,duration:input.duration,vocal_language:input.instrumental?"unknown":input.language,

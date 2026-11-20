@@ -243,3 +243,41 @@ test("a failed prompt save says so and keeps the words",async()=>{
   assert.equal(q<HTMLTextAreaElement>("input-song-description")!.value,"A calm gospel song");
  }finally{await h.close();}
 });
+
+test("Auto singer: hip hop and R&B get a Black American MC or soul lead, and the description's male/female always wins",async()=>{
+ for(const [vision,expect] of [
+  ["A hip hop track about rising above the noise",/Black American male hip-hop MC/],
+  ["A smooth R&B love song for a rainy night",/Black American female R&B lead/],
+  ["An R&B slow jam with a male voice",/Black American male R&B lead/],
+  ["A hip hop anthem with a female rapper",/Black American female hip-hop MC/],
+  ["A gentle folk song about the sea",/warm male country storyteller/],
+  ["A jazz ballad about the moon",/Smooth, expressive singing/],
+ ] as const){
+  const h=await setup();const sent:any[]=[];
+  try{
+   await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async i=>{sent.push(i);return "s";}}/>));
+   await h.input(q<HTMLTextAreaElement>("input-song-description")!,vision);
+   await h.submit();
+   assert.equal(sent.length,1,vision);
+   assert.match(sent[0].voice,expect,vision);
+   assert.equal(q("singer-choice"),null,"Just Begin stays simple: no singer cards");
+  }finally{await h.close();}
+ }
+});
+
+test("Shape it: pick any AI singer from the library; a pick that contradicts the description is flagged before anything is made",async()=>{
+ const h=await setup();const sent:any[]=[];
+ try{
+  await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async i=>{sent.push(i);return "s";}}/>));
+  await shapeIt(h);
+  await h.input(q<HTMLTextAreaElement>("input-song-idea")!,"A hip hop track about my city");
+  assert.match(q("singer-auto")!.textContent!,/Fits your song: Hip-hop MC · male/);
+  assert.ok(document.querySelectorAll('[data-testid^="singer-"]').length>=13,"Auto + 12 singers");
+  await act(async()=>q<HTMLButtonElement>("singer-hiphop-female")!.click());
+  assert.equal(q("singer-hiphop-female")!.getAttribute("aria-checked"),"true");
+  await h.submit();
+  assert.match(sent[0].voice,/Black American female hip-hop MC/);
+  await h.input(q<HTMLTextAreaElement>("input-song-idea")!,"A hip hop track with a male voice");
+  assert.match(document.body.textContent!,/You picked “Hip-hop MC · female”, but your description asks for a solo male lead/);
+ }finally{await h.close();}
+});

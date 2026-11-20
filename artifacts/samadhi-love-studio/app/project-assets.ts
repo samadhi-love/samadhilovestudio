@@ -47,3 +47,10 @@ export function validReleaseMetadata(value: unknown): value is NonNullable<Song[
   return (["artist", "credits", "isrc", "upc", "copyright"] as const).every(key => typeof m[key] === "string" && m[key].length <= (key === "credits" ? 4000 : 200)) &&
     (!m.isrc || /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(m.isrc as string)) && (!m.upc || /^\d{12,13}$/.test(m.upc as string));
 }
+
+/** "Make lyric video" for a recording you just saved (e.g. your vocal mix): open THAT recording,
+ * never the project's pinned master, and start timing its words unless it already has captions
+ * or is an instrumental. */
+export function lyricVideoFor(song: Song) {
+  return { songId: song.id, autoCaptions: !song.lyricVideo?.cues.length && song.creationKind !== "instrumental" };
+}

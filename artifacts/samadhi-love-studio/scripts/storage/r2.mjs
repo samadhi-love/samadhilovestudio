@@ -1,3 +1,4 @@
+import { createHash, createHmac } from "node:crypto";
 import { S3Client, HeadBucketCommand, HeadObjectCommand, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { mkdtemp, open, rm } from "node:fs/promises";
 import { createReadStream } from "node:fs";
@@ -24,14 +25,38 @@ export function decodeMetadata(metadata = {}) {
     accountmessage: "accountMessage", musicmessage: "musicMessage", createdat: "createdAt", requestid: "requestId" };
   return { custom: Object.fromEntries(Object.entries(metadata).map(([k,v]) => [names[k] ?? k,v])), http: {} };
 }
+const rfc3986 = value => encodeURIComponent(value).replace(/[!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+/** AWS Signature V4 query-string presign for a GET (S3-compatible, path-style). */
+export function presignS3Get({ host, path, region, accessKeyId, secretAccessKey, expires, now = new Date() }) {
+  const amzDate = now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const day = amzDate.slice(0, 8), scope = `${day}/${region}/s3/aws4_request`;
+  const params = { "X-Amz-Algorithm": "AWS4-HMAC-SHA256", "X-Amz-Credential": `${accessKeyId}/${scope}`, "X-Amz-Date": amzDate,
+    "X-Amz-Expires": String(expires), "X-Amz-SignedHeaders": "host" };
+  const query = Object.keys(params).sort().map(k => `${rfc3986(k)}=${rfc3986(params[k])}`).join("&");
+  const canonical = ["GET", path, query, `host:${host}\n`, "host", "UNSIGNED-PAYLOAD"].join("\n");
+  const toSign = ["AWS4-HMAC-SHA256", amzDate, scope, createHash("sha256").update(canonical).digest("hex")].join("\n");
+  const hmac = (key, data) => createHmac("sha256", key).update(data).digest();
+  const signing = hmac(hmac(hmac(hmac("AWS4" + secretAccessKey, day), region), "s3"), "aws4_request");
+  return `https://${host}${path}?${query}&X-Amz-Signature=${createHmac("sha256", signing).update(toSign).digest("hex")}`;
+}
 export class R2PrivateBucket {
   constructor({ accountId, bucket, accessKeyId, secretAccessKey, client }) {
     this.bucket = bucket;
+    // Kept private to this server object; used only to sign short-lived read links.
+    Object.defineProperty(this, "signer", { value: { accountId, accessKeyId, secretAccessKey }, enumerable: false });
     this.client = client ?? new S3Client({
       region: "auto", endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId, secretAccessKey }, maxAttempts: 1,
       requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED",
     });
+  }
+  /** A read-only link to one private object that expires (default 10 minutes). Never stored or logged. */
+  presignGet(key, expires = 600) {
+    if (!/^[\w./%-]{1,512}$/.test(key) || key.includes("..")) throw new Error("Invalid storage key.");
+    if (!Number.isInteger(expires) || expires < 60 || expires > 3600) throw new Error("Invalid link lifetime.");
+    const { accountId, accessKeyId, secretAccessKey } = this.signer;
+    const path = "/" + [this.bucket, ...key.split("/")].map(rfc3986).join("/");
+    return presignS3Get({ host: `${accountId}.r2.cloudflarestorage.com`, path, region: "auto", accessKeyId, secretAccessKey, expires });
   }
   async checkAccess() {
     try { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }

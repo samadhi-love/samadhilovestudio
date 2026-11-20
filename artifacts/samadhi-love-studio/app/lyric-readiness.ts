@@ -33,6 +33,6 @@ export function renderReadiness(project: LyricProject, song: Song, songs: Song[]
   const nearEdge = options.formats.filter(format => { const look = p.formatLooks?.[format] ?? p.look; return look.position < 0.3 || look.position > 0.78 || look.size > 1.5; });
   add("layout", "review", nearEdge.length ? `Review text size/placement in ${nearEdge.join(", ")}; it may crowd platform overlays.` : "Preview each output format with safe-area guides; platform controls can cover text.", 3);
   if (options.fallback && (p.intro || p.outro)) add("fallback", "block", "Real-time fallback requires intro and outro to be zero.", 3);
-  if (options.fallback && p.backgroundVideo) add("footage", "block", "Uploaded product footage requires the frame encoder. Turn off real-time fallback or remove the video background.", 3);
+  if (options.fallback && p.backgroundVideo && !p.useTemplateBackground) add("footage", "block", "A video background needs the full video maker. Turn off real-time fallback, or remove the video background.", 3);
   return checks;
 }

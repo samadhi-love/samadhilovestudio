@@ -1,7 +1,10 @@
 "use client";
+import { SingerChoice, autoSinger, singerById } from "./singer-library";
 import { VoiceChoice } from "./my-voices";
 import type { SavedVoice } from "./my-voice-data";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
+import type { OwnBackground } from "./own-background";
+import { CreateVideoBox, songDragProps } from "./create-video-box";
 import {brand} from "./brand";
 import { MusicLanguageControl } from "./music-language-control";
 import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
@@ -93,7 +96,23 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   function changePlay(next:PlayChoices){setPreviousChoices(playChoices);setPlayChoices(next);}
   // One background picker everywhere a video is made; the last choice is remembered.
   const [videoLook,setVideoLook]=useState<BackgroundKey>(()=>{try{const saved=localStorage.getItem("samadhi:last-video-look:v1");if(saved&&/^(theme|look):[\w-]{1,60}$/.test(saved))return saved as BackgroundKey;}catch{}return `look:${playLooks[defaultPlayChoices.look].preset}`;});
-  function chooseVideoLook(key:BackgroundKey){setVideoLook(key);try{localStorage.setItem("samadhi:last-video-look:v1",key);}catch{}}
+  // Your own short video for the background (Yours tab). Checked for length here so problems show right away.
+  const [clip,setClip]=useState<File|null>(null);
+  const ownBackground:OwnBackground={active:clip?"video":photo?"photo":null,name:clip?.name??(photo?photoName:undefined),
+    photo:file=>{setPhoto(file);setPhotoName(file.name);setClip(null);setError("");},
+    video:async file=>{setError("");try{const {openFootage}=await import("./advertising-footage");const decoder=await openFootage(file);decoder.dispose();setClip(file);setPhoto(null);setPhotoName("");}catch(e){setError((e as Error).message.replace(/product /g,"")||"That video could not open. Try an MP4 up to 60 seconds.");}},
+    clear:()=>{setPhoto(null);setPhotoName("");setClip(null);}};
+  // The song in the "Make your video" box: your newest result unless you pick another (or take it out).
+  const [boxSongId,setBoxSongId]=useState<string|null>(null);
+  async function sendToVideo(song:Song){
+    if(!makeVideo)return;
+    setPromptBusy(true);setError("");
+    try{await makeVideo(song,true,{look:videoLook,...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{}),...(clip?{video:clip}:{})});}
+    catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}
+    finally{setPromptBusy(false);}
+  }
+  // Tapping a gallery picture means "use this one", so your own photo or video steps aside (it is not deleted from your device).
+  function chooseVideoLook(key:BackgroundKey){setVideoLook(key);setPhoto(null);setPhotoName("");setClip(null);try{localStorage.setItem("samadhi:last-video-look:v1",key);}catch{}}
   const [idea, setIdea] = useState("");
   // Two takes is the default for every new song. ElevenLabs keeps its double-cost confirmation at Begin.
   const [makeTwoVersions,setMakeTwoVersions]=useState(true);
@@ -121,6 +140,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const [error, setError] = useState("");
   const [resultId, setResultId] = useState<string>();
   const [chosenVoice, setChosenVoice] = useState<SavedVoice | null>(null);
+  const [singerId, setSingerId] = useState("auto");
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
@@ -182,11 +202,16 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const code = simple?"":mapOn&&validSongMap(songMap)?mapArrangement(songMap):codeEdit ?? "";
   const targetBpm=mapOn?songMap.bpm:blueprint.bpm;
   const inferredPerformer=promptPerformer(idea);
-  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?inferredPerformer:vocalOptions.delivery;
-  const vocalDirection=instrumental?"":((customMode?voiceEdit:null)??[
+  // Singer library: Auto fits the genre (R&B/soul and hip hop → Black American soul/gospel and MC traditions); a picked singer wins over Auto.
+  const autoPick=autoSinger(idea,`${engineGenre} ${genre}`);
+  const chosenSinger=singerId==="auto"?autoPick:singerById(singerId);
+  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?(inferredPerformer??chosenSinger?.arrangement):vocalOptions.delivery;
+  // A chosen singer replaces the general genre match (keeps the engine's 512-character style limit safe).
+  const pickedSinger=singerId!=="auto"?chosenSinger:undefined;
+  const vocalDirection=instrumental?"":((customMode&&voiceEdit?[pickedSinger?.direction,voiceEdit].filter(Boolean).join(" "):null)??[
     creatorVocalDirection({...(simple?defaultCreatorVocals:vocalOptions),delivery:chosenPerformer??defaultCreatorVocals.delivery}),
-    matchVocalToSong(idea,genre,instruments),
-  ].join(" "));
+    chosenSinger?chosenSinger.direction:matchVocalToSong(idea,genre,instruments),
+  ].filter(Boolean).join(" "));
   let intentIssue="";
   if(!instrumental&&!localSketch) {
     try {
@@ -194,6 +219,8 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
     } catch (e) { intentIssue=e instanceof Error?e.message:"Choose the singing language."; }
     if(inferredPerformer&&vocalOptions.delivery!==defaultCreatorVocals.delivery&&inferredPerformer!==vocalOptions.delivery)
       intentIssue="Your singing arrangement conflicts with the description. Change the arrangement or description before creating.";
+    else if(singerId!=="auto"&&chosenSinger&&inferredPerformer&&inferredPerformer!==chosenSinger.arrangement&&inferredPerformer!=="Duet")
+      intentIssue=`You picked “${chosenSinger.name}”, but your description asks for a ${inferredPerformer.toLowerCase()}. Pick Auto or another singer, or change the description.`;
   }
   const songTiming=autoTrackTime({vocals:!instrumental,lyrics:useOwnLyrics?lyrics:"",bpm:blueprint.bpm,cinematic:false,prompt:idea,sectionCount:code.match(/^\s*\[[^\]\r\n]+\]\s*$/gm)?.length});
   const baseTiming=adActive?{seconds:adBrief.seconds,reason:"Based on your musical advertisement length."}:mapOn&&validSongMap(songMap)&&!songTiming.explicit?{seconds:mapSeconds(songMap),reason:"Based on your song map targets."}:songTiming;
@@ -391,6 +418,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
       {!connected&&refreshConnection&&<button type="button" className="secondary small" disabled={busy||connectionChecking} onClick={refreshConnection}>Refresh connection</button>}
       {!connected&&<button type="button" className="primary small" data-testid="button-connect-music" disabled={busy} onClick={settings}><Settings2 size={15}/> Connect music account</button>}
     </div>
+    <div className="qc-split">
     <form ref={createForm} onSubmit={create}>
       <fieldset disabled={busy}>
         <div className="forge-grid"><div className="forge-main">
@@ -532,6 +560,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
           </details>
         </div>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
+        {customMode&&!instrumental&&!localSketch&&<SingerChoice value={singerId} change={setSingerId} auto={autoPick} disabled={busy}/>}
         {singWithVoice&&!instrumental&&<VoiceChoice value={chosenVoice} change={setChosenVoice} disabled={busy}/>}
         <div className="forge-launch">
         {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">
@@ -552,15 +581,18 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
         </aside></div>
       </fieldset>
     </form>
+    <CreateVideoBox songs={drafts} songId={boxSongId??result?.id??""} setSongId={setBoxSongId} look={videoLook} pickLook={chooseVideoLook} own={ownBackground}
+      photo={photo} clip={clip} busy={busy} make={makeVideo?sendToVideo:undefined}/>
+    </div>
     {proProduction&&<details className="qc-fold qc-pro" data-testid="fold-pro-production" hidden={!customMode} open={proOpen} onToggle={e=>setProOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>Pro production · sections, instrumentals and voices</summary>
       {proProduction}
     </details>}
     {engine?.notice&&<p role="status" className="muted">{engine.notice}</p>}
-    {takeIds.length>1&&<section className="quick-result qc-takes" aria-label="Compare your takes"><h3>Your takes · all saved</h3><div className="qc-take-grid">{takeIds.map(id=>drafts.find(song=>song.id===id&&!song.deletedAt)).filter((song):song is Song=>!!song?.audioFormat).map(song=><article key={song.id}><h4>{song.name}</h4><AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/><button type="button" className="secondary" disabled={busy} aria-pressed={!!song.favorite} data-testid={`button-favorite-take-${song.id}`} onClick={()=>{setResultId(song.id);void favoriteTake?.(song.id);}}>{song.favorite?"Favourite":"Keep as favourite"}</button></article>)}</div></section>}
+    {takeIds.length>1&&<section className="quick-result qc-takes" aria-label="Compare your takes"><h3>Your takes · all saved</h3><div className="qc-take-grid">{takeIds.map(id=>drafts.find(song=>song.id===id&&!song.deletedAt)).filter((song):song is Song=>!!song?.audioFormat).map(song=><article key={song.id} {...songDragProps(song.id)} title="Drag into Make your video"><h4>{song.name}</h4><AudioPlayer src={songAudioUrl(song.id,song.audioId)} label={`Listen to ${song.name}`}/><button type="button" className="secondary" disabled={busy} aria-pressed={!!song.favorite} data-testid={`button-favorite-take-${song.id}`} onClick={()=>{setResultId(song.id);void favoriteTake?.(song.id);}}>{song.favorite?"Favourite":"Keep as favourite"}</button></article>)}</div></section>}
     {pendingTake&&<div className="quick-result"><strong>{pendingTake.title} · Not saved yet</strong><AudioPlayer src={pendingTake.url} label="Listen to pending instrumental"/><div className="actions"><a className="secondary small" href={pendingTake.url} download={pendingTake.title+".wav"}>Download original</a><button type="button" className="primary small" disabled={busy} onClick={async()=>{setPending(true);try{await savePending(pendingTake);}finally{setPending(false);}}}>Retry save to Your songs</button><button type="button" className="secondary small" disabled={busy} onClick={()=>{if(confirm("Discard this local take? Download it first if you want a copy. No saved song will be deleted.")){setPendingTake(undefined);setError("");}}}>Discard unsaved take</button></div></div>}
-    {playful&&result?.audioFormat&&playStage!=="start"&&<section className="creative-play-result" aria-label="Your creation"><p className="eyebrow">YOURS · SAVED PRIVATELY</p><h2>{result.name}</h2><AudioPlayer src={songAudioUrl(result.id,result.audioId)} label="Listen to your creation"/>{chosenVoice&&singWithVoice&&<button type="button" className="primary small" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}
-      {playStage==="play"?<><p className="muted">A new take keeps this one safe. A new take uses your same description.</p><div className="actions"><button type="button" className="primary" disabled={busy} onClick={()=>setPlayStage("share")}>Keep this · make it visual</button><button type="button" className="secondary" disabled={busy} onClick={()=>createForm.current?.requestSubmit()}>Try a new take</button>{previousChoices&&<button type="button" className="text-button" disabled={busy} onClick={()=>{setPlayChoices(previousChoices);setPreviousChoices(null);}}>Undo choices</button>}</div><p className="muted">New music requests can use provider credits. All takes remain in Your songs.</p>{takeIds.length>1&&<label>Listen to an earlier take<select value={result.id} disabled={busy} onChange={e=>setResultId(e.target.value)}>{takeIds.map(id=>drafts.find(s=>s.id===id&&!s.deletedAt)).filter((s):s is Song=>!!s?.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}</>:<><p>Your song is saved. Pick a background, add a photo if you like, then make your vertical video.</p><section className="quick-background-pick" aria-label="Pick your video background" data-testid="create-background-pick"><h3>Pick your background</h3><BackgroundChooser song={result} disabled={busy} isSelected={key=>videoLook===key} pick={chooseVideoLook}/></section><p className="muted"> Your photo is used as a private background; it is not sent for AI generation.</p><label className="field">My photo · optional<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{const file=e.target.files?.[0];e.target.value="";if(!file)return;if(file.size>15*1024*1024||!["image/jpeg","image/png","image/webp"].includes(file.type)){setError("Choose a JPG, PNG or WebP photo up to 15 MB.");return;}setPhoto(file);setPhotoName(file.name);setError("");}}/></label>{photo&&<p>{photoName} <button type="button" className="text-button" disabled={busy} onClick={()=>{setPhoto(null);setPhotoName("");}}>Remove photo</button></p>}{makeVideo&&<button type="button" className="primary" disabled={busy} onClick={async()=>{setPromptBusy(true);setError("");try{await makeVideo(result,true,{look:videoLook,...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{})});}catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}finally{setPromptBusy(false);}}}>Make my video</button>}<details><summary>Save audio instead</summary><AudioFormatDownload url={songAudioUrl(result.id,result.audioId)} title={result.name} sourceKey={result.audioId??result.id}/></details><p className="muted">Review lyric timing and the video, then download or use your device’s share options. Nothing is posted automatically.</p></>}
+    {playful&&result?.audioFormat&&playStage!=="start"&&<section className="creative-play-result" aria-label="Your creation"><p className="eyebrow">YOURS · SAVED PRIVATELY</p><h2 {...songDragProps(result.id)} title="Drag into Make your video">{result.name}</h2><AudioPlayer src={songAudioUrl(result.id,result.audioId)} label="Listen to your creation"/>{chosenVoice&&singWithVoice&&<button type="button" className="primary small" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}
+      {playStage==="play"?<><p className="muted">A new take keeps this one safe. A new take uses your same description.</p><div className="actions"><button type="button" className="primary" disabled={busy} onClick={()=>setPlayStage("share")}>Keep this · make it visual</button><button type="button" className="secondary" disabled={busy} onClick={()=>createForm.current?.requestSubmit()}>Try a new take</button>{previousChoices&&<button type="button" className="text-button" disabled={busy} onClick={()=>{setPlayChoices(previousChoices);setPreviousChoices(null);}}>Undo choices</button>}</div><p className="muted">New music requests can use provider credits. All takes remain in Your songs.</p>{takeIds.length>1&&<label>Listen to an earlier take<select value={result.id} disabled={busy} onChange={e=>setResultId(e.target.value)}>{takeIds.map(id=>drafts.find(s=>s.id===id&&!s.deletedAt)).filter((s):s is Song=>!!s?.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}</>:<><p>Your song is saved. Pick a background, or use your own photo, video or camera under “Yours”, then make your vertical video.</p><section className="quick-background-pick" aria-label="Pick your video background" data-testid="create-background-pick"><h3>Pick your background</h3><BackgroundChooser song={result} disabled={busy} isSelected={key=>!ownBackground.active&&videoLook===key} pick={chooseVideoLook} own={ownBackground}/></section><p className="muted"> Your photo or video is used as a private background; it is not sent for AI generation.</p>{(photo||clip)&&<p data-testid="create-own-chosen">{clip?"Your video":"Your photo"}: {clip?.name??photoName} <button type="button" className="text-button" disabled={busy} onClick={ownBackground.clear}>{clip?"Remove video":"Remove photo"}</button></p>}{makeVideo&&<button type="button" className="primary" disabled={busy} onClick={()=>void sendToVideo(result)}>Make my video</button>}<details><summary>Save audio instead</summary><AudioFormatDownload url={songAudioUrl(result.id,result.audioId)} title={result.name} sourceKey={result.audioId??result.id}/></details><p className="muted">Review lyric timing and the video, then download or use your device’s share options. Nothing is posted automatically.</p></>}
       {pending&&<p role="status">Creating a new take. Your current version stays saved.</p>}{error&&<p role="alert" className="notice">{error}</p>}<button type="button" className="text-button" disabled={busy} onClick={()=>setPlayStage("start")}>Hide this take</button></section>}
     {!playful&&result?.audioFormat && <div className="quick-result" aria-live="polite"><p>Saved privately in Your songs.</p><SongCard song={result}/><div className="actions creator-next-actions">{chosenVoice&&singWithVoice&&<button type="button" className="primary" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}{makeVideo&&<><button type="button" className="primary" disabled={busy} onClick={()=>makeVideo(result)}>{result.musicalAd?"Make advertising video":result.creationKind==="instrumental"||result.instrumental?"Make music video":"Auto lyric video"}</button><button type="button" className="secondary" disabled={busy} onClick={()=>makeVideo(result,true)}>Make social short</button></>}{publish&&<button type="button" className="secondary" disabled={busy} onClick={()=>publish(result)}>Publish & share</button>}</div><p className="muted">Song actions includes editing, voice recording, mixing, downloads and removal. Publish &amp; share opens release review; external platforms require their own submission.</p><button type="button" className="text-button" disabled={busy} onClick={openDrafts}>Open saved creations <ArrowRight size={15}/></button></div>}
   </section>;
