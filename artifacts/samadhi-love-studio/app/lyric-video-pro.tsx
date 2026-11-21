@@ -275,7 +275,8 @@ function LyricVideoProContent(props: Props) {
     >([]),
     [platform, setPlatform] = useState<VideoPlatform>("youtube"),
     [postCaption, setPostCaption] = useState(""),
-    [videoTitle, setVideoTitle] = useState("");
+    [videoTitle, setVideoTitle] = useState(""),
+    [lastRun, setLastRun] = useState(1);
   const [recovery, setRecovery] = useState<LyricProject | null>(null);
   const workspace = useRef("");
   const [recoveryReady, setRecoveryReady] = useState("");
@@ -1606,7 +1607,8 @@ function LyricVideoProContent(props: Props) {
       setOperation("");
     }
   }
-  async function exportVideo() {
+  /** allShapes: YouTube 16:9, Phone 9:16 and Square 1:1 in one go (same part of the song). */
+  async function exportVideo(allShapes = false) {
     if (!project?.pro || !song || busy) return;
     audio.current?.pause();setPlaying(false);
     const blocked = exportChecks.filter(check => check.level === "block");
@@ -1631,14 +1633,16 @@ function LyricVideoProContent(props: Props) {
         throw new Error(
           "This soundtrack has a different duration. Choose the original or prepare a matching clarity version.",
         );
-      const formats: VideoFormat[] = batch
-        ? ["vertical", "wide", "square"]
+      const many = batch || allShapes;
+      const formats: VideoFormat[] = many
+        ? ["wide", "vertical", "square"]
         : [next.format];
+      setLastRun(formats.length);
       const recoveryKey=renderKey(workspace.current,pro.sourceSongId);
       // Export history changes as each shape finishes, but does not change frames.
       const fingerprint=signature({...next,pro:{...pro,exports:undefined}})+JSON.stringify([formats,resolution,fallback,cleanExport,song.name]);
       const saved=await readRender(recoveryKey).catch(()=>undefined);
-      const checkpoint:VideoCheckpoint=saved&&!saved.finished&&saved.fingerprint===fingerprint?saved:{fingerprint,token:crypto.randomUUID(),completed:0,options:{resolution,fallback,cleanExport,batch}};
+      const checkpoint:VideoCheckpoint=saved&&!saved.finished&&saved.fingerprint===fingerprint?saved:{fingerprint,token:crypto.randomUUID(),completed:0,options:{resolution,fallback,cleanExport,batch:many}};
       jobId=await videoJob({video:"start",songId:pro.sourceSongId,resume:saved&&!saved.finished?saved.jobId:undefined},owner);
       if(!jobId)throw new Error("The video job could not start. Your project is saved.");
       checkpoint.jobId=jobId;
@@ -2426,9 +2430,9 @@ function LyricVideoProContent(props: Props) {
                       </div>
                     </aside>
                     <main className="lvp-controls">
-                      <QuickVideoPanel song={song} project={project} time={time} busy={busy} edit={edit} make={() => void exportVideo()} progress={progress}
+                      <QuickVideoPanel song={song} project={project} time={time} busy={busy} edit={edit} make={() => void exportVideo()} makeAll={() => void exportVideo(true)} progress={progress}
                         captionState={captionState} blocked={exportChecks.filter(check => check.level === "block").map(check => ({ text: check.text, step: check.step }))}
-                        latest={outputs.at(-1)} addWords={() => { openFineTune(1); setLyricsEditorOpen(true); }} fixWords={() => openCaptionEditor(Math.max(0, project.cues.findLastIndex(c => c.time <= time)))}
+                        latest={outputs.at(-1)} results={outputs.slice(-lastRun)} addWords={() => { openFineTune(1); setLyricsEditorOpen(true); }} fixWords={() => openCaptionEditor(Math.max(0, project.cues.findLastIndex(c => c.time <= time)))}
                         openFineTune={openFineTune} own={{
                           active: project.pro?.backgroundVideo && !project.pro.useTemplateBackground ? "video" : project.pro?.background && project.pro.useTemplateBackground !== false ? "photo" : null,
                           photo: file => uploadOwnBackground(file, "all"),
@@ -3468,7 +3472,7 @@ function LyricVideoProContent(props: Props) {
                               busy ||
                               exportChecks.some(check => check.level === "block")
                             }
-                            onClick={exportVideo}
+                            onClick={() => void exportVideo()}
                           >
                             <Film size={17} /> {resumeVideo?"Resume export":cleanExport?"Create clean video":"Create video"}
                           </button>

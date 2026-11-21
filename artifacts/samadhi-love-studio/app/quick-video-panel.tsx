@@ -13,12 +13,25 @@ import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
 import type { Song } from "./studio-data";
 import type { OwnBackground } from "./own-background";
 
+import { purposeFileName } from "./video-purpose";
 export { suggestedThemes } from "./background-chooser";
 
 export type CaptionState = "timing" | "none" | "rough" | "synced" | "reviewed";
+const shapeName: Record<VideoFormat, string> = { wide: "YouTube 16:9", vertical: "Phone 9:16", square: "Square 1:1" };
+/** How much of the song the video uses, for the button: "full song" or "0:60 highlight". */
+function clipLength(project: LyricProject) {
+  const range = project.pro?.range, total = project.pro?.duration ?? 0;
+  if (!range || total <= 0 || range.end - range.start >= total - 0.5) return "full song";
+  const seconds = Math.round(range.end - range.start);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} highlight`;
+}
 export function QuickVideoPanel(props: {
   song: Song; project: LyricProject; time: number; busy: boolean; captionState: CaptionState;
   edit: (next: LyricProject) => void; make: () => void; progress: number | null;
+  /** Make YouTube 16:9, Phone 9:16 and Square 1:1 in one go. */
+  makeAll?: () => void;
+  /** Every file from the last make (one, or all three shapes). */
+  results?: { url: string; extension: string; format: VideoFormat }[];
   blocked: { text: string; step: number }[]; latest?: { url: string; extension: string; format: VideoFormat };
   addWords: () => void; fixWords: () => void; openFineTune: (step: number) => void;
   /** Your own photo, video or camera ("Yours" tab). */
@@ -82,13 +95,18 @@ export function QuickVideoPanel(props: {
         <button type="button" className="lvp-primary qv-make" disabled={busy || props.blocked.length > 0} onClick={props.make} data-testid="qv-make-video">
           <Film size={17} aria-hidden="true" /> {props.progress !== null ? `Making your video… ${Math.round(props.progress * 100)}%` : "Make my video"}
         </button>
-        {props.latest && (
-          <div className="qv-result" data-testid="qv-result">
-            <video src={props.latest.url} controls playsInline preload="metadata" aria-label="Your finished video" />
-            <div className="qv-row">
-              <a className="lvp-primary qv-download" href={props.latest.url} download={`${props.song.name}.${props.latest.extension}`}><Download size={15} aria-hidden="true" /> Download</a>
-              <button type="button" className="qv-link" onClick={() => props.openFineTune(4)}>Share and post options</button>
-            </div>
+        {props.makeAll && props.progress === null && <button type="button" className="secondary qv-make-all" disabled={busy || props.blocked.length > 0} onClick={props.makeAll} data-testid="qv-make-all">
+          ▭ ▯ ◻ Make all 3 shapes <small>YouTube 16:9 · Phone 9:16 · Square 1:1 · {clipLength(project)}</small>
+        </button>}
+        {(props.results?.length ? props.results : props.latest ? [props.latest] : []).length > 0 && (
+          <div className={`qv-results${(props.results?.length ?? 1) > 1 ? " is-many" : ""}`}>
+            {(props.results?.length ? props.results : [props.latest!]).map(result => (
+              <div className="qv-result" data-testid={`qv-result-${result.format}`} key={result.url}>
+                <strong className="qv-result-label">{shapeName[result.format]}</strong>
+                <video src={result.url} controls playsInline preload="metadata" aria-label={`Your finished ${shapeName[result.format]} video`} />
+                <a className="lvp-primary qv-download" href={result.url} download={purposeFileName(props.song.name, result.format, result.extension)}><Download size={15} aria-hidden="true" /> Download</a>
+              </div>))}
+            <button type="button" className="qv-link" onClick={() => props.openFineTune(4)} data-testid="qv-share-options">Post text, YouTube thumbnail and upload pages</button>
           </div>
         )}
       </div>

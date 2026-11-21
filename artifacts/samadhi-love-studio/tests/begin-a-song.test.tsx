@@ -332,3 +332,40 @@ test("Just Begin: name it before saving, then bring it back from My saved prompt
   assert.equal(saved.length,2);
  }finally{await h.close();}
 });
+
+test("Song + video in one go: tick the box, Begin, and the finished song opens its video in the chosen shape, once",async()=>{
+ const h=await setup();
+ try{
+  const videos:{id:string;purpose?:string}[]=[];
+  const finished={...freshSong("new-song","Ocean Heart",0),audioId:"a1",audioFormat:"mp3" as const};
+  const view=(drafts:any[])=><QuickCreate {...base} drafts={drafts} engine={ace} generateSong={async()=>"new-song"} makeVideo={async(song,_short,visual)=>{videos.push({id:song.id,purpose:visual?.purpose});}}/>;
+  await act(async()=>h.root.render(view([])));
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,false,"off until you tick it");
+  await act(async()=>q<HTMLButtonElement>("cvb-purpose-youtube")!.click());
+  assert.match(q("label-auto-video")!.textContent!,/Then make my YouTube video/);
+  await act(async()=>q<HTMLInputElement>("checkbox-auto-video")!.click());
+  assert.equal(window.localStorage.getItem("versual-auto-video"),"on","remembered");
+  await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A love song about the ocean");
+  await h.submit();
+  assert.equal(videos.length,0,"waits for the song");
+  await act(async()=>h.root.render(view([{...finished,audioFormat:undefined}])));
+  assert.equal(videos.length,0,"still being made");
+  await act(async()=>h.root.render(view([finished])));
+  for(let i=0;i<4;i++)await act(async()=>{await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(videos,[{id:"new-song",purpose:"youtube"}]);
+  await act(async()=>h.root.render(view([{...finished,name:"Ocean Heart (edited)"}])));
+  assert.equal(videos.length,1,"only once per song");
+ }finally{await h.close();}
+});
+
+test("Song + video: an older finished song never opens a video just because the box is ticked",async()=>{
+ const h=await setup();
+ try{
+  let opened=0;
+  const old={...freshSong("old","Old song",0),audioId:"a",audioFormat:"mp3" as const};
+  await act(async()=>h.root.render(<QuickCreate {...base} drafts={[old]} engine={ace} generateSong={async()=>"old"} makeVideo={async()=>{opened++;}}/>));
+  await act(async()=>q<HTMLInputElement>("checkbox-auto-video")!.click());
+  for(let i=0;i<4;i++)await act(async()=>{await new Promise(r=>setTimeout(r,0));});
+  assert.equal(opened,0);
+ }finally{await h.close();}
+});

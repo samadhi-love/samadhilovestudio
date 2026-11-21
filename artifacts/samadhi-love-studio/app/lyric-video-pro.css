@@ -1406,3 +1406,10 @@
 .video-thumbnail { margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid #c9a7ff55; background: #ffffff08; display: grid; gap: 8px; }
 .video-thumbnail h4 { margin: 0; color: #ffe9a8; }
 .video-thumbnail-preview { width: 100%; max-width: 480px; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid #ffffff33; }
+/* Make all 3 shapes: one button, three finished files side by side. */
+.qv-make-all { width: 100%; min-height: 52px; margin-top: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.qv-make-all small { font-size: .75rem; opacity: .85; }
+.qv-results { display: grid; gap: 12px; margin-top: 10px; }
+.qv-results.is-many { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+.qv-results .qv-link { grid-column: 1 / -1; justify-self: start; }
+.qv-result-label { color: #ffe9a8; font-size: .9rem; }

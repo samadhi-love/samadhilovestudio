@@ -126,3 +126,27 @@ test("purposes frame the video: YouTube full song wide, Shorts 60-second tall hi
   assert.match(studio,/format=\{output\.format\}/);
   assert.match(readFileSync("app/studio.tsx","utf8"),/purpose:visual\?\.purpose/);
 });
+
+test("LyriVid: Make all 3 shapes is one tap, and each finished shape downloads with a name that says what it's for",async()=>{
+  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});
+  Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,HTMLDetailsElement:dom.window.HTMLDetailsElement,IS_REACT_ACT_ENVIRONMENT:true});
+  const {QuickVideoPanel}=await import("../app/quick-video-panel");
+  const {newProSettings}=await import("../app/lyric-pro-data");
+  const s=song("one","Ocean Heart");
+  const project={cues:[],theme:"nebula",motion:"still",format:"vertical",pro:{...newProSettings(s,200),duration:200,range:{start:40,end:100}}} as any;
+  let all=0,one=0;
+  const results=[{url:"blob:w",extension:"mp4",format:"wide"},{url:"blob:v",extension:"mp4",format:"vertical"},{url:"blob:s",extension:"mp4",format:"square"}] as const;
+  const view=(r:any)=><QuickVideoPanel song={s} project={project} time={0} busy={false} captionState="reviewed" edit={()=>{}} make={()=>{one++;}} makeAll={()=>{all++;}} progress={null}
+    blocked={[]} results={r} addWords={()=>{}} fixWords={()=>{}} openFineTune={()=>{}}/>;
+  const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
+  await act(async()=>root.render(view([])));
+  assert.match(q("qv-make-all")!.textContent!,/Make all 3 shapes/);
+  assert.match(q("qv-make-all")!.textContent!,/1:00 highlight/,"says how much of the song");
+  await act(async()=>q("qv-make-all")!.click());
+  assert.equal(all,1);assert.equal(one,0);
+  await act(async()=>root.render(view([...results])));
+  const names=["wide","vertical","square"].map(f=>q(`qv-result-${f}`)!.querySelector("a")!.getAttribute("download"));
+  assert.deepEqual(names,["Ocean Heart – YouTube 16x9.mp4","Ocean Heart – Phone 9x16.mp4","Ocean Heart – Square 1x1.mp4"]);
+  assert.match(q("qv-share-options")!.textContent!,/YouTube thumbnail/);
+  await act(async()=>root.unmount());dom.window.close();
+});

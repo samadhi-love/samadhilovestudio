@@ -66,3 +66,4 @@
 .cvb-screen.wide .cvb-drop { top: 14%; }
 .cvb-screen.wide .cvb-words { margin-bottom: 7%; }
 .cvb-stage > .cvb-side > .cvb-hint { grid-column: 1 / -1; }
+.qc-auto-video span { flex: 1; min-width: 0; line-height: 1.35; }
