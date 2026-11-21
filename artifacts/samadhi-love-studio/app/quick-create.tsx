@@ -247,8 +247,17 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const result = drafts.find(song => song.id === resultId && !song.deletedAt);
   useEffect(()=>{if(resultId){setTakeIds(ids=>[...ids.filter(id=>id!==resultId),resultId].slice(-8));setPlayStage("play");}},[resultId]);
   const covered=useRef("");
+  const [coverSettled,setCoverSettled]=useState("");
+  // Song + video in one go: when the song you just began is ready (and its cover is made), open its video in the chosen shape.
+  const [autoVideo,setAutoVideoState]=useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the remembered choice once after the page loads
+  useEffect(()=>{try{setAutoVideoState(window.localStorage.getItem("versual-auto-video")==="on");}catch{/* stays off */}},[]);
+  const setAutoVideo=(on:boolean)=>{setAutoVideoState(on);try{window.localStorage.setItem("versual-auto-video",on?"on":"off");}catch{/* this visit only */}};
+  const videoArmed=useRef(false),videoSent=useRef("");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
-  useEffect(()=>{if(!autoCover||!result?.audioFormat||result.coverAsset||covered.current===result.id||saving||pending)return;covered.current=result.id;void autoCover(result).then(()=>setPromptNotice("Cover created automatically from your title.")).catch(()=>setPromptNotice("Song saved. Automatic cover could not save; use Create / animate cover to retry."));},[result?.id,result?.coverAsset,saving,pending,autoCover]);
+  useEffect(()=>{if(!autoCover||!result?.audioFormat||result.coverAsset||covered.current===result.id||saving||pending)return;covered.current=result.id;void autoCover(result).finally(()=>setCoverSettled(result.id)).then(()=>setPromptNotice("Cover created automatically from your title.")).catch(()=>setPromptNotice("Song saved. Automatic cover could not save; use Create / animate cover to retry."));},[result?.id,result?.coverAsset,saving,pending,autoCover]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the new song (and its cover) is ready
+  useEffect(()=>{if(!videoArmed.current||!result?.audioFormat||videoSent.current===result.id||saving||pending)return;if(autoCover&&!result.coverAsset&&coverSettled!==result.id)return;videoArmed.current=false;videoSent.current=result.id;setPromptNotice("Your song is ready. Opening its video…");void sendToVideo(result,videoPurpose);},[result?.id,result?.audioFormat,result?.coverAsset,coverSettled,saving,pending]);
   const busy = saving || pending || promptBusy || lyricBusy;
   async function writeWordsForMe(){
     if(!writeLyrics||lyricBusy)return;
@@ -406,6 +415,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
         const prepared={blob,url:URL.createObjectURL(blob),title,prompt,code:code||blueprint.code,take,saveId:crypto.randomUUID()};setPendingTake(prepared);await savePending(prepared);
       } else {
         const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:sung,voice:vocalDirection,instruments:engineInstruments,genres:engineGenre,...(customMode&&caps.negativeStyle&&negativeStyle.trim()?{negativeStyle:negativeStyle.trim().slice(0,500)}:{}),...(customMode&&caps.spark&&spark!==null?{spark}:{}),autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
+        videoArmed.current=autoVideo&&!!makeVideo;
         const answer=await generateSong({...input,...(falActive?{versions:makeTwoVersions?2 as const:1 as const}:{})});
         const made=typeof answer==="string"?answer:answer?.songId;
         if(made){
@@ -608,6 +618,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
           <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Two takes</label>
           <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two takes, side by side. Both are kept.":"One take."}</p>
         </div>}
+        {makeVideo&&!localSketch&&<label className="qc-check qc-auto-video" data-testid="label-auto-video"><input type="checkbox" data-testid="checkbox-auto-video" checked={autoVideo} disabled={busy} onChange={e=>setAutoVideo(e.target.checked)}/> <span>🎬 Then make my <strong>{videoPurposeById(videoPurpose)?.name}</strong> video when the song is ready</span></label>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>
             {pending ? localSketch?"Rendering your sketch…":"Beginning…" : "Begin"}</button>
