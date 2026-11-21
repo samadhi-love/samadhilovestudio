@@ -12,6 +12,7 @@ import * as languages from "../app/music-language";
 import * as vocals from "../app/vocal-matching";
 import * as family from "../app/family-voices";
 import * as polish from "../app/production-polish";
+import * as singerTeam from "../app/singer-team";
 import * as instrumentSounds from "../app/instrument-sounds";
 import { MusicLanguageControl } from "../app/music-language-control";
 import { promptLanguage } from "../app/prompt-language";
@@ -216,6 +217,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../track-duration": duration,
     "../../../family-voices": family,
     "../../../production-polish": polish,
+    "../../../singer-team": singerTeam,
     "../elevenlabs/provider": {
       musicModel: "music_v2_5", elevenLabsFailureMessage: async () => "Fixture error",
       elevenLabsRequest: async (_key: string, path: string, payload: any) => {

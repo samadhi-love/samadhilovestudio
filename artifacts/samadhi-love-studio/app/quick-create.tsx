@@ -33,6 +33,8 @@ import {useAccountWriting} from "./use-account-writing";
 import { genreTags } from "./music-genres";
 import { autoInstruments, blendName, inBox, quickGenres, quickInstruments, toggleInstrument } from "./auto-instruments";
 import { StyleBlend } from "./style-blend";
+import { TeamChoice } from "./team-choice";
+import { promptTeam, teamById, teamFromArrangement } from "./singer-team";
 import { GenreAssistant } from "./genre-assistant";
 import { fusionGenres, suggestGenreFusion } from "./genre-assist";
 import { useEffect,useRef,useState, type FormEvent, type ReactNode } from "react";
@@ -145,6 +147,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const [chosenVoice, setChosenVoice] = useState<SavedVoice | null>(null);
   const [bandOpen, setBandOpen] = useState(false);
   const [singerId, setSingerId] = useState("auto");
+  const [teamId, setTeamId] = useState("auto");
   const [pendingTake,setPendingTake]=useState<{blob:Blob;url:string;title:string;prompt:string;code:string;take:Instrumental;saveId:string}>();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
@@ -206,26 +209,35 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const mapOn=customMode&&mapEnabled&&!adActive;
   const code = simple?"":mapOn&&validSongMap(songMap)?mapArrangement(songMap):codeEdit ?? "";
   const targetBpm=mapOn?songMap.bpm:blueprint.bpm;
-  const inferredPerformer=promptPerformer(idea);
-  // Singer library: Auto fits the genre (R&B/soul and hip hop → Black American soul/gospel and MC traditions); a picked singer wins over Auto.
-  const autoPick=autoSinger(idea,`${engineGenre} ${genre}`);
+  // Who sings: a pick wins, then the person's own words ("a duo…", "group chant"), then the Pro voice setting.
+  const wordTeam=promptTeam(idea);
+  const pickedTeam=teamId!=="auto"?teamById(teamId):undefined;
+  const proTeam=!simple&&vocalOptions.delivery!==defaultCreatorVocals.delivery?teamFromArrangement(vocalOptions.delivery):undefined;
+  const team=pickedTeam??wordTeam??proTeam;
+  const inferredPerformer=team?.arrangement??promptPerformer(idea);
+  // Singer library: Auto fits the genre for one lead singer; a picked singer wins over Auto. Groups and duets skip Auto.
+  const genderHint=team?.id==="solo-female"?" female voice":team?.id==="solo-male"?" male voice":"";
+  const autoPick=team&&team.voices>1?undefined:autoSinger(idea+genderHint,`${engineGenre} ${genre}`);
   const chosenSinger=singerId==="auto"?autoPick:singerById(singerId);
-  const chosenPerformer=vocalOptions.delivery===defaultCreatorVocals.delivery?(inferredPerformer??chosenSinger?.arrangement):vocalOptions.delivery;
+  const chosenPerformer=team?team.arrangement:vocalOptions.delivery===defaultCreatorVocals.delivery?(inferredPerformer??chosenSinger?.arrangement):vocalOptions.delivery;
   // A chosen singer replaces the general genre match (keeps the engine's 512-character style limit safe).
   const pickedSinger=singerId!=="auto"?chosenSinger:undefined;
-  const vocalDirection=instrumental?"":((customMode&&voiceEdit?[pickedSinger?.direction,voiceEdit].filter(Boolean).join(" "):null)??[
+  const leadSinger=(direction?:string)=>direction&&team&&team.voices>1?direction.replace(/^(Singer|Rapper):/,"Lead voice:"):direction;
+  const vocalDirection=instrumental?"":((customMode&&voiceEdit?[team&&team.voices>1?team.direction:"",leadSinger(pickedSinger?.direction),voiceEdit].filter(Boolean).join(" "):null)??[
+    team&&team.voices>1?team.direction:"",
     creatorVocalDirection({...(simple?defaultCreatorVocals:vocalOptions),delivery:chosenPerformer??defaultCreatorVocals.delivery}),
-    chosenSinger?chosenSinger.direction:matchVocalToSong(idea,genre,instruments),
+    chosenSinger?leadSinger(chosenSinger.direction):matchVocalToSong(idea,genre,instruments),
   ].filter(Boolean).join(" "));
+  const teamNote=pickedTeam&&wordTeam&&pickedTeam.id!==wordTeam.id?`Your words ask for “${wordTeam.name}”, but you picked “${pickedTeam.name}”. Your pick is used. Tap Auto to follow your words.`:"";
   let intentIssue="";
   if(!instrumental&&!localSketch) {
     try {
       resolveLanguage(languageChoice,useOwnLyrics?lyrics:"",idea);
     } catch (e) { intentIssue=e instanceof Error?e.message:"Choose the singing language."; }
-    if(inferredPerformer&&vocalOptions.delivery!==defaultCreatorVocals.delivery&&inferredPerformer!==vocalOptions.delivery)
+    if(!pickedTeam&&wordTeam&&proTeam&&wordTeam.arrangement!==vocalOptions.delivery)
       intentIssue="Your singing arrangement conflicts with the description. Change the arrangement or description before creating.";
-    else if(singerId!=="auto"&&chosenSinger&&inferredPerformer&&inferredPerformer!==chosenSinger.arrangement&&inferredPerformer!=="Duet")
-      intentIssue=`You picked “${chosenSinger.name}”, but your description asks for a ${inferredPerformer.toLowerCase()}. Pick Auto or another singer, or change the description.`;
+    else if(singerId!=="auto"&&chosenSinger&&team&&team.voices===1&&team.arrangement!==chosenSinger.arrangement)
+      intentIssue=`You picked “${chosenSinger.name}”, but your description asks for a ${team.arrangement.toLowerCase()}. Pick Auto or another singer, or change the description.`;
   }
   const songTiming=autoTrackTime({vocals:!instrumental,lyrics:useOwnLyrics?lyrics:"",bpm:blueprint.bpm,cinematic:false,prompt:idea,sectionCount:code.match(/^\s*\[[^\]\r\n]+\]\s*$/gm)?.length});
   const baseTiming=adActive?{seconds:adBrief.seconds,reason:"Based on your musical advertisement length."}:mapOn&&validSongMap(songMap)&&!songTiming.explicit?{seconds:mapSeconds(songMap),reason:"Based on your song map targets."}:songTiming;
@@ -439,6 +451,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
           {!adMode&&<GenreToggles value={genreTags(simple?(genreEdit??""):(genreEdit??chosenGenre??""))} change={tags=>{setAutoGenre(false);setGenreEdit(tags.length?tags.join(", "):null);setError("");}} disabled={busy}/>}
           {!adMode&&(bandOpen||instrumentsEdit?.trim()?<InstrumentToggles box={instrumentsEdit??""} change={next=>{setInstrumentsEdit(next.trim()?next:null);setError("");}} suggested={autoBand} disabled={busy}/>:<button type="button" className="text-button" data-testid="button-add-instruments" onClick={()=>setBandOpen(true)}>+ Add instruments (optional)</button>)}
           {!instrumentsEdit?.trim()&&(idea.trim()||genre)&&<p className="muted auto-band" data-testid="text-auto-instruments">{instruments?<>🎻 Instruments chosen for you: <strong>{instruments}</strong></>:"🎻 Instruments: the ones your vision names."}</p>}
+          {!instrumental&&<TeamChoice value={teamId} change={setTeamId} heard={wordTeam} note={teamNote} disabled={busy}/>}
           <div className="jb-row">
             <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics="" prompt={idea} disabled={busy}/>
             <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> No Vocals</label>
@@ -460,6 +473,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
               change={(g,i)=>{setAutoGenre(false);setGenreEdit(g||null);setInstrumentsEdit(i||null);setError("");}}
               suggest={()=>{const g=genreEdit??chosenGenre??fusionGenres(fusion,"").slice(1).join(", ");return {genre:g,instruments:instrumentsEdit||autoInstruments(idea,genreTags(g))};}}/>}
             {useOwnLyrics&&genre&&<p className="muted" data-testid="text-lyrics-blend">Your lyrics will be sung as <strong>{blendName(genreTags(genre).slice(0,4))}</strong>{instruments?<> with <strong>{genreTags(instruments).slice(0,4).join(", ")}</strong></>:null}.</p>}
+            {!instrumental&&<TeamChoice value={teamId} change={setTeamId} heard={wordTeam} note={teamNote} disabled={busy}/>}
             <label className="field qc-field">What it&apos;s about <span className="muted">· optional</span>
               <textarea data-testid="input-song-idea" rows={4} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
             {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
@@ -479,7 +493,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
               <VoicePicker value={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);setError("");}} disabled={busy}/>
               <p className="muted"><strong>Suggested delivery:</strong> {matchVocalToSong(idea,genre,instruments)} <button type="button" className="text-button" data-testid="button-use-vocal" onClick={()=>setVoiceEdit(matchVocalToSong(idea,genre,instruments))}>Use this</button>{voiceEdit&&<> · <button type="button" className="text-button" data-testid="button-clear-vocal" onClick={()=>setVoiceEdit(null)}>Clear</button></>}</p>
               {voiceEdit&&<p className="muted" data-testid="text-vocal-direction">Voice direction: {voiceEdit}</p>}
-              <p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${chosenPerformer??"Singer follows your vision"}.`}</p>
+              <p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${team?.arrangement??chosenPerformer??"Singer follows your vision"}.`}</p>
             </>}
             {vocalHelpers&&<details className="qc-fold"><summary>Voice helper</summary>{vocalHelpers(applySeed)}</details>}
           </details>
