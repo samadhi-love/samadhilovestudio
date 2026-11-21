@@ -52,6 +52,8 @@ export function CreateVideoBox(props: {
   look: BackgroundKey; pickLook: (key: BackgroundKey) => void; own: OwnBackground;
   photo: Blob | null; clip: Blob | null;
   busy: boolean; make?: (song: Song, purpose: VideoPurposeId) => void | Promise<void>;
+  /** Optional: the Create page holds the choice (a saved prompt can bring it back). */
+  purpose?: VideoPurposeId; setPurpose?: (id: VideoPurposeId) => void;
 }) {
   const ready = useMemo(() => videoReadySongs(props.songs), [props.songs]);
   const song = ready.find(s => s.id === props.songId);
@@ -59,12 +61,13 @@ export function CreateVideoBox(props: {
   const [playing, setPlaying] = useState(false);
   const [line, setLine] = useState(0);
   const [picture, setPicture] = useState("");
-  const [purposeId, setPurposeId] = useState<VideoPurposeId>("shorts");
+  const [ownPurpose, setOwnPurpose] = useState<VideoPurposeId>("shorts");
+  const purposeId = props.purpose ?? ownPurpose;
   const purpose = videoPurposeById(purposeId)!;
   // The last choice comes back on the next visit.
   // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the remembered choice once after the page loads
-  useEffect(() => { setPurposeId(readVideoPurpose()); }, []);
-  const choosePurpose = (id: VideoPurposeId) => { setPurposeId(id); rememberVideoPurpose(id); };
+  useEffect(() => { if (!props.purpose) setOwnPurpose(readVideoPurpose()); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once, on load
+  const choosePurpose = (id: VideoPurposeId) => { (props.setPurpose ?? setOwnPurpose)(id); rememberVideoPurpose(id); };
   const audio = useRef<HTMLAudioElement>(null);
   const lines = useMemo(() => previewLines(song?.notes.lyrics ?? ""), [song]);
   const theme = themeForKey(props.look);
