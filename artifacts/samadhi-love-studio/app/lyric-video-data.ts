@@ -50,6 +50,10 @@ export const videoThemes = {
   meadow: { title: "Rainbow Meadow", colors: ["#8ac926", "#63c5ff", "#1d4d2b", "#ffffff"], image: "/lyric-art/photo/meadow.webp", thumb: "/lyric-art/animated/meadow.webp" },
   undersea: { title: "Under the Sea", colors: ["#48cae4", "#0077b6", "#03045e", "#e0fbff"], image: "/lyric-art/photo/undersea.webp", thumb: "/lyric-art/animated/undersea.webp" },
   lullaby: { title: "Starry Lullaby", colors: ["#b9a6e8", "#2b1055", "#141e5b", "#fff1b8"], image: "/lyric-art/photo/lullaby.webp", thumb: "/lyric-art/animated/lullaby.webp" },
+  // Favourite animals: original drawings made in code (app/lyric-animated-scenes.ts), animated live.
+  jungle: { title: "Jungle Friends", colors: ["#f6c35b", "#3fb35d", "#1f4d2b", "#fff6d6"], image: "", thumb: "/lyric-art/animated/jungle.webp" },
+  farm: { title: "Farm Friends", colors: ["#d62828", "#6ec6ff", "#2d6a4f", "#ffffff"], image: "", thumb: "/lyric-art/animated/farm.webp" },
+  pets: { title: "Puppy & Kitty", colors: ["#ff97b7", "#d4a373", "#5b3a29", "#fff4f8"], image: "", thumb: "/lyric-art/animated/pets.webp" },
   flag: { title: "Stars & Stripes", colors: ["#b22234", "#1d3557", "#0d1b3e", "#ffffff"], image: "/lyric-art/photo/flag.webp", thumb: "/lyric-art/animated/flag.webp" },
   liberty: { title: "Liberty Torch", colors: ["#f2715a", "#7a2e6b", "#1b1446", "#ffe8c2"], image: "/lyric-art/photo/liberty.webp", thumb: "/lyric-art/animated/liberty.webp" },
   nycnight: { title: "New York at Night", colors: ["#ffd27a", "#16224a", "#070b1f", "#fff3d6"], image: "/lyric-art/photo/nycnight.webp", thumb: "/lyric-art/animated/nycnight.webp" },

@@ -68,7 +68,7 @@ function isMelodyTake(take:unknown):take is MelodyReferenceTake{
 export function seedFromTemplate(t: Template, id: string): QuickSeed {
   return { id, custom: true, title: t.name, styles: t.tags, lyrics: t.notes.lyrics, vocal: t.notes.vocals, instruments: t.notes.instruments, idea: t.notes.prompt.split("\n\nOpening:")[0], notice: `Recipe "${t.name}" loaded. Review, then Create.` };
 }
-export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, engine,favoriteTake,proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn,writeLyrics }: {
+export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWithVoice, engine,favoriteTake,proProduction, seed=null, recipes=[], editRecipe, promptHelpers, vocalHelpers,  connected, connectionError, connectionChecking=false, refreshConnection, saving, drafts, settings, guided, openDrafts, generateSong, saveSketch,working, makeVideo, publish, savedPrompts=[],savePrompt,favoritePrompt,autoSavePrompts=false,setAutoSavePrompts,saveMelodyReference,autoCover,openLogo,simpleExperience=false,recordVoice,uploadOwn,writeLyrics }: {
   /** User-triggered lyric writing before Begin. Returns editable lyrics; never generates music. */
   writeLyrics?:(input:Record<string,unknown>)=>Promise<string|undefined>;
   engine?:import("./music-engine-data").MusicEngineStatus;favoriteTake?:(id:string)=>Promise<void>;
@@ -95,6 +95,8 @@ export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, en
   expand?:()=>void;
   /** Switch back to Easy mode. */
   simplify?:()=>void;
+  /** Kids Corner: "Sing it yourself" opens the fun recorder (echo, choir, save as song, make a lyric video). */
+  kidsSing?:()=>void;
   promptHelpers?:(apply:(seed:QuickSeed)=>void)=>ReactNode; vocalHelpers?:(apply:(seed:QuickSeed)=>void)=>ReactNode;
 }) {
   const falActive=engine?.owner===true&&engine.engine==="ace-step";
@@ -111,7 +113,7 @@ export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, en
   async function sendToVideo(song:Song,purpose?:VideoPurposeId){
     if(!makeVideo)return;
     setPromptBusy(true);setError("");
-    try{await makeVideo(song,true,{look:videoLook,...(purpose?{purpose}:{}),...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{})});}
+    try{await makeVideo(song,true,{look:kidsCorner?"theme:balloons":videoLook,...(purpose?{purpose}:{}),...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{})});}
     catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}
     finally{setPromptBusy(false);}
   }
@@ -134,6 +136,9 @@ export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, en
   const [openingMode,setOpeningMode]=useState<SongOpening>("auto");
   const [choice, setChoice] = useState<CreateChoice>(defaultCreateChoice);
   const [genreEdit, setGenreEdit] = useState<string | null>(null);
+  // Kids Corner: the same song-and-video journey, made for kids (Kids genre, friendly adult singers or
+  // the kid's own recorded voice, kids' backgrounds for the video).
+  const [kidsCorner,setKidsCornerState]=useState(false);
   const [autoGenre,setAutoGenre]=useState(false),[useHistory,setUseHistory]=useState(true),[fusionName,setFusionName]=useState(""),[fusionVariation,setFusionVariation]=useState(0);
   const [instrumentsEdit, setInstrumentsEdit] = useState<string | null>(null);
   const [codeEdit, setCodeEdit] = useState<string | null>(null);
@@ -309,6 +314,13 @@ export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, en
   // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the remembered video choice once after the page loads
   useEffect(()=>{setVideoPurposeState(readVideoPurpose());},[]);
   const setVideoPurpose=(id:VideoPurposeId)=>{setVideoPurposeState(id);rememberVideoPurpose(id);};
+  function setKidsCorner(on:boolean){
+    setKidsCornerState(on);
+    if(!on)return;
+    switchMode(false);setAutoGenre(false);
+    setGenreEdit(current=>{const tags=genreTags(current??"");return tags.some(t=>t.toLowerCase()==="kids")?current:[...tags,"Kids"].join(", ");});
+    if(!autoVideo)setAutoVideo(true);
+  }
   const suggestedName=(what:"vision"|"lyrics")=>((customMode?songTitle.trim():"")||(what==="lyrics"?`Lyrics · ${idea.trim()||lyrics.trim()}`:idea.trim())).replace(/\s+/g," ").slice(0,72)||"My prompt";
   /** One-tap save of the prompt in front of the user (typed or written by the app) into Your Sounds. */
   async function savePromptNow(what:"vision"|"lyrics",chosenName?:string){
@@ -469,9 +481,20 @@ export function QuickCreate({ advanced=true, expand, simplify, singWithVoice, en
           <span className="qc-easy-label">✦ Easy mode · your idea, a genre, who sings, then Begin</span>
           {expand&&<button type="button" className="text-button" data-testid="button-more-options" onClick={expand}>More options (Expert)</button>}
         </div>}
+        <button type="button" className={`qc-kids-button${kidsCorner?" active":""}`} aria-pressed={kidsCorner} data-testid="button-kids-corner" onClick={()=>setKidsCorner(!kidsCorner)}>🎈 Kids Corner</button>
+        {kidsCorner&&<section className="qc-kids" data-testid="kids-corner" aria-label="Kids Corner">
+          <h3>🎈 Kids Corner · a song and its video, made for kids</h3>
+          <div className="qc-kids-ways">
+            {kidsSing&&<button type="button" className="qc-kids-way" data-testid="button-kids-sing-yourself" onClick={kidsSing}>
+              <strong>🎤 Sing it yourself</strong><small>Record your own voice with fun echoes and a choir of you, then save it and make your video. A grown-up helps.</small></button>}
+            <div className="qc-kids-way" data-testid="kids-singer-way"><strong>🎶 A singer sings it</strong><small>Tell us your song below, pick <b>Who sings</b>: Female, Male or a duo (friendly grown-up voices), then tap Begin.</small></div>
+          </div>
+          <p className="muted">Your video opens with kids&apos; backgrounds: Jungle Friends 🦁, Farm Friends 🐮, Puppy &amp; Kitty 🐶, Balloon Party and more, or your own photo.</p>
+          <button type="button" className="text-button" data-testid="button-leave-kids-corner" onClick={()=>setKidsCorner(false)}>Leave Kids Corner</button>
+        </section>}
         {simple?<div className="just-begin" data-testid="panel-just-begin">
           <label className="field qc-field jb-vision">Your Vision
-            <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
+            <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder={kidsCorner?"A happy song about brushing my teeth with my puppy":"A hopeful song about starting again"} onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
           {savePrompt&&<div className="prompt-quick-save">{naming==="vision"?<SaveNameBox suggested={suggestedName("vision")} busy={busy} save={name=>void savePromptNow("vision",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>{setQuickSaved(null);setNaming("vision");}}>☆ Save this prompt</button>}{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
           {savedPrompts.length>0&&<SavedPromptRow prompts={savedPrompts} disabled={busy} use={preset=>applySavedPrompt(preset,true)}/>}
           {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}

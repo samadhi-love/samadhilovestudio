@@ -10,7 +10,7 @@ import {
 export const lyricBackgroundGroups = {
   kids: {
     name: "Kids songs · animated",
-    themes: ["balloons", "meadow", "undersea", "lullaby"],
+    themes: ["balloons", "meadow", "undersea", "lullaby", "jungle", "farm", "pets"],
   },
   usa: {
     name: "USA & New York · animated",

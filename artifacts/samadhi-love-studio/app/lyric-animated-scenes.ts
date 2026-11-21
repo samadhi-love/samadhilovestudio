@@ -8,7 +8,7 @@
  * same picture, so previews and exported videos match frame for frame.
  * `t` is the background motion time (0 when the video uses "still" motion).
  */
-export const animatedScenes = ["balloons", "meadow", "undersea", "lullaby", "flag", "liberty", "nycnight"] as const;
+export const animatedScenes = ["balloons", "meadow", "undersea", "lullaby", "jungle", "farm", "pets", "flag", "liberty", "nycnight"] as const;
 export type AnimatedScene = typeof animatedScenes[number];
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
@@ -328,7 +328,173 @@ function nycnight(c: Ctx, w: number, h: number, t: number) {
   for (let i = 0; i < 40; i++) { const x = rnd(i, 56) * w, y = deck + (h - deck) * (0.15 + rnd(i, 57) * 0.8), len = m * (0.01 + rnd(i, 58) * 0.04) * (0.6 + 0.4 * Math.sin(t * 2 + i)); c.fillStyle = rnd(i, 59) > 0.7 ? "#9ad1ff55" : "#ffd27a55"; c.fillRect(x, y, len, Math.max(1, m * 0.002)); }
 }
 
-const painters: Record<AnimatedScene, (c: Ctx, w: number, h: number, t: number) => void> = { balloons, meadow, undersea, lullaby, flag, liberty, nycnight };
+/* ---------------- Kids: favourite animals (original drawings, made in code) ---------------- */
+function eye(c: Ctx, x: number, y: number, r: number, blink: number) {
+  c.fillStyle = "#2b2118"; c.beginPath(); c.ellipse(x, y, r, r * Math.max(0.12, blink), 0, 0, TAU); c.fill();
+  if (blink > 0.5) { c.fillStyle = "#ffffff"; c.beginPath(); c.arc(x - r * 0.35, y - r * 0.35, r * 0.35, 0, TAU); c.fill(); }
+}
+/** Eyes open most of the time, with a quick blink every few seconds. */
+const blinkAt = (t: number, seed: number) => ((t + seed) % 3.7) < 0.14 ? 0.1 : 1;
+function cheeks(c: Ctx, x: number, y: number, gap: number, r: number) {
+  c.fillStyle = "#ff8fab66"; for (const s of [-1, 1]) { c.beginPath(); c.ellipse(x + s * gap, y, r, r * 0.65, 0, 0, TAU); c.fill(); }
+}
+function smile(c: Ctx, x: number, y: number, r: number, color = "#2b2118") {
+  c.strokeStyle = color; c.lineWidth = Math.max(1, r * 0.22); c.lineCap = "round";
+  c.beginPath(); c.arc(x - r * 0.55, y, r * 0.55, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
+  c.beginPath(); c.arc(x + r * 0.55, y, r * 0.55, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke();
+}
+function grassHills(c: Ctx, w: number, h: number, colors: [string, string]) {
+  const hill = (base: number, amp: number, color: string, phase: number) => {
+    c.fillStyle = color; c.beginPath(); c.moveTo(0, h);
+    for (let i = 0; i <= 24; i++) c.lineTo(w * i / 24, h * base + Math.sin(i * 0.5 + phase) * h * amp);
+    c.lineTo(w, h); c.fill();
+  };
+  hill(0.68, 0.03, colors[0], 0.7); hill(0.8, 0.02, colors[1], 2.4);
+}
+function sun(c: Ctx, x: number, y: number, r: number, t: number) {
+  c.save(); c.translate(x, y); c.rotate(t * 0.12); c.fillStyle = "#ffe066";
+  for (let i = 0; i < 12; i++) { c.rotate(TAU / 12); c.beginPath(); c.moveTo(r * 1.15, -r * 0.12); c.lineTo(r * 1.7, 0); c.lineTo(r * 1.15, r * 0.12); c.fill(); }
+  c.restore(); c.fillStyle = "#ffd23f"; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+}
+
+/* Jungle Friends: a lion, an elephant and a swinging monkey. */
+function jungle(c: Ctx, w: number, h: number, t: number) {
+  c.fillStyle = vertical(c, h, [[0, "#ffd29d"], [0.5, "#bde7b0"], [1, "#6cc070"]]); c.fillRect(0, 0, w, h);
+  const m = Math.min(w, h);
+  sun(c, w * 0.82, h * 0.14, m * 0.07, t);
+  for (let i = 0; i < 3; i++) cloud(c, ((rnd(i, 41) * w + t * m * 0.012 * (1 + i * 0.4)) % (w * 1.3)) - w * 0.15, h * (0.08 + 0.1 * i), m * 0.05, "#ffffff", 0.8);
+  // Jungle trees: trunks and round leafy crowns.
+  for (let i = 0; i < 7; i++) {
+    const x = w * (i / 6), top = h * (0.28 + rnd(i, 42) * 0.12), r = m * (0.12 + rnd(i, 43) * 0.06);
+    c.fillStyle = "#8b5a2b"; c.fillRect(x - m * 0.02, top, m * 0.04, h - top);
+    c.fillStyle = i % 2 ? "#2d9a4b" : "#3fb35d";
+    for (const [dx, dy, s] of [[0, 0, 1], [-0.6, 0.3, 0.75], [0.6, 0.3, 0.75], [0, -0.45, 0.7]]) { c.beginPath(); c.arc(x + dx * r, top + dy * r, r * s * 0.7, 0, TAU); c.fill(); }
+  }
+  grassHills(c, w, h, ["#57b65a", "#3a9a46"]);
+  // Monkey swinging on a vine from the top.
+  const vx = w * 0.5, swing = Math.sin(t * 1.6) * 0.35, len = h * 0.34, mx = vx + Math.sin(swing) * len, my = Math.cos(swing) * len;
+  c.strokeStyle = "#2f7d32"; c.lineWidth = Math.max(2, m * 0.008); c.beginPath(); c.moveTo(vx, 0); c.lineTo(mx, my); c.stroke();
+  const mr = m * 0.055;
+  c.fillStyle = "#8d5524"; c.beginPath(); c.ellipse(mx, my + mr * 1.5, mr * 0.75, mr, 0, 0, TAU); c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(mx + s * mr * 0.95, my + mr * 0.1, mr * 0.38, 0, TAU); c.fill(); }
+  c.beginPath(); c.arc(mx, my + mr * 0.2, mr, 0, TAU); c.fill();
+  c.fillStyle = "#f1c27d"; c.beginPath(); c.ellipse(mx, my + mr * 0.42, mr * 0.68, mr * 0.55, 0, 0, TAU); c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(mx + s * mr * 0.95, my + mr * 0.1, mr * 0.2, 0, TAU); c.fill(); }
+  for (const s of [-1, 1]) eye(c, mx + s * mr * 0.3, my + mr * 0.05, mr * 0.13, blinkAt(t, 1));
+  smile(c, mx, my + mr * 0.55, mr * 0.22);
+  // Lion, bouncing gently, bottom left.
+  const lx = w * 0.24, ly = h * 0.74 - Math.abs(Math.sin(t * 2.2)) * m * 0.02, lr = m * 0.085;
+  c.fillStyle = "#e0861d";
+  for (let i = 0; i < 14; i++) { const a = i * TAU / 14 + Math.sin(t * 1.5) * 0.05; c.beginPath(); c.arc(lx + Math.cos(a) * lr * 1.05, ly + Math.sin(a) * lr * 1.05, lr * 0.42, 0, TAU); c.fill(); }
+  c.fillStyle = "#f6c35b"; c.beginPath(); c.arc(lx, ly, lr, 0, TAU); c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); c.arc(lx + s * lr * 0.72, ly - lr * 0.72, lr * 0.25, 0, TAU); c.fill(); }
+  for (const s of [-1, 1]) eye(c, lx + s * lr * 0.35, ly - lr * 0.15, lr * 0.11, blinkAt(t, 0));
+  c.fillStyle = "#7a4a1d"; c.beginPath(); c.moveTo(lx - lr * 0.14, ly + lr * 0.12); c.lineTo(lx + lr * 0.14, ly + lr * 0.12); c.lineTo(lx, ly + lr * 0.28); c.fill();
+  smile(c, lx, ly + lr * 0.32, lr * 0.16, "#7a4a1d"); cheeks(c, lx, ly + lr * 0.25, lr * 0.55, lr * 0.14);
+  // Elephant, trunk swaying, bottom right.
+  const ex = w * 0.76, ey = h * 0.74, er = m * 0.09;
+  c.fillStyle = "#9aa7b5"; c.beginPath(); c.ellipse(ex + er * 0.4, ey + er * 0.55, er * 1.2, er * 0.75, 0, 0, TAU); c.fill();
+  c.fillStyle = "#b5c0cc"; c.beginPath(); c.ellipse(ex - er * 0.7, ey - er * 0.05, er * 0.65, er * 0.8, -0.2 + Math.sin(t * 1.2) * 0.08, 0, TAU); c.fill();
+  c.fillStyle = "#9aa7b5"; c.beginPath(); c.arc(ex - er * 0.25, ey - er * 0.05, er * 0.72, 0, TAU); c.fill();
+  c.strokeStyle = "#9aa7b5"; c.lineWidth = er * 0.32; c.lineCap = "round"; const sway = Math.sin(t * 1.4) * er * 0.35;
+  c.beginPath(); c.moveTo(ex - er * 0.65, ey + er * 0.2); c.quadraticCurveTo(ex - er * 1.2, ey + er * 0.7, ex - er * 1.1 + sway, ey + er * 1.05); c.stroke();
+  eye(c, ex - er * 0.48, ey - er * 0.2, er * 0.09, blinkAt(t, 2)); cheeks(c, ex - er * 0.25, ey + er * 0.15, er * 0.3, er * 0.1);
+  // Leaves drifting down.
+  for (let i = 0; i < 14; i++) {
+    const x = rnd(i, 44) * w + Math.sin(t + i) * m * 0.03, y = (t * (0.03 + rnd(i, 45) * 0.04) * h + rnd(i, 46) * h) % h;
+    c.save(); c.translate(x, y); c.rotate(t + i); c.fillStyle = i % 2 ? "#7ccf5a" : "#4caf50"; c.beginPath(); c.ellipse(0, 0, m * 0.014, m * 0.007, 0, 0, TAU); c.fill(); c.restore();
+  }
+}
+
+/* Farm Friends: a red barn, a cow, a pig and a hopping chick. */
+function farm(c: Ctx, w: number, h: number, t: number) {
+  c.fillStyle = vertical(c, h, [[0, "#6ec6ff"], [0.6, "#cdeeff"], [1, "#e8fbe8"]]); c.fillRect(0, 0, w, h);
+  const m = Math.min(w, h);
+  sun(c, w * 0.14, h * 0.14, m * 0.065, t);
+  for (let i = 0; i < 4; i++) cloud(c, ((rnd(i, 51) * w + t * m * 0.014 * (1 + i * 0.3)) % (w * 1.3)) - w * 0.15, h * (0.07 + 0.09 * i), m * (0.05 + rnd(i, 52) * 0.03), "#ffffff", 0.9);
+  grassHills(c, w, h, ["#8bd46e", "#5cb85c"]);
+  // Barn.
+  const bx = w * 0.72, by = h * 0.42, bw = m * 0.34, bh = m * 0.26;
+  c.fillStyle = "#d62828"; c.fillRect(bx - bw / 2, by, bw, bh);
+  c.fillStyle = "#9d0208"; c.beginPath(); c.moveTo(bx - bw * 0.6, by + 2); c.lineTo(bx, by - bh * 0.55); c.lineTo(bx + bw * 0.6, by + 2); c.fill();
+  c.fillStyle = "#ffffff"; c.fillRect(bx - bw * 0.16, by + bh * 0.38, bw * 0.32, bh * 0.62);
+  c.strokeStyle = "#d62828"; c.lineWidth = Math.max(2, m * 0.006);
+  c.beginPath(); c.moveTo(bx - bw * 0.16, by + bh * 0.38); c.lineTo(bx + bw * 0.16, by + bh); c.moveTo(bx + bw * 0.16, by + bh * 0.38); c.lineTo(bx - bw * 0.16, by + bh); c.stroke();
+  c.fillStyle = "#ffffff"; c.beginPath(); c.arc(bx, by - bh * 0.12, bh * 0.1, 0, TAU); c.fill();
+  // Fence.
+  c.fillStyle = "#f3e9dc"; const fy = h * 0.8;
+  for (let x = 0; x < w; x += m * 0.06) c.fillRect(x, fy - m * 0.06, m * 0.014, m * 0.08);
+  c.fillRect(0, fy - m * 0.045, w, m * 0.012); c.fillRect(0, fy - m * 0.015, w, m * 0.012);
+  // Cow walking slowly back and forth.
+  const cx = w * (0.32 + 0.06 * Math.sin(t * 0.4)), cy = h * 0.68, cr = m * 0.075, dir = Math.cos(t * 0.4) >= 0 ? 1 : -1;
+  c.fillStyle = "#ffffff"; c.beginPath(); c.ellipse(cx, cy, cr * 1.3, cr * 0.8, 0, 0, TAU); c.fill();
+  c.fillStyle = "#2b2118"; for (const [dx, dy, s] of [[-0.5, -0.2, 0.3], [0.4, 0.15, 0.35], [0.05, -0.4, 0.2]]) { c.beginPath(); c.ellipse(cx + dx * cr, cy + dy * cr, cr * s, cr * s * 0.7, 0.4, 0, TAU); c.fill(); }
+  c.fillStyle = "#ffffff"; for (const s of [-0.8, -0.3, 0.3, 0.8]) c.fillRect(cx + s * cr - cr * 0.08, cy + cr * 0.5, cr * 0.16, cr * 0.55);
+  const hx = cx + dir * cr * 1.35, hy = cy - cr * 0.35;
+  c.beginPath(); c.ellipse(hx, hy, cr * 0.55, cr * 0.6, 0, 0, TAU); c.fill();
+  c.fillStyle = "#ffb3c6"; c.beginPath(); c.ellipse(hx, hy + cr * 0.32, cr * 0.42, cr * 0.26, 0, 0, TAU); c.fill();
+  c.fillStyle = "#f4d35e"; for (const s of [-1, 1]) { c.beginPath(); c.ellipse(hx + s * cr * 0.38, hy - cr * 0.55, cr * 0.1, cr * 0.2, s * 0.5, 0, TAU); c.fill(); }
+  for (const s of [-1, 1]) eye(c, hx + s * cr * 0.2, hy - cr * 0.1, cr * 0.08, blinkAt(t, 3));
+  // Pig bouncing.
+  const px = w * 0.12, py = h * 0.75 - Math.abs(Math.sin(t * 2.6)) * m * 0.025, pr = m * 0.06;
+  c.fillStyle = "#ffafcc"; c.beginPath(); c.ellipse(px, py + pr * 0.4, pr * 1.1, pr * 0.8, 0, 0, TAU); c.fill();
+  c.beginPath(); c.arc(px + pr * 0.9, py - pr * 0.1, pr * 0.62, 0, TAU); c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); c.moveTo(px + pr * (0.9 + s * 0.35), py - pr * 0.55); c.lineTo(px + pr * (0.9 + s * 0.5), py - pr * 0.95); c.lineTo(px + pr * (0.9 + s * 0.12), py - pr * 0.7); c.fill(); }
+  c.fillStyle = "#ff85a1"; c.beginPath(); c.ellipse(px + pr * 1.1, py + pr * 0.05, pr * 0.28, pr * 0.2, 0, 0, TAU); c.fill();
+  c.fillStyle = "#c9184a"; for (const s of [-1, 1]) { c.beginPath(); c.arc(px + pr * 1.1 + s * pr * 0.09, py + pr * 0.05, pr * 0.05, 0, TAU); c.fill(); }
+  for (const s of [-1, 1]) eye(c, px + pr * (0.9 + s * 0.22), py - pr * 0.25, pr * 0.09, blinkAt(t, 4));
+  // Chick hopping across the grass.
+  const kx = (w * 0.2 + t * m * 0.08) % (w * 1.1) - w * 0.05, ky = h * 0.9 - Math.abs(Math.sin(t * 4)) * m * 0.03, kr = m * 0.03;
+  c.fillStyle = "#ffd60a"; c.beginPath(); c.arc(kx, ky, kr, 0, TAU); c.fill(); c.beginPath(); c.arc(kx + kr * 0.7, ky - kr * 0.8, kr * 0.65, 0, TAU); c.fill();
+  c.fillStyle = "#fb8500"; c.beginPath(); c.moveTo(kx + kr * 1.3, ky - kr * 0.85); c.lineTo(kx + kr * 1.65, ky - kr * 0.7); c.lineTo(kx + kr * 1.3, ky - kr * 0.55); c.fill();
+  eye(c, kx + kr * 0.85, ky - kr * 0.95, kr * 0.13, blinkAt(t, 5));
+}
+
+/* Puppy & Kitty: best friends in a pastel park with floating hearts and a bouncing ball. */
+function pets(c: Ctx, w: number, h: number, t: number) {
+  c.fillStyle = vertical(c, h, [[0, "#ffd6e8"], [0.55, "#e2f0ff"], [1, "#d8f8d1"]]); c.fillRect(0, 0, w, h);
+  const m = Math.min(w, h);
+  for (let i = 0; i < 3; i++) cloud(c, ((rnd(i, 61) * w + t * m * 0.012 * (1 + i * 0.5)) % (w * 1.3)) - w * 0.15, h * (0.08 + 0.1 * i), m * 0.055, "#ffffff", 0.9);
+  grassHills(c, w, h, ["#a7e3a0", "#7fcf86"]);
+  // Floating hearts.
+  for (let i = 0; i < 12; i++) {
+    const s = m * (0.016 + rnd(i, 62) * 0.014), span = h * 0.9, y = h * 0.85 - ((t * (0.05 + rnd(i, 63) * 0.04) * h + rnd(i, 64) * span) % span);
+    const x = rnd(i, 65) * w + Math.sin(t * 1.2 + i) * m * 0.02;
+    c.fillStyle = ["#ff5d8f", "#ff97b7", "#c77dff", "#ffafcc"][i % 4]; c.globalAlpha = 0.8;
+    c.beginPath(); c.moveTo(x, y + s * 0.9); c.bezierCurveTo(x - s * 1.6, y - s * 0.2, x - s * 0.6, y - s * 1.3, x, y - s * 0.45);
+    c.bezierCurveTo(x + s * 0.6, y - s * 1.3, x + s * 1.6, y - s * 0.2, x, y + s * 0.9); c.fill(); c.globalAlpha = 1;
+  }
+  // Puppy with a wagging tail.
+  const dx = w * 0.32, dy = h * 0.7, dr = m * 0.085;
+  c.fillStyle = "#d4a373"; c.beginPath(); c.ellipse(dx, dy + dr * 0.75, dr * 0.95, dr * 0.65, 0, 0, TAU); c.fill();
+  c.save(); c.translate(dx - dr * 0.85, dy + dr * 0.55); c.rotate(-0.8 + Math.sin(t * 9) * 0.45); c.fillRect(-dr * 0.08, -dr * 0.6, dr * 0.16, dr * 0.6); c.restore();
+  c.beginPath(); c.arc(dx, dy, dr * 0.75, 0, TAU); c.fill();
+  c.fillStyle = "#8b5e34"; for (const s of [-1, 1]) { c.beginPath(); c.ellipse(dx + s * dr * 0.7, dy + dr * 0.05, dr * 0.22, dr * 0.48, s * 0.25 + Math.sin(t * 2 + s) * 0.06, 0, TAU); c.fill(); }
+  c.fillStyle = "#f5e6cc"; c.beginPath(); c.ellipse(dx, dy + dr * 0.3, dr * 0.38, dr * 0.3, 0, 0, TAU); c.fill();
+  c.fillStyle = "#2b2118"; c.beginPath(); c.ellipse(dx, dy + dr * 0.15, dr * 0.13, dr * 0.09, 0, 0, TAU); c.fill();
+  for (const s of [-1, 1]) eye(c, dx + s * dr * 0.3, dy - dr * 0.12, dr * 0.1, blinkAt(t, 6));
+  c.fillStyle = "#ff6b8a"; c.beginPath(); c.ellipse(dx, dy + dr * 0.48, dr * 0.1, dr * 0.13 + Math.abs(Math.sin(t * 3)) * dr * 0.04, 0, 0, TAU); c.fill();
+  // Kitty with a curling tail.
+  const kx = w * 0.66, ky = h * 0.7, kr = m * 0.075;
+  c.fillStyle = "#f4a261"; c.beginPath(); c.ellipse(kx, ky + kr * 0.8, kr * 0.85, kr * 0.62, 0, 0, TAU); c.fill();
+  c.strokeStyle = "#f4a261"; c.lineWidth = kr * 0.2; c.lineCap = "round"; c.beginPath(); c.moveTo(kx + kr * 0.75, ky + kr * 0.9);
+  c.quadraticCurveTo(kx + kr * 1.5, ky + kr * 0.6, kx + kr * 1.25 + Math.sin(t * 2.4) * kr * 0.25, ky - kr * 0.05); c.stroke();
+  c.beginPath(); c.arc(kx, ky, kr * 0.72, 0, TAU); c.fill();
+  for (const s of [-1, 1]) { c.beginPath(); c.moveTo(kx + s * kr * 0.62, ky - kr * 0.2); c.lineTo(kx + s * kr * 0.55, ky - kr * 0.95); c.lineTo(kx + s * kr * 0.12, ky - kr * 0.6); c.fill(); }
+  c.fillStyle = "#ffcad4"; for (const s of [-1, 1]) { c.beginPath(); c.moveTo(kx + s * kr * 0.5, ky - kr * 0.35); c.lineTo(kx + s * kr * 0.5, ky - kr * 0.75); c.lineTo(kx + s * kr * 0.25, ky - kr * 0.55); c.fill(); }
+  for (const s of [-1, 1]) eye(c, kx + s * kr * 0.28, ky - kr * 0.08, kr * 0.11, blinkAt(t, 7));
+  c.fillStyle = "#ff6b8a"; c.beginPath(); c.moveTo(kx - kr * 0.08, ky + kr * 0.12); c.lineTo(kx + kr * 0.08, ky + kr * 0.12); c.lineTo(kx, ky + kr * 0.22); c.fill();
+  c.strokeStyle = "#2b2118"; c.lineWidth = Math.max(1, kr * 0.03);
+  for (const s of [-1, 1]) for (const a of [-0.12, 0.08]) { c.beginPath(); c.moveTo(kx + s * kr * 0.18, ky + kr * 0.22); c.lineTo(kx + s * kr * 0.75, ky + kr * (0.22 + a)); c.stroke(); }
+  cheeks(c, kx, ky + kr * 0.25, kr * 0.42, kr * 0.12);
+  // Ball bouncing between them.
+  const bx = w * 0.49, by = h * 0.88 - Math.abs(Math.sin(t * 2.8)) * h * 0.14, br = m * 0.03;
+  c.fillStyle = "#4cc9f0"; c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill();
+  c.fillStyle = "#ffbe0b"; c.beginPath(); c.arc(bx, by, br, -Math.PI / 2, Math.PI / 2); c.fill();
+  c.fillStyle = "#ffffff80"; c.beginPath(); c.arc(bx - br * 0.35, by - br * 0.35, br * 0.25, 0, TAU); c.fill();
+}
+
+const painters: Record<AnimatedScene, (c: Ctx, w: number, h: number, t: number) => void> = { balloons, meadow, undersea, lullaby, jungle, farm, pets, flag, liberty, nycnight };
 export function isAnimatedScene(theme: string): theme is AnimatedScene { return (animatedScenes as readonly string[]).includes(theme); }
 /** Draws the scene for `theme` and returns true, or returns false for any other theme. */
 export function drawAnimatedScene(c: Ctx, theme: string, w: number, h: number, t: number) {
@@ -453,6 +619,7 @@ export function drawPhotoMotion(c: Ctx, theme: string, image: Source, r: PhotoRe
   if (theme === "balloons") { motes(c, w, h, t, m, "rgba(255,240,200,0.9)", 28, 0.6); }
   else if (theme === "meadow") { motes(c, w, h, t, m, "rgba(255,250,220,0.85)", 45, 0.25); twinkle(c, r, brightSpots(image, key, 25), t, m * 0.006, "rgba(255,250,230,0.9)"); }
   else if (theme === "undersea") { bubbles(c, w, h, t, m); }
+  else if (theme === "jungle" || theme === "farm" || theme === "pets") { motes(c, w, h, t, m, "rgba(255,245,210,0.85)", 30, 0.4); }
   else if (theme === "lullaby") { twinkle(c, r, brightSpots(image, key, 110), t, m * 0.005, "rgba(255,248,220,0.95)"); motes(c, w, h, t, m, "rgba(210,200,255,0.6)", 12, 0.05); }
   else if (theme === "flag") { motes(c, w, h, t, m, "rgba(255,255,255,0.5)", 18, 0.2); }
   else if (theme === "liberty") { motes(c, w, h, t, m, "rgba(255,236,200,0.7)", 16, 0.1); shimmer(c, r, 0.5, t, m, ["#ffd8a8", "#fff3d6"]); twinkle(c, r, brightSpots(image, key, 40), t, m * 0.006, "rgba(255,230,180,0.9)"); }

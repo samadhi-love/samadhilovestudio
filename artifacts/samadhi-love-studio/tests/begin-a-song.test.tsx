@@ -404,3 +404,31 @@ test("Easy mode: idea, genre, who sings, Begin and a video choice; 'More options
   assert.equal(q<HTMLTextAreaElement>("input-lyrics")!.value,"My own words","words typed in Expert are kept");
  }finally{await h.close();}
 });
+
+test("Kids Corner: same song-and-video journey for kids: Kids genre, sing it yourself or a friendly singer, kids' video",async()=>{
+ const h=await setup();
+ try{
+  let sang=0;const videos:any[]=[];
+  const finished={...freshSong("kid-song","Puppy Party",0),audioId:"a1",audioFormat:"mp3" as const};
+  const view=(drafts:any[])=><QuickCreate {...base} drafts={drafts} engine={ace} advanced={false} kidsSing={()=>{sang++;}} generateSong={async()=>"kid-song"} makeVideo={async(song,_s,visual)=>{videos.push({id:song.id,look:visual?.look});}}/>;
+  await act(async()=>h.root.render(view([])));
+  assert.equal(q("kids-corner"),null,"closed until you open it");
+  await act(async()=>q<HTMLButtonElement>("button-kids-corner")!.click());
+  assert.ok(q("kids-corner"),"Kids Corner opens");
+  assert.equal(q("toggle-genre-kids")!.getAttribute("aria-pressed"),"true","Kids genre is on");
+  assert.match(q("text-kids-song")!.textContent!,/friendly adult voices/,"kids songs are sung by grown-up voices");
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,true,"the video is made after the song");
+  assert.match(q("kids-corner")!.textContent!,/Jungle Friends/);
+  assert.match(q("kids-singer-way")!.textContent!,/Female, Male or a duo/);
+  assert.match(q<HTMLTextAreaElement>("input-song-description")!.placeholder,/puppy/);
+  await act(async()=>q<HTMLButtonElement>("button-kids-sing-yourself")!.click());
+  assert.equal(sang,1,"Sing it yourself opens the fun recorder");
+  await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A happy song about my puppy");
+  await h.submit();
+  await act(async()=>h.root.render(view([finished])));
+  for(let i=0;i<4;i++)await act(async()=>{await new Promise(r=>setTimeout(r,0));});
+  assert.deepEqual(videos,[{id:"kid-song",look:"theme:balloons"}],"the video opens with a kids' background");
+  await act(async()=>q<HTMLButtonElement>("button-leave-kids-corner")!.click());
+  assert.equal(q("kids-corner"),null);
+ }finally{await h.close();}
+});

@@ -30,3 +30,16 @@
 .qc-video-plan button.active{border-color:#f3d29d;background:#f3d29d22;box-shadow:0 0 0 2px #f3d29d inset;color:#fff}
 .qc-video-plan button:focus-visible{outline:2px solid #7fe9ff;outline-offset:2px}
 .qc-video-plan-note{flex-basis:100%;margin:2px 0 0;font-size:.8rem}
+/* Kids Corner: the same song-and-video journey, made for kids. */
+.qc-kids-button{display:inline-flex;align-items:center;gap:6px;min-height:40px;margin:0 0 12px;padding:0 16px;border-radius:999px;border:1px solid #ffb3c6aa;background:linear-gradient(90deg,#ff8fab33,#ffd16633,#7cc8ff33);color:#fff;font-weight:700}
+.qc-kids-button.active{box-shadow:0 0 0 2px #ffd166 inset;border-color:#ffd166}
+.qc-kids-button:focus-visible{outline:2px solid #7fe9ff;outline-offset:2px}
+.qc-kids{margin:0 0 14px;padding:14px;border-radius:18px;border:1px solid #ffd16688;background:linear-gradient(135deg,#ff8fab1f,#ffd1661a 45%,#7cc8ff1f);display:grid;gap:10px}
+.qc-kids h3{margin:0;color:#ffe9a8}
+.qc-kids p{margin:0}
+.qc-kids-ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.qc-kids-way{display:grid;gap:4px;text-align:left;padding:12px;border-radius:14px;border:1px solid #ffffff33;background:#ffffff0d;color:inherit}
+button.qc-kids-way{cursor:pointer}
+button.qc-kids-way:hover{border-color:#ffd166}
+.qc-kids-way strong{font-size:1rem}
+.qc-kids-way small{font-size:.82rem;color:#e7ecf5;line-height:1.35}
