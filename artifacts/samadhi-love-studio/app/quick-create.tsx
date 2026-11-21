@@ -31,6 +31,7 @@ import {SongCard} from "./song-card";
 import {RecoveryPanel,useDraftRecovery} from "./draft-recovery";
 import {useAccountWriting} from "./use-account-writing";
 import { genreTags } from "./music-genres";
+import { autoInstruments, blendName, quickGenres } from "./auto-instruments";
 import { GenreAssistant } from "./genre-assistant";
 import { fusionGenres, suggestGenreFusion } from "./genre-assist";
 import { useEffect,useRef,useState, type FormEvent, type ReactNode } from "react";
@@ -50,6 +51,7 @@ import { expandSongDescription } from "./creation-shortcuts";
 import { autoSongParts, partNames, relabelPart, songPartHeadings, type PartName } from "./auto-song-parts";
 import { MelodyReferenceRecorder, type MelodyReferenceTake } from "./melody-reference-recorder";
 import "./cosmic-views.css";
+import "./genre-toggles.css";
 
 
 /** A prefill handed to Create from recipes, World Sounds, helpers, Promote or legacy links. Never submits. */
@@ -192,10 +194,11 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
   const fusion=suggestGenreFusion(idea,codeEdit??"",drafts,useHistory,fusionVariation);
   const chosenGenre=genreEdit??(autoGenre?fusionGenres(fusion,fusionName).join(", "):null);
   const blueprint = songBlueprint([chosenGenre, idea].filter(Boolean).join(", "), instrumental);
-  // Simple sends only the user's own description; Custom sends only what the creator wrote or chose.
-  // Complete picks are stored and saved; only the first ~20 guide the engine prompt.
-  const genre = simple?"":(chosenGenre ?? "");
-  const instruments = simple?"":(instrumentsEdit ?? "");
+  // Just Begin sends the description, the genres tapped beside it, and a band chosen for them.
+  // Shape It sends only what the creator wrote or chose. Complete picks are saved; ~20 guide the engine.
+  const genre = simple?(genreEdit ?? ""):(chosenGenre ?? "");
+  const autoBand = autoInstruments(idea, genreTags(genre));
+  const instruments = simple?(!idea.trim()&&!genre?"":autoBand):(instrumentsEdit ?? "");
   const guidedPicks=splitPicks(genre,instruments);
   const engineGenre=guidedPicks.genres.join(", "),engineInstruments=guidedPicks.instruments.join(", ");
   const mapOn=customMode&&mapEnabled&&!adActive;
@@ -431,6 +434,8 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
             <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
           {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
           {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
+          {!adMode&&<GenreToggles value={genreTags(simple?(genreEdit??""):(genreEdit??chosenGenre??""))} change={tags=>{setAutoGenre(false);setGenreEdit(tags.length?tags.join(", "):null);setError("");}} disabled={busy}/>}
+          {(idea.trim()||genre)&&<p className="muted auto-band" data-testid="text-auto-instruments">{instruments?<>🎻 Instruments chosen for you: <strong>{instruments}</strong></>:"🎻 Instruments: the ones your vision names."}</p>}
           <div className="jb-row">
             <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics="" prompt={idea} disabled={busy}/>
             <label className="qc-check" data-testid="status-create-mode"><input type="checkbox" data-testid="checkbox-instrumental" checked={instrumental} onChange={e=>{setChoice(e.target.checked?"instrumental":"vocals");setError("");}}/> No Vocals</label>
@@ -444,6 +449,9 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
             {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
             {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
             <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Vision expanded with local style suggestions. Review it before you Begin; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
+            {!adMode&&<GenreToggles value={genreTags(simple?(genreEdit??""):(genreEdit??chosenGenre??""))} change={tags=>{setAutoGenre(false);setGenreEdit(tags.length?tags.join(", "):null);setError("");}} disabled={busy}/>}
+            {useOwnLyrics&&genre&&<p className="muted" data-testid="text-lyrics-blend">Your lyrics will be sung as <strong>{blendName(genreTags(genre))}</strong>.</p>}
+            {!instrumentsEdit&&autoBand&&(idea.trim()||genre)&&<p className="muted auto-band" data-testid="text-suggested-instruments">🎻 Suggested band: {autoBand} <button type="button" className="text-button" data-testid="button-use-band" onClick={()=>{setInstrumentsEdit(autoBand);setError("");}}>Use these</button></p>}
             <label className="field qc-field">Lyrics
               <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}} onPaste={e=>{const field=e.currentTarget;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
             </label>
@@ -596,4 +604,19 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
       {pending&&<p role="status">Creating a new take. Your current version stays saved.</p>}{error&&<p role="alert" className="notice">{error}</p>}<button type="button" className="text-button" disabled={busy} onClick={()=>setPlayStage("start")}>Hide this take</button></section>}
     {!playful&&result?.audioFormat && <div className="quick-result" aria-live="polite"><p>Saved privately in Your songs.</p><SongCard song={result}/><div className="actions creator-next-actions">{chosenVoice&&singWithVoice&&<button type="button" className="primary" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}{makeVideo&&<><button type="button" className="primary" disabled={busy} onClick={()=>makeVideo(result)}>{result.musicalAd?"Make advertising video":result.creationKind==="instrumental"||result.instrumental?"Make music video":"Auto lyric video"}</button><button type="button" className="secondary" disabled={busy} onClick={()=>makeVideo(result,true)}>Make social short</button></>}{publish&&<button type="button" className="secondary" disabled={busy} onClick={()=>publish(result)}>Publish & share</button>}</div><p className="muted">Song actions includes editing, voice recording, mixing, downloads and removal. Publish &amp; share opens release review; external platforms require their own submission.</p><button type="button" className="text-button" disabled={busy} onClick={openDrafts}>Open saved creations <ArrowRight size={15}/></button></div>}
   </section>;
+}
+
+/** Genres right beside the style prompt: tap one or several to blend them. */
+function GenreToggles({ value, change, disabled }: { value: string[]; change: (tags: string[]) => void; disabled?: boolean }) {
+  const on = (name: string) => value.some(v => v.toLowerCase() === name.toLowerCase());
+  const extra = value.filter(v => !quickGenres.some(q => q.toLowerCase() === v.toLowerCase()));
+  return <div className="genre-toggles" data-testid="genre-toggles">
+    <p className="genre-toggles-label">Genre <span className="muted">· tap one or several to blend</span></p>
+    <div className="genre-toggles-chips" role="group" aria-label="Genres">
+      {quickGenres.map(name => <button key={name} type="button" className={`chip ${on(name) ? "active" : ""}`} aria-pressed={on(name)} disabled={disabled} data-testid={`toggle-genre-${name.toLowerCase().replace(/[^a-z]+/g, "-")}`}
+        onClick={() => change(on(name) ? value.filter(v => v.toLowerCase() !== name.toLowerCase()) : [...value, name])}>{name}</button>)}
+      {extra.map(name => <button key={name} type="button" className="chip active" aria-pressed disabled={disabled} onClick={() => change(value.filter(v => v !== name))}>{name} ✕</button>)}
+    </div>
+    {value.length > 1 && <p className="muted" data-testid="text-genre-blend">Blend: <strong>{blendName(value)}</strong></p>}
+  </div>;
 }
