@@ -13,10 +13,8 @@ test('Simple creation preserves separate takes and hands the selected recording 
   await act(async()=>h.button('Try a new take').click());assert.equal(calls.length,2);assert.equal(calls[1].prompt,calls[0].prompt,"Changing a video look does not silently change the music description");assert.equal(library.length,2);assert.equal(library[1].id,'take-1');
   await act(async()=>h.button('Keep this · make it visual').click());
   const pick=(id:string)=>document.querySelector<HTMLElement>(`[data-testid="${id}"]`)!;
-  assert.ok(pick('create-background-pick'),"the same background picker as LyriVid");
-  await act(async()=>pick('qv-chip-usa').click());await act(async()=>pick('qv-theme-nycnight').click());
-  assert.equal(pick('qv-theme-nycnight').getAttribute('aria-pressed'),'true');
-  await act(async()=>h.button('Make my video').click());assert.equal(visuals[0].song.id,'take-2');assert.equal(visuals[0].short,true);assert.equal(visuals[0].visual.look,'theme:nycnight');assert.equal(library.length,2);assert.equal(published,0);
+  assert.equal(document.querySelector('[data-testid="create-background-pick"]'),null,"backgrounds are picked on the video page, not repeated here");
+  await act(async()=>pick('button-share-make-video').click());assert.equal(visuals[0].song.id,'take-2');assert.equal(visuals[0].short,true);assert.ok(visuals[0].visual.purpose,"opens the video page in the chosen shape");assert.equal(library.length,2);assert.equal(published,0);
   failed=true;await act(async()=>h.button('Begin').click());assert.match(document.body.textContent!,/previous songs are safe/);assert.equal(library.length,2);assert.equal(published,0);
  }finally{await h.close();}
 });
