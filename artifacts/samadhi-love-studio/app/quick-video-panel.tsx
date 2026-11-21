@@ -16,6 +16,9 @@ import { applyVibe } from "./vibe-look-picker";
 import { signatureLooks, type SignatureLookId } from "./lyric-signature";
 import { applyVideoPurpose, videoPurposes, type VideoPurposeId } from "./video-purpose";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
+import { CaptionTemplatePicker } from "./lyric-caption-picker";
+import { getCaptionTemplate, type CaptionTemplateId } from "./lyric-caption-templates";
+import { lyricLines } from "./lyric-video-data";
 import type { Song } from "./studio-data";
 import type { OwnBackground } from "./own-background";
 
@@ -37,6 +40,16 @@ export function applyBackgroundKey(project: LyricProject, key: BackgroundKey, ti
   return kind === "look" ? applyCreatorVideoLook(project, id)
     : kind === "sig" ? applyVibe(project, id as SignatureLookId)
     : applyLyricBackground(project, id as VideoTheme, "all", time);
+}
+/** Applies a lyric (lettering) style: font, colour and word animation, with word-by-word highlighting. */
+export function applyLyricStyle(project: LyricProject, id?: CaptionTemplateId): LyricProject {
+  const preset = getCaptionTemplate(id);
+  return {
+    ...project,
+    captionTemplate: id,
+    ...(project.pro ? { pro: { ...project.pro, captionMode: "karaoke" as const } } : {}),
+    ...(preset ? { font: preset.font, color: preset.color } : {}),
+  };
 }
 /** Which "What is it for?" card matches the project's shape and length. */
 export function purposeOf(project: LyricProject): VideoPurposeId {
@@ -119,9 +132,20 @@ export function QuickVideoPanel(props: {
       </div>
 
       <div className="qv-step qv-vibe" id="qv-vibe" data-testid="qv-vibe">
-        <span className="qv-kicker">3 · Vibe · background, lettering and motion</span>
-        <BackgroundChooser song={props.song} disabled={busy} isSelected={isSelected} pick={pick} own={props.own} signatures
-          extra={<button type="button" className="qv-link" disabled={busy} onClick={() => props.openFineTune(3)}>More lettering and motion</button>}/>
+        <span className="qv-kicker">3 · Vibe · background and lyric style</span>
+        <div className="qv-vibe-boxes">
+          <section className="qv-box" aria-label="Background" data-testid="qv-background-box">
+            <h3 className="qv-box-title">Background</h3>
+            <BackgroundChooser song={props.song} disabled={busy} isSelected={isSelected} pick={pick} own={props.own} signatures
+              extra={<button type="button" className="qv-link" disabled={busy} onClick={() => props.openFineTune(3)}>More motion and visual tools</button>}/>
+          </section>
+          <section className="qv-box qv-lyric-box" aria-label="Lyric style" data-testid="qv-lyric-box">
+            <h3 className="qv-box-title">Lyric style</h3>
+            <CaptionTemplatePicker legend="Lyric style" disabled={busy} value={project.captionTemplate}
+              sampleText={project.cues.findLast(c => c.time <= props.time)?.text ?? lyricLines(project.pro?.approvedLyrics ?? "")[0]}
+              choose={id => props.edit(applyLyricStyle(project, id))}/>
+          </section>
+        </div>
       </div>
 
       <div className="qv-step" data-testid="qv-make">

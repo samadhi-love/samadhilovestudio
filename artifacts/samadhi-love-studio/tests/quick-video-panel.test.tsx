@@ -111,7 +111,7 @@ test("one background box on the video page: every background, look and animated 
     assert.equal(q("qv-sig-awaken")!.getAttribute("aria-pressed"),"true");
     assert.equal(q("heading-backgrounds"),null,"no 'Backgrounds · all 46 designs' repeat");
     assert.ok(![...document.querySelectorAll("summary")].some(s=>/Quick complete looks|Animated looks · 12|^More looks$/.test(s.textContent??"")),"repeat look boxes are gone");
-    const more=[...document.querySelectorAll<HTMLButtonElement>("button")].find(b=>b.textContent==="More lettering and motion")!;
+    const more=[...document.querySelectorAll<HTMLButtonElement>("button")].find(b=>b.textContent==="More motion and visual tools")!;
     for(let i=0;i<20&&more.disabled;i++)await settle();
     assert.equal(more.disabled,false,"the page is ready (captions finished)");
     await act(async()=>more.click());await settle();
@@ -119,6 +119,26 @@ test("one background box on the video page: every background, look and animated 
     assert.equal(document.querySelectorAll('[data-testid="background-chooser"]').length,1,"still one background box with Fine-tune open");
     assert.ok(q("details-section-background"),"per-section background, own design and templates are kept");
     assert.ok(q("details-more-looks"),"AI visuals, ads, lettering and beat motion are kept");
+  }finally{await h.close();}
+});
+
+test("3 · Vibe shows Background and Lyric style as two boxes; every lyric style is one tap away",async()=>{
+  const h=await open({cues:[{text:"Love is here",time:0,end:5}]});
+  try{
+    const {captionTemplates}=await import("../app/lyric-caption-templates");
+    assert.ok(q("qv-background-box"),"Background box");
+    const box=q("qv-lyric-box")!;
+    assert.ok(box,"Lyric style box beside it");
+    const cards=[...box.querySelectorAll<HTMLButtonElement>(".caption-template-card")];
+    assert.equal(cards.length,captionTemplates.length,"all lyric styles in the box");
+    assert.ok(cards.length>=8,"at least 8 lettering styles");
+    assert.ok(new Set(captionTemplates.map(t=>t.animation)).size>=8,"at least 8 different word animations");
+    assert.ok(new Set(captionTemplates.map(t=>t.font)).size>=8,"at least 8 different lettering fonts");
+    assert.ok(captionTemplates.some(t=>t.emphasis==="glow")&&captionTemplates.some(t=>(t as {fill?:string}).fill==="metallic")&&captionTemplates.some(t=>(t as {fill?:string}).fill==="rainbow"),"glow, metallic and rainbow effects");
+    const neon=cards.find(c=>/Neon Pulse/.test(c.textContent??""))!;
+    await act(async()=>neon.click());
+    assert.equal(neon.getAttribute("aria-pressed"),"true","tap = chosen");
+    assert.ok(![...document.querySelectorAll("summary")].some(s=>/Customize lettering/.test(s.textContent??"")),"no second lyric-style picker in Fine-tune");
   }finally{await h.close();}
 });
 

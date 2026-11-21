@@ -1423,3 +1423,13 @@
 .lyric-video-pro .qv-purposes button:focus-visible { outline: 2px solid #7fe9ff; outline-offset: 2px; }
 .qv-making { margin: 0 0 8px; font-size: .9rem; color: #e8e2ff; }
 @media (max-width: 420px) { .qv-purposes { grid-template-columns: 1fr; } }
+/* 3 · Vibe: Background and Lyric style as two boxes you can see at once
+   (side by side when there's room, stacked on phones). */
+.qv-vibe-boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; align-items: start; }
+.qv-box { border: 1px solid #c9a7ff44; border-radius: 14px; padding: 10px; background: #ffffff06; min-width: 0; }
+.qv-box-title { margin: 0 0 8px; font-size: .95rem; color: #ffe9a8; letter-spacing: .02em; }
+.qv-lyric-box .lyric-style-picker { border: 0; padding: 0; margin: 0; min-width: 0; }
+.qv-lyric-box .lyric-style-picker > legend, .qv-lyric-box .lyric-style-hint { display: none; }
+.qv-lyric-box .caption-template-grid { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+.qv-lyric-box .lyric-style-categories { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.qv-lyric-box .lyric-style-categories button { font-size: .78rem; padding: 4px 8px; }

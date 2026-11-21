@@ -2945,7 +2945,7 @@ function LyricVideoProContent(props: Props) {
                           {/* Backgrounds, complete looks and animated designs all live in step 3 "Vibe"
                               above — one place, no repeats. Only tools found nowhere else stay here. */}
                           <p className="lvp-note" data-testid="look-in-vibe">
-                            Backgrounds, complete looks and animated designs are in <strong>3 · Vibe</strong> above.{" "}
+                            Backgrounds, lyric styles, complete looks and animated designs are in <strong>3 · Vibe</strong> above.{" "}
                             <button type="button" className="qv-link" disabled={busy} onClick={() => document.getElementById("qv-vibe")?.scrollIntoView({ behavior: "smooth", block: "center" })}>Go to Vibe</button>
                           </p>
                           {/* Kept for what the Vibe box can't do: one part of the song only, your own
@@ -2963,7 +2963,7 @@ function LyricVideoProContent(props: Props) {
                               exportTemplate={() => void exportOwnTemplate()}
                             />
                           </details>
-                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More visual tools · lettering, AI visuals, ads, beat motion, social clips</summary>
+                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More visual tools · AI visuals, ads, beat motion, social clips, typography</summary>
                           <VisualGenerationControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} apply={applyGeneratedVisual} disabled={busy}/>
                           <AdvertisingVideoControls project={project} change={edit} uploadPhotos={files=>void uploadAdPhotos(files)} upload={file=>void uploadProductVideo(file)} disabled={busy}/>
                           <StemReactiveControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} change={edit} disabled={busy} working={value=>setOperation(value?"Analyzing stem motion":"")}/>
@@ -2972,28 +2972,7 @@ function LyricVideoProContent(props: Props) {
                           <BeatGridControls project={project} change={edit} disabled={busy} analyze={()=>void detectAnimationBeats()}/>
                           <VisualLayerControls project={project} change={edit} disabled={busy} time={time}/>
                           </details>
-                          <details><summary>Customize lettering · animated lyric styles</summary>
-                          <CaptionTemplatePicker
-                            legend="Choose your lyric style"
-                            sampleText={
-                              project.cues.findLast((c) => c.time <= time)
-                                ?.text ?? lyricLines(p.approvedLyrics)[0]
-                            }
-                            value={project.captionTemplate}
-                            disabled={busy}
-                            choose={(id?: CaptionTemplateId) => {
-                              const preset = getCaptionTemplate(id);
-                              edit({
-                                ...project,
-                                captionTemplate: id,
-                                pro: { ...p, captionMode: "karaoke" },
-                                ...(preset
-                                  ? { font: preset.font, color: preset.color }
-                                  : {}),
-                              });
-                            }}
-                          />
-                          </details>
+                          {/* Lyric styles are in the "Lyric style" box beside Background in 3 · Vibe. */}
                           <details><summary>Fine-tune typography, motion & branding</summary>
                           <div className="lvp-fields">
                             <label>
