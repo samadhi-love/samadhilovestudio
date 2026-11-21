@@ -147,6 +147,38 @@ test("LyriVid: Make all 3 shapes is one tap, and each finished shape downloads w
   await act(async()=>root.render(view([...results])));
   const names=["wide","vertical","square"].map(f=>q(`qv-result-${f}`)!.querySelector("a")!.getAttribute("download"));
   assert.deepEqual(names,["Ocean Heart – YouTube 16x9.mp4","Ocean Heart – Phone 9x16.mp4","Ocean Heart – Square 1x1.mp4"]);
-  assert.match(q("qv-share-options")!.textContent!,/YouTube thumbnail/);
+  assert.match(q("qv-share-options")!.textContent!,/post text/);
+  await act(async()=>root.unmount());dom.window.close();
+});
+
+test("LyriVid: every finished video shows Upload & share right under it, opening the site its shape is for",async()=>{
+  const dom=new JSDOM('<div id="root"></div>',{url:"https://studio.test"});
+  Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,HTMLDetailsElement:dom.window.HTMLDetailsElement,IS_REACT_ACT_ENVIRONMENT:true});
+  const {QuickVideoPanel}=await import("../app/quick-video-panel");
+  const {ShareFinishedVideo}=await import("../app/video-publishing");
+  const {newProSettings}=await import("../app/lyric-pro-data");
+  const s=song("one","Ocean Heart");
+  const project={cues:[],theme:"nebula",motion:"still",format:"wide",pro:{...newProSettings(s,200),duration:200,range:{start:0,end:200}}} as any;
+  const blob=new Blob(["video"],{type:"video/mp4"});
+  const outputs=[{url:"blob:w",blob,extension:"mp4",format:"wide"},{url:"blob:v",blob,extension:"mp4",format:"vertical"},{url:"blob:s",blob,extension:"mp4",format:"square"}] as const;
+  const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
+  await act(async()=>root.render(<QuickVideoPanel song={s} project={project} time={0} busy={false} captionState="reviewed" edit={()=>{}} make={()=>{}} progress={null}
+    blocked={[]} results={[...outputs]} addWords={()=>{}} fixWords={()=>{}} openFineTune={()=>{}}
+    shareFor={result=>{const output=outputs.find(o=>o.url===result.url)!;return <ShareFinishedVideo output={output as any} title={s.name} caption="New song out now" chosen="tiktok"/>;}}/>));
+  const opens=(format:string)=>[...q(`qv-share-${format}`)!.querySelectorAll("a")].map(a=>a.textContent!.trim()).join(" | ");
+  assert.match(opens("wide"),/Open YouTube Studio/,"wide video opens YouTube");
+  assert.match(opens("vertical"),/Open TikTok Studio/,"tall video opens the short-video site");
+  assert.match(opens("square"),/Open Meta Business Suite/,"square video opens Instagram's uploader");
+  for(const format of ["wide","vertical","square"]){
+    const box=q(`qv-share-${format}`)!;
+    assert.match(box.textContent!,/Share video file/,"phone share menu is one tap away");
+    assert.match(box.textContent!,/Copy post caption/);
+    assert.ok(box.querySelector("a[download]"),"save the file");
+  }
+  assert.match(q("qv-share-wide")!.textContent!,/YouTube Studio under Details → Thumbnail/,"YouTube thumbnail maker under the wide video");
+  const select=q("qv-share-vertical")!.querySelector("select")!;
+  await act(async()=>{select.value="instagram";select.dispatchEvent(new window.Event("change",{bubbles:true}));});
+  assert.match(opens("vertical"),/Meta Business Suite/,"switching the site for one file works");
+  assert.match(opens("wide"),/Open YouTube Studio/,"and leaves the other files alone");
   await act(async()=>root.unmount());dom.window.close();
 });

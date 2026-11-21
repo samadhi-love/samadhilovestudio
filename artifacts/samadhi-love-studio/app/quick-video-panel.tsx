@@ -62,6 +62,10 @@ export function QuickVideoPanel(props: {
   addWords: () => void; fixWords: () => void; openFineTune: (step: number) => void;
   /** Your own photo, video or camera ("Yours" tab). */
   own?: OwnBackground;
+  /** Upload & share block for one finished file (save, share, email, open YouTube/TikTok/Instagram, copy post). */
+  shareFor?: (result: { url: string; extension: string; format: VideoFormat }) => React.ReactNode;
+  /** Point the upload button at the site the video is for. */
+  choosePlatform?: (platform: (typeof videoPurposes)[number]["platform"]) => void;
 }) {
   const { project, busy } = props;
   // Your own photo or video is on: no gallery box shows as picked.
@@ -79,6 +83,7 @@ export function QuickVideoPanel(props: {
     try {
       props.edit(applyVideoPurpose(project, picked, picked.seconds > 0 ? suggestedHookStart(project) : 0));
       setChosen(id);
+      props.choosePlatform?.(picked.platform);
     } catch { /* The recording's length is still loading; the cards stay as they are. */ }
   };
   const words = {
@@ -120,7 +125,7 @@ export function QuickVideoPanel(props: {
       </div>
 
       <div className="qv-step" data-testid="qv-make">
-        <span className="qv-kicker">4 · Make it</span>
+        <span className="qv-kicker">4 · Make it, then upload &amp; share</span>
         <p className="qv-making" data-testid="qv-making">
           Making: <strong>{purposeInfo.icon} {purposeInfo.name}</strong> · {shapeName[project.format]} · {clipLength(project)}{" "}
           <button type="button" className="qv-link" disabled={busy} onClick={() => document.getElementById("qv-purpose")?.scrollIntoView({ behavior: "smooth", block: "center" })}>Change</button>
@@ -141,9 +146,11 @@ export function QuickVideoPanel(props: {
               <div className="qv-result" data-testid={`qv-result-${result.format}`} key={result.url}>
                 <strong className="qv-result-label">{shapeName[result.format]}</strong>
                 <video src={result.url} controls playsInline preload="metadata" aria-label={`Your finished ${shapeName[result.format]} video`} />
-                <a className="lvp-primary qv-download" href={result.url} download={purposeFileName(props.song.name, result.format, result.extension)}><Download size={15} aria-hidden="true" /> Download</a>
+                {props.shareFor
+                  ? <div className="qv-share" data-testid={`qv-share-${result.format}`}>{props.shareFor(result)}</div>
+                  : <a className="lvp-primary qv-download" href={result.url} download={purposeFileName(props.song.name, result.format, result.extension)}><Download size={15} aria-hidden="true" /> Download</a>}
               </div>))}
-            <button type="button" className="qv-link" onClick={() => props.openFineTune(4)} data-testid="qv-share-options">Post text, YouTube thumbnail and upload pages</button>
+            <button type="button" className="qv-link" onClick={() => props.openFineTune(4)} data-testid="qv-share-options">Write the post text · YouTube title, description and hashtags</button>
           </div>
         )}
       </div>
