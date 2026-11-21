@@ -1,0 +1,12 @@
+/* Who sings: solo, duet, group chant, choir… */
+.team-choice{margin:14px 0;padding:14px 16px;border-radius:18px;border:1px solid #c9a7ff55;background:linear-gradient(160deg,#24124fcc,#140b30cc);min-width:0}
+.team-choice legend{padding:0 6px;font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:20px;color:#ffe9a8}
+.team-options{display:flex;flex-wrap:wrap;gap:8px}
+.team-options button{min-height:40px;padding:0 12px;font-size:.95em;border-radius:999px;border:1px solid #ffffff2e;background:#ffffff0a;color:#eee6ff;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.team-options button:hover{border-color:#c9a7ff}
+.team-options button.active{border-color:#ffe9a8;background:#ffe9a826;box-shadow:0 0 0 2px #ffe9a8 inset;color:#fff}
+.team-options button:focus-visible{outline:2px solid #7fe9ff;outline-offset:2px}
+.team-status{margin:10px 0 0}
+.team-status strong{color:#fff}
+.team-plan{margin:4px 0 0;font-size:.92em}
+.team-note{margin:8px 0 0;color:#ffd79a}

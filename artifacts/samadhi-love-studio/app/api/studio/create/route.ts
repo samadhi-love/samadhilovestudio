@@ -4,6 +4,7 @@ import { describeInstruments } from "../../../instrument-sounds";
 import {isMusicalAd} from "../../../musical-ad";
 import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, musicDialects,type LanguageProfile } from "../../../music-language";
 import { vocalStyles } from "../../../vocal-matching";
+import { labelPartSingers, teamFromDirection } from "../../../singer-team";
 import {titlesFromLyrics} from "../../../song-cover";
 import {genreTags} from "../../../music-genres";
 import { performanceWeight, songOpenings, type SongOpening } from "../../../song-opening";
@@ -234,8 +235,11 @@ async function createMusic(request: Request) {
     const prompt = text("prompt").trim();
     const instrumental = input?.instrumental === true;
     const captionReady = !instrumental && input?.captionReady !== false;
-    const suppliedLyrics = instrumental ? "" : text("lyrics");
     const voice = instrumental ? "" : text("voice").trim();
+    // Duets, groups and chants: label each part with who sings it (Tent songs keep their own section directions).
+    const singingTeam = !instrumental && !text("sectionDirections") ? teamFromDirection(voice) : undefined;
+    const teamLyrics = instrumental ? "" : labelPartSingers(text("lyrics"), singingTeam);
+    const suppliedLyrics = instrumental ? "" : teamLyrics.length <= 5000 ? teamLyrics : text("lyrics");
     const arrangement = text("arrangement").trim();
     const instruments=text("instruments").trim(),genres=text("genres").trim();
     const readLyricStyles = input?.readLyricStyles !== false;
@@ -307,6 +311,7 @@ async function createMusic(request: Request) {
       let written="";
       try{written=await writeFalLyrics(falKey(),{description:prompt,singing:languageProfile?singingDirection(languageProfile):"",duration,opening:songOpenings[openingMode].direction,arrangement,voice,genres});}
       catch(error){falWriterProblem=error instanceof Error?error.message:"The lyric writer could not finish.";return false;}
+      const teamWritten=labelPartSingers(written,singingTeam);if(teamWritten.length<=5000)written=teamWritten;
       const issue=writtenLyricsIssue(written,languageProfile);
       if(issue){falWriterProblem=issue;return false;}
       const writtenPlan=lyricChunks(written,direction,durationMs,sectionDirections,readLyricStyles);

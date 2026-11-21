@@ -27,6 +27,7 @@ const checks = [
   ["Echo & Voices: fading echo, repeat chorus, many voices, stadium, voice changer", ["scripts/test-echo-voices.mjs"]],
   ["Status bar: says what finished, old Done messages leave, closed ones stay closed", ["scripts/test-job-status-bar.mjs"]],
   ["Genres beside the style prompt, blends, and a fitting band chosen for ideas", ["scripts/test-genre-toggles.mjs"]],
+  ["Who sings: solo, duet, group chant, choir, following your words", ["scripts/test-singer-team-ui.mjs"]],
   ["Sing along: AI guide in headphones only, your voice saved, mix opens in LyriVid with captions", ["scripts/test-sing-along.mjs"]],
   ["Vibe matching, stem motion and caption release kits", ["scripts/test-vibe-release.mjs"]],
   ["AI visual generation, durable job recovery and private media", ["scripts/test-visual-generation.mjs"]],
