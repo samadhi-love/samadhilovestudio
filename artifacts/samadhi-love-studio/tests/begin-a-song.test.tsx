@@ -310,7 +310,7 @@ test("Just Begin: name it before saving, then bring it back from My saved prompt
   assert.ok(q("panel-just-begin"),"stays in Just Begin");
   assert.equal(q<HTMLTextAreaElement>("input-song-description")!.value,"A desert love story at night");
   assert.equal(q("team-duet-mf")!.getAttribute("aria-checked"),"true");
-  assert.equal(q("cvb-purpose-youtube")!.getAttribute("aria-checked"),"true");
+  assert.equal(window.localStorage.getItem("versual-video-purpose"),"youtube","the saved video shape comes back");
   // Name it: filled in from the words, and you can change it
   await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
   assert.equal(q<HTMLInputElement>("input-save-name")!.value,"A desert love story at night");
@@ -340,11 +340,14 @@ test("Song + video in one go: tick the box, Begin, and the finished song opens i
   const finished={...freshSong("new-song","Ocean Heart",0),audioId:"a1",audioFormat:"mp3" as const};
   const view=(drafts:any[])=><QuickCreate {...base} drafts={drafts} engine={ace} generateSong={async()=>"new-song"} makeVideo={async(song,_short,visual)=>{videos.push({id:song.id,purpose:visual?.purpose});}}/>;
   await act(async()=>h.root.render(view([])));
-  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,false,"off until you tick it");
-  await act(async()=>q<HTMLButtonElement>("cvb-purpose-youtube")!.click());
-  assert.match(q("label-auto-video")!.textContent!,/Then make my YouTube video/);
-  await act(async()=>q<HTMLInputElement>("checkbox-auto-video")!.click());
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,false,"off until you choose a video");
+  assert.equal(q("button-video-plan-none")!.getAttribute("aria-checked"),"true","No video is the starting choice");
+  assert.match(q("label-auto-video")!.textContent!,/Then make my video/);
+  await act(async()=>q<HTMLButtonElement>("button-video-plan-youtube")!.click());
+  assert.equal(q("button-video-plan-youtube")!.getAttribute("aria-checked"),"true");
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,true);
   assert.equal(window.localStorage.getItem("versual-auto-video"),"on","remembered");
+  assert.equal(document.querySelector('[data-testid="create-video-box"],.cvb'),null,"no second video box on Create: video options live on the video page");
   await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A love song about the ocean");
   await h.submit();
   assert.equal(videos.length,0,"waits for the song");
@@ -364,8 +367,40 @@ test("Song + video: an older finished song never opens a video just because the 
   let opened=0;
   const old={...freshSong("old","Old song",0),audioId:"a",audioFormat:"mp3" as const};
   await act(async()=>h.root.render(<QuickCreate {...base} drafts={[old]} engine={ace} generateSong={async()=>"old"} makeVideo={async()=>{opened++;}}/>));
-  await act(async()=>q<HTMLInputElement>("checkbox-auto-video")!.click());
+  await act(async()=>q<HTMLButtonElement>("button-video-plan-shorts")!.click());
   for(let i=0;i<4;i++)await act(async()=>{await new Promise(r=>setTimeout(r,0));});
   assert.equal(opened,0);
+ }finally{await h.close();}
+});
+
+test("Easy mode: idea, genre, who sings, Begin and a video choice; 'More options' opens Expert; nothing is lost",async()=>{
+ const h=await setup();
+ try{
+  let expanded=0,simplified=0;
+  const view=(advanced:boolean)=><QuickCreate {...base} engine={ace} generateSong={async()=>"s"} advanced={advanced} expand={()=>{expanded++;}} simplify={()=>{simplified++;}} makeVideo={async()=>{}}/>;
+  await act(async()=>h.root.render(view(false)));
+  assert.ok(q("easy-mode-bar"),"Easy mode says what it is");
+  assert.equal(q("tab-mode-custom"),null,"no Shape It tab in Easy mode");
+  assert.ok(q("panel-just-begin"),"the idea box");
+  assert.ok(q("input-song-description"));
+  assert.ok(document.querySelector('[data-testid^="team-"]'),"who sings");
+  assert.ok(q("button-create-song"),"Begin");
+  assert.ok(q("label-auto-video"),"Then make my video stays in Easy mode");
+  assert.equal(q("section-advanced-options"),null,"Studio tools are tucked away");
+  assert.equal(q("fold-pro-production"),null,"Pro production is tucked away");
+  await act(async()=>q<HTMLButtonElement>("button-more-options")!.click());
+  assert.equal(expanded,1,"More options switches to Expert");
+  await act(async()=>h.root.render(view(true)));
+  assert.ok(q("tab-mode-custom"),"Expert: Just Begin and Shape It");
+  await act(async()=>q<HTMLButtonElement>("tab-mode-custom")!.click());
+  assert.ok(q("panel-shape-it"),"Shape It is all there");
+  await h.input(q<HTMLTextAreaElement>("input-lyrics")!,"My own words");
+  await act(async()=>q<HTMLButtonElement>("button-easy-mode")!.click());
+  assert.equal(simplified,1,"and back to Easy");
+  await act(async()=>h.root.render(view(false)));
+  assert.ok(q("panel-just-begin"),"Easy shows Just Begin");
+  await act(async()=>h.root.render(view(true)));
+  await act(async()=>q<HTMLButtonElement>("tab-mode-custom")!.click());
+  assert.equal(q<HTMLTextAreaElement>("input-lyrics")!.value,"My own words","words typed in Expert are kept");
  }finally{await h.close();}
 });

@@ -20,3 +20,13 @@
 .qc-field{display:grid;gap:6px;margin:10px 0}.qc-field small{font-size:.82rem}
 .qc-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 20px;margin:12px 0}.qc-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;font-weight:600;cursor:pointer}.qc-check input{width:18px;height:18px;accent-color:#5c457c}
 .qc-disclose{padding:10px 14px;border-radius:12px;border:1px dashed #dcc18b;background:#dcc18b1a;font-size:.92rem}
+/* Create · Easy mode bar and the "Then make my video" choice (video options live on the video page). */
+.qc-easy-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 14px;padding:8px 12px;border-radius:14px;border:1px solid #c9a7ff44;background:#ffffff06}
+.qc-easy-label{color:#ffe9a8;font-size:.9rem}
+.qc-modes .qc-easy-link{min-height:40px;padding:0 14px;font-size:.85rem}
+.qc-video-plan{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 0 6px}
+.qc-video-plan-title{font-weight:700;color:#ffe9a8;margin-right:4px}
+.qc-video-plan button{min-height:38px;padding:4px 12px;border-radius:999px;border:1px solid #c9a7ff55;background:#ffffff08;color:inherit;font-size:.85rem}
+.qc-video-plan button.active{border-color:#f3d29d;background:#f3d29d22;box-shadow:0 0 0 2px #f3d29d inset;color:#fff}
+.qc-video-plan button:focus-visible{outline:2px solid #7fe9ff;outline-offset:2px}
+.qc-video-plan-note{flex-basis:100%;margin:2px 0 0;font-size:.8rem}

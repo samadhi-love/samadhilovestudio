@@ -81,9 +81,11 @@ test("helpers: words, looks and the newest-first list",()=>{
   assert.equal(themeForKey("theme:nycnight"),"nycnight");assert.equal(themeForKey("theme:nope"),undefined);
   assert.equal(videoReadySongs([song("x","Clean"),song("y","Bad",{explicit:true})]).length,1,"explicit songs are left out");
   const page=readFileSync("app/quick-create.tsx","utf8");
-  assert.match(page,/<div className="qc-split">/,"the box sits beside Begin a song");
-  assert.match(page,/songDragProps\(song\.id\)/,"your takes can be dragged into the box");
-  assert.match(readFileSync("app/create-video-box.css","utf8"),/@media \(min-width: 980px\) \{ \.qc-split \{ grid-template-columns/,"side by side on a computer, stacked on a phone");
+  // Create makes the song; every video option lives on the video page. Create keeps a
+  // "Then make my video" choice and a "Make its video" button on each take.
+  assert.doesNotMatch(page,/<CreateVideoBox/,"no second video box on Create");
+  assert.match(page,/button-video-plan-/,"Then make my video: YouTube · Shorts · Phone · Square");
+  assert.match(page,/button-take-video-/,"each take can make its video");
 });
 
 test("choose what the video is for: the screen takes that shape, the choice is remembered and sent with the song",async()=>{
