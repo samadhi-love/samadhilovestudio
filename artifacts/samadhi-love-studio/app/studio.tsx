@@ -17,6 +17,7 @@ import {CreditBadge} from "./credits/credit-panel";
 import {productionFetch} from "./credits/client";
 import {CosmicHomeHero,CosmicHomeSky,CosmicHomeStory} from "./cosmic-home";
 import {MyVoices} from "./my-voices";
+import {EchoVoices} from "./echo-voices";
 import {myVoiceUrl,type SavedVoice} from "./my-voice-data";
 import {wordsOnlyResult} from "./production-result";
 import { sameGenre, uniqueGenreNames } from "./music-genres";
@@ -483,13 +484,17 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     document.getElementById("quick-create-heading")?.scrollIntoView({behavior:still?"auto":"smooth",block:"start"});
     window.setTimeout(()=>document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"],[data-testid="input-song-idea"]')?.focus({preventScroll:true}),still?0:400);
   }
-  // A saved voice becomes its own song, then opens LyriVid with automatic captions.
+  // Any recording becomes its own song, then opens LyriVid with automatic captions.
+  async function audioLyricVideo(file:File,title:string){
+    const result=await sendAudio(file,title.slice(0,100),null);
+    if(!result?.songId)throw new Error("The recording could not be saved as a song. Try again.");
+    if(navigate("lyric-video")){setLyricSongId(result.songId);setAutoCaptionRequest({songId:result.songId,id:uid()});}
+  }
   async function voiceLyricVideo(voice:SavedVoice){
     const response=await fetch(myVoiceUrl(voice.id),{cache:"no-store"});
     if(!response.ok)throw new Error("The saved voice could not be opened.");
-    const blob=await response.blob(),file=new File([blob],voice.name,{type:blob.type||voice.mime});
-    const result=await sendAudio(file,voice.name.slice(0,100),null);
-    if(result?.songId&&navigate("lyric-video")){setLyricSongId(result.songId);setAutoCaptionRequest({songId:result.songId,id:uid()});}
+    const blob=await response.blob();
+    await audioLyricVideo(new File([blob],voice.name,{type:blob.type||voice.mime}),voice.name);
   }
   function sendToCreate(seed:CreateSeed){if(navigate("overview"))setQuickSeed({...quickFromCreate(seed),id:uid()});}
   function openScreen(screen:Screen){
@@ -720,6 +725,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
           view === "prompt-lab" ? <PromptLab key={promptSeed?.idea ?? "new"} seed={promptSeed} data={data.discovery ?? emptyDiscovery} saving={saving} save={saveDiscovery} copy={copy}
             send={seed => navigate("create", false, seed)}/> :
           view === "vocal-director" ? <VocalDirector ready={elevenLabs.connected && elevenLabs.status.musicAccess === "available"} connect={connectionSettings} copy={copy} send={seed => navigate("create", false, seed)}/> :
+          view === "echo-voices" ? <EchoVoices saveSong={async(file,title)=>{const result=await sendAudio(file,title.slice(0,100),null);if(!result?.songId)throw new Error("The take could not be saved. Try again.");}} makeVideo={audioLyricVideo}/> :
           view === "my-voices" ? <MyVoices useInSong={()=>{navigate("vocal-studio");}} makeVideo={voiceLyricVideo}/> :
           view === "recording" || view === "podcast" || view === "multitrack" || view === "vocal-studio" ? null : view === "promote" ? <PromoteScreen songs={cleanLibrary} songId={coverSongId} setSongId={setCoverSongId} creatorName={creatorName??"SAMADHI LOVE"} working={setCoverBusy} saveSong={saveSong} createAd={seed=>{if(navigate("overview"))setQuickSeed({...seed,id:uid()});}} openVideo={id=>{if(navigate("lyric-video")){setLyricSongId(id);setSocialVideoRequest({id:uid(),songId:id});}}}/> : view === "radio" ? creatorName || exploreTab!=="radio" ? null : <ListenerSettings songs={cleanLibrary}/> : view === "lyric-video" ?
           <Suspense fallback={opening}><LyricVideoPro coverVideoRequest={coverVideoRequest} createSong={()=>{navigate("overview");}} advanced={!beginner} socialVideoRequest={socialVideoRequest} autoCaptionRequest={autoCaptionRequest} key={lyricSongId} songs={data.songs.filter(s=>!s.deletedAt&&!isExplicitSong(s))} initialSongId={lyricSongId} saving={saving} save={saveSong}
