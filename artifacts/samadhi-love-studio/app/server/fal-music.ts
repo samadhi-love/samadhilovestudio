@@ -1,5 +1,6 @@
 import {falRequest,falMediaRequest} from "./ai-provider";
 import {describeInstruments} from "../instrument-sounds";
+import {productionPolish} from "../production-polish";
 export const falMusicModel="fal-ai/ace-step-1.5";
 const path="/"+falMusicModel;
 export class FalRejected extends Error { constructor(public status:number){super("fal.ai rejected this request before accepting a generation.");} }
@@ -19,9 +20,10 @@ export function falSongInput(input:{prompt:string;lyrics:string;voice:string;gen
     /\breggae\b/i.test(style)?"Reggae vocal phrasing and relaxed syncopation":
     /\bafrobeats?\b/i.test(style)?"Afrobeats vocal rhythm and melodic phrasing":"Genre-matched vocal phrasing";
   const directions=(instruments:string)=>[...new Set([input.instrumental?"Instrumental":delivery,input.dialect&&`Singing dialect: ${input.dialect}`,input.voice,input.genres,instruments,input.prompt,...cues,input.arrangement].filter(Boolean))].join("; ");
-  // Tell the engine what each picked instrument sounds like, when it fits in the 512 characters.
-  const described=directions(describeInstruments(input.instruments));
-  const compact=described.length<=512?described:directions(input.instruments);
+  // Tell the engine what each picked instrument sounds like and ask for a polished production, as far as 512 characters allow.
+  const polished=(text:string)=>`${text}; ${productionPolish}`;
+  const described=directions(describeInstruments(input.instruments)),plain=directions(input.instruments);
+  const compact=[polished(described),described,polished(plain),plain].find(p=>p.length<=512)??plain;
   if(compact.length>512)throw new Error("These combined directions exceed ACE-Step's 512-character limit. Using ElevenLabs without dropping your directions.");
   const bpm=Number(/\b(\d{2,3})\s*bpm\b/i.exec(style)?.[1]);
   return {prompt:compact,lyrics,duration:input.duration,vocal_language:input.instrumental?"unknown":input.language,

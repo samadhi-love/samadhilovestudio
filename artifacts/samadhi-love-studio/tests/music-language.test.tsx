@@ -11,6 +11,7 @@ import { JSDOM } from "jsdom";
 import * as languages from "../app/music-language";
 import * as vocals from "../app/vocal-matching";
 import * as family from "../app/family-voices";
+import * as polish from "../app/production-polish";
 import * as instrumentSounds from "../app/instrument-sounds";
 import { MusicLanguageControl } from "../app/music-language-control";
 import { promptLanguage } from "../app/prompt-language";
@@ -214,6 +215,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../server/job-runner": {saveJobDocument:async()=>{throw new Error("This language fixture must not start fal jobs.");}},
     "../../../track-duration": duration,
     "../../../family-voices": family,
+    "../../../production-polish": polish,
     "../elevenlabs/provider": {
       musicModel: "music_v2_5", elevenLabsFailureMessage: async () => "Fixture error",
       elevenLabsRequest: async (_key: string, path: string, payload: any) => {

@@ -20,9 +20,9 @@ test("automatic lyric mode explains how the idea and styles guide the song", () 
   assert.match(source, /!instrumental&&!useOwnLyrics/);
   assert.match(source, /Write coherent original lyrics/);
   assert.match(source, /Style notes are directions, not words to sing/);
-  assert.match(source, /const described = simple\s*\? idea\.trim\(\)/);
+  assert.match(source, /const described = simple\s*\? \[engineGenre \? `Style: \$\{engineGenre\}\.` : "", idea\.trim\(\)\]/,"Just Begin tells every engine the tapped genres (the server adds the instruments)");
   // Just Begin sends only the genres tapped beside the idea and a band chosen for them.
   assert.match(source, /const genre = simple\?\(genreEdit \?\? ""\):/);
-  assert.match(source, /const instruments = simple\?\(!idea\.trim\(\)&&!genre\?"":autoBand\):\(instrumentsEdit \?\? ""\)/);
+  assert.match(source, /const instruments = simple\?\(instrumentsEdit\?\.trim\(\)\|\|\(!idea\.trim\(\)&&!genre\?"":autoBand\)\):\(instrumentsEdit \?\? ""\)/);
   assert.match(source, /const code = simple\?"":/);
 });

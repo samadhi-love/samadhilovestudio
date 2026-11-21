@@ -6,3 +6,17 @@
 .genre-toggles-chips .chip[aria-pressed=true]{border-color:#ffe9a8;background:#ffe9a826;box-shadow:0 0 0 2px #ffe9a8 inset;color:#fff}
 .auto-band{margin:6px 0 0}
 .auto-band strong{color:#fff}
+.instrument-toggles .chip.fits:not([aria-pressed=true]){border-color:#7fe9ff88}
+.instrument-box{margin-top:10px}
+.instrument-box input{min-height:44px;border-radius:12px;border:1px solid #ffe9a855;background:#0f0828;color:#fff;font:inherit;padding:0 12px;width:100%;box-sizing:border-box}
+/* Styles box (Shape It), like Suno: one box for the whole blend. */
+.style-blend{display:flex;flex-direction:column;gap:10px;margin:14px 0;padding:16px;border-radius:18px;border:1px solid #ffe9a855;background:linear-gradient(160deg,#2b1560cc,#150c32cc)}
+.style-blend-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.style-blend-head h3{margin:0;font-family:var(--cosmic-font-poetic,Georgia,serif);font-size:24px;color:#ffe9a8}
+.style-blend-box{width:100%;box-sizing:border-box;min-height:84px;border-radius:14px;border:1px solid #ffe9a866;background:#0f0828;color:#fff;font:16px/1.5 inherit;padding:12px 14px;resize:vertical}
+.style-blend-tabs{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.style-blend-tabs [role=tab]{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid #ffffff2e;background:transparent;color:#ddd3f2;font:inherit;cursor:pointer}
+.style-blend-tabs [role=tab][aria-selected=true]{background:#7fe9ff22;border-color:#7fe9ff;color:#fff}
+.style-blend-search{margin-left:auto}
+.style-blend-search input{min-height:40px;border-radius:999px;border:1px solid #ffffff33;background:#0f0828;color:#fff;font:inherit;padding:0 14px}
+.style-blend-chips{max-height:260px;overflow:auto;padding:2px}

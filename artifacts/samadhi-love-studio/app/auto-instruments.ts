@@ -2,6 +2,15 @@
  * Instruments chosen for you: the genres you tap (and the ones your idea
  * mentions) decide a fitting band. Instruments you name yourself always win.
  */
+/** Instrument buttons: tap to put them in the song's Instruments box. */
+export const quickInstruments = ["Piano", "Acoustic guitar", "Electric guitar", "Bass", "Drums", "808 bass", "Strings", "Violin", "Cello", "Organ", "Synths", "Pads", "Saxophone", "Trumpet", "Flute", "Harp", "Choir", "Bells", "Singing bowls", "Oud", "Darbuka", "Tabla", "Ukulele", "Hand claps"] as const;
+/** Add or remove one instrument from the box's comma list, keeping everything else the creator typed. */
+export function toggleInstrument(box: string, name: string) {
+  const items = box.split(",").map(s => s.trim()).filter(Boolean);
+  const has = items.some(i => i.toLowerCase() === name.toLowerCase());
+  return (has ? items.filter(i => i.toLowerCase() !== name.toLowerCase()) : [...items, name]).join(", ");
+}
+export const inBox = (box: string, name: string) => box.split(",").some(i => i.trim().toLowerCase() === name.toLowerCase());
 export const quickGenres = ["Pop", "Soul", "R&B", "Hip Hop", "Gospel", "Rock", "Afrobeats", "Reggae", "Latin", "Country", "Jazz", "Electronic", "Ambient", "Devotional", "Cinematic", "Acoustic"] as const;
 
 const palettes: [RegExp, string[]][] = [
