@@ -10,6 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function CreatorPage() {
   const access = await studioAccess();
+  // The owner never sees the creator sign-up box: go straight to the studio.
+  if (access.role === "owner") redirect("/owner");
   if (access.role === "subscriber" && await ownerSetup()) redirect("/owner");
   const open = creatorBetaEnabled();
   const account = open && access.role === "subscriber" ? await creatorAccount(access.id) : null;
@@ -19,7 +21,7 @@ export default async function CreatorPage() {
     <p className="eyebrow">{brand.name} · CREATOR ACCOUNTS</p><h1>Your private workspace</h1>
     {!open ? <p>Creator registration is currently closed.</p> : account?.suspended ? <p>This creator account is suspended.</p> :
       access.role === "guest" ? <><p>Sign in to start a song, make a lyric video, or return to your private projects.</p><a className="primary" href={chatGPTSignInPath("/creator")} target="_top">Sign in to My Studio</a><p><a href="/sign-up?return_to=%2Fcreator">Create a Studio account</a></p></> :
-      access.role === "owner" ? <a className="primary" href="/owner">Open the owner studio</a> : <>
+      <>
         <p>Your songs, prompts, recordings, favorites, and provider key stay in your account. Generation uses your own provider key and plan.</p>
         <RegisterCreator/>
       </>}
