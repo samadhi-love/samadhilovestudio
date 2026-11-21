@@ -68,7 +68,7 @@
 .cosmic-home-pillars .rose{background:linear-gradient(160deg,#3b1670,#22104a);border-color:#ff9fe655}.cosmic-home-pillars .rose>span,.cosmic-home-pillars .rose h3{color:#ffd3f3}
 .cosmic-home-pillars .gold{background:linear-gradient(160deg,#3d2a0f,#22104a);border-color:#ffd27a66}.cosmic-home-pillars .gold>span,.cosmic-home-pillars .gold h3{color:#ffe9a8}
 .cosmic-home-pillars .cyan{background:linear-gradient(160deg,#0f3a55,#22104a);border-color:#7fe9ff66}.cosmic-home-pillars .cyan>span,.cosmic-home-pillars .cyan h3{color:#c8f6ff}
-.cosmic-home-worlds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;width:100%;margin-top:8px}
+.cosmic-home-worlds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%;margin-top:8px}
 .cosmic-home-world{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:148px;padding:20px;border-radius:20px;border:1px solid #ffffff26;
   color:#fff;font:inherit;text-align:left;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
 .cosmic-home-world:hover{transform:translateY(-3px);border-color:#ffe9a8;box-shadow:0 12px 40px #ffe9a826}
@@ -83,6 +83,7 @@
 .cosmic-home-world[data-world=urban]{background:linear-gradient(150deg,#24305e,#1d0f42)}.cosmic-home-world[data-world=urban] .glyph{color:#a9b3ff}
 .cosmic-home-world[data-world=ocean]{background:linear-gradient(150deg,#0f4a6a,#1d0f42)}.cosmic-home-world[data-world=ocean] .glyph{color:#7fe9ff}
 .cosmic-home-world[data-world=celebrate]{background:linear-gradient(150deg,#5c1a6e,#1d0f42)}.cosmic-home-world[data-world=celebrate] .glyph{color:#ffe9a8}
+.cosmic-home-world[data-world=kids]{background:linear-gradient(150deg,#1f6a4a,#3b1670 60%,#1d0f42)}.cosmic-home-world[data-world=kids] .glyph{color:#b8f5a0}
 .cosmic-home-wisdom{display:flex;flex-direction:column;gap:24px;padding:40px clamp(16px,3vw,36px);border-radius:26px;border:1px solid #c9a8ff55;background:radial-gradient(ellipse at 50% 0%,#4a1f86 0%,#1a0f3c 70%);text-align:center}
 .cosmic-home-wisdom>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;text-align:left}
 .cosmic-home-wisdom figure{margin:0;display:flex;flex-direction:column;gap:10px;padding:22px;border-radius:18px;border:1px solid #ffffff1f;background:#ffffff0d}

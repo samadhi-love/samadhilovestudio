@@ -7,7 +7,7 @@ export type Screen = typeof screens[number];
 export const sectionViews = [
   "overview", "create", "prompt-lab", "vocal-director", "templates",
   "music-library", "rhythm-atlas", "international-tent", "meditative-vibes",
-  "recording", "podcast", "vocal-studio", "my-voices",
+  "recording", "podcast", "vocal-studio", "my-voices", "echo-voices",
   "multitrack", "compare",
   "songs", "workflow", "releases", "distribution",
   "promote", "radio", "lyric-video",
@@ -32,7 +32,7 @@ export const screenSections: Record<Screen, Subsection[]> = {
 const sectionScreen: Record<SectionView, Screen> = {
   overview: "create", create: "create", "prompt-lab": "create", "vocal-director": "create", templates: "create",
   "music-library": "world-sounds", "rhythm-atlas": "world-sounds", "international-tent": "world-sounds", "meditative-vibes": "world-sounds",
-  recording: "record", podcast: "record", "vocal-studio": "record", "my-voices": "record", multitrack: "mix-edit", compare: "mix-edit",
+  recording: "record", podcast: "record", "vocal-studio": "record", "my-voices": "record", "echo-voices": "record", multitrack: "mix-edit", compare: "mix-edit",
   songs: "songs", workflow: "songs", releases: "songs", distribution: "songs", promote: "promote", radio: "explore", "lyric-video": "lyric-video",
 };
 /** Which screen a subsection belongs to. */
@@ -52,7 +52,7 @@ const sectionAliases: Record<string, SectionView> = {
   library: "music-library", atlas: "rhythm-atlas", rhythms: "rhythm-atlas", international: "international-tent", tent: "international-tent",
   meditation: "meditative-vibes", meditative: "meditative-vibes", voice: "recording", recipes: "templates", vocals: "vocal-director",
   prompts: "prompt-lab", timeline: "multitrack", "mix-lab": "compare", release: "releases", export: "distribution", steps: "workflow",
-  detailed: "create", "artist-dashboard": "songs", voices: "my-voices", "my-voice": "my-voices",
+  detailed: "create", "artist-dashboard": "songs", voices: "my-voices", "my-voice": "my-voices", echo: "echo-voices", "voice-changer": "echo-voices",
 };
 
 export type Resolved = { screen: Screen; view: SectionView; legacy?: SectionView; panel?: "prompts" | "vocals" | "recipes" | "pro"; release?: boolean; external?: string; section?: string; song?: string; pro: boolean };

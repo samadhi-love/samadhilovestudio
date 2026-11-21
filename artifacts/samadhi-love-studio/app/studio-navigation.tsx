@@ -13,7 +13,7 @@ export type WorkspaceView = SectionView;
 const sectionLabels: Record<SectionView, string> = {
   overview: "Create", create: "Detailed production", "prompt-lab": "Prompt helpers", "vocal-director": "Vocals", templates: "Start from a recipe",
   "music-library": "Create · World sounds", "rhythm-atlas": "Create · World sounds · Rhythms", "international-tent": "Create · World sounds · International", "meditative-vibes": "Create · World sounds · Meditative",
-  recording: "Record · Voice", podcast: "Record · Podcast", "vocal-studio": "Record · Vocal Studio Pro", "my-voices": "Record · My Voices",
+  recording: "Record · Voice", podcast: "Record · Podcast", "vocal-studio": "Record · Vocal Studio Pro", "my-voices": "Record · My Voices", "echo-voices": "Record · Echo & Voices",
   multitrack: "Songs · Mix & edit", compare: "Songs · Mix & edit · Compare",
   songs: "Songs", workflow: "Songs · Song steps", releases: "Songs · Release checklist", distribution: "Songs · Export & release tools",
   promote: "Songs · Logo & ad", radio: "Explore", "lyric-video": "LyriVid",
