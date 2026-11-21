@@ -1,0 +1,8 @@
+/* Genre chips beside the style prompt, and the automatic band line. */
+.genre-toggles{margin:10px 0 4px}
+.genre-toggles-label{margin:0 0 6px;font-weight:600;color:#ffe9a8}
+.genre-toggles-chips{display:flex;flex-wrap:wrap;gap:8px}
+.genre-toggles-chips .chip{min-height:40px}
+.genre-toggles-chips .chip[aria-pressed=true]{border-color:#ffe9a8;background:#ffe9a826;box-shadow:0 0 0 2px #ffe9a8 inset;color:#fff}
+.auto-band{margin:6px 0 0}
+.auto-band strong{color:#fff}
