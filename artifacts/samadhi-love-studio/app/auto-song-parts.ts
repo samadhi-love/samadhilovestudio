@@ -18,8 +18,29 @@ function alike(a: string[], b: string[]) {
 }
 const lineKey = (line: string) => line.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]/gu, "");
 
+/** Most a song is ever split into automatically; anything longer is regrouped. */
+export const maxAutoParts = 12;
+const sectionWord = /^\s*(?:(?:short|long|soft|final|last|opening|repeated|instrumental)\s+)*(?:pre[ -]?|post[ -]?)?(?:intro|outro|verse|chorus|bridge|hook|refrain|interlude|breakdown|drop|break|solo|finale)\b/i;
+/** A [bracketed] label that names a song part, even with extra words: "[CHORUS – Clear]". */
+const isSectionTag = (inside: string) => sectionWord.test(inside) || !!productionHeader(`[${inside}]`);
+
 export function hasSongParts(text: string) {
-  return text.split(/\r?\n/).some(line => !!productionHeader(line));
+  return text.split(/\r?\n/).some(line => !!productionHeader(line) || [...line.matchAll(/\[([^\]\r\n]{1,60})\]/g)].some(m => isSectionTag(m[1])));
+}
+
+/** Puts a part label that was glued onto a sung line ("…built.[Chorus]") on its own line. Words are untouched. */
+export function separateInlineParts(text: string) {
+  return text.split(/\r?\n/).map(line => {
+    if (productionHeader(line)) return line;
+    const tags = [...line.matchAll(/\[([^\]\r\n]{1,60})\]/g)].filter(m => isSectionTag(m[1]));
+    if (!tags.length) return line;
+    let out = line;
+    for (const tag of tags.reverse()) {
+      const before = out.slice(0, tag.index).trimEnd(), after = out.slice(tag.index! + tag[0].length).trimStart();
+      out = [...(before ? [before, ""] : []), tag[0].trim(), ...(after ? [after] : [])].join("\n");
+    }
+    return out;
+  }).join("\n").replace(/\n{3,}/g, "\n\n");
 }
 
 /** Split plain lyrics into stanzas: blank lines first, otherwise groups of four lines. */
@@ -32,12 +53,15 @@ function stanzas(text: string) {
     else if (current.length) { blocks.push(current); current = []; }
   }
   if (current.length) blocks.push(current);
-  if (blocks.length === 1 && blocks[0].length > 6) {
-    const all = blocks[0];
-    blocks.length = 0;
-    for (let i = 0; i < all.length; i += 4) blocks.push(all.slice(i, i + 4));
-  }
-  return blocks;
+  const all = blocks.flat();
+  // One line per paragraph (a blank line after almost every line) is a writing style,
+  // not dozens of song parts: treat it like lyrics with no blank lines at all.
+  const oneLiners = blocks.filter(b => b.length === 1).length;
+  const regroup = (size: number) => { const out: string[][] = []; for (let i = 0; i < all.length; i += size) out.push(all.slice(i, i + size)); return out; };
+  let result = blocks;
+  if ((blocks.length === 1 && blocks[0].length > 6) || (blocks.length > 6 && oneLiners / blocks.length >= 0.6)) result = regroup(4);
+  if (result.length > maxAutoParts) result = regroup(Math.max(4, Math.ceil(all.length / maxAutoParts)));
+  return result;
 }
 
 export function labelParts(blocks: string[][]): PartName[] {
@@ -84,9 +108,14 @@ export function labelParts(blocks: string[][]): PartName[] {
   return parts.map(p => p ?? "Verse");
 }
 
-/** Plain lyrics → labeled lyrics. Returns null when the text already has labels or is too short to map. */
-export function autoSongParts(text: string): { text: string; parts: string[] } | null {
-  if (!text.trim() || hasSongParts(text)) return null;
+/** Plain lyrics → labeled lyrics. Lyrics with the writer's own labels only get glued labels moved
+ * onto their own line (kind "separated"). Returns null when nothing needs to change. */
+export function autoSongParts(text: string): { text: string; parts: string[]; kind?: "separated" } | null {
+  if (!text.trim()) return null;
+  if (hasSongParts(text)) {
+    const separated = separateInlineParts(text);
+    return separated === text ? null : { text: separated, parts: [], kind: "separated" };
+  }
   const blocks = stanzas(text);
   if (blocks.length < 2) return null;
   const parts = labelParts(blocks);

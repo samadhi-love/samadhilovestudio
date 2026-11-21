@@ -63,7 +63,10 @@ test("plain lyrics get Verse, Pre-Chorus, Chorus, Bridge and Outro labels automa
   await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
   const headings=lyrics.value.split("\n").filter(l=>l.startsWith("["));
   assert.deepEqual(headings,["[Verse 1]","[Pre-Chorus]","[Chorus]","[Verse 2]","[Pre-Chorus]","[Chorus]","[Bridge]","[Chorus]","[Outro]"]);
-  assert.match(document.querySelector('[data-testid="text-lyric-status"]')!.textContent!,/Song parts added for you/);
+  assert.match(document.querySelector('[data-testid="text-lyric-status"]')!.textContent!,/Song parts were added for you/);
+  assert.equal(document.querySelector('[data-testid="song-parts"]'),null,"part pickers stay hidden until Change");
+  assert.match(document.querySelector('[data-testid="song-parts-summary"]')!.textContent!,/Song parts: Verse · Pre-Chorus · Chorus · Verse/);
+  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-change-parts"]')!.click());
   const parts=[...document.querySelectorAll('[data-testid="song-parts"] select')] as unknown as HTMLSelectElement[];
   assert.equal(parts.length,9);
   await h.select(parts[8],"Chorus");
@@ -348,3 +351,36 @@ test("connected instrumentals use the real generation handoff while new disconne
 });
 
 test("Jesus and Mother Mary complete looks activate existing artwork without losing ad photos",()=>{for(const id of ["jesus-light","mary-grace"]){const source=project();source.pro!.adPhotoStory={photos:[{asset:"saved-photo",name:"Product"}],motion:"zoom",fit:"contain",transition:"dissolve",prompt:""};const next=applyCreatorVideoLook(source,id);assert.equal(next.theme,id==="jesus-light"?"jesus":"mary");assert.equal(next.pro!.useTemplateBackground,true);assert.deepEqual(next.pro!.adPhotoStory,source.pro!.adPhotoStory);assert.deepEqual(next.cues,source.cues);}});
+
+test("one line per paragraph never becomes dozens of verses; Undo restores the paste and stays undone",async()=>{
+ const h=await setup();h.dom.window.confirm=()=>true;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>"song-1"} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.button("Shape It").click());
+  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
+  const lines=["Stay in the middle and you rise.","That is how character is built.","Find the middle!","Find the middle!",...Array.from({length:44},(_,i)=>`A teaching line number ${i+1}`),"Find the middle!","Find the middle!"];
+  const pasted=lines.join("\n\n");
+  await h.input(lyrics,pasted);
+  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
+  const headings=lyrics.value.split("\n").filter(l=>l.startsWith("["));
+  assert.ok(headings.length>=2&&headings.length<=12,`at most 12 parts, got ${headings.length}`);
+  for(const line of lines)assert.ok(lyrics.value.includes(line),"every sung line is kept");
+  assert.equal(document.querySelector('[data-testid="song-parts"]'),null,"no long list of pickers");
+  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-undo-parts"]')!.click());
+  assert.equal(lyrics.value,pasted,"Undo gives back exactly what was pasted");
+  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
+  assert.equal(lyrics.value,pasted,"leaving the box does not re-add parts after Undo");
+ }finally{await h.close();}
+});
+test("a part label glued to a sung line is moved onto its own line and the writer's labels are kept",async()=>{
+ const h=await setup();h.dom.window.confirm=()=>true;
+ try{
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>"song-1"} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.button("Shape It").click());
+  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
+  await h.input(lyrics,"Stay in the middle and you rise.\nThat is how character is built.[CHORUS – Clear]\nFind the middle!\nFind the middle!");
+  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
+  assert.equal(lyrics.value,"Stay in the middle and you rise.\nThat is how character is built.\n\n[CHORUS – Clear]\nFind the middle!\nFind the middle!");
+  assert.doesNotMatch(lyrics.value,/\[Verse/,"no extra verses added on top of the writer's own label");
+ }finally{await h.close();}
+});

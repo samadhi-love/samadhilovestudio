@@ -122,7 +122,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   const [makeTwoVersions,setMakeTwoVersions]=useState(true);
   const caps=engineCapabilities[engine?.engine??"elevenlabs"];
   const [negativeStyle,setNegativeStyle]=useState(""),[spark,setSpark]=useState<number|null>(null),[wordsByStudio,setWordsByStudio]=useState(false);
-  const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[lyricBusy,setLyricBusy]=useState(false);
+  const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[partsUndo,setPartsUndo]=useState<string|null>(null),keepPasted=useRef(false),[showParts,setShowParts]=useState(false),[lyricBusy,setLyricBusy]=useState(false);
   const [melodyTakes,setMelodyTakes]=useState<MelodyReferenceTake[]>([]);
   const [melodyStatus,setMelodyStatus]=useState("");
   const [songMap,setSongMap]=useState<SongMap>(defaultSongMap),[mapEnabled,setMapEnabled]=useState(false);
@@ -302,9 +302,11 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   }
   // Beginners never place [Verse]/[Chorus] themselves: plain lyrics are labeled for them.
   function labelSongParts(text:string){
+    if(keepPasted.current)return text;
     const labeled=autoSongParts(text);
     if(!labeled)return text;
-    setLyrics(labeled.text.slice(0,5000));setLyricStatus(`Song parts added for you: ${labeled.parts.join(" · ")}. Change any part below if it's not right.`);
+    setPartsUndo(text);setShowParts(false);
+    setLyrics(labeled.text.slice(0,5000));setLyricStatus(labeled.kind==="separated"?"Your own part labels were kept; any label stuck to a sung line was moved onto its own line.":"Song parts were added for you.");
     return labeled.text;
   }
   const [quickSaved,setQuickSaved]=useState<{what:"vision"|"lyrics";text:string}|null>(null);
@@ -511,10 +513,15 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
           <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Lyrics &amp; Styles</summary>
             <label className="field qc-field">Lyrics
-              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}} onPaste={e=>{const field=e.currentTarget;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
+              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");setPartsUndo(null);}} onPaste={e=>{const field=e.currentTarget;keepPasted.current=false;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
             </label>
             {savePrompt&&!instrumental&&<div className="prompt-quick-save">{naming==="lyrics"?<SaveNameBox suggested={suggestedName("lyrics")} busy={busy} save={name=>void savePromptNow("lyrics",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-lyrics" disabled={busy||!lyrics.trim()} onClick={()=>{setQuickSaved(null);setNaming("lyrics");}}>☆ Save these lyrics</button>}{quickSaved?.what==="lyrics"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
-            {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
+            {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="song-parts-summary" data-testid="song-parts-summary">
+              <p className="muted"><strong>Song parts:</strong> {songPartHeadings(lyrics).map(p=>p.name.replace(/\s+\d+$/,"")).join(" · ")}{" "}
+                <button type="button" className="text-button" data-testid="button-change-parts" aria-expanded={showParts} onClick={()=>setShowParts(v=>!v)}>{showParts?"Done":"Change"}</button>
+                {partsUndo!==null&&<>{" · "}<button type="button" className="text-button" data-testid="button-undo-parts" onClick={()=>{keepPasted.current=true;setLyrics(partsUndo);setPartsUndo(null);setShowParts(false);setLyricStatus("Your lyrics are back exactly as you pasted them.");}}>Undo song parts</button></>}</p>
+              {showParts&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
+            </div>}
             <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
             {lyricStatus&&<p role="status" data-testid="text-lyric-status">{lyricStatus}</p>}

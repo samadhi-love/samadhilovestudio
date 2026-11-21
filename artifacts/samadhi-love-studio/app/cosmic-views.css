@@ -213,3 +213,8 @@
 /* One-tap prompt saving sits right under the box it saves. */
 .nebula-forge .prompt-quick-save { display: flex; align-items: center; gap: 12px; margin: -4px 0 6px; font-size: .9rem; }
 .nebula-forge .prompt-quick-save .text-button { color: var(--cv-gold, #e8c66a); }
+/* Song parts: one summary line; the label pickers only open on "Change" and sit in a wrapping row. */
+.song-parts-summary { margin: 6px 0; }
+.song-parts-summary p { margin: 0; line-height: 1.5; }
+.lyric-section-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; }
+.lyric-section-chips .chip, .nebula-forge .lyric-section-chips .chip { width: auto; min-width: 0; flex: 0 0 auto; padding: 4px 10px; font-size: .85rem; }
