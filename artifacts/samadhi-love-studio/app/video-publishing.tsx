@@ -145,3 +145,12 @@ function YouTubeThumbnail({ videoUrl, title }: { videoUrl: string; title: string
     {status && <p role="status">{status}</p>}
   </div>;
 }
+
+/** Upload & share for one finished file. Each shape starts on the site it suits
+ *  (wide → YouTube, square → Instagram, tall → the chosen short-video site) and
+ *  can be switched without changing the other files. */
+export function ShareFinishedVideo({ output, title, caption, chosen }: { output: VideoExport & { format: VideoFormat }; title: string; caption: string; chosen: VideoPlatform }) {
+  const [site, setSite] = useState<VideoPlatform>(() =>
+    output.format === "wide" ? "youtube" : output.format === "square" ? "instagram" : chosen === "youtube" || chosen === "instagram" ? "tiktok" : chosen);
+  return <VideoPublishing output={output} title={title} caption={caption} platform={site} setPlatform={setSite} format={output.format}/>;
+}

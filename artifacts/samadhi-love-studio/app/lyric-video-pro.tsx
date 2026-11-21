@@ -112,6 +112,7 @@ import {codecCompatibility} from "./video-export-storage";
 import {readRender,renderKey,saveRender,segmentStore,videoJob,type VideoCheckpoint} from "./video-render-recovery";
 import {
   VideoPublishing,
+  ShareFinishedVideo,
   VideoLinkActions,
   type VideoExport,
   type VideoPlatform,
@@ -2429,7 +2430,14 @@ function LyricVideoProContent(props: Props) {
                       <QuickVideoPanel song={song} project={project} time={time} busy={busy} edit={edit} make={() => void exportVideo()} makeAll={() => void exportVideo(true)} progress={progress}
                         captionState={captionState} blocked={exportChecks.filter(check => check.level === "block").map(check => ({ text: check.text, step: check.step }))}
                         latest={outputs.at(-1)} results={outputs.slice(-lastRun)} addWords={() => { openFineTune(1); setLyricsEditorOpen(true); }} fixWords={() => openCaptionEditor(Math.max(0, project.cues.findLastIndex(c => c.time <= time)))}
-                        openFineTune={openFineTune} own={{
+                        openFineTune={openFineTune}
+                        choosePlatform={setPlatform}
+                        shareFor={result => {
+                          const output = outputs.find(item => item.url === result.url);
+                          if (!output) return null;
+                          return <ShareFinishedVideo key={output.url} output={output} title={song.name} caption={postCaption} chosen={platform}/>;
+                        }}
+                        own={{
                           active: project.pro?.backgroundVideo && !project.pro.useTemplateBackground ? "video" : project.pro?.background && project.pro.useTemplateBackground !== false ? "photo" : null,
                           photo: file => uploadOwnBackground(file, "all"),
                           video: file => uploadProductVideo(file, "cover"),
