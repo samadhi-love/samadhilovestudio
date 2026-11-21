@@ -39,3 +39,29 @@
   .shell .cvb .qv-chip, .cvb .qv-chip { min-height: 36px; font-size: 13px; }
 }
 @media (max-width: 360px) { .cvb-screen { width: 42vw; } }
+/* What is it for? YouTube (wide), Shorts (tall highlight), Phone (tall, full song), Square box. */
+.cvb-purpose { margin: 0; padding: 0; border: 0; min-width: 0; }
+.cvb-purpose legend { padding: 0; margin-bottom: 6px; font-weight: 700; color: #ffe9a8; }
+.cvb-purpose-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.shell .cvb .cvb-purpose-options button, .cvb .cvb-purpose-options button { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 8px; border-radius: 12px; border: 1px solid #55717e; background: #1b1638; color: #eef5f9; text-align: left; font: inherit; cursor: pointer; min-width: 0; }
+.cvb .cvb-purpose-options button.active { border-color: #f3d29d; background: #f3d29d22; box-shadow: 0 0 0 2px #f3d29d inset; }
+.cvb .cvb-purpose-options button:focus-visible { outline: 2px solid #7fe9ff; outline-offset: 2px; }
+.cvb-purpose-options strong { display: block; font-size: .85rem; line-height: 1.2; }
+.cvb-purpose-options small { display: block; font-size: .72rem; color: #c9d6de; line-height: 1.2; }
+.cvb-purpose-options span:last-child { min-width: 0; }
+.cvb-shape { flex: none; display: inline-block; border: 2px solid currentColor; border-radius: 3px; opacity: .85; }
+.cvb-shape.wide { width: 26px; height: 15px; }
+.cvb-shape.vertical { width: 13px; height: 23px; }
+.cvb-shape.square { width: 19px; height: 19px; }
+.cvb-purpose .cvb-hint { margin-top: 6px; }
+/* The screen takes the chosen shape. Wide and square use the whole row. */
+.cvb-screen.wide { aspect-ratio: 16 / 9; width: 100%; max-width: 520px; border-radius: 12px; }
+.cvb-screen.square { aspect-ratio: 1 / 1; width: min(100%, 300px); border-radius: 8px; border: 6px double #f3d29d99; box-shadow: 0 0 24px #c9a7ff44; }
+.cvb-stage.is-wide .cvb-screen, .cvb-stage.is-square .cvb-screen { grid-column: 1 / -1; justify-self: center; }
+.cvb-stage.is-wide .cvb-chosen, .cvb-stage.is-wide .cvb-hint, .cvb-stage.is-square .cvb-chosen, .cvb-stage.is-square .cvb-hint { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .cvb-screen.wide { width: 100%; }
+  .cvb-screen.square { width: 70vw; }
+}
+.cvb-screen.wide .cvb-drop { top: 14%; }
+.cvb-screen.wide .cvb-words { margin-bottom: 7%; }

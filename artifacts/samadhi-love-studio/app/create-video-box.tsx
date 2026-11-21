@@ -5,7 +5,10 @@
  *    It shows right away on the phone-shaped screen.
  * 2. Put a finished song in: drag it onto the screen, or tap "Use in video"
  *    (easiest on a phone). The song plays over your picture with its words.
- * 3. Make my video opens LyriVid with everything filled in.
+ * 3. Choose what it is for: YouTube (wide), Shorts/TikTok/Reels (tall highlight),
+ *    Phone (tall, full song) or Square box. The screen takes that shape and the
+ *    choice is remembered.
+ * 4. Make my video opens LyriVid with everything filled in, framed for that use.
  * A video's own sound is always off: it is only a moving picture behind the words.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,6 +20,7 @@ import { creatorVideoLooks } from "./creator-video-presets";
 import { songAudioUrl, type Song } from "./studio-data";
 import { isExplicitSong } from "./clean-content";
 import { sortSongs } from "./song-library";
+import { readVideoPurpose, rememberVideoPurpose, videoPurposeById, videoPurposes, type VideoPurposeId } from "./video-purpose";
 
 export const songDragType = "application/x-versual-song";
 /** Lets any song on the page be dragged into the video box. */
@@ -47,7 +51,7 @@ export function CreateVideoBox(props: {
   songs: Song[]; songId: string; setSongId: (id: string) => void;
   look: BackgroundKey; pickLook: (key: BackgroundKey) => void; own: OwnBackground;
   photo: Blob | null; clip: Blob | null;
-  busy: boolean; make?: (song: Song) => void | Promise<void>;
+  busy: boolean; make?: (song: Song, purpose: VideoPurposeId) => void | Promise<void>;
 }) {
   const ready = useMemo(() => videoReadySongs(props.songs), [props.songs]);
   const song = ready.find(s => s.id === props.songId);
@@ -55,6 +59,12 @@ export function CreateVideoBox(props: {
   const [playing, setPlaying] = useState(false);
   const [line, setLine] = useState(0);
   const [picture, setPicture] = useState("");
+  const [purposeId, setPurposeId] = useState<VideoPurposeId>("shorts");
+  const purpose = videoPurposeById(purposeId)!;
+  // The last choice comes back on the next visit.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the remembered choice once after the page loads
+  useEffect(() => { setPurposeId(readVideoPurpose()); }, []);
+  const choosePurpose = (id: VideoPurposeId) => { setPurposeId(id); rememberVideoPurpose(id); };
   const audio = useRef<HTMLAudioElement>(null);
   const lines = useMemo(() => previewLines(song?.notes.lyrics ?? ""), [song]);
   const theme = themeForKey(props.look);
@@ -83,8 +93,18 @@ export function CreateVideoBox(props: {
   return (
     <section className="cvb" aria-labelledby="cvb-heading" data-testid="create-video-box">
       <h2 id="cvb-heading"><Film size={18} aria-hidden="true" /> Make your video</h2>
-      <div className="cvb-stage">
-        <div className={`cvb-screen${over ? " is-over" : ""}`} data-testid="cvb-screen"
+      <fieldset className="cvb-purpose" data-testid="cvb-purpose">
+        <legend>What is it for?</legend>
+        <div className="cvb-purpose-options" role="radiogroup" aria-label="What is your video for?">
+          {videoPurposes.map(p => <button type="button" role="radio" key={p.id} aria-checked={p.id === purposeId} className={p.id === purposeId ? "active" : ""}
+            disabled={props.busy} onClick={() => choosePurpose(p.id)} data-testid={`cvb-purpose-${p.id}`}>
+            <span className={`cvb-shape ${p.format}`} aria-hidden="true" /><span><strong>{p.name}</strong><small>{p.shape}</small></span>
+          </button>)}
+        </div>
+        <p className="cvb-hint" data-testid="cvb-purpose-note">For {purpose.where}. When it&apos;s done you can save it to your device or open {purpose.name === "YouTube" ? "YouTube Studio" : "the upload page"} to post it.</p>
+      </fieldset>
+      <div className={`cvb-stage is-${purpose.format}`}>
+        <div className={`cvb-screen ${purpose.format}${over ? " is-over" : ""}`} data-testid="cvb-screen" data-format={purpose.format}
           onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}
           style={!picture && theme ? backgroundArt(theme) : undefined} aria-label={song ? `Preview of ${song.name}` : "Video preview. Drop a song here."} role="img">
           {picture && props.clip && <video className="cvb-media" src={picture} muted autoPlay loop playsInline aria-hidden="true" data-testid="cvb-own-video" />}
@@ -116,8 +136,8 @@ export function CreateVideoBox(props: {
       </div>
       <BackgroundChooser song={song} disabled={props.busy} isSelected={key => !props.own.active && props.look === key} pick={props.pickLook} own={props.own} />
       <p className="cvb-note">Video sound is off. Your song is the soundtrack. Words get timed to the voice in the next step.</p>
-      {props.make && <button type="button" className="primary cvb-make" disabled={props.busy || !song} onClick={() => song && void props.make?.(song)} data-testid="cvb-make">
-        <Film size={17} aria-hidden="true" /> {song ? "Make my video" : "Add a song to make your video"}</button>}
+      {props.make && <button type="button" className="primary cvb-make" disabled={props.busy || !song} onClick={() => song && void props.make?.(song, purposeId)} data-testid="cvb-make">
+        <Film size={17} aria-hidden="true" /> {song ? `Make my ${purpose.name} video` : "Add a song to make your video"}</button>}
     </section>
   );
 }
