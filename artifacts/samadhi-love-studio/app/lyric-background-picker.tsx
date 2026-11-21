@@ -163,6 +163,7 @@ export function LyricBackgroundPicker({
   importTemplate,
   exportTemplate,
   customPreview,
+  uploadsOnly,
 }: {
   project: LyricProject;
   time: number;
@@ -173,6 +174,8 @@ export function LyricBackgroundPicker({
   importTemplate?: (file: File) => void;
   exportTemplate?: () => void;
   customPreview?: boolean;
+  /** Only "your own design or template" (the gallery itself is in the Vibe box). */
+  uploadsOnly?: boolean;
 }) {
   const [group, setGroup] = useState<keyof typeof lyricBackgroundGroups>(
     initialGroup ??
@@ -196,46 +199,7 @@ export function LyricBackgroundPicker({
   const customImage =
     section?.background ??
     (section?.theme ? undefined : project.pro?.background);
-  return (
-    <fieldset className="lvp-background-picker" disabled={disabled}>
-      <legend>1 · Choose your background</legend>
-      <p className="lvp-note">
-        Sacred artwork, cinematic scenery, or a color palette. Your lyric style
-        stays independent.
-      </p>
-      <label>
-        Apply background to
-        <select
-          value={scope}
-          onChange={(e) => setScope(e.target.value as BackgroundScope)}
-        >
-          <option value="all">Whole video · all sections</option>
-          <option value="section" disabled={!section}>
-            Current section
-            {section ? ` · ${section.name}` : " · seek inside a section first"}
-          </option>
-        </select>
-      </label>
-      <div
-        className="lvp-background-tabs"
-        role="group"
-        aria-label="Background collections"
-      >
-        {Object.entries(lyricBackgroundGroups).map(([id, collection]) => (
-          <button
-            type="button"
-            key={id}
-            aria-pressed={group === id}
-            onClick={() => setGroup(id as typeof group)}
-          >
-            {collection.name}{" "}
-            <span className="lvp-collection-count">
-              {collection.themes.length}
-            </span>
-          </button>
-        ))}
-      </div>
-      {(uploadDesign || importTemplate) && (
+  const customDesign = (uploadDesign || importTemplate) ? (
         <div className="lvp-custom-design">
           <h3>Your own design or template</h3>
           <div className="lvp-fields">
@@ -280,7 +244,48 @@ export function LyricBackgroundPicker({
             CapCut project files are not imported.
           </p>
         </div>
-      )}
+  ) : null;
+  if (uploadsOnly) return <fieldset className="lvp-background-picker" disabled={disabled}>{customDesign}</fieldset>;
+  return (
+    <fieldset className="lvp-background-picker" disabled={disabled}>
+      <legend>1 · Choose your background</legend>
+      <p className="lvp-note">
+        Sacred artwork, cinematic scenery, or a color palette. Your lyric style
+        stays independent.
+      </p>
+      <label>
+        Apply background to
+        <select
+          value={scope}
+          onChange={(e) => setScope(e.target.value as BackgroundScope)}
+        >
+          <option value="all">Whole video · all sections</option>
+          <option value="section" disabled={!section}>
+            Current section
+            {section ? ` · ${section.name}` : " · seek inside a section first"}
+          </option>
+        </select>
+      </label>
+      <div
+        className="lvp-background-tabs"
+        role="group"
+        aria-label="Background collections"
+      >
+        {Object.entries(lyricBackgroundGroups).map(([id, collection]) => (
+          <button
+            type="button"
+            key={id}
+            aria-pressed={group === id}
+            onClick={() => setGroup(id as typeof group)}
+          >
+            {collection.name}{" "}
+            <span className="lvp-collection-count">
+              {collection.themes.length}
+            </span>
+          </button>
+        ))}
+      </div>
+      {customDesign}
       <p className="lvp-collection-title">
         {lyricBackgroundGroups[group].themes.length}{" "}
         {group === "sacred"

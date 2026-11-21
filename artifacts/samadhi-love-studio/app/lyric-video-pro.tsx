@@ -1,6 +1,6 @@
 "use client";
 import { isInstrumental } from "./creation-guide";
-import { QuickVideoPanel, type CaptionState } from "./quick-video-panel";
+import { QuickVideoPanel, applyBackgroundKey, backgroundKeySelected, type CaptionState } from "./quick-video-panel";
 import {cosmicScrollBehavior} from "./cosmic-motion";
 import {brand} from "./brand";
 import {PanelErrorBoundary} from "./panel-error-boundary";
@@ -10,10 +10,9 @@ import {StemReactiveControls} from "./stem-reactive-controls";
 import {releaseKit} from "./lyric-release-kit";
 import {registerVideoExport} from "./video-export-history";
 import {activeAdMedia} from "./active-visual-source";
-import {CreatorLookBrowser,SocialVideoTools} from "./creator-video-tools";
+import {SocialVideoTools} from "./creator-video-tools";
 import {applyPlayVisual} from "./creative-video-handoff";
 import {applySocialVideoPreset,applyVideoShape,creatorVideoLooks,shortClipRange,suggestedHookStart} from "./creator-video-presets";
-import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
 import {applyVideoPurpose,videoPurposeById,type VideoPurposeId} from "./video-purpose";
 import {postCaption as readyPostCaption,postTextFor} from "./post-text";
@@ -96,6 +95,7 @@ import {
 } from "./lyric-caption-templates";
 import { CaptionReadyCreate } from "./lyric-pro-create";
 import { ProTimeline } from "./lyric-pro-timeline";
+import { BackgroundChooser } from "./background-chooser";
 import {
   makeVisualTemplate,
   parseVisualTemplate,
@@ -119,7 +119,7 @@ import {
 import { hasExplicitWords, isExplicitSong } from "./clean-content";
 import { BeatGridControls } from "./beat-grid-controls";
 import { analyzeBeatBuffer } from "./beat-analysis-client";
-import { SignaturePicker, VisualLayerControls } from "./lyric-signature-picker";
+import { VisualLayerControls } from "./lyric-signature-picker";
 import {AdvertisingVideoControls} from "./advertising-video-controls";
 import {VisualGenerationControls} from "./visual-generation-controls";
 import {applyVisualJob,type VisualJob} from "./visual-generation-data";
@@ -185,20 +185,6 @@ const signature = (p: LyricProject) =>
     ...p,
     pro: p.pro ? { ...p.pro, updatedAt: undefined } : undefined,
   });
-const looks = [
-  { name: "Cosmic & celestial", theme: "cosmic", template: "silver-cinema" },
-  {
-    name: "Spiritual uplift",
-    theme: "meditation",
-    template: "illuminated-verse",
-  },
-  { name: "Futuristic light", theme: "futuristic", template: "neon-pulse" },
-  { name: "Arabian elegance", theme: "dawn", template: "sacred-script" },
-  { name: "Nature cinema", theme: "nature", template: "silver-cinema" },
-  { name: "Minimal typography", theme: "ocean", template: "quiet-space" },
-  { name: "Melodic house", theme: "nebula", template: "prism-flow" },
-  { name: "Intimate R&B / acoustic", theme: "dawn", template: "ink-echo" },
-] as const;
 export function LyricVideoPro(props: Props) {
   return <PanelErrorBoundary panel="video-editor"><LyricVideoProContent {...props}/></PanelErrorBoundary>;
 }
@@ -1951,10 +1937,16 @@ function LyricVideoProContent(props: Props) {
           {(mode === "start" || (mode === "existing" && !song)) && (
             <section className="lvp-visual-library" id="lyric-visual-library">
               <h2>Find your video’s look</h2>
-              <VibeLookPicker project={libraryProject.pro?libraryProject:{...libraryProject,pro:newProSettings(freshSong("vibe-preview","SAMADHI LOVE",0),9)}} change={next=>{if(current.current){edit(next);return;}pendingVisualLayout.current={formatLooks:next.pro?.formatLooks??signatureLayouts()};changeLibraryBackground(next,true);}} disabled={busy}/>
-              <details className="lvp-more-looks"><summary>More looks</summary>
-              <CreatorLookBrowser project={libraryProject} change={next=>changeLibraryBackground(next,true)} disabled={busy}/>
-              </details>
+              {/* The one background box: backgrounds, complete looks and animated designs. */}
+              <BackgroundChooser disabled={busy} signatures initialTab="sacred"
+                isSelected={key => backgroundKeySelected(libraryProject, key)}
+                pick={key => {
+                  const base = libraryProject.pro ? libraryProject : { ...libraryProject, pro: newProSettings(freshSong("vibe-preview", "SAMADHI LOVE", 0), 9) };
+                  const next = applyBackgroundKey(base, key, time);
+                  if (current.current) { edit(next); return; }
+                  if (key.startsWith("sig:")) pendingVisualLayout.current = { formatLooks: next.pro?.formatLooks ?? signatureLayouts() };
+                  changeLibraryBackground(next, !key.startsWith("theme:"));
+                }}/>
               <p>
                 {project && song
                   ? `Customize the look for “${song.name}” here, or continue to its recording preview.`
@@ -2006,7 +1998,7 @@ function LyricVideoProContent(props: Props) {
                       aria-pressed={libraryTab === "backgrounds"}
                       onClick={() => setLibraryTab("backgrounds")}
                     >
-                      Sacred images &amp; backgrounds
+                      Your own design or template
                     </button>
                     <button
                       type="button"
@@ -2018,11 +2010,8 @@ function LyricVideoProContent(props: Props) {
                   </div>
                   {libraryTab === "backgrounds" ? (
                     <>
-                    <SignaturePicker project={libraryProject} change={next => {
-                      if (!current.current) pendingVisualLayout.current = { formatLooks: signatureLayouts() };
-                      changeLibraryBackground(next, true);
-                    }} disabled={busy}/>
                     <LyricBackgroundPicker
+                      uploadsOnly
                       project={libraryProject}
                       time={time}
                       change={changeLibraryBackground}
@@ -2945,81 +2934,35 @@ function LyricVideoProContent(props: Props) {
                         >
                           <span className="lvp-kicker">STEP 2 · LOOK</span>
                           <h2>Choose your look</h2>
-                          <VibeLookPicker project={project} change={edit} disabled={busy} title="Featured vibes"/>
-                          <h3 className="lvp-backgrounds-title" data-testid="heading-backgrounds">Backgrounds · all {Object.keys(videoThemes).length} designs</h3>
-                          <LyricBackgroundPicker
-                            initialGroup="sacred"
-                            project={project}
-                            time={time}
-                            change={edit}
-                            disabled={busy}
-                            uploadDesign={(file, scope) =>
-                              void uploadOwnBackground(file, scope)
-                            }
-                            importTemplate={(file) =>
-                              void importOwnTemplate(file)
-                            }
-                            exportTemplate={() => void exportOwnTemplate()}
-                          />
-                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More looks · caption styles, animated designs, AI visuals & ad tools</summary>
+                          {/* Backgrounds, complete looks and animated designs all live in step 3 "Vibe"
+                              above — one place, no repeats. Only tools found nowhere else stay here. */}
+                          <p className="lvp-note" data-testid="look-in-vibe">
+                            Backgrounds, complete looks and animated designs are in <strong>3 · Vibe</strong> above.{" "}
+                            <button type="button" className="qv-link" disabled={busy} onClick={() => document.getElementById("qv-vibe")?.scrollIntoView({ behavior: "smooth", block: "center" })}>Go to Vibe</button>
+                          </p>
+                          {/* Kept for what the Vibe box can't do: one part of the song only, your own
+                              design file, and visual templates. */}
+                          <details data-testid="details-section-background">
+                            <summary>Different background for one part of the song · your own design or template</summary>
+                            <LyricBackgroundPicker
+                              initialGroup="sacred"
+                              project={project}
+                              time={time}
+                              change={edit}
+                              disabled={busy}
+                              uploadDesign={(file, scope) => void uploadOwnBackground(file, scope)}
+                              importTemplate={(file) => void importOwnTemplate(file)}
+                              exportTemplate={() => void exportOwnTemplate()}
+                            />
+                          </details>
+                          <details className="lvp-more-looks" data-testid="details-more-looks"><summary>More visual tools · lettering, AI visuals, ads, beat motion, social clips</summary>
                           <VisualGenerationControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} apply={applyGeneratedVisual} disabled={busy}/>
                           <AdvertisingVideoControls project={project} change={edit} uploadPhotos={files=>void uploadAdPhotos(files)} upload={file=>void uploadProductVideo(file)} disabled={busy}/>
                           <StemReactiveControls key={p.sourceSongId+"-"+p.sourceAudioId} project={project} change={edit} disabled={busy} working={value=>setOperation(value?"Analyzing stem motion":"")}/>
-                          <CreatorLookBrowser key={p.sourceSongId} project={project} change={edit} disabled={busy} hints={[song.notes.prompt,song.notes.instruments,...song.tags].join(" · ")}/>
                           <SocialVideoTools project={project} change={next=>{edit(next);seek(next.pro!.range.start);}} time={time} disabled={busy} choosePlatform={setPlatform}/>
-                          <details><summary>Animated looks · 12 signature designs</summary>
-                          <SignaturePicker project={project} change={edit} disabled={busy}/>
                           <details><summary>Fine-tune animation layers & tempo</summary>
                           <BeatGridControls project={project} change={edit} disabled={busy} analyze={()=>void detectAnimationBeats()}/>
                           <VisualLayerControls project={project} change={edit} disabled={busy} time={time}/>
-                          </details>
-                          </details>
-
-                          <details>
-                            <summary>Quick complete looks</summary>
-                            <p className="lvp-note">
-                              Apply a paired background and lyric style, then
-                              customize each below.
-                            </p>
-                            <div className="lvp-look-grid">
-                              {looks.map((look) => (
-                                <button
-                                  type="button"
-                                  key={look.name}
-                                  disabled={busy}
-                                  aria-pressed={
-                                    project.theme === look.theme &&
-                                    project.captionTemplate === look.template
-                                  }
-                                  style={{
-                                    background: `linear-gradient(135deg,${videoThemes[look.theme].colors[0]},${videoThemes[look.theme].colors[2]})`,
-                                  }}
-                                  onClick={() => {
-                                    const preset = getCaptionTemplate(
-                                      look.template,
-                                    )!;
-                                    const next = applyLyricBackground(
-                                      project,
-                                      look.theme,
-                                      "all",
-                                      time,
-                                    );
-                                    edit({
-                                      ...next,
-                                      captionTemplate: look.template,
-                                      font: preset.font,
-                                      color: preset.color,
-                                      pro: {
-                                        ...next.pro!,
-                                        captionMode: "karaoke",
-                                      },
-                                    });
-                                  }}
-                                >
-                                  {look.name}
-                                </button>
-                              ))}
-                            </div>
                           </details>
                           <details><summary>Customize lettering · animated lyric styles</summary>
                           <CaptionTemplatePicker

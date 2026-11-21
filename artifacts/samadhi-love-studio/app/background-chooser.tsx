@@ -5,20 +5,22 @@
  * its name, or browse the group tabs; the boxes sit in one short area with its
  * own scroll bar, so nothing needs a long page scroll.
  *
- * Choices are plain keys: "theme:<background id>" or "look:<complete look id>".
+ * Choices are plain keys: "theme:<background id>", "look:<complete look id>"
+ * or, where the page supports them, "sig:<animated design id>".
  */
 import { useState } from "react";
 import { Dice5, Search, X } from "lucide-react";
 import { videoThemes, type VideoTheme } from "./lyric-video-data";
 import { lyricBackgroundGroups } from "./lyric-background-picker";
 import { creatorVideoLooks } from "./creator-video-presets";
+import { signatureLooks } from "./lyric-signature";
 import type { Song } from "./studio-data";
 import { OwnBackgroundPanel, type OwnBackground } from "./own-background";
 
-export type BackgroundKey = `theme:${string}` | `look:${string}`;
-type Tab = "song" | "yours" | "looks" | keyof typeof lyricBackgroundGroups;
+export type BackgroundKey = `theme:${string}` | `look:${string}` | `sig:${string}`;
+type Tab = "song" | "yours" | "looks" | "animated" | keyof typeof lyricBackgroundGroups;
 const tabNames: Record<Tab, string> = {
-  song: "For this song", yours: "Yours · photo, video, camera", looks: "Complete looks", kids: "Kids", usa: "USA and New York", world: "World",
+  song: "For this song", yours: "Yours · photo, video, camera", looks: "Complete looks", animated: "Animated designs", kids: "Kids", usa: "USA and New York", world: "World",
   sacred: "Sacred", scenes: "Cosmic and scenes", colors: "Colors",
 };
 
@@ -53,15 +55,20 @@ export function BackgroundChooser(props: {
   extra?: React.ReactNode;
   /** Your own photo, video or camera. The "Yours" tab shows only where it is given. */
   own?: OwnBackground;
+  /** Show the animated signature designs (pages that can apply "sig:" keys). */
+  signatures?: boolean;
+  /** Tab to open on (default: "For this song"). */
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>(() => props.own?.active ? "yours" : "song");
+  const [tab, setTab] = useState<Tab>(() => props.own?.active ? "yours" : props.initialTab ?? "song");
   const [query, setQuery] = useState("");
   const words = query.trim().toLowerCase();
   // Typing searches every background and complete look by name, whatever tab is open.
   const themes: VideoTheme[] = words
     ? allThemes.filter(id => `${videoThemes[id].title} ${tabNames[groupOf(id) ?? "song"]}`.toLowerCase().includes(words))
-    : tab === "song" ? suggestedThemes(props.song) : tab === "looks" || tab === "yours" ? [] : [...lyricBackgroundGroups[tab].themes];
+    : tab === "song" ? suggestedThemes(props.song) : tab === "looks" || tab === "yours" || tab === "animated" ? [] : [...lyricBackgroundGroups[tab].themes];
   const looks = words ? creatorVideoLooks.filter(l => `${l.name} ${l.vibe} ${l.category}`.toLowerCase().includes(words)) : tab === "looks" ? creatorVideoLooks : [];
+  const animated = !props.signatures ? [] : words ? signatureLooks.filter(l => `${l.name} ${l.note}`.toLowerCase().includes(words)) : tab === "animated" ? [...signatureLooks] : [];
   const surprise = () => {
     const pool = suggestedThemes(props.song).filter(id => !props.isSelected(`theme:${id}`));
     if (pool.length) props.pick(`theme:${pool[Math.floor(Math.random() * pool.length)]}`);
@@ -74,7 +81,7 @@ export function BackgroundChooser(props: {
         {query && <button type="button" className="qv-link" aria-label="Clear search" onClick={() => setQuery("")}><X size={14} aria-hidden="true" /></button>}
       </label>
       <div className="qv-chips" role="tablist" aria-label="Background groups">
-        {(Object.keys(tabNames) as Tab[]).filter(id => id !== "yours" || props.own).map(id => (
+        {(Object.keys(tabNames) as Tab[]).filter(id => (id !== "yours" || props.own) && (id !== "animated" || props.signatures)).map(id => (
           <button type="button" role="tab" key={id} aria-selected={!words && tab === id} className="qv-chip" onClick={() => { setTab(id); setQuery(""); }} data-testid={`qv-chip-${id}`}>{tabNames[id]}</button>
         ))}
       </div>
@@ -90,7 +97,12 @@ export function BackgroundChooser(props: {
             onClick={() => props.pick(`look:${look.id}`)} data-testid={`qv-look-${look.id}`}>
             <span className="qv-art" style={backgroundArt(look.theme)} aria-hidden="true" /><span className="qv-name">{look.name} <small>· look</small></span>
           </button>))}
-        {!themes.length && !looks.length && <p className="lvp-note" role="status">No background called “{query}”. Try another word, or pick a tab.</p>}
+        {animated.map(design => (
+          <button type="button" key={design.id} className="qv-card" disabled={props.disabled} title={design.note} aria-pressed={props.isSelected(`sig:${design.id}`)}
+            onClick={() => props.pick(`sig:${design.id}`)} data-testid={`qv-sig-${design.id}`}>
+            <span className="qv-art" style={backgroundArt(design.theme as VideoTheme)} aria-hidden="true" /><span className="qv-name">{design.name} <small>· animated</small></span>
+          </button>))}
+        {!themes.length && !looks.length && !animated.length && <p className="lvp-note" role="status">No background called “{query}”. Try another word, or pick a tab.</p>}
       </div>}
       <div className="qv-row">
         <button type="button" disabled={props.disabled} onClick={surprise} data-testid="qv-surprise"><Dice5 size={15} aria-hidden="true" /> Surprise me</button>

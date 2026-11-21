@@ -71,11 +71,54 @@ test("3 taps beside the preview: every background is one chip away in a short sc
     assert.equal(q("qv-theme-balloons")!.getAttribute("aria-pressed"),"true","tap = chosen (preview updates)");
     await act(async()=>q("qv-chip-looks")!.click());
     assert.ok(document.querySelectorAll('[data-testid^="qv-look-"]').length>=20,"complete looks (background + lettering) in one tap");
-    await act(async()=>q("qv-shape-vertical")!.click());
-    assert.equal(q("qv-shape-vertical")!.getAttribute("aria-pressed"),"true");
+    await act(async()=>q("qv-purpose-phone")!.click());
+    assert.equal(q("qv-purpose-phone")!.getAttribute("aria-checked"),"true");
+    assert.match(q("qv-making")!.textContent??"",/Phone · full song · Phone 9:16 · full song/);
     assert.ok(q("qv-make-video"));
     await act(async()=>q("qv-words-action")!.click());
     assert.equal((q("details-fine-tune") as HTMLDetailsElement).open,true,"Fix a word opens Fine-tune at the caption editor");
+  }finally{await h.close();}
+});
+
+test("the video page asks what the video is for FIRST, and the choice sets shape and length",async()=>{
+  const h=await open({cues:[{text:"Love is here",time:0,end:5}]});
+  try{
+    const steps=[...document.querySelectorAll<HTMLElement>(".qv-step .qv-kicker")].map(el=>el.textContent);
+    assert.deepEqual(steps.map(t=>t!.split(" · ")[0]),["1","2","3","4"]);
+    assert.match(steps[0]!,/What is it for\?/,"step 1 is the shape choice, before song, vibe and make");
+    assert.deepEqual([...document.querySelectorAll('[data-testid^="qv-purpose-"]')].map(el=>(el as HTMLElement).dataset.testid),
+      ["qv-purpose-youtube","qv-purpose-shorts","qv-purpose-phone","qv-purpose-square"]);
+    assert.equal(q("qv-purpose-youtube")!.getAttribute("aria-checked"),"true","a wide song opens as YouTube");
+    await act(async()=>q("qv-purpose-square")!.click());
+    assert.equal(q("qv-purpose-square")!.getAttribute("aria-checked"),"true");
+    assert.match(q("qv-making")!.textContent??"",/Square 1:1 · full song/);
+    await act(async()=>q("qv-purpose-shorts")!.click());
+    assert.equal(q("qv-purpose-shorts")!.getAttribute("aria-checked"),"true","the tapped card stays lit, even when a 60-second song makes Shorts and Phone the same");
+    assert.match(q("qv-making")!.textContent??"",/Shorts · TikTok · Reels · Phone 9:16/,"Shorts = tall video");
+    await act(async()=>q("qv-purpose-youtube")!.click());
+    assert.match(q("qv-making")!.textContent??"",/YouTube 16:9 · full song/);
+    assert.equal(document.querySelectorAll('[data-testid^="qv-shape-"]').length,0,"no second, smaller shape picker");
+  }finally{await h.close();}
+});
+
+test("one background box on the video page: every background, look and animated design once, no repeat boxes",async()=>{
+  const h=await open({cues:[{text:"Love is here",time:0,end:5}]});
+  try{
+    assert.equal(document.querySelectorAll('[data-testid="background-chooser"]').length,1,"exactly one background box");
+    await act(async()=>q("qv-chip-animated")!.click());
+    assert.equal(document.querySelectorAll('[data-testid^="qv-sig-"]').length,12,"the 12 animated designs moved into the Vibe box");
+    await act(async()=>q("qv-sig-awaken")!.click());
+    assert.equal(q("qv-sig-awaken")!.getAttribute("aria-pressed"),"true");
+    assert.equal(q("heading-backgrounds"),null,"no 'Backgrounds · all 46 designs' repeat");
+    assert.ok(![...document.querySelectorAll("summary")].some(s=>/Quick complete looks|Animated looks · 12|^More looks$/.test(s.textContent??"")),"repeat look boxes are gone");
+    const more=[...document.querySelectorAll<HTMLButtonElement>("button")].find(b=>b.textContent==="More lettering and motion")!;
+    for(let i=0;i<20&&more.disabled;i++)await settle();
+    assert.equal(more.disabled,false,"the page is ready (captions finished)");
+    await act(async()=>more.click());await settle();
+    assert.ok(q("look-in-vibe"),"Fine-tune points back to the one Vibe box");
+    assert.equal(document.querySelectorAll('[data-testid="background-chooser"]').length,1,"still one background box with Fine-tune open");
+    assert.ok(q("details-section-background"),"per-section background, own design and templates are kept");
+    assert.ok(q("details-more-looks"),"AI visuals, ads, lettering and beat motion are kept");
   }finally{await h.close();}
 });
 

@@ -1413,3 +1413,13 @@
 .qv-results.is-many { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
 .qv-results .qv-link { grid-column: 1 / -1; justify-self: start; }
 .qv-result-label { color: #ffe9a8; font-size: .9rem; }
+/* Step 1 · What is it for? Shape and length first, so the preview is the real shape. */
+.qv-purposes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.lyric-video-pro .qv-purposes button, .shell .lyric-video-pro .qv-purposes button { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; text-align: left; min-height: 54px; padding: 6px 10px; border-radius: 12px; }
+.qv-purpose-icon { grid-row: span 2; font-size: 1.3rem; line-height: 1; }
+.qv-purposes strong { font-size: .88rem; line-height: 1.2; }
+.qv-purposes small { font-size: .72rem; color: #c9d6de; line-height: 1.2; }
+.lyric-video-pro .qv-purposes button.active, .shell .lyric-video-pro .qv-purposes button.active { border-color: #f3d29d; background: #f3d29d22; box-shadow: 0 0 0 2px #f3d29d inset; color: #fff; }
+.lyric-video-pro .qv-purposes button:focus-visible { outline: 2px solid #7fe9ff; outline-offset: 2px; }
+.qv-making { margin: 0 0 8px; font-size: .9rem; color: #e8e2ff; }
+@media (max-width: 420px) { .qv-purposes { grid-template-columns: 1fr; } }

@@ -33,23 +33,26 @@ test("Lyric Video exposes sacred backgrounds and styles before a recording is se
   );
   assert.match(html, /data-skin="cosmic"/);
   assert.match(html, /id="lyric-visual-library"/);
+  // One background box (search + tabs) holds every background, complete look and
+  // animated design; it opens on the Sacred collection before a song is chosen.
+  assert.equal((html.match(/data-testid="background-chooser"/g) ?? []).length, 1, "exactly one background box");
   for (const name of [
-    "Awaken",
-    "Violet Flame",
-    "Unity",
-    "Apply Awaken",
-    "Kriya Lineage",
+    "Sacred",
+    "Animated designs",
+    "Complete looks",
+    "Colors",
+    "Kriya",
     "Ascended Masters",
-    "Archangel Light",
+    "Archangel",
     "Jesus",
     "Mother Mary",
     "Buddha",
-    "Color templates",
+    "Golden Mandala",
     "Lyric text styles",
+    "Your own design or template",
     "Upload background design",
     "Import visual template",
     "Save current look as template",
-    "Golden Mandala",
   ])
     assert(
       html.includes(name),
