@@ -11,7 +11,7 @@ export function toggleInstrument(box: string, name: string) {
   return (has ? items.filter(i => i.toLowerCase() !== name.toLowerCase()) : [...items, name]).join(", ");
 }
 export const inBox = (box: string, name: string) => box.split(",").some(i => i.trim().toLowerCase() === name.toLowerCase());
-export const quickGenres = ["Pop", "Soul", "R&B", "Hip Hop", "Gospel", "Rock", "Afrobeats", "Reggae", "Latin", "Country", "Jazz", "Electronic", "Ambient", "Devotional", "Cinematic", "Acoustic"] as const;
+export const quickGenres = ["Pop", "Soul", "R&B", "Hip Hop", "Gospel", "Rock", "Afrobeats", "Reggae", "Latin", "Country", "Jazz", "Electronic", "Ambient", "Devotional", "Cinematic", "Acoustic", "Kids"] as const;
 
 const palettes: [RegExp, string[]][] = [
   [/\bpop\b/i, ["bright piano", "punchy drums", "warm bass", "shimmering synths", "clean electric guitar"]],

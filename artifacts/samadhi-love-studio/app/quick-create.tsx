@@ -670,6 +670,7 @@ function GenreToggles({ value, change, disabled }: { value: string[]; change: (t
       {extra.map(name => <button key={name} type="button" className="chip active" aria-pressed disabled={disabled} onClick={() => change(value.filter(v => v !== name))}>{name} ✕</button>)}
     </div>
     {value.length > 1 && <p className="muted" data-testid="text-genre-blend">Blend: <strong>{blendName(value)}</strong></p>}
+    {on("Kids") && <p className="muted kids-note" data-testid="text-kids-song">🎈 Kids song: a bright, playful sing-along, sung by warm, friendly adult voices. Kids&apos; backgrounds are suggested for the video, and kids can sing it themselves in Record.</p>}
   </div>;
 }
 

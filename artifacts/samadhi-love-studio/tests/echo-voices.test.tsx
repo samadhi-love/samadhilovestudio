@@ -53,7 +53,7 @@ function fakeEngine(log:string[]){
   return {setFx:(next:FxSettings)=>{fx=next;log.push("fx:"+JSON.stringify(next));},setHearing:(on:boolean)=>log.push("hear:"+on),
     start:async()=>{log.push("start");},stopMicrophone:async()=>{log.push("mic-off");},catchPhrase:async()=>{log.push("catch");},keepPhrase:async()=>{log.push("keep");return 2.5;},
     repeat:async(loop:boolean,gap:number)=>{log.push(`repeat:${loop}:${gap}`);},stopReplay:()=>log.push("stop-repeat"),startTake:async()=>{log.push("take");},
-    finishTake:async()=>{log.push("finish");return new Blob(["take"],{type:"audio/webm"});},level:()=>0.5,dispose:()=>log.push("dispose"),get fx(){return fx;}} as never;
+    finishTake:async()=>{log.push("finish");return new Blob(["take"],{type:"audio/webm"});},setOutput:async(id:string)=>{log.push("output:"+id);},level:()=>0.5,dispose:()=>log.push("dispose"),get fx(){return fx;}} as never;
 }
 async function setup(){
   const dom=new JSDOM('<!doctype html><div id="root"></div>',{url:"https://studio.test"});
@@ -113,4 +113,49 @@ test("record with effects, then save the take as a song or make a lyric video",a
     assert.ok(h.log.includes("dispose"),"leaving the screen releases the microphone");
     await act(async()=>{});
   }finally{h.dom.window.close();}
+});
+
+test("Live mode: effects play out live, nothing is recorded, and repeat chorus still works",async()=>{
+  const h=await setup();
+  try{
+    assert.ok(h.q("button-ev-record"),"Record mode has the record button");
+    await h.click("button-mode-live");
+    assert.equal(h.q("button-mode-live")!.getAttribute("aria-checked"),"true");
+    assert.ok(h.q("ev-live"),"live panel");
+    assert.equal(h.q("button-ev-record"),null,"no record button in Live mode");
+    assert.ok(h.q("text-live-no-record"));
+    assert.equal(h.q("checkbox-hear-live"),null,"live sound always plays out");
+    await h.click("button-ev-mic");
+    assert.ok(h.log.includes("start"));
+    assert.ok(h.log.includes("hear:true"),"the live sound is sent out");
+    await h.click("blend-choir");
+    assert.equal(h.q("blend-choir")!.getAttribute("aria-pressed"),"true","blends change the live voice");
+    await h.click("button-catch-line");await h.click("button-catch-line");
+    await h.click("button-answer-loop");assert.ok(h.log.includes("repeat:true:0.4"),"repeat chorus works live");
+    assert.match(h.q("guide-tiktok-live")!.textContent!,/TikTok LIVE Studio/);
+    assert.match(h.q("guide-tiktok-live")!.textContent!,/VB-CABLE/);
+    assert.match(h.q("guide-tiktok-live")!.textContent!,/BlackHole/);
+    assert.ok(h.q("text-live-output-unsupported"),"browsers that can't choose an output say so plainly");
+    await h.click("button-mode-record");
+    assert.ok(h.q("button-ev-record"),"back to Record mode");
+  }finally{await h.close();}
+});
+
+test("Live mode can send the live voice to a virtual microphone for a livestream",async()=>{
+  class FakeContext{} (FakeContext.prototype as any).setSinkId=async()=>{};
+  (globalThis as any).AudioContext=FakeContext;
+  const h=await setup();
+  try{
+    Object.defineProperty(globalThis.navigator,"mediaDevices",{configurable:true,value:{enumerateDevices:async()=>[
+      {kind:"audiooutput",deviceId:"default",label:"Default"},
+      {kind:"audiooutput",deviceId:"cable",label:"CABLE Input (VB-Audio Virtual Cable)"},
+      {kind:"audioinput",deviceId:"mic",label:"Microphone"}]}});
+    await h.click("button-mode-live");
+    await act(async()=>{await new Promise(r=>setTimeout(r,0));});
+    const select=h.q("select-live-output") as unknown as HTMLSelectElement;
+    assert.ok(select,"output chooser where the browser supports it");
+    assert.deepEqual([...select.options].map(o=>o.textContent),["This device (headphones)","CABLE Input (VB-Audio Virtual Cable)"]);
+    await act(async()=>{select.value="cable";select.dispatchEvent(new window.Event("change",{bubbles:true}));});
+    assert.ok(h.log.includes("output:cable"),"live sound goes to the virtual microphone");
+  }finally{await h.close();delete (globalThis as any).AudioContext;delete (globalThis.navigator as any).mediaDevices;}
 });
