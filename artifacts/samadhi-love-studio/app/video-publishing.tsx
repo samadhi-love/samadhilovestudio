@@ -63,6 +63,7 @@ export function VideoPublishing({ output, title, caption, platform, setPlatform,
       }}><Copy size={15}/> Copy post caption</button></HelpControl>
     </div>
     <p className="muted creation-note">Save the file, then upload it on the platform. To email it, attach the saved file to the draft or choose a mail app from Share video file when available.</p>
+    {format === "wide" && <YouTubeThumbnail videoUrl={output.url} title={cleanTitle} />}
     {output.extension === "webm" && <p className="muted creation-note">This export is WebM. Use an MP4-capable browser or convert it if the destination requires MP4.</p>}
     {status && <p role="status">{status}</p>}
   </div>;
@@ -90,6 +91,57 @@ export function VideoLinkActions({ url, title }: { url: string; title: string })
     </div>
     <p className="muted creation-note">Automatic saved-video link. Recipients need access to this Studio. To post on social media, share or upload the exported file.</p>
     {showLink && <input aria-label="Video link" readOnly value={absolute()} onFocus={e => e.currentTarget.select()} />}
+    {status && <p role="status">{status}</p>}
+  </div>;
+}
+
+
+/** Draw a 1280×720 YouTube thumbnail: a frame from the finished video with the song name on it. */
+export async function drawThumbnail(videoUrl: string, at: number, title: string): Promise<Blob> {
+  const video = document.createElement("video");
+  video.muted = true; video.playsInline = true; video.preload = "auto"; video.src = videoUrl;
+  await new Promise<void>((resolve, reject) => { video.onloadeddata = () => resolve(); video.onerror = () => reject(new Error("The video could not be read for a thumbnail.")); });
+  // Listen first, then jump to the chosen moment.
+  const seeked = new Promise<void>(resolve => { video.onseeked = () => resolve(); });
+  video.currentTime = Math.max(0, Math.min(video.duration - 0.1, video.duration * at));
+  await seeked;
+  const canvas = document.createElement("canvas"); canvas.width = 1280; canvas.height = 720;
+  const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("Thumbnails are unavailable in this browser.");
+  ctx.drawImage(video, 0, 0, 1280, 720);
+  const shade = ctx.createLinearGradient(0, 300, 0, 720); shade.addColorStop(0, "#0000"); shade.addColorStop(1, "#000c");
+  ctx.fillStyle = shade; ctx.fillRect(0, 0, 1280, 720);
+  const words = title.trim() || "New song";
+  let size = 110; ctx.font = `800 ${size}px system-ui, sans-serif`;
+  while (ctx.measureText(words).width > 1160 && size > 54) { size -= 6; ctx.font = `800 ${size}px system-ui, sans-serif`; }
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.lineJoin = "round";
+  ctx.lineWidth = Math.round(size / 7); ctx.strokeStyle = "#000"; ctx.fillStyle = "#ffe9a8";
+  const lines: string[] = []; let line = "";
+  for (const word of words.split(/\s+/)) { const next = line ? line + " " + word : word; if (ctx.measureText(next).width > 1160 && line) { lines.push(line); line = word; } else line = next; }
+  lines.push(line);
+  lines.slice(-2).forEach((text, i, all) => { const y = 680 - (all.length - 1 - i) * size * 1.05; ctx.strokeText(text, 640, y); ctx.fillText(text, 640, y); });
+  video.removeAttribute("src"); video.load();
+  return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("The thumbnail could not be saved.")), "image/png"));
+}
+
+function YouTubeThumbnail({ videoUrl, title }: { videoUrl: string; title: string }) {
+  const [at, setAt] = useState(0.35);
+  const [image, setImage] = useState("");
+  const [status, setStatus] = useState("");
+  async function make() {
+    setStatus("Making your thumbnail…");
+    try { const blob = await drawThumbnail(videoUrl, at, title); if (image) URL.revokeObjectURL(image); setImage(URL.createObjectURL(blob)); setStatus(""); }
+    catch (error) { setStatus(error instanceof Error ? error.message : "The thumbnail could not be made."); }
+  }
+  return <div className="video-thumbnail" data-testid="youtube-thumbnail">
+    <h4>YouTube thumbnail · 1280×720</h4>
+    <label className="field">Pick the moment
+      <input type="range" min={0} max={1} step={0.01} value={at} aria-valuetext={`${Math.round(at * 100)}% into the video`} onChange={e => setAt(Number(e.target.value))} data-testid="input-thumbnail-moment" /></label>
+    <div className="actions">
+      <button type="button" className="secondary" onClick={() => void make()} data-testid="button-make-thumbnail">🖼️ {image ? "Make it again" : "Make thumbnail"}</button>
+      {image && <a className="primary" href={image} download={(title.replace(/[\\/:*?"<>|]/g, "-").trim().slice(0, 90) || "Samadhi Love") + " – YouTube thumbnail.png"} data-testid="button-save-thumbnail"><Download size={15}/> Save thumbnail</a>}
+    </div>
+    {image && <img src={image} alt={`YouTube thumbnail for ${title}`} className="video-thumbnail-preview" />}
+    <p className="muted creation-note">Upload it in YouTube Studio under Details → Thumbnail.</p>
     {status && <p role="status">{status}</p>}
   </div>;
 }

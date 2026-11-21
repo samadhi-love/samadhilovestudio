@@ -16,6 +16,8 @@ import {applySocialVideoPreset,applyVideoShape,creatorVideoLooks,shortClipRange,
 import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
 import {applyVideoPurpose,videoPurposeById,type VideoPurposeId} from "./video-purpose";
+import {postCaption as readyPostCaption,postTextFor} from "./post-text";
+import {videoPlatforms} from "./video-publishing";
 import {savedLyricsForAudio} from "./caption-ready-lyrics";
 import {artistDashboardHref} from "./community/data";
 import {productionFetch} from "./credits/client";
@@ -272,7 +274,8 @@ function LyricVideoProContent(props: Props) {
       (VideoExport & { format: VideoFormat; codec: string })[]
     >([]),
     [platform, setPlatform] = useState<VideoPlatform>("youtube"),
-    [postCaption, setPostCaption] = useState("");
+    [postCaption, setPostCaption] = useState(""),
+    [videoTitle, setVideoTitle] = useState("");
   const [recovery, setRecovery] = useState<LyricProject | null>(null);
   const workspace = useRef("");
   const [recoveryReady, setRecoveryReady] = useState("");
@@ -441,6 +444,7 @@ function LyricVideoProContent(props: Props) {
     }
     generationToken.current++;
     setPostCaption("");
+    setVideoTitle("");
     controller.current?.abort();
     controller.current = null;
     const prior = song.lyricVideo;
@@ -849,13 +853,15 @@ function LyricVideoProContent(props: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   }, [props.autoCaptionRequest?.id, song?.id, p?.duration, busy, recoveryReady, recovery]);
   const handledSocialRequest=useRef("");
+  /** The song's own name, words and styles for ready-to-paste post text. */
+  const postSource=()=>({title:song?.name??"",artist:p?.artist,tags:song?.tags,idea:song?.notes.prompt,lyrics:p?.approvedLyrics||song?.notes.lyrics});
   useEffect(()=>{const request=props.socialVideoRequest;if(!request||request.id===handledSocialRequest.current||song?.id!==request.songId||!p?.duration||busy||recoveryReady!==song.id)return;
     handledSocialRequest.current=request.id;
     if(recovery){setError("Resolve the available recovery copy before changing this video's excerpt. Your saved project is preserved.");return;}
     if(request.audioId&&request.audioId!==p.sourceAudioId){setError("This recording changed. Open its current version before preparing the video; your saved design is preserved.");return;}
     const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;const purpose=videoPurposeById(request.purpose);
     // What the video is for sets its shape and length: YouTube full song (wide), Shorts highlight, Phone full song, Square box.
-    let next=purpose?applyVideoPurpose(current.current!,purpose,purpose.seconds>0?start:0,song.musicalAd?seconds:undefined):applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset,request.footage);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform(purpose?.platform??"instagram");setStatus(purpose?`Your ${purpose.name} video is prepared: ${purpose.shape}. Review the words and look, then export. You can save it or open the upload page when it's done.`:"Your vertical short is prepared. Review captions and choose a look before export.");
+    let next=purpose?applyVideoPurpose(current.current!,purpose,purpose.seconds>0?start:0,song.musicalAd?seconds:undefined):applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset,request.footage);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform(purpose?.platform??"instagram");if(purpose){setPostCaption(readyPostCaption(purpose.platform,postSource()));setVideoTitle(postTextFor("youtube",postSource()).title);}setStatus(purpose?`Your ${purpose.name} video is prepared: ${purpose.shape}. Review the words and look, then export. You can save it or open the upload page when it's done.`:"Your vertical short is prepared. Review captions and choose a look before export.");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[props.socialVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   const handledCover=useRef("");
@@ -1725,7 +1731,8 @@ function LyricVideoProContent(props: Props) {
       await videoJob({video:"done",jobId},owner);
       if(localRecovery)await saveRender(recoveryKey,{...checkpoint,finished:true}).catch(()=>{});
       setResumeVideo(false);
-      setPostCaption(before=>before.trim()?before:`“${song.name}”${pro.artist?` by ${pro.artist}`:""}\n#LyricVideo #SamadhiLove`);
+      setPostCaption(before=>before.trim()?before:readyPostCaption(platform,postSource()));
+      setVideoTitle(before=>before.trim()?before:postTextFor("youtube",postSource()).title);
       setStatus(
         "Video export finished. Download or share the video below. A saved-video link is created automatically for exports up to 120 MB; Studio access is required to open it.",
       );
@@ -3569,7 +3576,12 @@ function LyricVideoProContent(props: Props) {
                                 ))}
                             </details>
                           ) : null}
-                          <label className="creator-post-caption">Your social post caption<textarea rows={4} maxLength={2000} value={postCaption} disabled={busy} placeholder="Tell listeners about this song…" onChange={e=>setPostCaption(e.target.value)}/></label>
+                          {platform==="youtube"&&<label className="creator-post-caption">YouTube title<input data-testid="input-video-title" maxLength={100} value={videoTitle} disabled={busy} placeholder="Song name – Artist (Lyric Video)" onChange={e=>setVideoTitle(e.target.value)}/></label>}
+                          <label className="creator-post-caption">{platform==="youtube"?"YouTube description":"Your social post caption"}<textarea data-testid="input-post-caption" rows={platform==="youtube"?7:4} maxLength={2000} value={postCaption} disabled={busy} placeholder="Tell listeners about this song…" onChange={e=>setPostCaption(e.target.value)}/></label>
+                          <div className="actions">
+                            <button type="button" className="secondary small" data-testid="button-write-post" disabled={busy} onClick={()=>{if(postCaption.trim()&&!confirm("Replace your caption with a new one?"))return;setPostCaption(readyPostCaption(platform,postSource()));if(platform==="youtube")setVideoTitle(postTextFor("youtube",postSource()).title);}}>✨ Write it for {videoPlatforms[platform].label}</button>
+                            {platform==="youtube"&&<button type="button" className="text-button" data-testid="button-copy-title" disabled={!videoTitle.trim()} onClick={()=>{void navigator.clipboard?.writeText(videoTitle).then(()=>setStatus("YouTube title copied."),()=>setStatus("Select and copy the title from its box."));}}>Copy title</button>}
+                          </div>
                           <p className="lvp-note">Download or share the finished file below. Upload destinations open your own account for review; nothing posts automatically.</p>
                           <button type="button" className="lvp-primary" disabled={busy} onClick={async()=>{if(await persist())window.location.assign(artistDashboardHref(song.id));}}>Publish song / manage visibility</button>
                           {outputs.map((output, i) => (

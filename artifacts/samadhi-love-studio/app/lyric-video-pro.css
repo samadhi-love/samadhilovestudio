@@ -1402,3 +1402,7 @@
 .lvp-preview-more { margin: 8px 0; border: 1px solid #6f61a044; border-radius: 12px; padding: 2px 10px; }
 .lvp-preview-more > summary { cursor: pointer; padding: 8px 0; font-size: 13px; color: #cfdbef; }
 .shell .lyric-video-pro .qv-shapes button[aria-pressed="true"] { border-color: #f3d29d; color: #f3d29d; }
+/* YouTube thumbnail maker under a widescreen export. */
+.video-thumbnail { margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid #c9a7ff55; background: #ffffff08; display: grid; gap: 8px; }
+.video-thumbnail h4 { margin: 0; color: #ffe9a8; }
+.video-thumbnail-preview { width: 100%; max-width: 480px; aspect-ratio: 16 / 9; border-radius: 8px; border: 1px solid #ffffff33; }
