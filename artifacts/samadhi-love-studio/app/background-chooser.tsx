@@ -29,7 +29,10 @@ export function suggestedThemes(song?: Pick<Song, "name" | "notes" | "tags"> | n
   const text = song ? `${song.name} ${song.notes.prompt} ${song.tags.join(" ")}`.toLowerCase() : "";
   const picks: VideoTheme[] = [];
   const add = (...ids: VideoTheme[]) => ids.forEach(id => { if (!picks.includes(id)) picks.push(id); });
-  if (/kid|child|lullab|nursery|baby|birthday|school|abc|toddler|bedtime|sleep/.test(text)) add("balloons", "meadow", "undersea", "lullaby");
+  if (/lion|jungle|monkey|elephant|tiger|safari|zoo/.test(text)) add("jungle");
+  if (/farm|cow|pig|chick|duck|sheep|horse|barn|tractor/.test(text)) add("farm");
+  if (/pupp|dog|kitt|cat\b|cats\b|pet/.test(text)) add("pets");
+  if (/kid|child|lullab|nursery|baby|birthday|school|abc|toddler|bedtime|sleep/.test(text)) add("balloons", "jungle", "farm", "pets", "meadow", "undersea", "lullaby");
   if (/america|usa|u\.s\.|patriot|freedom|liberty|flag|4th of july|independence|new york|nyc|brooklyn|manhattan|city/.test(text)) add("flag", "liberty", "nycnight");
   if (/god|jesus|christ|mary|angel|pray|prayer|gospel|worship|mantra|om\b|kriya|buddha|sacred|spirit|soul|medit|heal/.test(text)) add("archangel", "masters", "lotus", "temple", "mandala", "jesus");
   if (/dance|party|club|edm|house|techno|pop|hype/.test(text)) add("futuristic", "portal", "nebula", "nycnight", "balloons");

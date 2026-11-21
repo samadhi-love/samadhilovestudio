@@ -65,7 +65,7 @@ test("3 taps beside the preview: every background is one chip away in a short sc
       document.querySelectorAll<HTMLElement>('[data-testid^="qv-theme-"]').forEach(card=>reachable.add(card.dataset.testid!.slice(9)));
     }
     assert.deepEqual([...reachable].sort(),Object.values(lyricBackgroundGroups).flatMap(g=>[...g.themes]).sort(),"all backgrounds reachable, none removed");
-    assert.equal(reachable.size,46);
+    assert.equal(reachable.size,49,"46 + 3 favourite-animal scenes");
     await act(async()=>q("qv-chip-kids")!.click());
     await act(async()=>q("qv-theme-balloons")!.click());
     assert.equal(q("qv-theme-balloons")!.getAttribute("aria-pressed"),"true","tap = chosen (preview updates)");
@@ -144,7 +144,10 @@ test("3 · Vibe shows Background and Lyric style as two boxes; every lyric style
 
 test("'For this song' suggests the right collections from the song itself",()=>{
   const song=(name:string,prompt="")=>({name,notes:{prompt} as any,tags:[] as string[]});
-  assert.deepEqual(suggestedThemes(song("ABC Bedtime","gentle kids lullaby")).slice(0,4),["balloons","meadow","undersea","lullaby"]);
+  assert.deepEqual(suggestedThemes(song("ABC Bedtime","gentle kids lullaby")).slice(0,7),["balloons","jungle","farm","pets","meadow","undersea","lullaby"]);
+  assert.equal(suggestedThemes(song("Moo Moo","a song about a cow on the farm"))[0],"farm","animal words pick their scene");
+  assert.equal(suggestedThemes(song("Roar","a lion and a monkey"))[0],"jungle");
+  assert.equal(suggestedThemes(song("Best Friends","my puppy and my kitten"))[0],"pets");
   assert.deepEqual(suggestedThemes(song("Land of the Free","patriotic anthem")).slice(0,3),["flag","liberty","nycnight"]);
   assert.ok(suggestedThemes(song("Om Shanti","mantra meditation")).includes("lotus"));
   for(const id of suggestedThemes(song("Anything")))assert.ok(id in videoThemes);

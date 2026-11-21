@@ -16,8 +16,8 @@ function recorder(){
   },set(){return true;}});
 }
 
-test("all 7 animated scenes draw in every video shape without errors, and they actually move",()=>{
-  assert.deepEqual([...api.animatedScenes],["balloons","meadow","undersea","lullaby","flag","liberty","nycnight"]);
+test("all 10 animated scenes draw in every video shape without errors, and they actually move",()=>{
+  assert.deepEqual([...api.animatedScenes],["balloons","meadow","undersea","lullaby","jungle","farm","pets","flag","liberty","nycnight"]);
   for(const scene of api.animatedScenes)for(const [w,h] of [[1080,1920],[1920,1080],[1080,1080]]){
     const a=recorder(),b=recorder();
     assert.equal(api.drawAnimatedScene(a,scene,w,h,0),true);
@@ -29,12 +29,16 @@ test("all 7 animated scenes draw in every video shape without errors, and they a
 });
 
 test("new scenes are in the picker (Kids songs, USA & New York) with a preview picture, and use a real photo with live motion on top",()=>{
-  assert.deepEqual([...api.lyricBackgroundGroups.kids.themes],["balloons","meadow","undersea","lullaby"]);
+  assert.deepEqual([...api.lyricBackgroundGroups.kids.themes],["balloons","meadow","undersea","lullaby","jungle","farm","pets"]);
   assert.deepEqual([...api.lyricBackgroundGroups.usa.themes],["flag","liberty","nycnight"]);
+  const drawnOnly=["jungle","farm","pets"]; // favourite-animal scenes: original drawings, animated in code
   for(const id of api.animatedScenes){
     const theme=api.videoThemes[id];
+    if(drawnOnly.includes(id))assert.equal(theme.image,"","drawn live in code, no photo needed");
+    else{
     assert.equal(theme.image,`/lyric-art/photo/${id}.webp`,"realistic photo background");
     assert.ok(existsSync("public"+theme.image),`${id} photo exists`);
+    }
     assert.ok(existsSync("public"+theme.thumb),`${id} preview exists`);
     assert.equal(theme.colors.length,4);
   }
