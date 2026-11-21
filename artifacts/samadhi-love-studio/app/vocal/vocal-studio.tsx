@@ -20,6 +20,7 @@ import { productionFetch } from "../credits/client";
 import { ClipControls, ClipTimeline } from "./timeline";
 import { encodeMp3 } from "./mp3";
 import { TuningPanel } from "./tuning-panel";
+import { VoicePolish } from "./voice-polish";
 import { dry, emptySession, maxClips, maxSources, maxSourceSeconds, noTuning, sessionSeconds, splitClip, type Clip, type Role, type Session } from "./session";
 import { allSessions, sessionRequest, sessionUrl, writeSession, type SessionSummary } from "./storage";
 
@@ -448,6 +449,7 @@ export function VocalStudio({ active, songs, projects = songs, initialSongId, in
       <h2>3. Shape your sound</h2>
       <p className="muted">Apply a preset or tune the selected clip, then render it to compare with the original above.</p>
       <fieldset disabled={settingsDisabled}>
+        {selected.role !== "Instrumental" && <VoicePolish clip={selected} update={updateClip}/>}
         <EffectsPanel key={selected.id} clip={selected} simple={level === "beginner"} presets={session.presets} update={updateClip}
           savePreset={(name, effects) => patch({ presets: [...session.presets.filter(preset => preset.name !== name), { name, effects }] })}/>
         {level !== "beginner" && selected.role !== "Instrumental" && <TuningPanel key={selected.id} clip={selected} buffer={original.current.get(selected.source)?.buffer}

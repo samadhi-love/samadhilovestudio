@@ -1,7 +1,7 @@
 "use client";
 /** Echo & Voices: live echo, repeat chorus, many voices, stadium and voice changer, then record the result. */
 import { useEffect, useRef, useState } from "react";
-import { EchoVoicesAudio, defaultFx, voiceShapes, type ChorusSize, type EchoLength, type FxSettings, type Space, type VoiceShape } from "./echo-voices-audio";
+import { EchoVoicesAudio, canChooseOutput, defaultFx, voiceShapes, type ChorusSize, type EchoLength, type FxSettings, type Space, type VoiceShape } from "./echo-voices-audio";
 import "./echo-voices.css";
 
 const echoChoices: [EchoLength, string][] = [["off", "Off"], ["short", "Short"], ["medium", "Medium"], ["long", "Long"], ["cosmos", "Into the cosmos"]];
@@ -37,6 +37,19 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
   const [level, setLevel] = useState(0);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  // Live mode: effects go straight out (headphones, speaker or a virtual mic for a livestream). Nothing is recorded or saved.
+  const [liveMode, setLiveMode] = useState(false);
+  const [outputs, setOutputs] = useState<{ id: string; name: string }[]>([]);
+  const [output, setOutput] = useState("");
+  const outputChoice = typeof window !== "undefined" && canChooseOutput();
+  async function listOutputs() {
+    try {
+      const devices = await navigator.mediaDevices?.enumerateDevices?.() ?? [];
+      setOutputs(devices.filter(d => d.kind === "audiooutput" && d.deviceId && d.deviceId !== "default")
+        .map((d, i) => ({ id: d.deviceId, name: d.label || `Sound output ${i + 1}` })));
+    } catch { setOutputs([]); }
+  }
+  const chooseOutput = (id: string) => run(async () => { await get().setOutput(id); setOutput(id); });
   const engineRef = useRef(engine);
   const get = () => {
     if (!audio.current) {
@@ -49,7 +62,9 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
   };
   useEffect(() => () => { audio.current?.dispose(); audio.current = null; }, []);
   useEffect(() => { audio.current?.setFx(fx); }, [fx]);
-  useEffect(() => { audio.current?.setHearing(hear); }, [hear]);
+  useEffect(() => { audio.current?.setHearing(hear || liveMode); }, [hear, liveMode]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- device names appear once the microphone is allowed
+  useEffect(() => { if (liveMode) void listOutputs(); }, [liveMode, mic]);
   useEffect(() => () => { if (take) URL.revokeObjectURL(take.url); }, [take]);
   useEffect(() => {
     if (!mic && !replay && !taking) { setLevel(0); return; }
@@ -59,11 +74,11 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
   const fail = (error: unknown) => setMessage(error instanceof Error && error.message ? error.message : "Something went wrong with the microphone. Try again.");
   async function run(task: () => Promise<void>) { setMessage(""); try { await task(); } catch (error) { fail(error); } }
   const toggleMic = () => run(async () => {
-    const a = get(); a.setFx(fx); a.setHearing(hear);
+    const a = get(); a.setFx(fx); a.setHearing(hear || liveMode);
     if (mic) { if (taking) return; await a.stopMicrophone(); setMic(false); } else { await a.start(); setMic(true); }
   });
   const catchLine = () => run(async () => {
-    const a = get(); a.setFx(fx); a.setHearing(hear);
+    const a = get(); a.setFx(fx); a.setHearing(hear || liveMode);
     if (phrase === "catching") { const seconds = await a.keepPhrase(); setPhraseSeconds(seconds); setPhrase(seconds ? "ready" : "none"); return; }
     await a.catchPhrase(); setMic(true); setReplay(""); setPhrase("catching");
   });
@@ -86,12 +101,36 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
     <p className="ev-eyebrow">Record · Echo &amp; Voices</p>
     <h1 id="ev-title">Echo &amp; Voices</h1>
     <p className="ev-lede">Sing or speak and hear your voice echo into the cosmos, come back as a chorus, multiply into a choir or fill a stadium. It all happens on your device: no AI, no credits.</p>
+    <div className="ev-modes" role="radiogroup" aria-label="Echo & Voices mode">
+      <button type="button" role="radio" aria-checked={!liveMode} className={!liveMode ? "active" : ""} data-testid="button-mode-record" disabled={taking} onClick={() => setLiveMode(false)}>🎙 Record mode</button>
+      <button type="button" role="radio" aria-checked={liveMode} className={liveMode ? "active" : ""} data-testid="button-mode-live" disabled={taking} onClick={() => setLiveMode(true)}>🔴 Live mode · no recording</button>
+    </div>
+    {liveMode && <section className="ev-live" data-testid="ev-live" aria-label="Live mode">
+      <p><strong>Live mode:</strong> every effect plays out as you sing or speak. Nothing is recorded or saved. Use it for practice, a performance, or a livestream.</p>
+      {outputChoice ? <label className="ev-title">Send my live voice to
+        <select value={output} data-testid="select-live-output" onChange={e => void chooseOutput(e.target.value)}>
+          <option value="">This device (headphones)</option>
+          {outputs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
+        {!mic && <small className="muted">Start the microphone to see every sound output by name.</small>}
+      </label> : <p className="muted" data-testid="text-live-output-unsupported">This browser plays the live sound on this device only. To send it into a livestream app, use Chrome or Edge on a computer.</p>}
+      <details className="ev-guide" data-testid="guide-tiktok-live"><summary>Go live on TikTok (or YouTube, Instagram, Twitch)</summary>
+        <ol>
+          <li>Use a computer with <strong>Chrome or Edge</strong>, and wear <strong>headphones</strong>.</li>
+          <li>Install a free virtual microphone: <strong>VB-CABLE</strong> on Windows, or <strong>BlackHole</strong> on Mac. Restart the browser.</li>
+          <li>Here, tap <strong>Start microphone</strong>, then in <strong>Send my live voice to</strong> choose <strong>CABLE Input</strong> (Windows) or <strong>BlackHole</strong> (Mac).</li>
+          <li>In <strong>TikTok LIVE Studio</strong> (or OBS), set the microphone to <strong>CABLE Output</strong> or <strong>BlackHole</strong>.</li>
+          <li>Pick your blend: Cosmic echo, Choir of me, Stadium… Go live. Your audience hears your voice with every effect.</li>
+        </ol>
+        <p className="muted">On a phone, the TikTok app listens to the phone&apos;s own microphone, so a web page can&apos;t add effects to a phone livestream. Go live from a computer instead.</p>
+      </details>
+    </section>}
     <div className="ev-top">
-      <label className="ev-hear"><input type="checkbox" data-testid="checkbox-hear-live" checked={hear} onChange={e => setHear(e.target.checked)}/> 🎧 I&apos;m wearing headphones: let me hear it live</label>
+      {!liveMode && <label className="ev-hear"><input type="checkbox" data-testid="checkbox-hear-live" checked={hear} onChange={e => setHear(e.target.checked)}/> 🎧 I&apos;m wearing headphones: let me hear it live</label>}
       <button type="button" className={mic ? "secondary" : "primary"} data-testid="button-ev-mic" disabled={taking || phrase === "catching"} onClick={() => void toggleMic()}>{mic ? "Stop microphone" : "🎙 Start microphone"}</button>
       <div className="ev-meter" aria-hidden="true"><span style={{ width: `${Math.round(level * 100)}%` }}/></div>
     </div>
-    {!hear && <p className="muted ev-note">Without headphones the speakers stay quiet so they don&apos;t squeal into the microphone. Your recording still includes every effect.</p>}
+    {!hear && !liveMode && <p className="muted ev-note">Without headphones the speakers stay quiet so they don&apos;t squeal into the microphone. Your recording still includes every effect.</p>}
     {message && <p role="status" className="ev-message" data-testid="text-ev-message">{message}</p>}
 
     <h2 className="ev-sub">One-tap blends</h2>
@@ -128,7 +167,7 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
       </article>
     </div>
 
-    <div className="ev-take">
+    {liveMode ? <p className="muted ev-note" data-testid="text-live-no-record">Live mode never records. Switch to Record mode to keep a take.</p> : <div className="ev-take">
       <button type="button" className={taking ? "ev-big live" : "ev-big"} data-testid="button-ev-record" disabled={phrase === "catching"} onClick={() => void record()}>{taking ? "■ Stop recording" : "● Record with effects"}</button>
       {taking && <p className="muted">Recording your voice, the repeats and every effect…</p>}
       {take && <div className="ev-result" data-testid="ev-result">
@@ -140,7 +179,7 @@ export function EchoVoices({ saveSong, makeVideo, engine }: { saveSong: (file: F
           <a className="secondary button-link" href={take.url} download={`${title.trim() || "My echo take"}.${ext(take.blob.type)}`}>Download</a>
         </div>
       </div>}
-    </div>
+    </div>}
     <p className="muted ev-note">The stadium and choir are made from copies of your own voice, so they sound like a group of you. There&apos;s no child-like voice setting.</p>
   </section>;
 }

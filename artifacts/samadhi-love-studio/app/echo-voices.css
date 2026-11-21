@@ -48,3 +48,12 @@
 @media(max-width:1100px){.ev-blends{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.ev-cards{grid-template-columns:1fr}.ev-blends{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.ev-rec.live,.ev-big.live{animation:none}}
+/* Record mode / Live mode switch and the live panel. */
+.ev-modes{display:inline-flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.ev-modes button{min-height:42px;padding:0 16px;border-radius:999px;border:1px solid #c9a7ff55;background:#ffffff08;color:inherit;font-weight:600}
+.ev-modes button.active{border-color:#f3d29d;background:#f3d29d22;box-shadow:0 0 0 2px #f3d29d inset;color:#fff}
+.ev-modes button:focus-visible{outline:2px solid #7fe9ff;outline-offset:2px}
+.ev-live{margin:0 0 14px;padding:12px;border-radius:14px;border:1px solid #ff6b8a55;background:#ff6b8a10;display:grid;gap:8px}
+.ev-live p{margin:0}
+.ev-guide summary{cursor:pointer;font-weight:700;color:#ffe9a8}
+.ev-guide ol{margin:8px 0;padding-left:20px;display:grid;gap:4px}

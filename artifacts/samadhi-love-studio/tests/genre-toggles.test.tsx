@@ -17,7 +17,7 @@ test("the band fits the genre, blends take turns, and instruments you name alway
   assert.equal(autoInstruments("A soft song with piano and cello",["Pop"]),"","named instruments are left to you");
   assert.equal(autoInstruments("A song about my grandmother",[]),"piano, acoustic guitar, warm bass, light drums, soft strings");
   assert.equal(blendName(["Soul","Gospel"]),"Soul × Gospel");
-  assert.equal(quickGenres.length,16);
+  assert.equal(quickGenres.length,17);
 });
 
 async function setup(){

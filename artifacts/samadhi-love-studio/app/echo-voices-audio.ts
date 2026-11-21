@@ -66,6 +66,16 @@ export const takeMime = () => typeof MediaRecorder === "undefined" ? undefined :
 type Nodes = AudioNode[];
 const stop = (nodes: Nodes) => nodes.forEach(n => { try { if ("stop" in n && typeof (n as AudioScheduledSourceNode).stop === "function") (n as AudioScheduledSourceNode).stop(); } catch { /* not started */ } try { n.disconnect(); } catch { /* released */ } });
 
+/** True where the browser can send page audio to a chosen output device (Chrome, Edge). */
+export function canChooseOutput() {
+  return typeof AudioContext !== "undefined" && "setSinkId" in AudioContext.prototype;
+}
+async function applySink(context: AudioContext, deviceId: string) {
+  const target = context as AudioContext & { setSinkId?: (id: string) => Promise<void> };
+  if (typeof target.setSinkId !== "function") throw new Error("This browser can't choose where the sound goes. Use Chrome or Edge on a computer.");
+  await target.setSinkId(deviceId);
+}
+
 export class EchoVoicesAudio {
   private context?: AudioContext;
   private stream?: MediaStream;
@@ -78,6 +88,8 @@ export class EchoVoicesAudio {
   private capture?: { recorder: MediaRecorder; done: Promise<Blob>; kind: "phrase" | "take"; timer: ReturnType<typeof setTimeout> };
   private disposed = false;
   private hearing = false;
+  /** Where the live sound goes (a speaker, headphones or a virtual microphone). "" = the device default. */
+  private sinkId = "";
   /** Lets tests and the meter see the level of what's being made. */
   analyser?: AnalyserNode;
   onReplayEnded?: () => void; onLimit?: () => void; onInterrupt?: (message: string) => void;
@@ -96,10 +108,16 @@ export class EchoVoicesAudio {
       this.mix.connect(squeeze).connect(clip);
       clip.connect(this.record); clip.connect(this.analyser); clip.connect(this.monitor).connect(c.destination);
       this.rebuildVoice(); this.rebuildFx();
+      if (this.sinkId) await applySink(c, this.sinkId);
     }
     await this.context.resume();
     if (this.context.state !== "running") throw new Error("Audio is paused by the browser. Tap Start again.");
     return this.context;
+  }
+  /** Sends the live sound to an output device, e.g. a virtual microphone for TikTok LIVE Studio. */
+  async setOutput(deviceId: string) {
+    this.sinkId = deviceId;
+    if (this.context) await applySink(this.context, deviceId);
   }
   /** Speakers only with headphones on; the recording is made either way. */
   setHearing(on: boolean) { this.hearing = on; if (this.monitor && this.context) this.monitor.gain.setTargetAtTime(on ? 1 : 0, this.context.currentTime, 0.02); }
