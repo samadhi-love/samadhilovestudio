@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {build} from "esbuild";
+process.env.STUDIO_RATE_LIMITS="off"; // many offline route calls in one second; speed limits have their own test
 import {mkdirSync,readFileSync} from "node:fs";
 import {renderToStaticMarkup} from "react-dom/server";
 import React from "react";
@@ -36,7 +37,7 @@ export {jobExecution} from "./app/credits/production";
     eleven:`export const musicModel="music_v2_5";export const elevenLabsFailureMessage=async()=>"ElevenLabs rejected";
       export async function elevenLabsRequest(key,path,payload){const s=globalThis.__ace;s.eleven.push({path,payload});return path==="music/plan"?Response.json({chunks:[{text:"[Verse]\\nLight upon the sea",duration_ms:30000}]}):new Response("ID3fixture MP3 audio",{headers:{"Content-Type":"audio/mpeg"}});}`,
     fal:`export async function falRequest(key,path,init={}){const s=globalThis.__ace;s.fal.push({path,method:init.method??"GET",input:init.body?JSON.parse(init.body):undefined});
-      if(path.startsWith("/fal-ai/any-llm")){
+      if(path.startsWith("/openrouter/router")){
         if(init.method==="POST"){if(s.llmFailure)return new Response("",{status:503});return Response.json({request_id:"llm-1"});}
         if(path.endsWith("/status"))return Response.json({status:"COMPLETED"});
         return Response.json({output:s.llmOutput??"Here are your lyrics:\\n[Verse 1]\\nStars above the quiet sea\\nLight is calling you and me\\n\\n[Chorus]\\nWe are one under the sky"});}
@@ -125,7 +126,7 @@ test("private downloads remain recoverable after final library conflicts",async(
   assert.equal([...objects.keys()].filter(k=>k.startsWith("private/recovery/")).length,2);
 });
 const songPosts=state=>state.fal.filter(c=>c.method==="POST"&&c.path.startsWith("/fal-ai/ace-step"));
-const lyricPosts=state=>state.fal.filter(c=>c.method==="POST"&&c.path.startsWith("/fal-ai/any-llm"));
+const lyricPosts=state=>state.fal.filter(c=>c.method==="POST"&&c.path.startsWith("/openrouter/router"));
 test("description-only songs need no ElevenLabs: the fal lyric writer writes, then ACE-Step sings",async()=>{
   const {state}=fixture({elevenKey:null});const response=await api.create(request({...input,lyrics:""}));
   assert.equal(response.status,200,JSON.stringify(await response.clone().json()));
@@ -159,6 +160,7 @@ test("Write them for me uses the fal writer with ACE-Step and keeps the ElevenLa
 test("writer prompt scales sections with length and strips assistant chatter",()=>{
   assert.match(api.falLyricRequest({description:"x",singing:"",duration:40}).system_prompt,/one verse and one chorus/);
   assert.match(api.falLyricRequest({description:"x",singing:"",duration:300}).system_prompt,/final chorus/);
+  assert.equal(api.falLyricRequest({description:"x",singing:"",duration:60}).model,"google/gemini-2.5-flash","lyric writer model is pinned, never a provider default");
   assert.equal(api.cleanFalLyrics("Sure! Here you go:\n```\n**[Verse]**\nHello light\n```"),"[Verse]\nHello light");
 });
 test("short and over-limit text preflight use backup without a fal submission; six-minute cap is enforced",async()=>{

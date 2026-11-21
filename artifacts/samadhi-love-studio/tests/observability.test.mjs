@@ -59,7 +59,7 @@ test("AI calls: paid submissions and failures are logged with timing and provide
       next=()=>Response.json({status:"IN_PROGRESS"});
       await api.falRequest(secret,"/fal-ai/ace-step-1.5/requests/fal-abc-123/status");
       next=()=>new Response("{}",{status:422});
-      await api.falRequest(secret,"/fal-ai/any-llm",{method:"POST",body:"{}"});
+      await api.falRequest(secret,"/openrouter/router",{method:"POST",body:"{}"});
       next=()=>{throw Object.assign(new Error(lyric),{name:"TimeoutError"});};
       await assert.rejects(api.falRequest(secret,"/fal-ai/ace-step-1.5",{method:"POST",body:"{}"}));
       next=()=>new Response("{}",{status:200,headers:{"request-id":"el-777"}});
@@ -67,7 +67,7 @@ test("AI calls: paid submissions and failures are logged with timing and provide
     })));
     assert.deepEqual(lines.map(l=>[l.event,l.provider,l.step,l.ok,l.status,l.providerRequestId,l.errorType,l.requestId,l.jobId]),[
       ["provider.call","fal.ai","ace-step-1.5/submit",true,200,"fal-abc-123",undefined,"req-1","job-9"],
-      ["provider.call","fal.ai","any-llm/submit",false,422,undefined,undefined,"req-1","job-9"],
+      ["provider.call","fal.ai","lyrics/submit",false,422,undefined,undefined,"req-1","job-9"],
       ["provider.call","fal.ai","ace-step-1.5/submit",false,undefined,undefined,"timeout","req-1","job-9"],
       ["provider.call","ElevenLabs","/v1/forced-alignment",true,200,"el-777",undefined,"req-1","job-9"],
     ]);

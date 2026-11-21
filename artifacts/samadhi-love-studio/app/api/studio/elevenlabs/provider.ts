@@ -126,6 +126,17 @@ function readSubscription(body: unknown) {
   return tier || usage ? { tier, usage } : undefined;
 }
 
+/** Stem quality the key's plan allows: 192 kbps MP3 needs Creator or above. A free, read-only
+ * account check picks it before the single paid request, so stems never need a second try. */
+export const stemFormats = { standard: "mp3_44100_128", high: "mp3_44100_192" } as const;
+export async function stemOutputFormat(key: string) {
+  try {
+    const account = await probe(key, "account", "user/subscription", 10_000, readSubscription);
+    const tier = account.ok ? account.value.tier : undefined;
+    return tier && !["free", "starter"].includes(tier) ? stemFormats.high : stemFormats.standard;
+  } catch { return stemFormats.standard; }
+}
+
 /** Owner setup only: a read-only account check, with no composition or audio. */
 export async function testElevenLabsAccount(key: string) {
   const account = await probe(key, "account", "user/subscription", 30_000, readSubscription);

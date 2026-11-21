@@ -1,3 +1,4 @@
+import { rateLimited } from "../../../server/rate-limit";
 import { familySafe } from "../../../family-voices";
 import { productionPolish } from "../../../production-polish";
 import { describeInstruments } from "../../../instrument-sounds";
@@ -104,6 +105,7 @@ async function createMusic(request: Request) {
   const job=jobExecution.get(request);
   const access = job?{id:job.owner,role:job.role}:await privateWorkspace();
   if (!access) return problem("Sign in to use Create.", 401);
+  if (!job) { const tooFast = rateLimited("create", access.id); if (tooFast) return tooFast; }
   const id = access.id;
   const expectedWorkspace = request.headers.get("X-Studio-Workspace");
   if (expectedWorkspace && expectedWorkspace !== id) return problem("Your signed-in account changed. Reload before creating music; no generation request was sent.", 409);

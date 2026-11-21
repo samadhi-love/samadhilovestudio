@@ -6,6 +6,7 @@
 import { serverStorage as env } from "./storage";
 import { checkHealth } from "./health";
 import { eventHistoryReady } from "./event-store";
+import { retentionPreview } from "./retention-preview";
 
 /** The app's targets (SLOs). Plain sentences so the owner can read them as-is. */
 export const targets = {
@@ -35,7 +36,7 @@ export async function ownerStatus(now = Date.now()) {
   const DB = env.DB;
   const since = now - 86_400_000;
   const health = await checkHealth(env);
-  if (!DB) return { at: new Date(now).toISOString(), health, historyReady: false, jobs: [], targets: [], ai: [], errors: [], actions: [], errorCount: null };
+  if (!DB) return { at: new Date(now).toISOString(), health, historyReady: false, jobs: [], targets: [], ai: [], errors: [], actions: [], errorCount: null, cleanup: null };
   const all = async (sql: string, ...values: unknown[]) => (await DB.prepare(sql).bind(...values).all<Row>()).results ?? [];
 
   const jobs = (await all(`SELECT type, status, COUNT(*) AS n,
@@ -53,6 +54,7 @@ export async function ownerStatus(now = Date.now()) {
   let ai: { provider: string; step: string; calls: number; ok: number; averageMs: number | null }[] = [];
   let captionOk = 0, captionFailed = 0, errorCount: number | null = null;
   let errors: { at: string; event: string; status: number | null; route: string | null; requestId: string | null; detail: Record<string, unknown> }[] = [];
+  let safety: { slowedDown: number; policyReports: { directive: string; blocked: string; count: number }[] } | null = null;
   let actions: { at: string; action: string; actor: string | null; requestId: string | null; detail: Record<string, unknown> }[] = [];
   if (historyReady) {
     ai = (await all(`SELECT json_extract(detail, '$.provider') AS provider, json_extract(detail, '$.step') AS step,
@@ -64,6 +66,12 @@ export async function ownerStatus(now = Date.now()) {
         SUM(CASE WHEN event = 'lyric-sync.crash' OR (event = 'lyric-sync.problem' AND status IN (422, 429, 502, 503)) THEN 1 ELSE 0 END) AS failed_n
       FROM studio_events WHERE at >= ? AND event IN ('caption.sync', 'lyric-sync.problem', 'lyric-sync.crash')`, since))[0] ?? {};
     captionOk = num(captions.ok_n); captionFailed = num(captions.failed_n);
+    const slowed = await all(`SELECT COUNT(*) AS n FROM studio_events WHERE event = 'api.failure' AND at >= ?
+      AND json_extract(detail, '$.reason') = 'rate-limited'`, since);
+    const policy = await all(`SELECT json_extract(detail, '$.directive') AS directive, json_extract(detail, '$.blocked') AS blocked, COUNT(*) AS n
+      FROM studio_events WHERE event = 'api.failure' AND at >= ? AND json_extract(detail, '$.reason') = 'content-policy'
+      GROUP BY directive, blocked ORDER BY n DESC LIMIT 10`, since);
+    safety = { slowedDown: num(slowed[0]?.n), policyReports: policy.map(r => ({ directive: String(r.directive ?? "?"), blocked: String(r.blocked ?? "?"), count: num(r.n) })) };
     errorCount = num((await all("SELECT COUNT(*) AS n FROM studio_events WHERE level = 'error' AND at >= ?", since))[0]?.n);
     errors = (await all(`SELECT at, event, status, route, request_id, detail FROM studio_events
       WHERE level = 'error' ORDER BY at DESC LIMIT 20`))
@@ -81,8 +89,9 @@ export async function ownerStatus(now = Date.now()) {
     aiSuccess: historyReady && aiCalls ? aiOk / aiCalls : null,
     serverErrors: errorCount,
   };
+  const cleanup = await retentionPreview(DB, now);
   return {
-    at: new Date(now).toISOString(), health, historyReady, jobs, ai, errors, actions, errorCount,
+    at: new Date(now).toISOString(), health, historyReady, jobs, ai, errors, actions, errorCount, cleanup, safety,
     targets: (Object.keys(targets) as (keyof typeof targets)[]).map(kind => ({
       kind, label: targets[kind].label, goal: targets[kind].goalText, value: measured[kind], met: judge(kind, measured[kind]),
       sample: kind === "songSuccess" ? songEnded : kind === "songSpeed" ? durations.length : kind === "captionPrecise" ? captionOk + captionFailed : kind === "aiSuccess" ? aiCalls : null,

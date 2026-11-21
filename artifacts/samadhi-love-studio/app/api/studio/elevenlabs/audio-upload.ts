@@ -2,7 +2,7 @@ import { audioTypes } from "../../../studio-data";
 import { providerRequest } from "../../../server/ai-provider";
 
 export async function sendProviderAudio(audio: R2ObjectBody, format: keyof typeof audioTypes, key: string,
-  fields: Record<string, string>, endpoint: "forced-alignment" | "speech-to-text" | "music/stem-separation?output_format=mp3_44100_128", signal: AbortSignal) {
+  fields: Record<string, string>, endpoint: "forced-alignment" | "speech-to-text" | `music/stem-separation?output_format=${"mp3_44100_128" | "mp3_44100_192"}`, signal: AbortSignal) {
   const boundary = "samadhi-" + crypto.randomUUID();
   const encoder = new TextEncoder();
   const prefix = encoder.encode(Object.entries(fields).map(([name, value]) =>

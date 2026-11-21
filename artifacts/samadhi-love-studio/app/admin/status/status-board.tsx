@@ -59,6 +59,14 @@ export function StatusBoard() {
     <section className="section" data-testid="status-jobs"><h2>Background work · last 24 hours</h2>
       {status.jobs.length ? <ul>{status.jobs.map(j => <li key={j.type + j.status}>{jobName[j.type] ?? j.type}: {j.count} {statusName[j.status] ?? j.status}{j.averageMs !== null && j.status === "done" ? ` · about ${seconds(j.averageMs)} each` : ""}</li>)}</ul> : <p>No songs or caption jobs in the last 24 hours.</p>}
     </section>
+    <section className="section" data-testid="status-cleanup"><h2>Deleted-song cleanup · preview only</h2>
+      {status.cleanup ? <>
+        <p>{status.cleanup.deletedSongs === 0 ? "No deleted songs are waiting." :
+          <>{status.cleanup.restorable} deleted {status.cleanup.restorable === 1 ? "song is" : "songs are"} still restorable · <strong data-testid="cleanup-past-grace">{status.cleanup.pastGrace}</strong> {status.cleanup.pastGrace === 1 ? "is" : "are"} past the 30-day grace period{status.cleanup.oldestPastGrace ? ` (oldest since ${when(status.cleanup.oldestPastGrace)})` : ""}.</>}
+          {status.cleanup.capped ? " Showing the first 5,000 only." : ""}</p>
+        <p className="muted">Nothing is deleted. Permanent cleanup is still off; songs that other songs, mixes or videos depend on would be kept even after it is turned on.</p>
+      </> : <p>The cleanup preview could not be read right now. Nothing was changed.</p>}
+    </section>
     {status.historyReady && <>
       <section className="section" data-testid="status-ai"><h2>AI requests · last 24 hours</h2>
         {status.ai.length ? <ul>{status.ai.map(a => <li key={a.provider + a.step}>{a.provider} · {a.step}: {a.ok} of {a.calls} accepted · about {seconds(a.averageMs)}</li>)}</ul> : <p>No AI requests recorded yet.</p>}
@@ -66,6 +74,13 @@ export function StatusBoard() {
       <section className="section" data-testid="status-errors"><h2>Recent errors</h2>
         {status.errors.length ? <ul>{status.errors.map((e, i) => <li key={i}><strong>{when(e.at)}</strong> · {e.event}{e.status ? ` (${e.status})` : ""}{e.route ? ` · ${e.route}` : ""}{typeof e.detail.reason === "string" ? ` · ${e.detail.reason}` : ""}{e.requestId ? <span className="muted"> · ref {e.requestId.slice(0, 8)}</span> : null}</li>)}</ul> : <p>No errors recorded. 🎉</p>}
       </section>
+      {status.safety && <section className="section" data-testid="status-safety"><h2>Safety · last 24 hours</h2>
+        <p>Requests slowed down by speed limits: <strong>{status.safety.slowedDown}</strong></p>
+        {status.safety.policyReports.length ? <>
+          <p>Content-policy reports (watch only — nothing was blocked):</p>
+          <ul>{status.safety.policyReports.map(r => <li key={r.directive + r.blocked}>{r.directive} · {r.blocked}: {r.count}</li>)}</ul>
+        </> : <p>No content-policy reports. The policy is in watch-only mode.</p>}
+      </section>}
       <section className="section" data-testid="status-actions"><h2>Owner & account actions</h2>
         {status.actions.length ? <ul>{status.actions.map((a, i) => <li key={i}><strong>{when(a.at)}</strong> · {a.action}{Object.keys(a.detail).length ? ` · ${Object.entries(a.detail).map(([k, v]) => `${k}: ${String(v)}`).join(", ")}` : ""}{a.requestId ? <span className="muted"> · ref {a.requestId.slice(0, 8)}</span> : null}</li>)}</ul> : <p>No actions recorded yet.</p>}
       </section>

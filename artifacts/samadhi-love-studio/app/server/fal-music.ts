@@ -62,7 +62,10 @@ export async function generateFal(key:string,input:FalInput,accepted:(id:string)
   }
   throw new Error("ACE-Step is taking longer than expected. Your request is saved; check fal.ai history before confirming Try again.");
 }
-export const falLyricModel="fal-ai/any-llm";
+/** fal retired "fal-ai/any-llm"; its replacement is the OpenRouter router, which needs a named model. */
+export const falLyricModel="openrouter/router";
+/** Pinned so lyric style never changes silently when a provider default moves. Update deliberately. */
+export const falLyricWriter="google/gemini-2.5-flash";
 const lyricPath="/"+falLyricModel;
 /** Plain-text instructions only: never put keys, account data or private notes in this prompt. */
 export function falLyricRequest(input:{description:string;singing:string;duration:number;opening?:string;arrangement?:string;voice?:string;genres?:string}){
@@ -78,7 +81,7 @@ export function falLyricRequest(input:{description:string;singing:string;duratio
   const prompt=[input.singing,`Song idea: ${input.description}`,input.genres&&`Genre and mood: ${input.genres}`,input.voice&&`Voice: ${input.voice}`,
     input.opening&&`Opening: ${input.opening}`,input.arrangement&&`Follow this section order and these cues:\n${input.arrangement}`]
     .filter(Boolean).join("\n").slice(0,4000);
-  return {prompt,system_prompt};
+  return {prompt,system_prompt,model:falLyricWriter,temperature:0.9,max_tokens:1500};
 }
 /** Remove anything an assistant adds around the lyrics; keep headings and sung lines only. */
 export function cleanFalLyrics(output:string){
@@ -101,7 +104,8 @@ export async function writeFalLyrics(key:string,input:Parameters<typeof falLyric
     if(state.status==="COMPLETED"){
       const output=await api.request(key,`${lyricPath}/requests/${queued.request_id}`,{signal:AbortSignal.timeout(30_000)});
       if(!output.ok)throw new Error("The lyric writer finished, but its words could not be read. Try again or add your own lyrics.");
-      const result=await output.json() as {output?:unknown};
+      const result=await output.json() as {output?:unknown;partial?:unknown;error?:unknown};
+      if(result.partial===true||(typeof result.error==="string"&&result.error))throw new Error("The lyric writer stopped early. Try again or add your own lyrics.");
       const lyrics=typeof result.output==="string"?cleanFalLyrics(result.output):"";
       if(!lyrics)throw new Error("The lyric writer returned no words. Try again or add your own lyrics.");
       return lyrics;

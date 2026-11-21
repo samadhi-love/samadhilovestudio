@@ -1,3 +1,4 @@
+import { rateLimited } from "../../../server/rate-limit";
 import { serverStorage as env } from "../../../server/storage";
 import { hasExplicitWords, cleanWordsMessage, isExplicitSong } from "../../../clean-content";
 import { creationPresets, isInstrumental, type Instrumental } from "../../../creation-guide";
@@ -24,6 +25,7 @@ function problem(error: string, status: number) {
 async function uploadAudio(request: Request) {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to upload a song.", 401);
+  { const tooFast = rateLimited("upload", access.id); if (tooFast) return tooFast; }
   const id = access.id;
   const expectedWorkspace = request.headers.get("X-Studio-Workspace");
   if (expectedWorkspace && expectedWorkspace !== id) return problem("Your signed-in account changed. Reload before uploading; the recording has not been saved to another account.", 409);

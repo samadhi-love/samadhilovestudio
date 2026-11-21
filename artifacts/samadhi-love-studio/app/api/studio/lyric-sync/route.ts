@@ -1,3 +1,4 @@
+import { rateLimited } from "../../../server/rate-limit";
 import { withProductionUsage, managedProviderKey,jobExecution } from "../../../credits/production";
 import { sendProviderAudio } from "../elevenlabs/audio-upload";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
@@ -31,6 +32,7 @@ function problem(error: string, status: number) {
 async function syncLyrics(request: Request) {
   const id = jobExecution.get(request)?.owner??(await privateWorkspace())?.id;
   if (!id) return problem("Sign in to your private Studio to sync captions.", 401);
+  if (!jobExecution.get(request)) { const tooFast = rateLimited("lyric-sync", id); if (tooFast) return tooFast; }
   if (request.headers.get("origin") !== new URL(request.url).origin)
     return problem("Open the studio directly to sync captions.", 403);
 

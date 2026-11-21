@@ -1,4 +1,5 @@
 import {privateWorkspace} from "../../../studio-access";
+import {rateLimited} from "../../../server/rate-limit";
 import {privateHeaders,readStudio} from "../store";
 import {readBoundedText,recoverableRoute} from "../request-errors";
 import {enqueueWork,ownedJob,prepareSong,readJobDocument,type SavedWork} from "../../../server/job-runner";
@@ -52,6 +53,7 @@ export const POST=recoverableRoute(async(request:Request)=>{
   if(request.headers.get("origin")!==new URL(request.url).origin)return reply({error:"Open Studio directly to continue."},403);
   const expected=request.headers.get("X-Studio-Workspace");
   if(expected&&expected!==owner)return reply({error:"Your account changed. Reload before continuing."},409);
+  const tooFast=rateLimited("work",owner);if(tooFast)return tooFast;
   let input;
   try{input=JSON.parse(await readBoundedText(request,80000));}
   catch(error){if(error instanceof SyntaxError)return reply({error:"Check the work request."},400);throw error;}

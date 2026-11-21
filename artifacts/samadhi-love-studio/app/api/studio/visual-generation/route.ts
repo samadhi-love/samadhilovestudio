@@ -1,3 +1,4 @@
+import { rateLimited } from "../../../server/rate-limit";
 import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { hasExplicitWords, isExplicitSong } from "../../../clean-content";
@@ -45,6 +46,7 @@ async function getVisuals(request:Request) {
 async function postVisuals(request:Request) {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to generate visuals.",401);
+  { const tooFast = rateLimited("visuals", access.id); if (tooFast) return tooFast; }
   if (request.headers.get("origin") !== new URL(request.url).origin) return problem("Open Studio directly to generate visuals.",403);
   let input:Record<string,unknown>;
   try { input=JSON.parse(await readBoundedText(request,8000)); } catch { return problem("Check the visual request.",400); }

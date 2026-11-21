@@ -1,3 +1,4 @@
+import { rateLimited } from "../../../server/rate-limit";
 import { withProductionUsage, managedProviderKey } from "../../../credits/production";
 import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
@@ -5,7 +6,7 @@ import { reserveCreatorGeneration } from "../../../creator-accounts";
 import { isExplicitSong } from "../../../clean-content";
 import { isAudioFormat, maxAudioBytes } from "../../../studio-data";
 import { sendProviderAudio } from "../elevenlabs/audio-upload";
-import { elevenLabsFailureMessage } from "../elevenlabs/provider";
+import { elevenLabsFailureMessage, stemOutputFormat } from "../elevenlabs/provider";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { audioKey, privateHeaders, readStudio } from "../store";
 import { readBoundedText, recoverableRoute } from "../request-errors";
@@ -16,6 +17,7 @@ const problem = (error: string, status: number) => Response.json({ error }, { st
 async function separateStems(request: Request) {
   const access = await privateWorkspace();
   if (!access) return problem("Sign in to your artist workspace to separate stems.", 401);
+  { const tooFast = rateLimited("stems", access.id); if (tooFast) return tooFast; }
   if (request.headers.get("origin") !== new URL(request.url).origin) return problem("Open Studio directly to separate stems.", 403);
   const raw = await readBoundedText(request, 8192);
   if (raw.length > 2048) return problem("Invalid stem request.", 413);
@@ -38,13 +40,15 @@ async function separateStems(request: Request) {
     if (access.role === "creator" && !managedProviderKey(request) && !await reserveCreatorGeneration(access.id))
       return problem("This creator account reached its daily provider attempt limit.", 429);
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(240_000)]);
+    const quality = await stemOutputFormat(key);
     const response = await sendProviderAudio(audio, format, key, { stem_variation_id: input.mode },
-      "music/stem-separation?output_format=mp3_44100_128", signal);
+      `music/stem-separation?output_format=${quality}`, signal);
     if (!response.ok) return problem(await elevenLabsFailureMessage(response, "music"), 502);
     if (!response.body || !/^(application\/(zip|x-zip-compressed|octet-stream)|binary\/octet-stream)(?:;|$)/i.test(response.headers.get("content-type") ?? ""))
       return problem("ElevenLabs did not return a stem archive.", 502);
     return new Response(response.body, { headers: { ...privateHeaders, "Content-Type": "application/zip",
-      "Content-Disposition": 'attachment; filename="stems.zip"', "X-Content-Type-Options": "nosniff" } });
+      "Content-Disposition": 'attachment; filename="stems.zip"', "X-Content-Type-Options": "nosniff",
+      "X-Stem-Quality": quality === "mp3_44100_192" ? "192k" : "128k" } });
   } catch {
     return problem("Stem separation could not finish. Check the provider and try again.", 502);
   }

@@ -187,6 +187,7 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
   stored.songs = structuredClone(sourceSongs);
   const calls: { path: string; payload: any }[] = [];
   const modules: Record<string, unknown> = {
+    "../../../server/rate-limit": { rateLimited: () => null },
     "../../../music-language": languages,
     "../../../vocal-matching": vocals,
     "../../../musical-ad": { isMusicalAd: () => true },

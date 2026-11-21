@@ -9,6 +9,7 @@ const checks = [
   ["Encrypted pending provider keys, safe check logs and owner-only reachability", ["--test", "tests/elevenlabs-connection-reliability.test.mjs"]],
   ["Offline song, lyrics, caption, private video save/reopen and download journey", ["--test", "tests/core-creation-path.test.mjs"]],
   ["Bounded job polling, stalled replies and safe reconnection", ["--test", "tests/job-wait.test.mjs"]],
+  ["Speed limits, safety headers, stem quality, pinned lyric model and cleanup preview", ["--test", "tests/hardening.test.mjs"]],
   ["Private video upload retry/reload, immutable chunks and account isolation", ["--test", "tests/video-upload-resume.test.mjs"]],
   ["Caption continuity, changed-window alignment and private paid-sync recovery", ["--test", "tests/caption-edit-continuity.test.mjs"]],
   ["Cosmic Studio screens, real-song sky, accessible controls and reduced motion", ["--test", "tests/cosmic-studio.test.mjs"]],

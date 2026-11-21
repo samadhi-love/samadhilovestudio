@@ -1,3 +1,4 @@
+process.env.STUDIO_RATE_LIMITS="off"; // many offline API calls in one second; speed limits have their own test
 import assert from "node:assert/strict";
 import {build} from "esbuild";
 import {mkdirSync,readFileSync} from "node:fs";

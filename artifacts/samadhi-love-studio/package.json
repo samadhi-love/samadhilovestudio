@@ -38,6 +38,7 @@
     "test:job-wait": "node --test tests/job-wait.test.mjs",
     "test:qa-fixes": "node --test tests/qa-fixes.test.mjs",
     "test:voice-polish-kids": "node --test tests/voice-polish-and-kids.test.mjs",
+    "test:hardening": "node --test tests/hardening.test.mjs",
     "test:core-path": "node --test tests/core-creation-path.test.mjs",
     "test:elevenlabs-connection": "node --test tests/elevenlabs-connection-reliability.test.mjs",
     "test:workflow": "node scripts/test-project-workflow.mjs",
