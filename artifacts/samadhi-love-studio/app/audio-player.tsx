@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw } from "lucide-react";
+import { pageVolumeWorks } from "./page-volume";
 
 function time(seconds: number) {
   const whole = Math.floor(seconds);
@@ -18,6 +19,10 @@ export function AudioPlayer({ src, label, onPosition }: { src: string; label: st
   const [duration, setDuration] = useState(0);
   const [position, setPosition] = useState(0);
   const [volume, setVolume] = useState(1);
+  // iPhone/iPad Safari ignores page volume (only the device buttons work), so
+  // the slider would move without changing the sound. Show it only where it works.
+  const [volumeWorks, setVolumeWorks] = useState(true);
+  useEffect(() => { setVolumeWorks(pageVolumeWorks()); }, []);
   useEffect(() => {
     const audio = player.current;
     attempt.current++;
@@ -59,11 +64,11 @@ export function AudioPlayer({ src, label, onPosition }: { src: string; label: st
     <div className="actions">
       <button type="button" className="secondary small" onClick={() => playing || starting ? pause() : void play()}>{playing || starting ? <Pause size={15}/> : <Play size={15}/>} {playing || starting ? "Pause" : "Play"}</button>
       <button type="button" className="secondary small" onClick={() => play(true)}><RotateCcw size={14}/> Replay</button>
-      <label className="player-volume">Volume <input className="volume-slider" type="range" min="0" max="1" step="0.01" value={volume} onChange={event => {
+      {volumeWorks && <label className="player-volume">Volume <input className="volume-slider" type="range" min="0" max="1" step="0.01" value={volume} onChange={event => {
         const value = Number(event.target.value);
         if (player.current) player.current.volume = value;
         setVolume(value);
-      }}/></label>
+      }}/></label>}
     </div>
     <div className="song-seek"><span>{time(position)}</span><input type="range" aria-label="Seek" min="0" max={duration || 1} step="0.01" value={Math.min(position, duration)} disabled={!duration} onChange={event => {
       const value = Number(event.target.value);
@@ -75,3 +80,4 @@ export function AudioPlayer({ src, label, onPosition }: { src: string; label: st
       <button type="button" className="secondary small" onClick={() => play()}>Retry playback</button></div>}
   </div>;
 }
+

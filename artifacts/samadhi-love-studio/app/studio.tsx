@@ -30,6 +30,7 @@ import type {RegionOperation} from "./song-region-actions";
 import { lyricVideoFor, pinnedMaster, projectRoot } from "./project-assets";
 import { isStudio } from "./studio-validation";
 import { mergeSavedSong, rebaseStudio, syncSongSource } from "./song-save-merge";
+import { saveWithConflictRetry } from "./save-conflict";
 import { createSaveQueue } from "./save-queue";
 import { canSendChanges, studioChanges } from "./studio-changes";
 import { ProjectAssets, ProjectComparison } from "./project-production";
@@ -90,6 +91,15 @@ const noFolders: Folder[] = [];
 type Tab = "Writing" | "Production" | "Visuals & promo" | "Mix lab" | "Release";
 const tabs: Tab[] = ["Writing", "Production", "Visuals & promo", "Mix lab", "Release"];
 const uid = () => crypto.randomUUID();
+/** A library save that hasn't answered in a minute is treated as not saved. */
+const librarySaveTimeoutMs = 60_000;
+type SaveResult = { error?: string; code?: string; data?: Studio; revision: number; songId?: string; songIds?: string[]; engineNotice?: string; warning?: string; lyrics?: string };
+/** Plain message for a save that timed out or lost its connection. Song creation keeps its own wording. */
+function savingError(error: unknown) {
+  if (error instanceof DOMException && error.name === "TimeoutError")
+    return new Error("Saving took too long, so it was stopped. Your edits are still here — check your connection and save again.");
+  return error;
+}
 const tagsFrom = (text: string) => uniqueGenreNames(text.split(","));
 const dateText = (date: string) => new Date(date.length === 10 ? date + "T12:00:00" : date).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 
@@ -264,6 +274,18 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   // A save that arrives while another is running waits its turn instead of being
   // dropped. Function arguments are evaluated when the save actually runs, so a
   // queued save is built from the newest saved library and revision.
+  /** Reads the newest saved library so a conflicting edit can be replayed on it. */
+  async function refreshLatest() {
+    try {
+      const response = await fetch("/api/studio", { cache: "no-store", signal: AbortSignal.timeout(librarySaveTimeoutMs), headers: workspaceId ? { "X-Studio-Workspace": workspaceId } : {} });
+      const latest = await response.json().catch(() => null) as { data?: Studio; revision?: number } | null;
+      if (!response.ok || !latest?.data || !isStudio(latest.data) || !Number.isSafeInteger(latest.revision)) return false;
+      dataRef.current = latest.data; setData(latest.data);
+      revisionRef.current = latest.revision!; setRevision(latest.revision!);
+      confirmedRef.current = { data: latest.data, revision: latest.revision! };
+      return true;
+    } catch { return false; }
+  }
   async function saveRequest(url: string, request: RequestInit | (() => RequestInit), message: string, next?: Studio | (() => Studio), throwOnError = false) {
     if (!loaded) return null;
     return saveQueue.current!(() => sendSaveRequest(url, request, message, next, throwOnError));
@@ -272,12 +294,30 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     pendingSave.current = true; setError(""); setSaving(true);
     try {
       const request = typeof prepare === "function" ? prepare() : prepare;
-      const next = typeof prepared === "function" ? prepared() : prepared;
+      let next = typeof prepared === "function" ? prepared() : prepared;
       const headers = new Headers(request.headers);
       if(url==="/api/studio")headers.set("X-Studio-Deletion-Policy","14-days-v1");
       if (workspaceId) headers.set("X-Studio-Workspace", workspaceId);
-      const response = await (url === "/api/studio/create" ? productionFetch : fetch)(url, { ...request, headers });
-      const result = await response.json().catch(() => null) as { error?: string; data?: Studio; revision: number; songId?: string;songIds?:string[];engineNotice?:string;warning?:string;lyrics?:string } | null;
+      // Library saves are small: give up after a minute instead of holding
+      // every later save behind a stalled connection. Uploads and song
+      // creation keep their own longer rules.
+      const send = (init: RequestInit) => url === "/api/studio/create" ? productionFetch(url, init)
+        : fetch(url, url === "/api/studio" && !init.signal ? { ...init, signal: AbortSignal.timeout(librarySaveTimeoutMs) } : init);
+      // A newer copy was saved meanwhile (a finished song, another tab, the
+      // video editor): load it, replay this edit on top, and try once more.
+      let firstTry = true;
+      const { response, result } = await saveWithConflictRetry<SaveResult>(async () => {
+        const init = firstTry ? request : (prepare as () => RequestInit)();
+        // What this attempt sends (a retry is rebuilt on the newest library).
+        if (!firstTry && typeof prepared === "function") next = prepared();
+        const sendHeaders = new Headers(init.headers);
+        headers.forEach((value, key) => { if (!sendHeaders.has(key)) sendHeaders.set(key, value); });
+        firstTry = false;
+        let reply: Response;
+        try { reply = await send({ ...init, headers: sendHeaders }); }
+        catch (error) { throw savingError(error); }
+        return { response: reply, result: await reply.json().catch(() => null) as SaveResult | null };
+      }, refreshLatest, url === "/api/studio" && typeof prepare === "function" && typeof prepared === "function");
       if (!response.ok && result?.data && Number.isSafeInteger(result.revision)) {
         dataRef.current=result.data;setData(result.data);revisionRef.current=result.revision;setRevision(result.revision);
         confirmedRef.current={data:result.data,revision:result.revision};
@@ -307,8 +347,15 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
     // since (an earlier queued save, a finished job), replay only this edit's
     // changes on top of it instead of sending the older copy back.
     const base = data;
-    let payload: Studio | undefined;
-    const prepared = () => payload ??= dataRef.current === base ? next : rebaseStudio(base, next, dataRef.current);
+    let payload: Studio | undefined, payloadOn: Studio | undefined;
+    // Rebuilt if the newest copy changes (e.g. reloaded after a save conflict).
+    const prepared = () => {
+      if (!payload || payloadOn !== dataRef.current) {
+        payloadOn = dataRef.current;
+        payload = dataRef.current === base ? next : rebaseStudio(base, next, dataRef.current);
+      }
+      return payload;
+    };
     // Send only what changed when the server-confirmed copy is current;
     // otherwise (or if unsure) send the whole library as before.
     const body = (payload: Studio) => {

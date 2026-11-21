@@ -602,6 +602,8 @@ function LyricVideoProContent(props: Props) {
       try {
         const r = await fetch("/api/studio/lyric-project", {
           method: "PUT",
+          // A stalled save must not hold every later save; edits stay in this tab.
+          signal: AbortSignal.timeout(60_000),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             songId: songAtStart,
@@ -642,7 +644,12 @@ function LyricVideoProContent(props: Props) {
         return true;
       } catch (e) {
         if (mounted.current) {
-          message(e, "Autosave failed. Your edits remain in this tab.");
+          message(
+            e instanceof DOMException && e.name === "TimeoutError"
+              ? new Error("Saving took too long, so it was stopped. Your edits remain in this tab — retry when your connection is back.")
+              : e,
+            "Autosave failed. Your edits remain in this tab.",
+          );
           setSavedState("Not saved · retry available");
           setRetrySave(true);
         }

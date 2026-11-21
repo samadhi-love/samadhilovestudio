@@ -1,5 +1,6 @@
 import {serverStorage as env} from "./storage";
 import {videoFingerprint,sha256} from "../video-upload-identity";
+import {clearStaleVideoUploads} from "./video-upload-cleanup";
 export const videoChunkBytes=8*1024*1024;
 export const maxPrivateVideoBytes=512*1024*1024;
 type Manifest={id:string;owner?:string;song:string;source:string;size:number;type:string;createdAt:string;fingerprint?:string;hashes?:string[]};
@@ -18,6 +19,7 @@ export async function uploadVideoChunks(request:Request,owner:string,song:string
   const root=`private/video-uploads/${encodeURIComponent(owner)}/`;
   if(upload==="init"){
     const requested=url.searchParams.get("session");
+    await clearStaleVideoUploads(bucket,root,requested);
     if(requested&&!/^[a-f\d-]{36}$/i.test(requested))return response({error:"Choose a valid private upload session."},400);
     let identity:{fingerprint?:string;hashes?:string[]}={};
     if(request.headers.has("X-Video-Fingerprint")){
@@ -135,3 +137,4 @@ export async function videoUploadStatus(request:Request,owner:string,song:string
   }
   return response({upload,fingerprint:manifest.fingerprint,chunkSize:videoChunkBytes,parts});
 }
+

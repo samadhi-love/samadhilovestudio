@@ -61,7 +61,8 @@ export async function writeStudio(id: string, revision: number, content: string,
 }
 
 export function saveConflict() {
-  return Response.json({ error: "A newer save exists in another tab. Copy any unsaved text and reload before editing." }, { status: 409 });
+  // code lets the Studio tell this apart from other 409s and merge automatically.
+  return Response.json({ error: "Your library changed while you were editing (for example, a song finished or another tab saved). Copy any unsaved text, then reload.", code: "save-conflict" }, { status: 409 });
 }
 
 export function audioKey(ownerId: string, songId: string) {
