@@ -53,20 +53,61 @@ test("Just Begin: genres sit beside the idea, blend when several are tapped, and
   }finally{await h.close();}
 });
 
-test("Shape It: your own lyrics are sung in the blend, and the suggested band is used only when you say so",async()=>{
+test("Just Begin: instruments are optional; tapping them puts them in the box, which then goes into the song",async()=>{
+  const h=await setup();
+  try{
+    await h.type(h.q("input-song-description") as HTMLTextAreaElement,"A song of gratitude");
+    assert.equal(h.q("input-instrument-box"),null,"Just Begin stays simple until you ask");
+    await h.click("button-add-instruments");
+    await h.click("toggle-instrument-piano");await h.click("toggle-instrument-choir");
+    assert.equal((h.q("input-instrument-box") as HTMLInputElement).value,"Piano, Choir");
+    assert.equal(h.q("text-auto-instruments"),null,"your own band replaces the automatic one");
+    await h.click("toggle-instrument-piano");
+    assert.equal((h.q("input-instrument-box") as HTMLInputElement).value,"Choir","tap again to take it out");
+    await h.submit();
+    assert.equal(h.sent.at(-1).instruments,"Choir");
+    await h.click("button-clear-instruments");
+    assert.match(h.q("text-auto-instruments")!.textContent!,/chosen for you/);
+  }finally{await h.close();}
+});
+
+test("Shape It like Suno: lyrics first, then one Styles box that blends genres, instruments, moods and energy",async()=>{
   const h=await setup();
   try{
     await h.click("tab-mode-custom");
-    await h.type(h.q("input-song-idea") as HTMLTextAreaElement,"A hopeful love song");
+    const fold=h.q("fold-lyrics")!;
+    const order=["input-lyrics","input-style-blend","input-song-idea"].map(id=>[...fold.querySelectorAll("[data-testid]")].findIndex(e=>(e as HTMLElement).dataset.testid===id));
+    assert.ok(order[0]>=0&&order[0]<order[1]&&order[1]<order[2],"lyrics, then styles, then what it's about");
     await h.type(h.q("input-lyrics") as HTMLTextAreaElement,"Hold me close\nUnder the stars");
-    await h.click("toggle-genre-r-b");await h.click("toggle-genre-afrobeats");
-    assert.match(h.q("text-lyrics-blend")!.textContent!,/Your lyrics will be sung as R&B × Afrobeats/);
-    assert.match(h.q("text-suggested-instruments")!.textContent!,/Suggested band: electric keys, log drums/);
+    await h.click("style-chip-r-b");await h.click("style-chip-afrobeats");
+    await h.click("style-tab-instruments");await h.click("style-chip-piano");
+    await h.click("style-tab-moods");await h.click("style-chip-euphoric");
+    await h.click("style-tab-energy");await h.click("style-chip-groovy");
+    assert.equal((h.q("input-style-blend") as HTMLTextAreaElement).value,"R&B, Afrobeats, Euphoric, Groovy, Piano");
+    assert.match(h.q("text-style-count")!.textContent!,/Blend of 5 styles/);
+    assert.match(h.q("text-lyrics-blend")!.textContent!,/sung as R&B × Afrobeats × Euphoric × Groovy with Piano/);
+    const box=h.q("input-style-blend") as HTMLTextAreaElement;
+    await h.type(box,box.value+", choir, sunset vibes");
+    await act(async()=>box.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
     await h.submit();
-    assert.equal(h.sent[0].genres,"R&B, Afrobeats");
-    assert.equal(h.sent[0].instruments,"","Shape It sends only what you chose");
-    await h.click("button-use-band");
-    await h.submit();
-    assert.match(h.sent.at(-1).instruments,/^electric keys, log drums/);
+    assert.equal(h.sent[0].genres,"R&B, Afrobeats, Euphoric, Groovy, sunset vibes","typed styles count too");
+    assert.equal(h.sent[0].instruments,"Piano, choir","instruments are recognized and sent as the band");
+    await h.type(h.q("input-style-search") as HTMLInputElement as unknown as HTMLTextAreaElement,"dabke");
+    assert.ok(document.querySelector('[data-testid^="style-chip-"][data-testid*="dabke"]'),"search finds any style in the library");
+  }finally{await h.close();}
+});
+
+test("Style it for me fills the box from your words, and the box is never limited",async()=>{
+  const h=await setup();
+  try{
+    await h.click("tab-mode-custom");
+    await h.type(h.q("input-song-idea") as HTMLTextAreaElement,"A gospel song of gratitude");
+    await h.click("button-style-for-me");
+    const filled=(h.q("input-style-blend") as HTMLTextAreaElement).value;
+    assert.match(filled,/Gospel/);assert.match(filled,/Hammond organ/);
+    await h.click("style-tab-genres");await h.click("button-styles-all");
+    const chips=[...document.querySelectorAll<HTMLButtonElement>('[data-testid="style-blend"] .chip:not(.active)')].slice(0,30);
+    for(const chip of chips)await act(async()=>chip.click());
+    assert.ok(Number(/Blend of (\d+)/.exec(h.q("text-style-count")!.textContent!)![1])>=32,"as many styles as you like");
   }finally{await h.close();}
 });
