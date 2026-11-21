@@ -5,7 +5,8 @@ import type { SavedVoice } from "./my-voice-data";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
 import type { OwnBackground } from "./own-background";
 import { CreateVideoBox, songDragProps } from "./create-video-box";
-import type { VideoPurposeId } from "./video-purpose";
+import { readVideoPurpose, rememberVideoPurpose, videoPurposeById, type VideoPurposeId } from "./video-purpose";
+import { SavedPromptRow, SaveNameBox } from "./saved-prompt-row";
 import {brand} from "./brand";
 import { MusicLanguageControl } from "./music-language-control";
 import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
@@ -295,16 +296,24 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
     return labeled.text;
   }
   const [quickSaved,setQuickSaved]=useState<{what:"vision"|"lyrics";text:string}|null>(null);
+  // "Save this prompt" first asks for a name (filled in from your words).
+  const [naming,setNaming]=useState<"vision"|"lyrics"|null>(null);
+  const [videoPurpose,setVideoPurposeState]=useState<VideoPurposeId>("shorts");
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads the remembered video choice once after the page loads
+  useEffect(()=>{setVideoPurposeState(readVideoPurpose());},[]);
+  const setVideoPurpose=(id:VideoPurposeId)=>{setVideoPurposeState(id);rememberVideoPurpose(id);};
+  const suggestedName=(what:"vision"|"lyrics")=>((customMode?songTitle.trim():"")||(what==="lyrics"?`Lyrics · ${idea.trim()||lyrics.trim()}`:idea.trim())).replace(/\s+/g," ").slice(0,72)||"My prompt";
   /** One-tap save of the prompt in front of the user (typed or written by the app) into Your Sounds. */
-  async function savePromptNow(what:"vision"|"lyrics"){
+  async function savePromptNow(what:"vision"|"lyrics",chosenName?:string){
     if(!savePrompt)return;
     const words=what==="lyrics"?lyrics.trim():idea.trim();
     if(!words)return;
     const draft=currentPromptDraft();
     setQuickSaved({what,text:"Saving…"});
     const saved=await savePrompt({...draft,idea:idea.trim(),lyrics:what==="lyrics"?words:draft.lyrics,
-      name:(promptName.trim()||(customMode?songTitle.trim():"")||(what==="lyrics"?`Lyrics · ${idea.trim()||words}`:idea.trim())).slice(0,72)||"My prompt"});
-    setQuickSaved({what,text:saved?"Saved to Your Sounds ✓":"Couldn't save just now. Your words are still here."});
+      name:(chosenName?.trim()||promptName.trim()||suggestedName(what)).slice(0,100)});
+    setNaming(null);
+    setQuickSaved({what,text:saved?`Saved as “${saved.name}” ✓`:"Couldn't save just now. Your words are still here."});
   }
   function currentPromptDraft(confirmedSong=false):PromptDraft{
     return {
@@ -314,11 +323,13 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
       idea:confirmedSong||includeWords||simple?idea.trim():"",
       instruments:instruments.trim(),
       vocals:vocalDirection.trim(),
-      shape:{negativeStyle,...(spark!==null?{spark}:{}),delivery:vocalOptions.delivery,character:vocalOptions.character},
+      shape:{negativeStyle,...(spark!==null?{spark}:{}),delivery:vocalOptions.delivery,character:vocalOptions.character,...(teamId!=="auto"?{team:teamId}:{}),purpose:videoPurpose},
     };
   }
-  function applySavedPrompt(preset:Template){
+  function applySavedPrompt(preset:Template,stayHere=false){
     const shape=readSavedShape(preset);
+    if(shape?.team&&(shape.team==="auto"||teamById(shape.team)))setTeamId(shape.team);
+    const savedPurpose=videoPurposeById(shape?.purpose);if(savedPurpose)setVideoPurpose(savedPurpose.id);
     const applyShape=()=>{setNegativeStyle(shape?.negativeStyle??"");setSpark(shape?.spark??null);if(shape?.delivery||shape?.character)setVocalOptions(v=>({...v,...(shape.delivery?{delivery:shape.delivery}:{}),...(shape.character?{character:shape.character}:{})}));};
     const dna=readStyleDNA(preset);
     if(dna){setAutoGenre(false);setGenreEdit(dna.genres.length?dna.genres.join(", "):null);setInstrumentsEdit(dna.instruments||null);setVoiceEdit(dna.vocals||null);setSongMap({bpm:dna.bpm,sections:dna.sections});setMapEnabled(true);setCustomMode(true);applyShape();setPromptNotice(`"${preset.name}" applied: sound, voice and song map. Your words stay unchanged.`);return;}
@@ -336,7 +347,9 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
     setAdMode(!!ad);
     if(ad)setAdBrief(ad);
     setCodeEdit(ad?musicalAdSections(ad):null);
-    setCustomMode(true);
+    // Just Begin keeps you in Just Begin unless the saved prompt carries lyrics or a musical ad.
+    const keepSimple=stayHere&&!ad&&!preset.notes.lyrics.trim();
+    if(!keepSimple)setCustomMode(true);
     setPromptNotice(hasWords?`"${preset.name}" loaded with its words. Begin makes a new song.`:`"${preset.name}" applied to Sound & Soul and Voice. Your words stay unchanged.`);
   }
   const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
@@ -447,7 +460,8 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
         {simple?<div className="just-begin" data-testid="panel-just-begin">
           <label className="field qc-field jb-vision">Your Vision
             <textarea data-testid="input-song-description" rows={4} maxLength={1200} value={idea} placeholder="A hopeful song about starting again" onChange={e=>{setIdea(e.target.value.replace(/[\r\n]+/g," "));setError("");}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();createForm.current?.requestSubmit();}}}/></label>
-          {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+          {savePrompt&&<div className="prompt-quick-save">{naming==="vision"?<SaveNameBox suggested={suggestedName("vision")} busy={busy} save={name=>void savePromptNow("vision",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>{setQuickSaved(null);setNaming("vision");}}>☆ Save this prompt</button>}{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+          {savedPrompts.length>0&&<SavedPromptRow prompts={savedPrompts} disabled={busy} use={preset=>applySavedPrompt(preset,true)}/>}
           {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
           {!adMode&&<GenreToggles value={genreTags(simple?(genreEdit??""):(genreEdit??chosenGenre??""))} change={tags=>{setAutoGenre(false);setGenreEdit(tags.length?tags.join(", "):null);setError("");}} disabled={busy}/>}
           {!adMode&&(bandOpen||instrumentsEdit?.trim()?<InstrumentToggles box={instrumentsEdit??""} change={next=>{setInstrumentsEdit(next.trim()?next:null);setError("");}} suggested={autoBand} disabled={busy}/>:<button type="button" className="text-button" data-testid="button-add-instruments" onClick={()=>setBandOpen(true)}>+ Add instruments (optional)</button>)}
@@ -464,7 +478,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
             <label className="field qc-field">Lyrics
               <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}} onPaste={e=>{const field=e.currentTarget;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
             </label>
-            {savePrompt&&!instrumental&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-lyrics" disabled={busy||!lyrics.trim()} onClick={()=>void savePromptNow("lyrics")}>☆ Save these lyrics</button>{quickSaved?.what==="lyrics"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+            {savePrompt&&!instrumental&&<div className="prompt-quick-save">{naming==="lyrics"?<SaveNameBox suggested={suggestedName("lyrics")} busy={busy} save={name=>void savePromptNow("lyrics",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-lyrics" disabled={busy||!lyrics.trim()} onClick={()=>{setQuickSaved(null);setNaming("lyrics");}}>☆ Save these lyrics</button>}{quickSaved?.what==="lyrics"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
             {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
             <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
@@ -477,7 +491,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
             {!instrumental&&<TeamChoice value={teamId} change={setTeamId} heard={wordTeam} note={teamNote} disabled={busy}/>}
             <label className="field qc-field">What it&apos;s about <span className="muted">· optional</span>
               <textarea data-testid="input-song-idea" rows={4} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
-            {savePrompt&&<div className="prompt-quick-save"><button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>void savePromptNow("vision")}>☆ Save this prompt</button>{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
+            {savePrompt&&<div className="prompt-quick-save">{naming==="vision"?<SaveNameBox suggested={suggestedName("vision")} busy={busy} save={name=>void savePromptNow("vision",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>{setQuickSaved(null);setNaming("vision");}}>☆ Save this prompt</button>}{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
             {hasExplicitWords(idea) && <CleanLyricsChecker lyrics={idea} change={value => { setIdea(value); setError(""); }} direction label="Clean song description"/>}
             <div className="actions forge-help-row"><button type="button" className="secondary small forge-gold-pill" data-testid="button-help-describe" disabled={busy||!idea.trim()} onClick={()=>{const expanded=expandSongDescription(idea,drafts);if(expanded.length>1200){setError("The expanded description is too long. Shorten your idea, then try again.");return;}setIdea(expanded);setError("");setPromptNotice("Vision expanded with local style suggestions. Review it before you Begin; no AI provider was called.");}}><Sparkles size={15}/> Help me describe it</button></div>
             <details className="qc-fold" key={"prompts"+panelKey} open={openPanel==="prompts"||undefined} data-testid="fold-prompts"><summary>Writing helpers</summary>
@@ -609,7 +623,7 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
       </fieldset>
     </form>
     <CreateVideoBox songs={drafts} songId={boxSongId??result?.id??""} setSongId={setBoxSongId} look={videoLook} pickLook={chooseVideoLook} own={ownBackground}
-      photo={photo} clip={clip} busy={busy} make={makeVideo?sendToVideo:undefined}/>
+      photo={photo} clip={clip} busy={busy} make={makeVideo?sendToVideo:undefined} purpose={videoPurpose} setPurpose={setVideoPurpose}/>
     </div>
     {proProduction&&<details className="qc-fold qc-pro" data-testid="fold-pro-production" hidden={!customMode} open={proOpen} onToggle={e=>setProOpen((e.currentTarget as HTMLDetailsElement).open)}>
       <summary>Pro production · sections, instrumentals and voices</summary>

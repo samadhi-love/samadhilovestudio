@@ -221,14 +221,20 @@ test("Save this prompt saves the vision (typed or app-written) and lyrics into Y
   const vision="Uplifting Afrobeats-soul song about unity, 100 BPM, warm log drums, gospel choir on the chorus";
   await h.input(q<HTMLTextAreaElement>("input-song-description")!,vision);
   await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.ok(q("save-name-box"),"asks for a name first");
+  await act(async()=>q<HTMLButtonElement>("button-save-name")!.click());
   assert.equal(saved.length,1);assert.equal(saved[0].idea,vision);assert.equal(saved[0].name,vision.slice(0,72));
-  assert.match(document.body.textContent!,/Saved to Your Sounds ✓/);
+  assert.match(document.body.textContent!,/Saved as “Uplifting Afrobeats-soul/);
   await shapeIt(h);
   assert.equal(q<HTMLTextAreaElement>("input-song-idea")!.rows,4);
   await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.ok(q("save-name-box"),"asks for a name first");
+  await act(async()=>q<HTMLButtonElement>("button-save-name")!.click());
   assert.equal(saved.length,2);assert.equal(saved[1].idea,vision);
   await h.input(q<HTMLTextAreaElement>("input-lyrics")!,"[Verse]\nWe rise as one");
   await act(async()=>q<HTMLButtonElement>("button-save-lyrics")!.click());
+  assert.ok(q("save-name-box"),"asks for a name first");
+  await act(async()=>q<HTMLButtonElement>("button-save-name")!.click());
   assert.equal(saved.length,3);assert.equal(saved[2].lyrics,"[Verse]\nWe rise as one");assert.equal(saved[2].idea,vision);assert.match(saved[2].name,/^Lyrics · /);
  }finally{await h.close();}
 });
@@ -239,6 +245,8 @@ test("a failed prompt save says so and keeps the words",async()=>{
   await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>"s"} savedPrompts={[]} savePrompt={async()=>undefined}/>));
   await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A calm gospel song");
   await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.ok(q("save-name-box"),"asks for a name first");
+  await act(async()=>q<HTMLButtonElement>("button-save-name")!.click());
   assert.match(document.body.textContent!,/Couldn't save just now/);
   assert.equal(q<HTMLTextAreaElement>("input-song-description")!.value,"A calm gospel song");
  }finally{await h.close();}
@@ -279,5 +287,48 @@ test("Shape it: pick any AI singer from the library; a pick that contradicts the
   assert.match(sent[0].voice,/Black American female hip-hop MC/);
   await h.input(q<HTMLTextAreaElement>("input-song-idea")!,"A hip hop track with a male voice");
   assert.match(document.body.textContent!,/You picked “Hip-hop MC · female”, but your description asks for a solo male lead/);
+ }finally{await h.close();}
+});
+
+test("Just Begin: name it before saving, then bring it back from My saved prompts without leaving Just Begin",async()=>{
+ const h=await setup();const saved:any[]=[];
+ try{
+  const {makeSavedSongPrompt:make}=await import("../app/saved-song-prompts");
+  const older=Array.from({length:6},(_,i)=>make({name:`Old ${i+1}`,tags:["Soul"],lyrics:"",idea:`old idea ${i+1}`,instruments:"",vocals:""},`old-${i+1}`));
+  const desert=make({name:"Desert Love Song",tags:["Afrobeats","Soul"],lyrics:"",idea:"A desert love story at night",instruments:"oud, hand drums",vocals:"",shape:{team:"duet-mf",purpose:"youtube"}},"desert");
+  const library=[desert,...older];
+  await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>"s"} savedPrompts={library} savePrompt={async d=>{saved.push(d);return make(d,"p"+saved.length);}}/>));
+  // The row shows the newest five and See all
+  const row=q("saved-prompt-row")!;
+  assert.equal(row.querySelectorAll(".saved-row-chip").length,5);
+  await act(async()=>q<HTMLButtonElement>("button-saved-row-all")!.click());
+  assert.equal(row.querySelectorAll(".saved-row-chip").length,7);
+  await h.input(q<HTMLInputElement>("input-saved-row-search")!,"desert");
+  assert.equal(row.querySelectorAll(".saved-row-chip").length,1);
+  // Tap it: words, styles, who sings and the video shape come back, still in Just Begin
+  await act(async()=>q<HTMLButtonElement>("saved-row-desert")!.click());
+  assert.ok(q("panel-just-begin"),"stays in Just Begin");
+  assert.equal(q<HTMLTextAreaElement>("input-song-description")!.value,"A desert love story at night");
+  assert.equal(q("team-duet-mf")!.getAttribute("aria-checked"),"true");
+  assert.equal(q("cvb-purpose-youtube")!.getAttribute("aria-checked"),"true");
+  // Name it: filled in from the words, and you can change it
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  assert.equal(q<HTMLInputElement>("input-save-name")!.value,"A desert love story at night");
+  await h.input(q<HTMLInputElement>("input-save-name")!,"Desert Love Song 2");
+  await act(async()=>q<HTMLButtonElement>("button-save-name")!.click());
+  assert.equal(saved[0].name,"Desert Love Song 2");
+  assert.equal(saved[0].shape.team,"duet-mf");assert.equal(saved[0].shape.purpose,"youtube");
+  assert.match(document.body.textContent!,/Saved as “Desert Love Song 2” ✓/);
+  assert.equal(q("save-name-box"),null);
+  // Enter in the name box saves the name and never starts a song
+  let made=0;
+  await act(async()=>h.root.render(<QuickCreate {...base} engine={ace} generateSong={async()=>{made++;return "s";}} savedPrompts={library} savePrompt={async d=>{saved.push(d);return make(d,"p"+saved.length);}}/>));
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  await act(async()=>q<HTMLInputElement>("input-save-name")!.dispatchEvent(new h.dom.window.KeyboardEvent("keydown",{key:"Enter",bubbles:true,cancelable:true})));
+  assert.equal(saved.length,2);assert.equal(made,0,"Enter saved the name only");
+  // Cancel keeps nothing
+  await act(async()=>q<HTMLButtonElement>("button-save-vision")!.click());
+  await act(async()=>q<HTMLButtonElement>("button-cancel-name")!.click());
+  assert.equal(saved.length,2);
  }finally{await h.close();}
 });
