@@ -1,3 +1,4 @@
+import { familySafe } from "../../../family-voices";
 import { describeInstruments } from "../../../instrument-sounds";
 import {isMusicalAd} from "../../../musical-ad";
 import { defaultLanguageChoice, resolveLanguage, singingDirection, languageStyles, generatedScriptIssue, musicDialects,type LanguageProfile } from "../../../music-language";
@@ -112,6 +113,13 @@ async function createMusic(request: Request) {
   if (body.length > 20000) return problem("These creation inputs are too long.", 413);
   let input;
   try { input = JSON.parse(body); } catch { return problem("Invalid creation request.", 400); }
+  // Songs for kids are sung by friendly adult voices: never child or child-like vocals (both engines).
+  if (input && typeof input === "object" && !Array.isArray(input)) {
+    const pick = (name: string) => typeof input[name] === "string" ? input[name] as string : undefined;
+    const fields = { prompt: pick("prompt"), voice: pick("voice"), genres: pick("genres"), description: pick("description"), negativeStyle: pick("negativeStyle") };
+    const safe = familySafe(fields);
+    if (safe !== fields) for (const [name, value] of Object.entries(safe)) if (value !== undefined) input[name] = value;
+  }
   if(input?.musicalAd!==undefined&&!isMusicalAd(input.musicalAd))return problem("Check the musical advertisement brief.",400);
   if (input?.openingMode !== undefined && (typeof input.openingMode !== "string" || !Object.hasOwn(songOpenings,input.openingMode))) return problem("Choose a supported song opening.",400);
   const openingMode: SongOpening = input?.openingMode ?? "auto";

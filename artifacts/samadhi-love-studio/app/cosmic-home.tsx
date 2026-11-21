@@ -25,6 +25,7 @@ export const homeWorlds = [
   { id: "urban", glyph: "◆", name: "Urban Soul", line: "Hip hop flow with heart and a message that hits.", idea: "A hip hop track about rising above the noise", styles: ["Hip Hop"] },
   { id: "ocean", glyph: "≈", name: "Ocean Ambient", line: "Waves, pads and space. Music to float in.", idea: "An ambient song that sounds like the ocean at night", styles: ["Ambient"] },
   { id: "celebrate", glyph: "✺", name: "Celebration", line: "Birthdays, weddings, victories. Songs for the big days.", idea: "A happy birthday song for my mother", styles: ["Pop"] },
+  { id: "kids", glyph: "✿", name: "Kids & Family", line: "Sing-alongs, lullabies and learning songs, sung by warm, friendly grown-up voices.", idea: "A happy sing-along song for kids about the colors of the rainbow", styles: ["Children's", "Pop"] },
 ] as const;
 export type HomeWorld = typeof homeWorlds[number];
 
