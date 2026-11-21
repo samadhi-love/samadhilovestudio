@@ -16,15 +16,15 @@ async function mount(songs:Song[],extra:{photo?:Blob|null;clip?:Blob|null}={}){
   Object.assign(globalThis,{window:dom.window,document:dom.window.document,HTMLElement:dom.window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
   Object.defineProperty(globalThis,"navigator",{configurable:true,value:dom.window.navigator});
   let urls=0;URL.createObjectURL=(()=>`blob:preview-${++urls}`) as any;URL.revokeObjectURL=(()=>{}) as any;
-  const made:Song[]=[];const looks:string[]=[];
+  const made:Song[]=[];const purposes:string[]=[];const looks:string[]=[];
   function Box(){
     const [id,setId]=useState("");const [look,setLook]=useState<BackgroundKey>("theme:flag");
     return <CreateVideoBox songs={songs} songId={id} setSongId={setId} look={look} pickLook={k=>{looks.push(k);setLook(k);}} own={{active:extra.clip?"video":extra.photo?"photo":null,photo(){},video(){}}}
-      photo={extra.photo??null} clip={extra.clip??null} busy={false} make={s=>{made.push(s);}}/>;
+      photo={extra.photo??null} clip={extra.clip??null} busy={false} make={(s,p)=>{made.push(s);purposes.push(p);}}/>;
   }
   const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
   await act(async()=>root.render(<Box/>));await settle();
-  return {made,looks,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
+  return {made,purposes,looks,close:async()=>{await act(async()=>root.unmount());dom.window.close();}};
 }
 
 test("the video box lists finished songs; tap Use in video and the song is on the screen with its words",async()=>{
@@ -84,4 +84,45 @@ test("helpers: words, looks and the newest-first list",()=>{
   assert.match(page,/<div className="qc-split">/,"the box sits beside Begin a song");
   assert.match(page,/songDragProps\(song\.id\)/,"your takes can be dragged into the box");
   assert.match(readFileSync("app/create-video-box.css","utf8"),/@media \(min-width: 980px\) \{ \.qc-split \{ grid-template-columns/,"side by side on a computer, stacked on a phone");
+});
+
+test("choose what the video is for: the screen takes that shape, the choice is remembered and sent with the song",async()=>{
+  const m=await mount([song("one","First song")]);
+  assert.equal(q("cvb-purpose-shorts")!.getAttribute("aria-checked"),"true","Shorts is the first choice");
+  assert.equal(q("cvb-screen")!.dataset.format,"vertical");
+  await act(async()=>q("cvb-purpose-youtube")!.click());
+  assert.equal(q("cvb-screen")!.dataset.format,"wide","YouTube makes a landscape screen");
+  assert.match(q("cvb-purpose-note")!.textContent!,/YouTube Studio/);
+  assert.equal(window.localStorage.getItem("versual-video-purpose"),"youtube");
+  await act(async()=>q("cvb-use-one")!.click());await settle();
+  assert.match(q("cvb-make")!.textContent!,/Make my YouTube video/);
+  await act(async()=>q("cvb-make")!.click());
+  assert.equal(m.purposes[0],"youtube");
+  await act(async()=>q("cvb-purpose-square")!.click());
+  assert.equal(q("cvb-screen")!.dataset.format,"square");
+  await act(async()=>q("cvb-purpose-phone")!.click());
+  assert.equal(q("cvb-screen")!.dataset.format,"vertical");
+  await act(async()=>q("cvb-make")!.click());
+  assert.equal(m.purposes[1],"phone");
+  await m.close();
+});
+
+test("purposes frame the video: YouTube full song wide, Shorts 60-second tall highlight, Square full song; files say what they are for",async()=>{
+  const {applyVideoPurpose,videoPurposeById,purposeFileName}=await import("../app/video-purpose");
+  const {newProSettings}=await import("../app/lyric-pro-data");
+  const s=song("one","First song");
+  const project={cues:[],theme:"nebula",motion:"still",format:"vertical",pro:{...newProSettings(s,200),duration:200}} as any;
+  const yt=applyVideoPurpose(project,videoPurposeById("youtube")!,50);
+  assert.equal(yt.format,"wide");assert.deepEqual(yt.pro!.range,{start:0,end:200});
+  const short=applyVideoPurpose(project,videoPurposeById("shorts")!,50);
+  assert.equal(short.format,"vertical");assert.deepEqual(short.pro!.range,{start:50,end:110});
+  const box=applyVideoPurpose(project,videoPurposeById("square")!,50);
+  assert.equal(box.format,"square");assert.deepEqual(box.pro!.range,{start:0,end:200});
+  assert.equal(purposeFileName("Ocean: heart","wide","mp4"),"Ocean- heart – YouTube 16x9.mp4");
+  assert.equal(purposeFileName("Ocean","square","mp4"),"Ocean – Square 1x1.mp4");
+  const studio=readFileSync("app/lyric-video-pro.tsx","utf8");
+  assert.match(studio,/applyVideoPurpose\(current\.current!,purpose/);
+  assert.match(studio,/setPlatform\(purpose\?\.platform\?\?"instagram"\)/);
+  assert.match(studio,/format=\{output\.format\}/);
+  assert.match(readFileSync("app/studio.tsx","utf8"),/purpose:visual\?\.purpose/);
 });

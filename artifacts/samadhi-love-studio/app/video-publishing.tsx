@@ -4,6 +4,8 @@ import { HelpControl, HelpField } from "./help-tip";
 import { useState } from "react";
 import { Copy, Download, ExternalLink, Mail, Share2 } from "lucide-react";
 import { hasExplicitWords } from "./clean-content";
+import { purposeFileName } from "./video-purpose";
+import type { VideoFormat } from "./lyric-video-data";
 
 export const videoPlatforms = {
   tiktok: { label: "TikTok", upload: "https://www.tiktok.com/tiktokstudio/upload", destination: "TikTok Studio" },
@@ -19,13 +21,15 @@ export const videoPlatforms = {
 export type VideoPlatform = keyof typeof videoPlatforms;
 export type VideoExport = { url: string; blob: Blob; extension: "mp4" | "webm"; savedUrl?: string };
 
-export function VideoPublishing({ output, title, caption, platform, setPlatform }: {
+export function VideoPublishing({ output, title, caption, platform, setPlatform, format }: {
   output: VideoExport; title: string; caption: string; platform: VideoPlatform; setPlatform: (platform: VideoPlatform) => void;
+  /** The frame shape, so the saved file says what it is for ("– YouTube 16x9"). */
+  format?: VideoFormat;
 }) {
   const [status, setStatus] = useState("");
   const cleanTitle = hasExplicitWords(title) ? "Samadhi Love" : title;
   const blocked = cleanTitle !== title || hasExplicitWords(caption);
-  const filename = (cleanTitle.replace(/[\\/:*?"<>|]/g, "-").trim().slice(0, 100) || "Samadhi Love") + "." + output.extension;
+  const filename = purposeFileName(cleanTitle, format, output.extension);
   const post = videoPlatforms[platform];
   const email = "mailto:?subject=" + encodeURIComponent(title) + "&body=" +
     encodeURIComponent(caption.trim() + "\n\nAttach " + filename + " from your downloads.");

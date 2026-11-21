@@ -5,6 +5,7 @@ import type { SavedVoice } from "./my-voice-data";
 import { BackgroundChooser, type BackgroundKey } from "./background-chooser";
 import type { OwnBackground } from "./own-background";
 import { CreateVideoBox, songDragProps } from "./create-video-box";
+import type { VideoPurposeId } from "./video-purpose";
 import {brand} from "./brand";
 import { MusicLanguageControl } from "./music-language-control";
 import { defaultLanguageChoice, resolveLanguage, isLanguageChoice, type LanguageChoice } from "./music-language";
@@ -109,10 +110,10 @@ export function QuickCreate({ singWithVoice, engine,favoriteTake,proProduction, 
     clear:()=>{setPhoto(null);setPhotoName("");setClip(null);}};
   // The song in the "Make your video" box: your newest result unless you pick another (or take it out).
   const [boxSongId,setBoxSongId]=useState<string|null>(null);
-  async function sendToVideo(song:Song){
+  async function sendToVideo(song:Song,purpose?:VideoPurposeId){
     if(!makeVideo)return;
     setPromptBusy(true);setError("");
-    try{await makeVideo(song,true,{look:videoLook,...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{}),...(clip?{video:clip}:{})});}
+    try{await makeVideo(song,true,{look:videoLook,...(purpose?{purpose}:{}),...(photo?{photo:new File([photo],photoName||"my-photo.png",{type:photo.type})}:{}),...(clip?{video:clip}:{})});}
     catch(e){setError((e as Error).message||"The video could not open. Your song and photo are still here.");}
     finally{setPromptBusy(false);}
   }

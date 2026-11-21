@@ -15,6 +15,7 @@ import {applyPlayVisual} from "./creative-video-handoff";
 import {applySocialVideoPreset,applyVideoShape,creatorVideoLooks,shortClipRange,suggestedHookStart} from "./creator-video-presets";
 import {VibeLookPicker} from "./vibe-look-picker";
 import {videoFormatLabels} from "./video-format-options";
+import {applyVideoPurpose,videoPurposeById,type VideoPurposeId} from "./video-purpose";
 import {savedLyricsForAudio} from "./caption-ready-lyrics";
 import {artistDashboardHref} from "./community/data";
 import {productionFetch} from "./credits/client";
@@ -150,7 +151,7 @@ type Props = {
   coverVideoRequest?:{id:string;songId:string;asset:string;overlay:OverlayStyle}|null;
   createSong?:()=>void;
   advanced?:boolean;
-  socialVideoRequest?: {songId:string;id:string;look?:string;photoAsset?:string;footage?:{asset:string;duration:number};audioId?:string;start?:number;seconds?:number}|null;
+  socialVideoRequest?: {songId:string;id:string;look?:string;purpose?:VideoPurposeId;photoAsset?:string;footage?:{asset:string;duration:number};audioId?:string;start?:number;seconds?:number}|null;
   autoCaptionRequest?: { songId: string; id: string } | null;
   songs: Song[];
   initialSongId: string;
@@ -852,7 +853,9 @@ function LyricVideoProContent(props: Props) {
     handledSocialRequest.current=request.id;
     if(recovery){setError("Resolve the available recovery copy before changing this video's excerpt. Your saved project is preserved.");return;}
     if(request.audioId&&request.audioId!==p.sourceAudioId){setError("This recording changed. Open its current version before preparing the video; your saved design is preserved.");return;}
-    const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;let next=applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset,request.footage);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform("instagram");setStatus("Your vertical short is prepared. Review captions and choose a look before export.");
+    const start=request.start??(song.musicalAd?0:suggestedHookStart(current.current!)),seconds=request.seconds??song.musicalAd?.seconds??30;const purpose=videoPurposeById(request.purpose);
+    // What the video is for sets its shape and length: YouTube full song (wide), Shorts highlight, Phone full song, Square box.
+    let next=purpose?applyVideoPurpose(current.current!,purpose,purpose.seconds>0?start:0,song.musicalAd?seconds:undefined):applySocialVideoPreset(current.current!,"reels",start,seconds);next=applyPlayVisual(next,request.look,request.photoAsset,request.footage);edit(next);if(song.musicalAd&&song.creationKind==="instrumental")setCleanExport(true);seek(next.pro!.range.start);setPlatform(purpose?.platform??"instagram");setStatus(purpose?`Your ${purpose.name} video is prepared: ${purpose.shape}. Review the words and look, then export. You can save it or open the upload page when it's done.`:"Your vertical short is prepared. Review captions and choose a look before export.");
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   },[props.socialVideoRequest?.id,song?.id,p?.duration,busy,recoveryReady,recovery]);
   const handledCover=useRef("");
@@ -3585,6 +3588,7 @@ function LyricVideoProContent(props: Props) {
                                 caption={postCaption}
                                 platform={platform}
                                 setPlatform={setPlatform}
+                                format={output.format}
                               />
                             </div>
                           ))}
