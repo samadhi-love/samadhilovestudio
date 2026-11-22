@@ -323,7 +323,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     if(!on)return;
     switchMode(false);setAutoGenre(false);
     setGenreEdit(current=>{const tags=genreTags(current??"");return tags.some(t=>t.toLowerCase()==="kids")?current:[...tags,"Kids"].join(", ");});
-    if(!autoVideo)setAutoVideo(true);
   }
   const suggestedName=(what:"vision"|"lyrics")=>((customMode?songTitle.trim():"")||(what==="lyrics"?`Lyrics · ${idea.trim()||lyrics.trim()}`:idea.trim())).replace(/\s+/g," ").slice(0,72)||"My prompt";
   /** One-tap save of the prompt in front of the user (typed or written by the app) into Your Sounds. */
@@ -490,6 +489,11 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
         <span>You have an unfinished song from last time.</span>
         <button type="button" className="secondary small" data-testid="button-continue-draft" onClick={continueDraft}>Continue last draft</button>
         <button type="button" className="text-button" data-testid="button-dismiss-draft" onClick={()=>setResumable(null)}>Start fresh</button>
+      </div>}
+      {makeVideo&&!localSketch&&<div className="make-choice" role="radiogroup" aria-label="What do you want to make?" data-testid="make-choice">
+        <button type="button" role="radio" aria-checked={!autoVideo} className={!autoVideo?"active":""} disabled={busy} data-testid="button-make-song" onClick={()=>setAutoVideo(false)}>🎵 Make a song<small>Just the song, with all your options</small></button>
+        <button type="button" role="radio" aria-checked={autoVideo} className={autoVideo?"active":""} disabled={busy} data-testid="button-make-song-video" onClick={()=>setAutoVideo(true)}>🎵🎬 Make a song + lyric video<small>Same options, then its video opens</small></button>
+        <input type="checkbox" hidden readOnly data-testid="checkbox-auto-video" checked={autoVideo}/>
       </div>}
       <fieldset disabled={busy}>
         <div className="forge-grid"><div className="forge-main">
@@ -671,17 +675,16 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Two takes</label>
           <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two takes, side by side. Both are kept.":"One take."}</p>
         </div>}
-        {makeVideo&&!localSketch&&<div className="qc-video-plan" role="radiogroup" aria-label="Then make my video" data-testid="label-auto-video">
+        {makeVideo&&!localSketch&&autoVideo&&<div className="qc-video-plan" role="radiogroup" aria-label="Then make my video" data-testid="label-auto-video">
           <span className="qc-video-plan-title">🎬 Then make my video</span>
           {videoPurposes.map(p=><button type="button" role="radio" key={p.id} aria-checked={autoVideo&&videoPurpose===p.id} className={autoVideo&&videoPurpose===p.id?"active":""}
             disabled={busy} title={p.shape} data-testid={`button-video-plan-${p.id}`} onClick={()=>{setVideoPurpose(p.id);setAutoVideo(true);}}>{p.icon} {p.name}</button>)}
-          <button type="button" role="radio" aria-checked={!autoVideo} className={!autoVideo?"active":""} disabled={busy} data-testid="button-video-plan-none" onClick={()=>setAutoVideo(false)}>No video</button>
-          <input type="checkbox" hidden readOnly data-testid="checkbox-auto-video" checked={autoVideo}/>
+          <button type="button" role="radio" aria-checked={!autoVideo} className={!autoVideo?"active":""} disabled={busy} data-testid="button-video-plan-none" onClick={()=>setAutoVideo(false)}>Song only</button>
           {autoVideo&&<p className="muted qc-video-plan-note">When the song is ready, the video page opens in this shape. Pick its background and lyric style there.</p>}
         </div>}
         <div className="actions quick-submit">
           <button type="submit" className="primary qc-create" data-testid="button-create-song" disabled={busy}><Music2 size={17}/>
-            {pending ? localSketch?"Rendering your sketch…":"Beginning…" : "Begin"}</button>
+            {pending ? localSketch?"Rendering your sketch…":"Beginning…" : autoVideo&&makeVideo&&!localSketch?"Begin song + video":"Begin"}</button>
           {customMode&&<span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&(falActive?" · Uses the studio music engine":" · Uses your ElevenLabs credits")}</span>}
         </div>
         </div>

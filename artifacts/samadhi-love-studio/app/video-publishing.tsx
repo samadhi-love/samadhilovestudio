@@ -33,16 +33,22 @@ export function VideoPublishing({ output, title, caption, platform, setPlatform,
   const post = videoPlatforms[platform];
   const email = "mailto:?subject=" + encodeURIComponent(title) + "&body=" +
     encodeURIComponent(caption.trim() + "\n\nAttach " + filename + " from your downloads.");
+  const file = () => new File([output.blob], filename, { type: "video/" + output.extension });
+  // Only offer Share where this device can share video files at all.
+  const [canShareFile] = useState(() => { try { return typeof navigator !== "undefined" && !!navigator.share && !!navigator.canShare?.({ files: [file()] }); } catch { return false; } });
+  function saveToDownloads() {
+    const link = document.createElement("a");
+    link.href = output.url; link.download = filename; link.rel = "noopener";
+    document.body.appendChild(link); link.click(); link.remove();
+  }
   async function share() {
-    const file = new File([output.blob], filename, { type: "video/" + output.extension });
-    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
-      setStatus("File sharing is unavailable here. Download the video, then upload or attach it.");
-      return;
-    }
-    try { await navigator.share({ files: [file], title, text: caption.trim() }); }
+    // The video file alone: devices (Windows especially) often refuse files sent together with text.
+    // The caption has its own Copy button.
+    try { await navigator.share({ files: [file()] }); setStatus(""); }
     catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError"))
-        setStatus("Your device could not share this file. Download it to upload or attach it.");
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      saveToDownloads();
+      setStatus(`Your device's share menu didn't take the video, so it was saved to your Downloads as “${filename}”. Attach it to an email or upload it from there.`);
     }
   }
   return <div className="video-publishing">
@@ -50,7 +56,7 @@ export function VideoPublishing({ output, title, caption, platform, setPlatform,
     {output.savedUrl && <VideoLinkActions url={output.savedUrl} title={title} />}
     <div className="actions">
       <a className="primary" href={output.url} download={filename}><Download size={15}/> Save {output.extension.toUpperCase()}</a>
-      <HelpControl subject="Share video file" tip="Open your device’s share menu with the exported video attached, where file sharing is supported."><button className="secondary" type="button" disabled={blocked} onClick={share}><Share2 size={15}/> Share video file</button></HelpControl>
+      {canShareFile && <HelpControl subject="Share video file" tip="Open your device’s share menu with the video attached. If it can't, the video is saved to your Downloads instead."><button className="secondary" type="button" disabled={blocked} data-testid="button-share-video-file" onClick={share}><Share2 size={15}/> Share video file</button></HelpControl>}
       {!blocked && <HelpControl subject="Open email draft" tip="Open a draft in your email app. Attach the downloaded video there before sending."><a className="secondary" href={email}><Mail size={15}/> Open email draft</a></HelpControl>}
     </div>
     <HelpField label="Social platform" tip="Choose a destination to open its upload page. You review and publish the video there."><select value={platform} onChange={event => setPlatform(event.target.value as VideoPlatform)}>
@@ -62,7 +68,10 @@ export function VideoPublishing({ output, title, caption, platform, setPlatform,
         catch { setStatus("Select and copy the caption from its text box."); }
       }}><Copy size={15}/> Copy post caption</button></HelpControl>
     </div>
-    <p className="muted creation-note">Save the file, then upload it on the platform. To email it, attach the saved file to the draft or choose a mail app from Share video file when available.</p>
+    <ul className="muted creation-note publish-steps">
+      <li><strong>Post it:</strong> Save {output.extension.toUpperCase()} → open the site below → upload the saved video.</li>
+      <li><strong>Email it:</strong> Save {output.extension.toUpperCase()} → Open email draft → attach the video from your Downloads. (Websites can’t attach files to emails for you.)</li>
+    </ul>
     {format === "wide" && <YouTubeThumbnail videoUrl={output.url} title={cleanTitle} />}
     {output.extension === "webm" && <p className="muted creation-note">This export is WebM. Use an MP4-capable browser or convert it if the destination requires MP4.</p>}
     {status && <p role="status">{status}</p>}

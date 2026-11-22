@@ -254,3 +254,9 @@
 .my-video-play { width: 64px; height: 64px; border-radius: 50%; font-size: 1.6rem; }
 .my-video strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .song-videos { white-space: nowrap; }
+/* What to make: song only, or song + lyric video. Same page either way. */
+.make-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0 0 14px; }
+.make-choice button { display: grid; gap: 2px; text-align: left; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(127,233,255,.3); background: rgba(14,12,36,.45); font-weight: 700; }
+.make-choice button small { font-weight: 400; opacity: .8; }
+.make-choice button.active { border-color: var(--cv-gold, #f4d27a); box-shadow: 0 0 0 1px var(--cv-gold, #f4d27a) inset; }
+@media (max-width: 520px) { .make-choice { grid-template-columns: minmax(0, 1fr); } }

@@ -341,8 +341,12 @@ test("Song + video in one go: tick the box, Begin, and the finished song opens i
   const view=(drafts:any[])=><QuickCreate {...base} drafts={drafts} engine={ace} generateSong={async()=>"new-song"} makeVideo={async(song,_short,visual)=>{videos.push({id:song.id,purpose:visual?.purpose});}}/>;
   await act(async()=>h.root.render(view([])));
   assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,false,"off until you choose a video");
-  assert.equal(q("button-video-plan-none")!.getAttribute("aria-checked"),"true","No video is the starting choice");
-  assert.match(q("label-auto-video")!.textContent!,/Then make my video/);
+  assert.equal(q("button-make-song")!.getAttribute("aria-checked"),"true","Make a song is the starting choice");
+  assert.equal(q("label-auto-video"),null,"no video shapes while making a song only");
+  assert.equal(q("button-create-song")!.textContent!.trim(),"Begin");
+  await act(async()=>q<HTMLButtonElement>("button-make-song-video")!.click());
+  assert.match(q("label-auto-video")!.textContent!,/Then make my video/,"choosing song + video shows the shapes");
+  assert.equal(q("button-create-song")!.textContent!.trim(),"Begin song + video","Begin says what will happen");
   await act(async()=>q<HTMLButtonElement>("button-video-plan-youtube")!.click());
   assert.equal(q("button-video-plan-youtube")!.getAttribute("aria-checked"),"true");
   assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,true);
@@ -367,6 +371,8 @@ test("Song + video: an older finished song never opens a video just because the 
   let opened=0;
   const old={...freshSong("old","Old song",0),audioId:"a",audioFormat:"mp3" as const};
   await act(async()=>h.root.render(<QuickCreate {...base} drafts={[old]} engine={ace} generateSong={async()=>"old"} makeVideo={async()=>{opened++;}}/>));
+  await act(async()=>q<HTMLButtonElement>("button-make-song-video")!.click());
+  await act(async()=>q<HTMLButtonElement>("button-make-song-video")!.click());
   await act(async()=>q<HTMLButtonElement>("button-video-plan-shorts")!.click());
   for(let i=0;i<4;i++)await act(async()=>{await new Promise(r=>setTimeout(r,0));});
   assert.equal(opened,0);
@@ -385,7 +391,7 @@ test("Easy mode: idea, genre, who sings, Begin and a video choice; 'More options
   assert.ok(q("input-song-description"));
   assert.ok(document.querySelector('[data-testid^="team-"]'),"who sings");
   assert.ok(q("button-create-song"),"Begin");
-  assert.ok(q("label-auto-video"),"Then make my video stays in Easy mode");
+  assert.ok(q("make-choice"),"the song / song + video choice stays in Easy mode");
   assert.equal(q("section-advanced-options"),null,"Studio tools are tucked away");
   assert.equal(q("fold-pro-production"),null,"Pro production is tucked away");
   await act(async()=>q<HTMLButtonElement>("button-more-options")!.click());
@@ -417,7 +423,9 @@ test("Kids Corner: same song-and-video journey for kids: Kids genre, sing it you
   assert.ok(q("kids-corner"),"Kids Corner opens");
   assert.equal(q("toggle-genre-kids")!.getAttribute("aria-pressed"),"true","Kids genre is on");
   assert.match(q("text-kids-song")!.textContent!,/friendly adult voices/,"kids songs are sung by grown-up voices");
-  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,true,"the video is made after the song");
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,false,"Kids Corner never switches the video on by itself");
+  await act(async()=>q<HTMLButtonElement>("button-make-song-video")!.click());
+  assert.equal(q<HTMLInputElement>("checkbox-auto-video")!.checked,true,"you choose song + video");
   assert.match(q("kids-corner")!.textContent!,/Jungle Friends/);
   assert.match(q("kids-singer-way")!.textContent!,/Female, Male or a duo/);
   assert.match(q<HTMLTextAreaElement>("input-song-description")!.placeholder,/puppy/);

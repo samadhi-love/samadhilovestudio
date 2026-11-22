@@ -163,6 +163,9 @@ test("LyriVid: every finished video shows Upload & share right under it, opening
   const project={cues:[],theme:"nebula",motion:"still",format:"wide",pro:{...newProSettings(s,200),duration:200,range:{start:0,end:200}}} as any;
   const blob=new Blob(["video"],{type:"video/mp4"});
   const outputs=[{url:"blob:w",blob,extension:"mp4",format:"wide"},{url:"blob:v",blob,extension:"mp4",format:"vertical"},{url:"blob:s",blob,extension:"mp4",format:"square"}] as const;
+  const nav=globalThis.navigator as any,shared:any[]=[];let refuse=false;
+  nav.canShare=()=>true;nav.share=async(data:any)=>{shared.push(data);if(refuse)throw new DOMException("Share failed","NotAllowedError");};
+  const clicks:string[]=[];const Anchor=(document.defaultView as any).HTMLAnchorElement;const realClick=Anchor.prototype.click;Anchor.prototype.click=function(this:HTMLAnchorElement){clicks.push(this.download);};
   const {createRoot}=await import("react-dom/client"),root=createRoot(document.getElementById("root")!);
   await act(async()=>root.render(<QuickVideoPanel song={s} project={project} time={0} busy={false} captionState="reviewed" edit={()=>{}} make={()=>{}} progress={null}
     blocked={[]} results={[...outputs]} addWords={()=>{}} fixWords={()=>{}} openFineTune={()=>{}}
@@ -178,6 +181,21 @@ test("LyriVid: every finished video shows Upload & share right under it, opening
     assert.ok(box.querySelector("a[download]"),"save the file");
   }
   assert.match(q("qv-share-wide")!.textContent!,/YouTube Studio under Details → Thumbnail/,"YouTube thumbnail maker under the wide video");
+  const shareButton=q("qv-share-vertical")!.querySelector<HTMLButtonElement>('[data-testid="button-share-video-file"]')!;
+  await act(async()=>shareButton.click());
+  assert.equal(shared.length,1);assert.equal(shared[0].files.length,1);assert.equal(shared[0].text,undefined,"only the file is shared: devices refuse files sent with text");
+  refuse=true;
+  await act(async()=>shareButton.click());
+  assert.equal(clicks.length,1,"when the device refuses, the video is saved to Downloads instead");
+  assert.match(q("qv-share-vertical")!.textContent!,/saved to your Downloads/);
+  assert.match(q("qv-share-vertical")!.textContent!,/attach the video from your Downloads/,"clear email steps");
+  Anchor.prototype.click=realClick;
+  nav.canShare=()=>false;
+  const spot=document.createElement("div");document.body.appendChild(spot);const other=createRoot(spot);
+  await act(async()=>other.render(<ShareFinishedVideo output={outputs[0] as any} title={s.name} caption="x" chosen="youtube"/>));
+  assert.equal(spot.querySelector('[data-testid="button-share-video-file"]'),null,"no Share button where the device cannot share files");
+  await act(async()=>other.unmount());spot.remove();nav.canShare=()=>true;
+  delete nav.canShare;delete nav.share;
   const select=q("qv-share-vertical")!.querySelector("select")!;
   await act(async()=>{select.value="instagram";select.dispatchEvent(new window.Event("change",{bubbles:true}));});
   assert.match(opens("vertical"),/Meta Business Suite/,"switching the site for one file works");
