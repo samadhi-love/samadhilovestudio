@@ -333,3 +333,23 @@ test("lyrics are sung exactly as written: no automatic parts, no Song parts list
   assert.equal(lyrics.value,own);
  }finally{await h.close();}
 });
+test("Shape It sits side by side: words on the left; sound, voice, finish and recent songs on the right",async()=>{
+ const h=await setup();const opened:string[]=[],videos:string[]=[];
+ try{
+  const songs=["One","Two","Three","Four","Five","Six"].map((name,i)=>({id:"r"+i,name,audioFormat:"mp3",audioId:"a"+i,createdAt:new Date(Date.UTC(2026,10,21,12-i)).toISOString(),tags:[],notes:{prompt:"",lyrics:""},mixes:[]} as any));
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={songs} settings={()=>{}} guided={()=>{}} openDrafts={()=>opened.push("all")} makeVideo={song=>{videos.push(song.id);}} generateSong={async()=>"x"} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.button("Shape It").click());
+  const side=document.querySelector('.forge-side')!;
+  for(const id of ["side-sound","side-voice","side-finish","side-recent-songs"])assert.ok(side.querySelector(`[data-testid="${id}"]`),id+" is in the right column");
+  assert.ok(side.querySelector('[data-testid="button-create-song"]'),"Begin is with Finish");
+  assert.ok(side.querySelector('[data-testid="team-choice"]'),"Who sings is with Voice");
+  assert.ok(document.querySelector('.forge-main [data-testid="input-lyrics"]'),"lyrics stay on the left");
+  const recent=side.querySelectorAll('[data-testid^="button-recent-song-"]');
+  assert.equal(recent.length,5,"five most recent songs");
+  await act(async()=>(recent[0] as HTMLButtonElement).click());
+  assert.ok(side.querySelector('[data-testid="side-recent-songs"] audio, [data-testid="side-recent-songs"] [aria-label^="Listen to"]'),"tapping a song shows a player");
+  await act(async()=>side.querySelector<HTMLButtonElement>('[data-testid="button-recent-video-r1"]')!.click());
+  await act(async()=>side.querySelector<HTMLButtonElement>('[data-testid="button-all-songs"]')!.click());
+  assert.deepEqual(videos,["r1"]);assert.deepEqual(opened,["all"]);
+ }finally{await h.close();}
+});

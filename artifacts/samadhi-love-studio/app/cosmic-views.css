@@ -221,3 +221,26 @@
 /* "Continue last draft": one quiet line at the top of Create. */
 .resume-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px; border: 1px solid rgba(127,233,255,.35); border-radius: 14px; background: rgba(14,12,36,.45); }
 .resume-draft span { flex: 1 1 220px; }
+/* Shape It side column: Sound, Voice, Finish and Recent songs sit beside the words. */
+.forge-side .side-card { border: 1px solid var(--cv-line, rgba(127,233,255,.25)); border-radius: 18px; padding: 12px 14px; background: rgba(14,12,36,.45); display: grid; gap: 10px; min-width: 0; }
+.forge-side .side-card h3 { margin: 0; font-size: 1rem; }
+.forge-side .side-card .qc-fold { padding: 8px 12px; }
+.forge-side .forge-launch { display: grid; gap: 10px; }
+.forge-side .qc-video-plan { display: flex; flex-wrap: wrap; gap: 6px; }
+.forge-side .qc-create { width: 100%; justify-content: center; }
+.forge-side .forge-poetic { font-size: .85rem; opacity: .8; text-align: center; }
+.recent-songs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.recent-songs li { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-width: 0; }
+.recent-songs .recent-song { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.recent-songs .recent-song.active { color: var(--cv-cyan, #7fe9ff); }
+/* Side-by-side Create uses the full card width; the words column gets a taller box. */
+.quick-create.nebula-forge form { max-width: none; }
+@media (min-width: 768px) { .nebula-forge .forge-grid { grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); } }
+@media (max-width: 767px) { .nebula-forge .forge-grid { grid-template-columns: minmax(0, 1fr); } .nebula-forge [data-testid="input-lyrics"] { min-height: 220px; } }
+.nebula-forge [data-testid="input-lyrics"] { min-height: 340px; }
+.forge-side .team-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.forge-side .team-options button { width: auto; flex: 0 0 auto; }
+.forge-side .forge-launch { display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 12px; }
+.forge-side .forge-launch .quick-submit { order: 10; flex-direction: column; align-items: stretch; gap: 6px; }
+.nebula-forge .forge-side { position: static; }
+.forge-side .forge-launch > * { flex: 0 0 auto; }

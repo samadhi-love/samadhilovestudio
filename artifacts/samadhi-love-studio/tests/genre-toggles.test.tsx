@@ -71,13 +71,14 @@ test("Just Begin: instruments are optional; tapping them puts them in the box, w
   }finally{await h.close();}
 });
 
-test("Shape It like Suno: lyrics first, then one Styles box that blends genres, instruments, moods and energy",async()=>{
+test("Shape It like Suno: lyrics on the left, one Styles box beside them that blends genres, instruments, moods and energy",async()=>{
   const h=await setup();
   try{
     await h.click("tab-mode-custom");
     const fold=h.q("fold-lyrics")!;
-    const order=["input-lyrics","input-style-blend","input-song-idea"].map(id=>[...fold.querySelectorAll("[data-testid]")].findIndex(e=>(e as HTMLElement).dataset.testid===id));
-    assert.ok(order[0]>=0&&order[0]<order[1]&&order[1]<order[2],"lyrics, then styles, then what it's about");
+    const order=["input-lyrics","input-song-idea"].map(id=>[...fold.querySelectorAll("[data-testid]")].findIndex(e=>(e as HTMLElement).dataset.testid===id));
+    assert.ok(order[0]>=0&&order[0]<order[1],"lyrics, then what it's about, in the Words column");
+    assert.ok(document.querySelector('.forge-side [data-testid="side-sound"] [data-testid="input-style-blend"]'),"one Styles box in the Sound card beside the words");
     await h.type(h.q("input-lyrics") as HTMLTextAreaElement,"Hold me close\nUnder the stars");
     await h.click("style-chip-r-b");await h.click("style-chip-afrobeats");
     await h.click("style-tab-instruments");await h.click("style-chip-piano");

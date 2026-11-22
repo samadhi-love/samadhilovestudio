@@ -529,7 +529,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           {intentIssue&&<p className="muted" role="status" data-testid="text-understood-prompt">{intentIssue}</p>}
         </div>:<div className="shape-it" data-testid="panel-shape-it">
           <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
-          <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Lyrics &amp; Styles</summary>
+          <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>✍️ Words</summary>
             <label className="field qc-field">Lyrics
               <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. They are sung exactly as written."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}}/>
             </label>
@@ -538,11 +538,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
             {lyricStatus&&<p role="status" data-testid="text-lyric-status">{lyricStatus}</p>}
             {useOwnLyrics && <LyricNotationPreview text={lyrics}/>}
-            {!adMode&&<StyleBlend genre={genreEdit??chosenGenre??""} instruments={instrumentsEdit??""} disabled={busy}
-              change={(g,i)=>{setAutoGenre(false);setGenreEdit(g||null);setInstrumentsEdit(i||null);setError("");}}
-              suggest={()=>{const g=genreEdit??chosenGenre??fusionGenres(fusion,"").slice(1).join(", ");return {genre:g,instruments:instrumentsEdit||autoInstruments(idea,genreTags(g))};}}/>}
-            {useOwnLyrics&&genre&&<p className="muted" data-testid="text-lyrics-blend">Your lyrics will be sung as <strong>{blendName(genreTags(genre).slice(0,4))}</strong>{instruments?<> with <strong>{genreTags(instruments).slice(0,4).join(", ")}</strong></>:null}.</p>}
-            {!instrumental&&<TeamChoice value={teamId} change={setTeamId} heard={wordTeam} note={teamNote} disabled={busy}/>}
             <label className="field qc-field">What it&apos;s about <span className="muted">· optional</span>
               <textarea data-testid="input-song-idea" rows={4} maxLength={1200} value={idea} placeholder="What the song is about, how it should feel" onChange={e=>{setIdea(e.target.value);setError("");}}/></label>
             {savePrompt&&<div className="prompt-quick-save">{naming==="vision"?<SaveNameBox suggested={suggestedName("vision")} busy={busy} save={name=>void savePromptNow("vision",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-vision" disabled={busy||!idea.trim()} onClick={()=>{setQuickSaved(null);setNaming("vision");}}>☆ Save this prompt</button>}{quickSaved?.what==="vision"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
@@ -551,20 +546,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
             <details className="qc-fold" key={"prompts"+panelKey} open={openPanel==="prompts"||undefined} data-testid="fold-prompts"><summary>Writing helpers</summary>
               {promptHelpers?.(applySeed)??<p className="muted">Writing helpers are unavailable.</p>}
             </details>
-          </details>
-          <details className="qc-fold" key={"style"+panelKey} open={openPanel==="style"||openPanel==="recipes"||undefined} data-testid="fold-style"><summary>More sound options</summary>
-            <SoundSoulPicker vision={idea} genre={genreEdit??chosenGenre??""} instruments={instrumentsEdit??""} changeGenre={next=>{setAutoGenre(false);setGenreEdit(next);setError("");}} changeInstruments={next=>{setInstrumentsEdit(next);setError("");}} disabled={busy}/>
-            {hasExplicitWords(genre) && <CleanLyricsChecker lyrics={genre} change={value => setGenreEdit(value)} direction label="Clean styles"/>}
-            {hasExplicitWords(instruments) && <CleanLyricsChecker lyrics={instruments} change={value => setInstrumentsEdit(value)} direction label="Clean instrument notes"/>}
-          </details>
-          <details className="qc-fold" key={"vocals"+panelKey} open={openPanel==="vocals"||undefined} data-testid="fold-vocals"><summary>Voice</summary>
-            {instrumental?<p className="muted">No Vocals is on; voice direction is not sent. Your choices are kept.</p>:<>
-              <VoicePicker value={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);setError("");}} disabled={busy}/>
-              <p className="muted"><strong>Suggested delivery:</strong> {matchVocalToSong(idea,genre,instruments)} <button type="button" className="text-button" data-testid="button-use-vocal" onClick={()=>setVoiceEdit(matchVocalToSong(idea,genre,instruments))}>Use this</button>{voiceEdit&&<> · <button type="button" className="text-button" data-testid="button-clear-vocal" onClick={()=>setVoiceEdit(null)}>Clear</button></>}</p>
-              {voiceEdit&&<p className="muted" data-testid="text-vocal-direction">Voice direction: {voiceEdit}</p>}
-              <p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${team?.arrangement??chosenPerformer??"Singer follows your vision"}.`}</p>
-            </>}
-            {vocalHelpers&&<details className="qc-fold"><summary>Voice helper</summary>{vocalHelpers(applySeed)}</details>}
           </details>
           <div className="qc-fold shape-name"><label className="field qc-field">Name <span className="muted">· optional</span>
             <input data-testid="input-song-title" maxLength={100} value={songTitle} onChange={e=>setSongTitle(e.target.value)} placeholder="Leave blank and it is named from the lyrics"/></label>
@@ -654,9 +635,36 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           </div>
           </details>}
         </div>}
-        {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
+        {promptNotice&&<p role="status" data-testid="text-prompt-notice">{promptNotice}</p>}
+        </div>
+        <aside className="forge-side" aria-label="Sound, voice and finish">
+          {customMode&&<section className="side-card" data-testid="side-sound"><h3>🎵 Sound</h3>
+            {!adMode&&<StyleBlend genre={genreEdit??chosenGenre??""} instruments={instrumentsEdit??""} disabled={busy}
+              change={(g,i)=>{setAutoGenre(false);setGenreEdit(g||null);setInstrumentsEdit(i||null);setError("");}}
+              suggest={()=>{const g=genreEdit??chosenGenre??fusionGenres(fusion,"").slice(1).join(", ");return {genre:g,instruments:instrumentsEdit||autoInstruments(idea,genreTags(g))};}}/>}
+            {useOwnLyrics&&genre&&<p className="muted" data-testid="text-lyrics-blend">Your lyrics will be sung as <strong>{blendName(genreTags(genre).slice(0,4))}</strong>{instruments?<> with <strong>{genreTags(instruments).slice(0,4).join(", ")}</strong></>:null}.</p>}
+          <details className="qc-fold" key={"style"+panelKey} open={openPanel==="style"||openPanel==="recipes"||undefined} data-testid="fold-style"><summary>More sound options</summary>
+            <SoundSoulPicker vision={idea} genre={genreEdit??chosenGenre??""} instruments={instrumentsEdit??""} changeGenre={next=>{setAutoGenre(false);setGenreEdit(next);setError("");}} changeInstruments={next=>{setInstrumentsEdit(next);setError("");}} disabled={busy}/>
+            {hasExplicitWords(genre) && <CleanLyricsChecker lyrics={genre} change={value => setGenreEdit(value)} direction label="Clean styles"/>}
+            {hasExplicitWords(instruments) && <CleanLyricsChecker lyrics={instruments} change={value => setInstrumentsEdit(value)} direction label="Clean instrument notes"/>}
+          </details>
+          </section>}
+          {(customMode||singWithVoice&&!instrumental)&&<section className="side-card" data-testid="side-voice"><h3>🎤 Voice</h3>
+            {customMode&&!instrumental&&<TeamChoice value={teamId} change={setTeamId} heard={wordTeam} note={teamNote} disabled={busy}/>}
         {customMode&&!instrumental&&!localSketch&&<SingerChoice value={singerId} change={setSingerId} auto={autoPick} disabled={busy}/>}
         {singWithVoice&&!instrumental&&<VoiceChoice value={chosenVoice} change={setChosenVoice} disabled={busy}/>}
+          {customMode&&<details className="qc-fold" key={"vocals"+panelKey} open={openPanel==="vocals"||undefined} data-testid="fold-vocals"><summary>Voice details</summary>
+            {instrumental?<p className="muted">No Vocals is on; voice direction is not sent. Your choices are kept.</p>:<>
+              <VoicePicker value={vocalOptions} change={next=>{setVoiceEdit(null);setVocalOptions(next);setError("");}} disabled={busy}/>
+              <p className="muted"><strong>Suggested delivery:</strong> {matchVocalToSong(idea,genre,instruments)} <button type="button" className="text-button" data-testid="button-use-vocal" onClick={()=>setVoiceEdit(matchVocalToSong(idea,genre,instruments))}>Use this</button>{voiceEdit&&<> · <button type="button" className="text-button" data-testid="button-clear-vocal" onClick={()=>setVoiceEdit(null)}>Clear</button></>}</p>
+              {voiceEdit&&<p className="muted" data-testid="text-vocal-direction">Voice direction: {voiceEdit}</p>}
+              <p className="muted" data-testid="text-understood-prompt" role="status">{intentIssue||`${team?.arrangement??chosenPerformer??"Singer follows your vision"}.`}</p>
+            </>}
+            {vocalHelpers&&<details className="qc-fold"><summary>Voice helper</summary>{vocalHelpers(applySeed)}</details>}
+          </details>}
+          </section>}
+          <section className="side-card side-finish" data-testid="side-finish"><h3>🎬 Finish</h3>
+        {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
         {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">
           <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Two takes</label>
@@ -676,9 +684,8 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           {customMode&&<span className="muted" data-testid="text-create-summary">Length: {autoLength&&!adActive&&!mapOn?"Auto":formatTrackTime(timing.seconds)}{!localSketch&&(falActive?" · Uses the studio music engine":" · Uses your ElevenLabs credits")}</span>}
         </div>
         </div>
-        {promptNotice&&<p role="status" data-testid="text-prompt-notice">{promptNotice}</p>}
-        </div>
-        <aside className="forge-side" aria-label="A quiet note">
+          </section>
+          <RecentSongs songs={drafts} open={openDrafts} makeVideo={makeVideo}/>
           <p className="cosmic-poetic forge-poetic">Nada Brahma — the universe is sound.</p>
           <p className="muted forge-signature">{brand.slogan}</p>
         </aside></div>
@@ -731,4 +738,21 @@ function InstrumentToggles({ box, change, suggested, disabled }: { box: string; 
     </label>
     {box.trim() && <button type="button" className="text-button" data-testid="button-clear-instruments" disabled={disabled} onClick={() => change("")}>Clear: choose for me</button>}
   </div>;
+}
+
+/** Your latest songs beside Create: tap one to listen, make its video, or open them all. */
+function RecentSongs({ songs, open, makeVideo }: { songs: Song[]; open: () => void; makeVideo?: (song: Song) => void | Promise<void> }) {
+  const [playing, setPlaying] = useState<string | null>(null);
+  const list = songs.filter(song => song.audioFormat && !song.deletedAt).slice(0, 5);
+  if (!list.length) return null;
+  const current = list.find(song => song.id === playing);
+  return <section className="side-card recent-songs" data-testid="side-recent-songs"><h3>🎶 Recent songs</h3>
+    <ul>{list.map(song => <li key={song.id}>
+      <button type="button" className={`text-button recent-song${playing === song.id ? " active" : ""}`} aria-pressed={playing === song.id} data-testid={`button-recent-song-${song.id}`}
+        onClick={() => setPlaying(playing === song.id ? null : song.id)}>{playing === song.id ? "⏸" : "▶"} {song.name || "Untitled song"}</button>
+      {makeVideo && <button type="button" className="text-button" data-testid={`button-recent-video-${song.id}`} onClick={() => void makeVideo(song)}>Make video</button>}
+    </li>)}</ul>
+    {current && <AudioPlayer key={current.id} src={songAudioUrl(current.id, current.audioId)} label={`Listen to ${current.name}`}/>}
+    <button type="button" className="text-button" data-testid="button-all-songs" onClick={open}>All your songs →</button>
+  </section>;
 }

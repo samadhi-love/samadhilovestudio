@@ -47,11 +47,11 @@ test("Who sings: a pick is followed exactly, and tapping it again goes back to A
   }finally{await h.close();}
 });
 
-test("Shape It: Who sings sits under the Styles box; No Vocals hides it",async()=>{
+test("Shape It: words on the left, then Styles and Who sings in the side column; No Vocals hides it",async()=>{
   const h=await setup();
   try{
     await h.click("tab-mode-custom");
-    const order=["input-lyrics","input-style-blend","team-choice","input-song-idea"].map(id=>h.q(id)!);
+    const order=["input-lyrics","input-song-idea","input-style-blend","team-choice"].map(id=>h.q(id)!);
     for(let i=1;i<order.length;i++)assert.ok(order[i-1].compareDocumentPosition(order[i])&4,`${i} in order`);
     await h.click("team-choir");
     assert.match(h.q("text-team")!.textContent!,/Choir/);
