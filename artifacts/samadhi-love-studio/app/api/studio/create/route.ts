@@ -1,3 +1,4 @@
+import { clearButRichVocals, polishChunks, qualityTags } from "../../../music-quality";
 import { rateLimited } from "../../../server/rate-limit";
 import { familySafe } from "../../../family-voices";
 import { productionPolish } from "../../../production-polish";
@@ -20,7 +21,7 @@ import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords } from "../../../clean-content";
 import { freshSong, emptyCreatorStudio, initialStudio, type Studio, type Song } from "../../../studio-data";
 import { isTrackDuration, creationDuration } from "../../../track-duration";
-import { elevenLabsFailureMessage, elevenLabsRequest, musicModel as model } from "../elevenlabs/provider";
+import { elevenLabsFailureMessage, elevenLabsRequest, musicModel as model, stemFormats, stemOutputFormat } from "../elevenlabs/provider";
 import { resolveElevenLabsKey } from "../elevenlabs/vault";
 import { audioKey, maxStudioBytes, privateHeaders, readStudio, writeStudio } from "../store";
 
@@ -289,7 +290,7 @@ async function createMusic(request: Request) {
     draft.notes.instruments=instruments;
     if(genres)draft.tags=genreTags(genres);
     // The singer comes first: the engine keeps at most 20 style hints, and the voice must never be the one cut off.
-    const direction = [voice && "Vocal direction: " + voice, languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+describeInstruments(instruments), "Production: "+productionPolish+".", songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
+    const direction = [voice && "Vocal direction: " + voice, languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+describeInstruments(instruments), "Production: "+productionPolish+".", songOpenings[openingMode].direction, captionReady && clearButRichVocals, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
     const durationMs = duration * 1000;
 
     const bpm = /\b\d{2,3}\s*BPM\b/i.exec(prompt)?.[0] ?? "";
@@ -371,10 +372,12 @@ async function createMusic(request: Request) {
       const coded = applyChunkStyleCues(finalChunks, readLyricStyles,sectionDirections?.map(s=>s.name));
       const styled = sectionDirections ? coded : vocalStyles(coded, voice);
       const languageChunks=languageProfile ? languageStyles(styled, languageProfile) : styled;
-      plan = { ...plan, chunks: negativeStyle?languageChunks.map(chunk=>{
+      const avoided = negativeStyle?languageChunks.map(chunk=>{
         const prior=(chunk as typeof chunk&{negative_styles?:unknown}).negative_styles;
         return {...chunk,negative_styles:[...(Array.isArray(prior)?prior.filter((style):style is string=>typeof style==="string"):[]),negativeStyle]};
-      }):languageChunks };
+      }):languageChunks;
+      // Studio-quality sound: quality tags, a role for each song part (verse, chorus, bridge…) and a stronger avoid list.
+      plan = { ...plan, chunks: polishChunks(avoided as { text?: string; positive_styles?: unknown; negative_styles?: unknown }[]) };
     }
     if(input.autoTitle===true&&draft.notes.lyrics.trim()){const suggested=titlesFromLyrics(draft.notes.lyrics)[0];if(suggested)draft.name=suggested;}
     let falInput:FalInput|undefined;
@@ -443,14 +446,16 @@ async function createMusic(request: Request) {
         }else return preservedProblem(error instanceof Error?error.message:"ACE-Step could not finish. Check fal.ai history before confirming Try again; no backup was started.",502);
       }
     }
-    const response = await call("music?output_format=mp3_44100_128", instrumental
-      ? { model_id: model, prompt: [songOpenings[openingMode].direction, prompt].join("\n"), music_length_ms: durationMs, force_instrumental: true }
-      : { model_id: model, composition_plan: plan });
+    const musicBody = instrumental
+      ? { model_id: model, prompt: [songOpenings[openingMode].direction, prompt, "Production: " + qualityTags.join(", ") + "."].join("\n"), music_length_ms: durationMs, force_instrumental: true }
+      : { model_id: model, composition_plan: plan };
+    // 192 kbps when this ElevenLabs plan allows it (Creator and above), otherwise the standard 128 kbps. Checked before any music is made.
+    const response = await call("music?output_format=" + (key ? await stemOutputFormat(key) : stemFormats.standard), musicBody);
     if (!response.ok) return preservedProblem(await elevenLabsFailureMessage(response, "music"), 502);
     if (!response.headers.get("content-type")?.includes("audio"))
       return preservedProblem("ElevenLabs did not return an audio file.", 502);
     const audio = await response.arrayBuffer();
-    if (!audio.byteLength || audio.byteLength > 12 * 1024 * 1024)
+    if (!audio.byteLength || audio.byteLength > 20 * 1024 * 1024)
       return preservedProblem("The music service returned an invalid audio file.", 502);
 
     draft.generation = { ...draft.generation!, status:"complete" };

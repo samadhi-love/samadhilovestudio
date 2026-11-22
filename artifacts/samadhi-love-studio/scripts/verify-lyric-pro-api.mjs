@@ -81,7 +81,7 @@ const mocks = {
   vault:
     'export async function resolveElevenLabsKey(){return "mock-existing-key";}',
   providerAudio: `export async function sendProviderAudio(audio,format,key,fields,endpoint){globalThis.__pro.providerCalls.push({format,fields,endpoint});return Response.json(globalThis.__pro.providerResult,{status:globalThis.__pro.providerStatus??200});}`,
-  provider: `export const musicModel='music_v2_5';export async function elevenLabsFailureMessage(){return 'mock provider rejected';}export async function elevenLabsRequest(key,path,payload){globalThis.__pro.providerCalls.push({path,payload});if(path.startsWith('music?')&&globalThis.__pro.failMusic)return Response.json({error:'mock failure'},{status:503});if(path.startsWith('music?'))return new Response(new Uint8Array([73,68,51,4,0,0,0,0,0,0,255,251]),{headers:{'Content-Type':'audio/mpeg'}});return Response.json({chunks:[{text:'[Verse]\\nApproved words stay exact!',duration_ms:30000}]});}`,
+  provider: `export const stemFormats={standard:'mp3_44100_128',high:'mp3_44100_192'};export async function stemOutputFormat(){return 'mp3_44100_128';}export const musicModel='music_v2_5';export async function elevenLabsFailureMessage(){return 'mock provider rejected';}export async function elevenLabsRequest(key,path,payload){globalThis.__pro.providerCalls.push({path,payload});if(path.startsWith('music?')&&globalThis.__pro.failMusic)return Response.json({error:'mock failure'},{status:503});if(path.startsWith('music?'))return new Response(new Uint8Array([73,68,51,4,0,0,0,0,0,0,255,251]),{headers:{'Content-Type':'audio/mpeg'}});return Response.json({chunks:[{text:'[Verse]\\nApproved words stay exact!',duration_ms:30000}]});}`,
   creator: "export async function reserveCreatorGeneration(){return true;}",
 };
 const plugin = {
@@ -621,7 +621,7 @@ checked(codecInfo.httpMetadata.contentType === "video/mp4", "saved video stores 
 // Studio vocals default to caption-ready production, and sync can retrieve the exact saved words.
 let clearResponse=await create.POST(request("/api/studio/create","POST",{action:"song",title:"Clear vocal default",prompt:"A warm original song",lyrics:"[Verse]\nClear words from our song",duration:30}));
 checked(clearResponse.ok&&state.studio.songs[0].generation.captionReady===true,"caption-ready vocal production is the real generation default");
-checked(state.providerCalls.findLast(c=>c.path?.startsWith("music?")).payload.composition_plan.chunks.some(c=>c.positive_styles.some(style=>style.includes("Caption-ready vocal production"))),"clear lead phrasing and restrained reverb directions reach the actual provider request");
+checked(state.providerCalls.findLast(c=>c.path?.startsWith("music?")).payload.composition_plan.chunks.some(c=>c.positive_styles.some(style=>style.includes("Vocal production: clear forward intelligible lead vocal"))),"clear lead phrasing over a full rich mix reaches the actual provider request");
 const autoCaptionSong=state.studio.songs[0],approvedAuto=autoCaptionSong.generation.approvedLyrics;
 state.providerResult={characters:[..."Clear words from our song"].map((text,i)=>({text,start:1+i*.1,end:1+(i+1)*.1}))};
 clearResponse=await sync.POST(request("/api/studio/lyric-sync","POST",{songId:autoCaptionSong.id,audioId:autoCaptionSong.audioId,sourceAudioId:autoCaptionSong.audioId??autoCaptionSong.id,duration:30,mode:"auto"}));

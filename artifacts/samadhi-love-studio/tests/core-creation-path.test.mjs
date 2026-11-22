@@ -57,7 +57,7 @@ export {emptyCreatorStudio} from "./app/studio-data";
       export const saveConflict=()=>Response.json({error:"conflict"},{status:409});`,
     credits:"export const jobExecution=new WeakMap();export const managedProviderKey=()=>null;export const withProductionUsage=f=>f;",
     vault:"export const resolveElevenLabsKey=async owner=>owner==='owner'?'offline-dummy-key':null;",
-    music:`export const musicModel="offline-music";export const elevenLabsFailureMessage=async()=>"Fixture failed";
+    music:`export const stemFormats={standard:'mp3_44100_128',high:'mp3_44100_192'};export async function stemOutputFormat(){return 'mp3_44100_128';}export const musicModel="offline-music";export const elevenLabsFailureMessage=async()=>"Fixture failed";
       export async function elevenLabsRequest(key,path,payload){const s=globalThis.__corePath;s.music.push({path,payload});if(!path.startsWith("music?"))throw new Error("Unexpected provider call");return new Response(s.audio,{headers:{"Content-Type":"audio/mpeg"}});}`,
     alignment:`export async function sendProviderAudio(audio,format,key,fields,endpoint){const s=globalThis.__corePath;s.alignments.push({fields,endpoint});return Response.json({characters:s.characters});}`,
   }[a.path]}));

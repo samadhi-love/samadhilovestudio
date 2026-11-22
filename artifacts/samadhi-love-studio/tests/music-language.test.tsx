@@ -12,6 +12,7 @@ import * as languages from "../app/music-language";
 import * as vocals from "../app/vocal-matching";
 import * as family from "../app/family-voices";
 import * as polish from "../app/production-polish";
+import * as musicQuality from "../app/music-quality";
 import * as singerTeam from "../app/singer-team";
 import * as instrumentSounds from "../app/instrument-sounds";
 import { MusicLanguageControl } from "../app/music-language-control";
@@ -218,9 +219,10 @@ function routeHarness(sourceSongs: songData.Song[] = []) {
     "../../../track-duration": duration,
     "../../../family-voices": family,
     "../../../production-polish": polish,
+    "../../../music-quality": musicQuality,
     "../../../singer-team": singerTeam,
     "../elevenlabs/provider": {
-      musicModel: "music_v2_5", elevenLabsFailureMessage: async () => "Fixture error",
+      musicModel: "music_v2_5", stemFormats: { standard: "mp3_44100_128", high: "mp3_44100_192" }, stemOutputFormat: async () => "mp3_44100_128", elevenLabsFailureMessage: async () => "Fixture error",
       elevenLabsRequest: async (_key: string, path: string, payload: any) => {
         calls.push({ path, payload });
         return path === "music/plan" ? Response.json({ chunks: [{ text: "[Verse]\n" + (payload.prompt.includes("Singing language: Japanese") ? fixtures[5].text : fixtures[0].text), duration_ms: 15000, positive_styles: ["oud"] }] }) :

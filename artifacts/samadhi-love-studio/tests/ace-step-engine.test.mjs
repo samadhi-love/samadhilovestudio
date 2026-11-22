@@ -34,7 +34,7 @@ export {jobExecution} from "./app/credits/production";
       export async function writeStudio(owner,revision,text){const s=globalThis.__ace;if(s.writeConflict||revision!==s.studio.revision)return null;s.studio={data:JSON.parse(text),revision:revision+1};return {revision:revision+1};}`,
     credits:"export const jobExecution=new WeakMap();export const withProductionUsage=f=>f;export const managedProviderKey=()=>null;",
     vault:"export const resolveElevenLabsKey=async()=>globalThis.__ace.elevenKey;",
-    eleven:`export const musicModel="music_v2_5";export const elevenLabsFailureMessage=async()=>"ElevenLabs rejected";
+    eleven:`export const stemFormats={standard:'mp3_44100_128',high:'mp3_44100_192'};export async function stemOutputFormat(){return 'mp3_44100_128';}export const musicModel="music_v2_5";export const elevenLabsFailureMessage=async()=>"ElevenLabs rejected";
       export async function elevenLabsRequest(key,path,payload){const s=globalThis.__ace;s.eleven.push({path,payload});return path==="music/plan"?Response.json({chunks:[{text:"[Verse]\\nLight upon the sea",duration_ms:30000}]}):new Response("ID3fixture MP3 audio",{headers:{"Content-Type":"audio/mpeg"}});}`,
     fal:`export async function falRequest(key,path,init={}){const s=globalThis.__ace;s.fal.push({path,method:init.method??"GET",input:init.body?JSON.parse(init.body):undefined});
       if(path.startsWith("/openrouter/router")){

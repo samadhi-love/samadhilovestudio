@@ -65,6 +65,7 @@ const checks = [
   ["Malformed inputs, audio versions and recovery", ["scripts/test-internal-integrity.mjs"]],
   ["Party Mix", ["scripts/test-party.mjs"]],
   ["Lyric notation and directions", ["scripts/test-lyric-notation.mjs"]],
+  ["Studio-quality sound direction", ["scripts/test-music-quality.mjs"]],
   ["Photo-story advertisements", ["scripts/test-ad-photo-story.mjs"]],
   ["Non-destructive waveform crop and cut", ["scripts/test-song-audio-edit.mjs"]],
   ["Audit regression repairs", ["scripts/test-audit-repairs.mjs"]],
