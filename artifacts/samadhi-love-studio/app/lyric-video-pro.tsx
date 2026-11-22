@@ -1654,6 +1654,7 @@ function LyricVideoProContent(props: Props) {
         const result = finalBlob?{blob:finalBlob,extension:finalBlob.type.includes("mp4")?"mp4" as const:"webm" as const,codec:cachedCodec,engine:"Recovered finished video"}:await exportProVideo(
           {
             audio: decoded,
+            metadata: { title: song.name, artist: pro.artist, comment: "Made with Versual Studio" },
             audioUrl: soundtrackUrl,
             start: pro.range.start,
             end: pro.range.end,

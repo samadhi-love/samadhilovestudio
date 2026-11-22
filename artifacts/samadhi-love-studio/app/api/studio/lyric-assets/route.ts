@@ -1,3 +1,4 @@
+import { NotImageError, imageSignatureCheck } from "../../../image-signature";
 import { serverStorage as env } from "../../../server/storage";
 import { privateWorkspace } from "../../../studio-access";
 import { isExplicitSong } from "../../../clean-content";
@@ -70,9 +71,12 @@ async function saveAsset(request: Request) {
   const id = crypto.randomUUID(),
     key = lyricAssetKey(access.id, songId, id),
     stream = new FixedLengthStream(size);
+  const picture = kind === "background" || kind === "logo";
+  const check = picture ? imageSignatureCheck(kinds[kind]) : undefined;
+  const body = check ? request.body.pipeThrough(check) : request.body;
   try {
     await Promise.all([
-      request.body.pipeTo(stream.writable),
+      body.pipeTo(stream.writable),
       bucket.put(key, stream.readable, {
         httpMetadata: { contentType: type },
         customMetadata: {
@@ -85,7 +89,8 @@ async function saveAsset(request: Request) {
       }),
     ]);
     return Response.json({ id, kind, size }, { headers: privateHeaders });
-  } catch {
+  } catch (error) {
+    if (error instanceof NotImageError || check?.state.refused) { await bucket.delete(key).catch(() => {}); return problem(new NotImageError().message, 415); }
     return problem(
       "The file could not save. Your original recording is unchanged. Try again.",
       502,

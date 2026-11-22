@@ -17,6 +17,8 @@ export {default as nextConfig} from "./next.config";
 export {fitSections,maxEngineSections,maxSectionChars,productionLyricChunks} from "./app/lyric-style-cues";
 export {removeOldAutoParts} from "./app/auto-song-parts";
 export {autoSinger,lyricVoiceHints} from "./app/singer-library";
+export {videoBitrate} from "./app/lyric-pro-export";
+export {looksLikeImage,imageSignatureCheck,NotImageError} from "./app/image-signature";
 `,resolveDir:process.cwd(),loader:"ts"},outfile:`${directory}/bundle.mjs`,bundle:true,platform:"node",format:"esm",packages:"external",logLevel:"silent",jsx:"automatic",loader:{".css":"empty"},plugins:[{name:"offline",setup(b){
   b.onResolve({filter:/^cloudflare:workers$/},()=>({path:"cf",namespace:"offline"}));
   b.onLoad({filter:/.*/,namespace:"offline"},()=>({contents:"export const env={};",loader:"js"}));
@@ -142,4 +144,24 @@ test("Auto singer reads the lyrics' voice notes and your main style first",()=>{
   assert.notEqual(api.autoSinger(" "+api.lyricVoiceHints(lyrics),"R&B, Soul")?.arrangement,"Solo female lead","a male song never gets a female singer");
   assert.equal(api.autoSinger(" "+api.lyricVoiceHints("[Verse]\nEvery man and woman"),"R&B")?.name,"Soulful R&B · female","sung words are not read as voice notes");
   assert.equal(api.autoSinger("male voice","Spiritual Dance")?.arrangement,undefined,"no fitting male singer: the studio decides instead of switching gender");
+});
+
+test("video quality: 12 Mbps at 1080p, 6 Mbps at 720p, stepping down only to keep a full song under 512 MB",()=>{
+  assert.equal(api.videoBitrate(1080,60),12_000_000);
+  assert.equal(api.videoBitrate(720,200),6_000_000);
+  for(const seconds of [240,330,390]){const bytes=(api.videoBitrate(1080,seconds)+192_000)*seconds/8;assert.ok(bytes<512*1024*1024,`${seconds}s fits: ${Math.round(bytes/1048576)} MB`);}
+  assert.ok(api.videoBitrate(1080,390)>=8_000_000,"even a 6.5-minute 1080p video keeps at least 8 Mbps");
+});
+
+test("uploaded pictures are checked by their real content, not just their name",async()=>{
+  const png=new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,13,1,2,3]);
+  const jpeg=new Uint8Array([0xff,0xd8,0xff,0xe0,0,16,74,70,73,70,0,1,1]);
+  const webp=new Uint8Array([82,73,70,70,0,0,0,0,87,69,66,80,86,80,56]);
+  const html=new TextEncoder().encode("<html><script>alert(1)</script></html>");
+  assert.ok(api.looksLikeImage(png,"image/png")&&api.looksLikeImage(jpeg,"image/jpeg")&&api.looksLikeImage(webp,"image/webp"));
+  assert.ok(!api.looksLikeImage(html,"image/png"));
+  const run=async(bytes,allowed)=>{const check=api.imageSignatureCheck(allowed);const out=new Response(new Blob([bytes]).stream().pipeThrough(check));try{const got=new Uint8Array(await out.arrayBuffer());return {ok:true,same:got.length===bytes.length,refused:check.state.refused};}catch(e){return {ok:false,error:e,refused:check.state.refused};}};
+  const good=await run(jpeg,["image/png","image/jpeg","image/webp"]);assert.ok(good.ok&&good.same,"a JPEG named .png still uploads, unchanged");
+  const bad=await run(html,["image/png","image/jpeg","image/webp"]);assert.ok(!bad.ok&&bad.refused&&bad.error instanceof api.NotImageError,"a fake picture is refused");
+  const logo=await run(jpeg,["image/png","image/webp"]);assert.ok(!logo.ok,"logos stay PNG/WebP (they need transparency)");
 });

@@ -4,6 +4,13 @@ import {videoFrameSize} from "./video-format-options";
 import {createVideoFile,assertVideoDuration,codecCompatibility,keepScreenAwake} from "./video-export-storage";
 
 export const proVideoSize=videoFrameSize;
+/** Video quality: 12 Mbps at 1080p and 6 Mbps at 720p (H.264), stepped down only as far as needed
+ * to keep a full-length song under the 512 MB export/save limit (with room for sound and index). */
+export function videoBitrate(resolution: 1080 | 720, seconds: number) {
+  const target = resolution === 1080 ? 12_000_000 : 6_000_000;
+  const budgetBits = 470 * 1024 * 1024 * 8 - 192_000 * seconds;
+  return Math.max(2_500_000, Math.min(target, Math.floor(budgetBits / Math.max(1, seconds))));
+}
 export type ProExportResult = {
   blob: Blob;
   extension: "mp4" | "webm";
@@ -25,6 +32,8 @@ type ProExportOptions = {
     frameEncodingError?:string;
     preferRecorder?: boolean;
     checkpoint?: {read:(index:number)=>Promise<Blob|undefined>;write:(index:number,blob:Blob)=>Promise<void>};
+    /** Written into the MP4 so phones, players and upload sites show the song and artist. */
+    metadata?: {title?: string; artist?: string; comment?: string};
 };
 
 /** Keeps the screen on for the whole export so a phone doesn't lock and stop it. */
@@ -139,11 +148,16 @@ async function renderProVideo(
     format: new media.Mp4OutputFormat({ fastStart: "reserve" }),
     target: new media.StreamTarget(file.stream,{chunked:true,chunkSize:1024*1024}),
   });
+  const total = intro + (end - start) + outro;
+  if (options.metadata) {
+    const tags = Object.fromEntries(Object.entries(options.metadata).map(([key, value]) => [key, value?.trim().slice(0, 200)]).filter(([, value]) => value));
+    if (Object.keys(tags).length) output.setMetadataTags(tags);
+  }
   let videoCodec = "avc",
     audioCodec = "aac";
   const video = new media.CanvasSource(canvas, {
     codec: "avc",
-    bitrate: resolution === 1080 ? 4_500_000 : 2_800_000,
+    bitrate: videoBitrate(resolution, total),
     keyFrameInterval: 2,
     onEncoderConfig: (c) => {
       videoCodec = c.codec;
@@ -157,7 +171,6 @@ async function renderProVideo(
     },
   });
   const packetVideo=options.checkpoint?new media.EncodedVideoPacketSource("avc"):null;
-  const total = intro + (end - start) + outro;
   // Reserved index space: one packet per video frame; AAC packs 1024 samples per packet. A third extra for safety.
   output.addVideoTrack(packetVideo??video, { frameRate: 30, maximumPacketCount: Math.ceil(total * 30 * 1.34) + 60 });
   output.addAudioTrack(sound, { maximumPacketCount: Math.ceil((total * audio.sampleRate / 1024) * 1.34) + 60 });
@@ -196,7 +209,7 @@ async function renderProVideo(
         let blob=await options.checkpoint.read(index);
         if(!blob){
           const segment=new media.Output({format:new media.Mp4OutputFormat({fastStart:"in-memory"}),target:new media.BufferTarget()});
-          const source=new media.CanvasSource(canvas,{codec:"avc",bitrate:resolution===1080?4_500_000:2_800_000,keyFrameInterval:2});
+          const source=new media.CanvasSource(canvas,{codec:"avc",bitrate:videoBitrate(resolution,total),keyFrameInterval:2});
           segment.addVideoTrack(source,{frameRate:30});
           try{
             await segment.start();

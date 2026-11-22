@@ -19,6 +19,8 @@ export function drawProFrame(
   images: Map<string, HTMLImageElement>,
   options: { clean?: boolean; guides?: boolean; exportTime?: boolean; signal?: VisualSignal; separateVocals?: boolean;footage?:VideoFrameImage } = {},
 ) {
+  // Photos and backgrounds are scaled onto the frame: use the browser's best resampling, not the default "low".
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
   const p = project.pro,
     { width, height } = ctx.canvas;
   if (!p) {

@@ -30,6 +30,12 @@ export function captionTokens(cue: LyricCue, end: number): CaptionToken[] {
   return tokens.map((token, i) => ({ ...token, until: tokens[i + 1]?.time ?? end }));
 }
 
+/** Where the lyric block sits. Phone videos stay inside the TikTok/Reels/Shorts safe zone (above the bottom ~24%). */
+export function captionCenterY(phone: boolean, height: number, halfBlock: number, position?: number) {
+  return Math.min(height * (phone ? .76 : .84) - halfBlock, Math.max(height * (phone ? .2 : .22) + halfBlock, height * (position ?? (phone ? 0.62 : 0.72))));
+}
+/** Wide caption area for phone videos leaves the right-hand button column clear. */
+export const captionWidthShare = (phone: boolean) => phone ? 0.74 : 0.8;
 export function captionRows(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const rows: { text: string; offset: number }[] = [];
   let from = 0, lastSpace = -1;
@@ -103,7 +109,10 @@ export function drawTemplateCaptions(ctx: CanvasRenderingContext2D, time: number
   let size = (project.format === "wide" ? 57 : 51) * Math.min(width / (project.format === "wide" ? 1280 : 720), height / (project.format === "wide" ? 720 : 1080));
   if (project.format === "square") size *= 1.22;
   size = Math.max(size, width * 0.035) * (look?.size ?? 1);
-  const maxWidth = width * 0.8, maxHeight = height * 0.37;
+  // Phone videos (TikTok, Reels, Shorts): the apps cover the bottom ~22% (captions, music line) and a
+  // column of buttons on the right, so lyrics stay inside a safe zone there.
+  const phone = project.format === "vertical";
+  const maxWidth = width * captionWidthShare(phone), maxHeight = height * (phone ? 0.3 : 0.37);
   const setFont = () => {
     ctx.font = `${"italic" in face ? "italic " : ""}${face.weight} ${size}px ${face.family}`;
     ctx.letterSpacing = `${!joined && !rtl && !cjkText(cue.text) ? (template.tracking ?? 0) * size : 0}px`;
@@ -115,7 +124,7 @@ export function drawTemplateCaptions(ctx: CanvasRenderingContext2D, time: number
     size *= 0.92; setFont(); rows = captionRows(ctx, cue.text, maxWidth);
   }
   const halfBlock = Math.min(maxHeight, rows.length * size * (look?.spacing ?? 1.35)) / 2;
-  const centerY = Math.min(height * .84 - halfBlock, Math.max(height * .22 + halfBlock, height * (look?.position ?? 0.72)));
+  const centerY = captionCenterY(phone, height, halfBlock, look?.position);
   const pulse = still ? 0 : project.visualLayers ? projectBeatPulse(time, project) : (1 + Math.sin(time * (project.bpm ?? 100) / 60 * Math.PI * 2)) / 2;
   const lineX = template.animation === "slide" || template.animation === "impact" ? (1 - entrance) * width * 0.045 * strength : 0;
   const lineY = template.animation === "rise" || template.animation === "underline" ? (1 - entrance) * size * 0.5 * strength : 0;

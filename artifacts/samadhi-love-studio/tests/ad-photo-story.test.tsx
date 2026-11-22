@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {isAdPhotoStory,photoStoryFrame,photoPromptLook,adVisualBrief} from '../app/ad-photo-story';import {newProSettings,assetUrl} from '../app/lyric-pro-data';import {freshSong} from '../app/studio-data';import {drawProFrame,squeezedLine} from '../app/lyric-pro-render';import {isLyricProject,type LyricProject} from '../app/lyric-video-data';
+import test from 'node:test';import assert from 'node:assert/strict';import {isAdPhotoStory,photoStoryFrame,photoPromptLook,adVisualBrief} from '../app/ad-photo-story';import {newProSettings,assetUrl} from '../app/lyric-pro-data';import {freshSong} from '../app/studio-data';import {drawProFrame,squeezedLine} from '../app/lyric-pro-render';import {captionCenterY,captionWidthShare} from '../app/lyric-caption-render';import {isLyricProject,type LyricProject} from '../app/lyric-video-data';
 const story={photos:[{asset:'photo-one',name:'One'},{asset:'photo-two',name:'Two'}],motion:'zoom' as const,fit:'contain' as const,transition:'dissolve' as const,prompt:'Slow zoom'};
 test('photo timing clamps, changes scenes and dissolves deterministically within excerpt',()=>{assert.equal(photoStoryFrame(20,20,30,2,true).index,0);assert.equal(photoStoryFrame(25,20,30,2,true).index,1);assert.equal(photoStoryFrame(100,20,30,2,true).index,1);assert(photoStoryFrame(24.9,20,30,2,true).blend>0);assert.equal(photoStoryFrame(24.9,20,30,2,false).blend,0);assert.equal(photoStoryFrame(-10,20,30,2,true).progress,0);});
 test('bounded private asset schema rejects invalid data and supports old projects',()=>{assert(isAdPhotoStory(story));for(const invalid of [{...story,photos:Array(9).fill(story.photos[0])},{...story,photos:[{asset:'https://other.test/image',name:'x'}]},{...story,motion:'fake'},{...story,prompt:'x'.repeat(1501)}])assert(!isAdPhotoStory(invalid));const song=freshSong("photo-ad","Photo ad",0),project={theme:'cosmic',format:'vertical',motion:'still',cues:[],pro:newProSettings(song,30)} as LyricProject;assert(isLyricProject(project));project.pro!.adPhotoStory=story;assert(isLyricProject(project));assert.deepEqual(JSON.parse(JSON.stringify(project)).pro.adPhotoStory,story);});
@@ -25,4 +25,17 @@ test('before the singing starts the video shows the song title and "by" the arti
  assert.ok(!texts.includes('by SAMADHI LOVE'));
  assert.equal(squeezedLine({text:"I am the light",time:10,end:12}),false,"normal singing is kept");
  assert.equal(squeezedLine({text:"one two three four five six seven eight",time:0,end:0.5}),true);
+});
+test('phone videos keep lyrics out of the area TikTok, Reels and Shorts cover (bottom and right side)',()=>{
+ const H=1920;
+ for(const position of [0.5,0.72,0.9,0.99]){
+  for(const half of [40,150,280]){
+   const y=captionCenterY(true,H,half,position);
+   assert.ok(y+half<=H*0.76+0.5,`block bottom ${Math.round(y+half)} stays above ${H*0.76} (position ${position})`);
+   assert.ok(y-half>=H*0.2-0.5,"and below the top bar");
+  }
+ }
+ assert.ok(captionCenterY(false,1080,60,0.95)+60<=1080*0.84+0.5,"wide videos keep their own margin");
+ assert.equal(captionWidthShare(true),0.74,"right-hand buttons stay clear");
+ assert.equal(captionWidthShare(false),0.8);
 });
