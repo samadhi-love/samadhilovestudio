@@ -51,46 +51,6 @@ test("Create help is local, lyric chips insert at the cursor, and two versions r
   assert.equal(requests.length,2);assert.equal(requests[1].projectId,"version-1");assert.equal(requests[1].title.endsWith("Version 2"),true);
  }finally{await h.close();}
 });
-test("plain lyrics get Verse, Pre-Chorus, Chorus, Bridge and Outro labels automatically, can be changed, and are sung labeled",async()=>{
- const h=await setup(),requests:any[]=[];h.dom.window.confirm=()=>true;
- try{
-  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `song-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
-  await act(async()=>h.button("Shape It").click());
-  assert.equal(document.querySelector('[aria-label="Add song part"]'),null,"no manual part buttons to learn");
-  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
-  const chorus="We are one under heaven\nOne heart, one sky\nWe are one under heaven\nLove will never die";
-  await h.input(lyrics,["I woke up in the silence\nThe stars were fading slow\nI heard a voice inside me\nSaying it's time to go","And the light is rising\nRising in me",chorus,"I walked into the morning\nThe river called my name\nThe old me left behind me\nI'll never be the same","And the light is rising\nRising in me",chorus,"When the world is breaking\nHold on, hold on\nThe night is only waiting\nFor the dawn",chorus,"One heart\nOne sky"].join("\n\n"));
-  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
-  const headings=lyrics.value.split("\n").filter(l=>l.startsWith("["));
-  assert.deepEqual(headings,["[Verse 1]","[Pre-Chorus]","[Chorus]","[Verse 2]","[Pre-Chorus]","[Chorus]","[Bridge]","[Chorus]","[Outro]"]);
-  assert.match(document.querySelector('[data-testid="text-lyric-status"]')!.textContent!,/Song parts were added for you/);
-  assert.equal(document.querySelector('[data-testid="song-parts"]'),null,"part pickers stay hidden until Change");
-  assert.match(document.querySelector('[data-testid="song-parts-summary"]')!.textContent!,/Song parts: Verse · Pre-Chorus · Chorus · Verse/);
-  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-change-parts"]')!.click());
-  const parts=[...document.querySelectorAll('[data-testid="song-parts"] select')] as unknown as HTMLSelectElement[];
-  assert.equal(parts.length,9);
-  await h.select(parts[8],"Chorus");
-  assert.equal(lyrics.value.split("\n").filter(l=>l.startsWith("[")).at(-1),"[Chorus]","a tapped change rewrites only that label");
-  assert.match(lyrics.value,/One heart\nOne sky$/,"the words are untouched");
-  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
-  assert(requests.length>=1);assert.match(requests[0].lyrics,/^\[Verse 1\]\nI woke up/);
- }finally{await h.close();}
-});
-test("lyrics typed without blurring are still labeled when the song is made; writer-labeled lyrics are left exactly as written",async()=>{
- const h=await setup(),requests:any[]=[];h.dom.window.confirm=()=>true;
- try{
-  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `song-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
-  await act(async()=>h.button("Shape It").click());
-  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
-  await h.input(lyrics,"Om shanti shanti\nPeace in every breath\n\nI sit beneath the mountain\nThe wind becomes my song\n\nOm shanti shanti\nPeace in every breath");
-  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
-  assert.equal(requests[0].lyrics,"[Chorus]\nOm shanti shanti\nPeace in every breath\n\n[Verse]\nI sit beneath the mountain\nThe wind becomes my song\n\n[Chorus]\nOm shanti shanti\nPeace in every breath");
-  const own="[Hook]\nMy own map\n\n[Verse]\nMy words";
-  await h.input(lyrics,own);
-  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
-  assert.equal(lyrics.value,own);
- }finally{await h.close();}
-});
 test("owner ACE-Step requests two takes once, compares both, and keeps a favourite without a double-cost dialog",async()=>{
  const h=await setup(),requests:any[]=[],favourites:string[]=[];
  h.dom.window.confirm=()=>{throw new Error("ACE-Step must not show the ElevenLabs double-cost dialog.");};
@@ -352,35 +312,24 @@ test("connected instrumentals use the real generation handoff while new disconne
 
 test("Jesus and Mother Mary complete looks activate existing artwork without losing ad photos",()=>{for(const id of ["jesus-light","mary-grace"]){const source=project();source.pro!.adPhotoStory={photos:[{asset:"saved-photo",name:"Product"}],motion:"zoom",fit:"contain",transition:"dissolve",prompt:""};const next=applyCreatorVideoLook(source,id);assert.equal(next.theme,id==="jesus-light"?"jesus":"mary");assert.equal(next.pro!.useTemplateBackground,true);assert.deepEqual(next.pro!.adPhotoStory,source.pro!.adPhotoStory);assert.deepEqual(next.cues,source.cues);}});
 
-test("one line per paragraph never becomes dozens of verses; Undo restores the paste and stays undone",async()=>{
- const h=await setup();h.dom.window.confirm=()=>true;
+
+test("lyrics are sung exactly as written: no automatic parts, no Song parts list, labels and glued tags untouched",async()=>{
+ const h=await setup(),requests:any[]=[];h.dom.window.confirm=()=>true;
  try{
-  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>"song-1"} saveSketch={async()=>undefined} simpleExperience/>));
+  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `song-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
   await act(async()=>h.button("Shape It").click());
   const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
-  const lines=["Stay in the middle and you rise.","That is how character is built.","Find the middle!","Find the middle!",...Array.from({length:44},(_,i)=>`A teaching line number ${i+1}`),"Find the middle!","Find the middle!"];
-  const pasted=lines.join("\n\n");
-  await h.input(lyrics,pasted);
+  const plain=Array.from({length:40},(_,i)=>`Teaching line ${i+1}`).join("\n\n");
+  await h.input(lyrics,plain);
   await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
-  const headings=lyrics.value.split("\n").filter(l=>l.startsWith("["));
-  assert.ok(headings.length>=2&&headings.length<=12,`at most 12 parts, got ${headings.length}`);
-  for(const line of lines)assert.ok(lyrics.value.includes(line),"every sung line is kept");
-  assert.equal(document.querySelector('[data-testid="song-parts"]'),null,"no long list of pickers");
-  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-undo-parts"]')!.click());
-  assert.equal(lyrics.value,pasted,"Undo gives back exactly what was pasted");
+  assert.equal(lyrics.value,plain,"nothing is added on leaving the box");
+  assert.equal(document.querySelector('[data-testid="song-parts-summary"]'),null);
+  assert.equal(document.querySelector('[data-testid="song-parts"]'),null);
+  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.equal(requests[0].lyrics,plain,"sent exactly as written");
+  const own="[INTRO – Powerful male spoken, crystal-clear]\nSAMADHI LOVE, let's go!\nThat is how character is built.[CHORUS – Clear]\nFind the middle!";
+  await h.input(lyrics,own);
   await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
-  assert.equal(lyrics.value,pasted,"leaving the box does not re-add parts after Undo");
- }finally{await h.close();}
-});
-test("a part label glued to a sung line is moved onto its own line and the writer's labels are kept",async()=>{
- const h=await setup();h.dom.window.confirm=()=>true;
- try{
-  await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async()=>"song-1"} saveSketch={async()=>undefined} simpleExperience/>));
-  await act(async()=>h.button("Shape It").click());
-  const lyrics=document.querySelector<HTMLTextAreaElement>('[data-testid="input-lyrics"]')!;
-  await h.input(lyrics,"Stay in the middle and you rise.\nThat is how character is built.[CHORUS – Clear]\nFind the middle!\nFind the middle!");
-  await act(async()=>lyrics.dispatchEvent(new h.dom.window.FocusEvent("focusout",{bubbles:true})));
-  assert.equal(lyrics.value,"Stay in the middle and you rise.\nThat is how character is built.\n\n[CHORUS – Clear]\nFind the middle!\nFind the middle!");
-  assert.doesNotMatch(lyrics.value,/\[Verse/,"no extra verses added on top of the writer's own label");
+  assert.equal(lyrics.value,own);
  }finally{await h.close();}
 });

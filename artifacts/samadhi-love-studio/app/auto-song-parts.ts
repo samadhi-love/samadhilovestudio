@@ -142,3 +142,20 @@ export function relabelPart(text: string, lineIndex: number, part: PartName) {
   verses.forEach((i, k) => { lines[i] = verses.length > 1 ? `[Verse ${k + 1}]` : "[Verse]"; });
   return lines.join("\n");
 }
+
+const plainPart = /^\s*\[(?:Intro|Verse(?:\s+\d+)?|Pre-Chorus|Chorus|Bridge|Outro)\]\s*$/i;
+/** Cleans drafts made by the old automatic song-parts helper (2026-11): removes its plain labels
+ * when it numbered many verses, and any plain label sitting right above the writer's own tag.
+ * Sung words and the writer's own labels are never changed. */
+export function removeOldAutoParts(text: string) {
+  const lines = text.split(/\r?\n/);
+  const numbered = lines.filter(line => /^\s*\[Verse\s+\d+\]\s*$/i.test(line)).length;
+  const kept = lines.filter((line, i) => {
+    if (!plainPart.test(line)) return true;
+    if (numbered >= 6) return false;
+    const next = lines[i + 1] ?? "";
+    return !(/^\s*\[[^\]\r\n]+\]\s*$/.test(next) && !plainPart.test(next));
+  });
+  const cleaned = kept.join("\n").replace(/^\s*\n+/, "").replace(/\n{3,}/g, "\n\n");
+  return kept.length === lines.length ? text : cleaned;
+}

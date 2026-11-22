@@ -218,3 +218,6 @@
 .song-parts-summary p { margin: 0; line-height: 1.5; }
 .lyric-section-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 220px; overflow-y: auto; }
 .lyric-section-chips .chip, .nebula-forge .lyric-section-chips .chip { width: auto; min-width: 0; flex: 0 0 auto; padding: 4px 10px; font-size: .85rem; }
+/* "Continue last draft": one quiet line at the top of Create. */
+.resume-draft { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px; border: 1px solid rgba(127,233,255,.35); border-radius: 14px; background: rgba(14,12,36,.45); }
+.resume-draft span { flex: 1 1 220px; }

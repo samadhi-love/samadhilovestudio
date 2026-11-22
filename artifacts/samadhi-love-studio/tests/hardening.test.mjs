@@ -14,6 +14,8 @@ export {falLyricRequest,falLyricModel,falLyricWriter} from "./app/server/fal-mus
 export {falRequest} from "./app/server/ai-provider";
 export {safetyHeaders,contentPolicy} from "./next.config";
 export {default as nextConfig} from "./next.config";
+export {fitSections,maxEngineSections,maxSectionChars,productionLyricChunks} from "./app/lyric-style-cues";
+export {removeOldAutoParts} from "./app/auto-song-parts";
 `,resolveDir:process.cwd(),loader:"ts"},outfile:`${directory}/bundle.mjs`,bundle:true,platform:"node",format:"esm",packages:"external",logLevel:"silent",plugins:[{name:"offline",setup(b){
   b.onResolve({filter:/^cloudflare:workers$/},()=>({path:"cf",namespace:"offline"}));
   b.onLoad({filter:/.*/,namespace:"offline"},()=>({contents:"export const env={};",loader:"js"}));
@@ -105,4 +107,29 @@ test("cleanup preview counts deleted songs past the 30-day grace period and dele
   assert.equal(preview.mode,"preview");assert.equal(preview.pastGrace,1);
   assert.ok(sql.every(q=>/^\s*SELECT/i.test(q)),"read-only");
   assert.equal(await api.retentionPreview({prepare(){throw new Error("busy");}},now),null);
+});
+
+test("more than 30 sections are joined into neighbours, keeping every word in order",()=>{
+  const lyrics=Array.from({length:58},(_,i)=>`[Verse ${i+1}]\nLine number ${i+1} of the song`).join("\n\n");
+  const parsed=api.productionLyricChunks(lyrics,true,false);
+  assert.equal(parsed.length,58);
+  const fitted=api.fitSections(parsed,api.maxEngineSections);
+  assert.ok(fitted&&fitted.length<=30,`got ${fitted?.length}`);
+  assert.ok(fitted.every(s=>s.text.length<=api.maxSectionChars));
+  const words=t=>t.replace(/\[[^\]]*\]/g,"").split(/\s+/).filter(Boolean).join(" ");
+  assert.equal(words(fitted.map(s=>s.text).join("\n")),words(parsed.map(s=>s.text).join("\n")),"same words, same order");
+  assert.equal(api.fitSections(parsed.slice(0,5),30).length,5,"short songs are untouched");
+  assert.equal(api.fitSections([{text:"x".repeat(790)},{text:"y".repeat(790)}],1),null,"truly too long is reported, not cut");
+});
+
+test("old automatic labels are removed from drafts; the writer's own labels and words stay",()=>{
+  const old="[Intro]\n[INTRO – Powerful male spoken, crystal-clear]\n\n"+Array.from({length:8},(_,i)=>`[Verse ${i+1}]\nLine ${i+1}`).join("\n\n")+"\n\n[Chorus]\nFind the middle!";
+  const cleaned=api.removeOldAutoParts(old);
+  assert.doesNotMatch(cleaned,/^\[(Intro|Verse \d+|Chorus)\]$/m);
+  assert.match(cleaned,/^\[INTRO – Powerful male spoken, crystal-clear\]$/m);
+  for(let i=1;i<=8;i++)assert.match(cleaned,new RegExp(`^Line ${i}$`,"m"));
+  assert.match(cleaned,/Find the middle!/);
+  const writer="[Verse]\nMy words\n\n[Chorus]\nMy hook";
+  assert.equal(api.removeOldAutoParts(writer),writer,"a writer's own few labels are left alone");
+  assert.equal(api.removeOldAutoParts("[Chorus]\n[CHORUS – Clear]\nFind it"),"[CHORUS – Clear]\nFind it","plain duplicate above the writer's tag goes");
 });

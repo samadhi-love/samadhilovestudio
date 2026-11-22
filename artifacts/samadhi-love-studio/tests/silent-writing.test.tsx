@@ -18,7 +18,7 @@ async function setup(){
   async settle(ms=40){await act(async()=>{await wait(ms);});},
   async close(){await act(async()=>root.unmount());globalThis.fetch=fetch;dom.window.close();}};
 }
-test("Create resumes device writing without prompts, ignores older account text, and New song stays blank on return",async()=>{
+test("Create opens fresh, offers Continue last draft for device writing, ignores older account text, and New song stays blank on return",async()=>{
  const h=await setup();let calls=0,questions=0;
  let cloud:Record<string,unknown>={revision:0};
  window.confirm=()=>{questions++;return false;};
@@ -31,8 +31,11 @@ test("Create resumes device writing without prompts, ignores older account text,
   await h.reopen();
   cloud={revision:4,writing:{title:"Writing draft",prompt:"Older account words",lyrics:"",voice:""}};
   await act(async()=>render());await h.settle();
-  assert.match(description().value,/hopeful pop/);
-  assert(!/restore draft|draft recovery|open saved writing draft|dismiss.*recovery/i.test(document.body.textContent!));
+  assert.equal(description().value,"","Create opens fresh");
+  assert.ok(document.querySelector('[data-testid="resume-draft"]'),"unfinished work is offered, not forced");
+  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-continue-draft"]')!.click());await h.settle();
+  assert.match(description().value,/hopeful pop/,"Continue brings the device draft back");
+  assert.equal(document.querySelector('[data-testid="resume-draft"]'),null);
   await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
   assert.equal(calls,1,`an old device record never blocks generating: ${document.querySelector('[role="alert"]')?.textContent??"no error"}`);
   const fresh=[...document.querySelectorAll("button")].find(button=>button.textContent==="New song")!;

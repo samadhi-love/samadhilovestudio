@@ -79,3 +79,25 @@ export function lyricDirectionScopes(text: string, enabled = true, names: readon
   }
   return { global, sections };
 }
+
+/** Most sections the music engine accepts, and the longest text one section may carry. */
+export const maxEngineSections = 30, maxSectionChars = 800;
+/** Joins neighbouring sections (shortest pair first) until there are at most `limit`, never
+ * letting one section grow past maxSectionChars. Every word, heading and direction is kept in order.
+ * Returns null when the lyrics are simply too long to fit. */
+export function fitSections<T extends { text: string; genre?: string; directions?: string[] }>(sections: T[], limit: number): T[] | null {
+  if (limit < 1) return null;
+  const out = sections.map(s => ({ ...s }));
+  while (out.length > limit) {
+    let best = -1, size = Infinity;
+    for (let i = 0; i + 1 < out.length; i++) {
+      const joined = out[i].text.length + 2 + out[i + 1].text.length;
+      if (joined <= maxSectionChars && joined < size) { best = i; size = joined; }
+    }
+    if (best < 0) return null;
+    const a = out[best], b = out[best + 1];
+    const directions = [...(a.directions ?? []), ...(b.directions ?? [])];
+    out.splice(best, 2, { ...a, text: `${a.text}\n\n${b.text}`, genre: a.genre ?? b.genre, ...(directions.length ? { directions: [...new Set(directions)] } : {}) });
+  }
+  return out;
+}

@@ -52,7 +52,7 @@ import { songAudioUrl, type Song } from "./studio-data";
 import { autoTrackTime, formatTrackTime, parseTrackTime, maxGeneratedSongSeconds } from "./track-duration";
 import { TrackLengthControl } from "./track-length-control";
 import { expandSongDescription } from "./creation-shortcuts";
-import { autoSongParts, partNames, relabelPart, songPartHeadings, type PartName } from "./auto-song-parts";
+import { removeOldAutoParts } from "./auto-song-parts";
 import { MelodyReferenceRecorder, type MelodyReferenceTake } from "./melody-reference-recorder";
 import "./cosmic-views.css";
 import "./genre-toggles.css";
@@ -122,7 +122,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   const [makeTwoVersions,setMakeTwoVersions]=useState(true);
   const caps=engineCapabilities[engine?.engine??"elevenlabs"];
   const [negativeStyle,setNegativeStyle]=useState(""),[spark,setSpark]=useState<number|null>(null),[wordsByStudio,setWordsByStudio]=useState(false);
-  const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[partsUndo,setPartsUndo]=useState<string|null>(null),keepPasted=useRef(false),[showParts,setShowParts]=useState(false),[lyricBusy,setLyricBusy]=useState(false);
+  const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[lyricBusy,setLyricBusy]=useState(false);
   const [melodyTakes,setMelodyTakes]=useState<MelodyReferenceTake[]>([]);
   const [melodyStatus,setMelodyStatus]=useState("");
   const [songMap,setSongMap]=useState<SongMap>(defaultSongMap),[mapEnabled,setMapEnabled]=useState(false);
@@ -154,7 +154,18 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-runs only when the listed values change; reads that render's current values on purpose
   useEffect(()=>()=>{if(pendingTake)URL.revokeObjectURL(pendingTake.url);},[pendingTake?.url]);
   useEffect(()=>{working?.(pending);return()=>working?.(false);},[pending,working]);
+  // Create opens fresh. Unfinished work waits behind "Continue last draft" instead of refilling the form.
+  type HeldWriting={title:string;prompt:string;lyrics:string;voice:string};
+  const [resumable,setResumable]=useState<{device?:unknown;writing?:HeldWriting}|null>(null);
+  const holdingDraft=useRef(true);
   const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,negativeStyle,spark,wordsByStudio,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+    // A finished-but-unsaved song or a recorded melody always comes back: that is real work.
+    const unsavedAudio=!!value.pendingTake||(Array.isArray(value.melodyTakes)&&value.melodyTakes.length>0);
+    if(holdingDraft.current&&!unsavedAudio){
+      if(!!(typeof value.lyrics==="string"&&value.lyrics.trim())||!!(typeof value.idea==="string"&&value.idea.trim())||!!(value.songTitle??"").trim()||value.photo instanceof Blob)setResumable(r=>({...r,device:value}));
+      return;
+    }
+    if(typeof value.lyrics==="string"){const cleaned=removeOldAutoParts(value.lyrics);if(cleaned!==value.lyrics){value={...value,lyrics:cleaned};setLyricStatus("Old automatic part labels were removed. Your words and your own labels are unchanged.");}}
     setAutoLength(value.autoLength!==false);setManualTime(typeof value.manualTime==="string"?value.manualTime:"");
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}else{setPhoto(null);setPhotoName("");}setResultId(typeof value.resultId==="string"?value.resultId:undefined);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
@@ -300,15 +311,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     setCustomMode(custom);setError("");
     if(!custom&&choice==="sketch"){setChoice("instrumental");setPromptNotice("Built-in sketch is a Custom advanced option. Simple uses your music account.");}
   }
-  // Beginners never place [Verse]/[Chorus] themselves: plain lyrics are labeled for them.
-  function labelSongParts(text:string){
-    if(keepPasted.current)return text;
-    const labeled=autoSongParts(text);
-    if(!labeled)return text;
-    setPartsUndo(text);setShowParts(false);
-    setLyrics(labeled.text.slice(0,5000));setLyricStatus(labeled.kind==="separated"?"Your own part labels were kept; any label stuck to a sung line was moved onto its own line.":"Song parts were added for you.");
-    return labeled.text;
-  }
   const [quickSaved,setQuickSaved]=useState<{what:"vision"|"lyrics";text:string}|null>(null);
   // "Save this prompt" first asks for a name (filled in from your words).
   const [naming,setNaming]=useState<"vision"|"lyrics"|null>(null);
@@ -373,8 +375,19 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     if(!keepSimple)setCustomMode(true);
     setPromptNotice(hasWords?`"${preset.name}" loaded with its words. Begin makes a new song.`:`"${preset.name}" applied to Sound & Soul and Voice. Your words stay unchanged.`);
   }
-  const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
+  const writingStatus=useAccountWriting("simple",{title:songTitle.trim(),prompt:idea,lyrics,voice:voiceEdit??""},recovery.ready&&!saving&&!pending&&!!(idea.trim()||lyrics.trim()||songTitle.trim()),w=>{if(holdingDraft.current){if(Object.values(w).some(v=>v.trim()))setResumable(r=>({...r,writing:w}));return;}w={...w,lyrics:removeOldAutoParts(w.lyrics)};setSongTitle(w.title);setIdea(w.prompt);setLyrics(w.lyrics);setVoiceEdit(w.voice||null);if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}},recovery);
+  function continueDraft(){
+    if(!resumable)return;
+    if((idea.trim()||lyrics.trim()||songTitle.trim())&&!confirm("Replace what you've typed with your last draft?"))return;
+    holdingDraft.current=false;
+    const held=resumable;setResumable(null);
+    if(held.device){void recovery.reset(held.device as Parameters<typeof recovery.reset>[0]);return;}
+    const w=held.writing!;
+    setSongTitle(w.title);setIdea(w.prompt);setLyrics(removeOldAutoParts(w.lyrics));setVoiceEdit(w.voice||null);
+    if(w.lyrics||w.voice){setCustomMode(true);setOwnLyrics(!!w.lyrics);}
+  }
   function startFresh(broadcast=true){
+    holdingDraft.current=false;setResumable(null);
     const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:true,negativeStyle:"",spark:null,wordsByStudio:false,melodyTakes:[],pendingTake:undefined};
     void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
     if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
@@ -407,7 +420,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
       catch (error) { setError((error as Error).message); return; }
     }
     if(makeTwoVersions&&!localSketch&&!falActive&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
-    const sung=useOwnLyrics?labelSongParts(lyrics):"";
+    const sung=useOwnLyrics?lyrics:"";
     setError(""); setPending(true);
     try {
       const described = simple
@@ -473,6 +486,11 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     </div>
     <div className="qc-split">
     <form ref={createForm} onSubmit={create}>
+      {resumable&&<div className="resume-draft" role="status" data-testid="resume-draft">
+        <span>You have an unfinished song from last time.</span>
+        <button type="button" className="secondary small" data-testid="button-continue-draft" onClick={continueDraft}>Continue last draft</button>
+        <button type="button" className="text-button" data-testid="button-dismiss-draft" onClick={()=>setResumable(null)}>Start fresh</button>
+      </div>}
       <fieldset disabled={busy}>
         <div className="forge-grid"><div className="forge-main">
         {advanced?<div className="qc-modes" role="tablist" aria-label="How do you want to begin">
@@ -513,15 +531,9 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           <MusicLanguageControl compact value={languageChoice} change={next=>{setLanguageChoice(next);setError("");}} lyrics={useOwnLyrics?lyrics:""} prompt={idea} disabled={busy}/>
           <details className="qc-fold" key={"lyrics"+panelKey} open={!openPanel||openPanel==="lyrics"||undefined} data-testid="fold-lyrics"><summary>Lyrics &amp; Styles</summary>
             <label className="field qc-field">Lyrics
-              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. Verse, Chorus and the other parts are added for you."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");setPartsUndo(null);}} onPaste={e=>{const field=e.currentTarget;keepPasted.current=false;window.setTimeout(()=>labelSongParts(field.value),0);}} onBlur={e=>labelSongParts(e.currentTarget.value)}/>
+              <textarea ref={lyricInput} data-testid="input-lyrics" dir="auto" style={{unicodeBidi:"plaintext"}} rows={8} maxLength={5000} disabled={instrumental} value={lyrics} placeholder={instrumental?"No Vocals is on. Your lyrics are kept for later.":"Paste or write your lyrics. They are sung exactly as written."} onChange={e=>{setLyrics(e.target.value);setOwnLyrics(!!e.target.value.trim());setWordsByStudio(false);setError("");setLyricStatus("");}}/>
             </label>
             {savePrompt&&!instrumental&&<div className="prompt-quick-save">{naming==="lyrics"?<SaveNameBox suggested={suggestedName("lyrics")} busy={busy} save={name=>void savePromptNow("lyrics",name)} cancel={()=>setNaming(null)}/>:<button type="button" className="text-button" data-testid="button-save-lyrics" disabled={busy||!lyrics.trim()} onClick={()=>{setQuickSaved(null);setNaming("lyrics");}}>☆ Save these lyrics</button>}{quickSaved?.what==="lyrics"&&<span className="muted" role="status">{quickSaved.text}</span>}</div>}
-            {!instrumental&&songPartHeadings(lyrics).length>0&&<div className="song-parts-summary" data-testid="song-parts-summary">
-              <p className="muted"><strong>Song parts:</strong> {songPartHeadings(lyrics).map(p=>p.name.replace(/\s+\d+$/,"")).join(" · ")}{" "}
-                <button type="button" className="text-button" data-testid="button-change-parts" aria-expanded={showParts} onClick={()=>setShowParts(v=>!v)}>{showParts?"Done":"Change"}</button>
-                {partsUndo!==null&&<>{" · "}<button type="button" className="text-button" data-testid="button-undo-parts" onClick={()=>{keepPasted.current=true;setLyrics(partsUndo);setPartsUndo(null);setShowParts(false);setLyricStatus("Your lyrics are back exactly as you pasted them.");}}>Undo song parts</button></>}</p>
-              {showParts&&<div className="lyric-section-chips" role="group" aria-label="Song parts" data-testid="song-parts">{songPartHeadings(lyrics).map(part=><select key={part.index} className="chip" aria-label={`Song part: ${part.name}`} data-testid={`select-song-part-${part.index}`} value={partNames.find(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))??part.name} onChange={e=>{setLyrics(relabelPart(lyrics,part.index,e.target.value as PartName));setLyricStatus("");}}>{!partNames.some(n=>part.name.toLowerCase().startsWith(n.toLowerCase()))&&<option value={part.name}>{part.name}</option>}{partNames.map(n=><option key={n} value={n}>{n}</option>)}</select>)}</div>}
-            </div>}
             <div className="actions">{writeLyrics&&<button type="button" className="secondary small forge-gold-pill" data-testid="button-write-for-me" disabled={busy} onClick={()=>void writeWordsForMe()}><Sparkles size={15}/> {lyricBusy?"Writing…":"Write them for me"}</button>}
             <small className="muted" data-testid="text-words-source">{instrumental?"No Vocals: no lyrics are sent.":useOwnLyrics?"Your exact lyrics will be sung.":"Leave this empty and the words are written when you Begin."}</small></div>
             {lyricStatus&&<p role="status" data-testid="text-lyric-status">{lyricStatus}</p>}

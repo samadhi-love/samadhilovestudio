@@ -14,7 +14,7 @@ import { attachRenderedMix, projectRoot } from "../../../project-assets";
 import { isExplicitSong } from "../../../clean-content";
 import {storePaidAudio,finishPaidAudio} from "../../../server/audio-storage";
 import { directSections, isSectionDirections, type SectionDirection } from "../../../song-section-directions";
-import { applyChunkStyleCues, lyricStyleCues, lyricDirectionScopes, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
+import { applyChunkStyleCues, fitSections, lyricStyleCues, lyricDirectionScopes, maxEngineSections, notationStyles, productionLyricChunks } from "../../../lyric-style-cues";
 import { stampSong } from "../../../song-library";
 import { serverStorage as env } from "../../../server/storage";
 import { cleanWordsMessage, hasExplicitWords } from "../../../clean-content";
@@ -58,8 +58,12 @@ function chunkDurations(weights: number[], duration: number) {
 }
 
 function lyricChunks(lyrics: string, prompt: string, duration: number, sectionDirections?: SectionDirection[], readStyles = true) {
-  const sections = productionLyricChunks(lyrics,readStyles,!!sectionDirections,sectionDirections?.map(s=>s.name));
-  if (sections.length > 30 || sections.length * 3000 > duration) return null;
+  // Too many sections for the engine: join neighbours instead of refusing the song.
+  const parsed = productionLyricChunks(lyrics,readStyles,!!sectionDirections,sectionDirections?.map(s=>s.name));
+  const limit = Math.min(maxEngineSections, Math.floor(duration / 3000));
+  // Per-section directions are matched by heading, so only plain lyrics are joined automatically.
+  const sections = sectionDirections ? (parsed.length > limit ? null : parsed) : fitSections(parsed, limit);
+  if (!sections) return null;
   const count = Math.max(sections.length, Math.ceil(duration / 120000));
   const positive_styles = prompt.split(/[,;\n]/).map(part => part.trim()).filter(Boolean).slice(0, 20);
   const lengths = chunkDurations(Array.from({ length: count }, (_, index) => sections[index] ? performanceWeight(sections[index].text) : 0), duration);
@@ -293,7 +297,7 @@ async function createMusic(request: Request) {
       return sectionDirections ? directSections(coded, sectionDirections, bpm, voice) : { chunks:coded, missing: [] };
     };
     const lyricPlan = suppliedLyrics.trim() ? lyricChunks(suppliedLyrics, direction, durationMs, sectionDirections,readLyricStyles) : null;
-    if (suppliedLyrics.trim() && !lyricPlan) return problem("Choose a longer song for these lyrics or combine some sections.", 400);
+    if (suppliedLyrics.trim() && !lyricPlan) return problem("These lyrics are too long for this song length. Choose a longer song or shorten the lyrics.", 400);
     let plan: object | null = lyricPlan;
     let falWriterProblem="";
     if (lyricPlan) {
