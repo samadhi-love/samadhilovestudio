@@ -16,7 +16,8 @@ export {safetyHeaders,contentPolicy} from "./next.config";
 export {default as nextConfig} from "./next.config";
 export {fitSections,maxEngineSections,maxSectionChars,productionLyricChunks} from "./app/lyric-style-cues";
 export {removeOldAutoParts} from "./app/auto-song-parts";
-`,resolveDir:process.cwd(),loader:"ts"},outfile:`${directory}/bundle.mjs`,bundle:true,platform:"node",format:"esm",packages:"external",logLevel:"silent",plugins:[{name:"offline",setup(b){
+export {autoSinger,lyricVoiceHints} from "./app/singer-library";
+`,resolveDir:process.cwd(),loader:"ts"},outfile:`${directory}/bundle.mjs`,bundle:true,platform:"node",format:"esm",packages:"external",logLevel:"silent",jsx:"automatic",loader:{".css":"empty"},plugins:[{name:"offline",setup(b){
   b.onResolve({filter:/^cloudflare:workers$/},()=>({path:"cf",namespace:"offline"}));
   b.onLoad({filter:/.*/,namespace:"offline"},()=>({contents:"export const env={};",loader:"js"}));
 }}]});
@@ -132,4 +133,13 @@ test("old automatic labels are removed from drafts; the writer's own labels and 
   const writer="[Verse]\nMy words\n\n[Chorus]\nMy hook";
   assert.equal(api.removeOldAutoParts(writer),writer,"a writer's own few labels are left alone");
   assert.equal(api.removeOldAutoParts("[Chorus]\n[CHORUS – Clear]\nFind it"),"[CHORUS – Clear]\nFind it","plain duplicate above the writer's tag goes");
+});
+
+test("Auto singer reads the lyrics' voice notes and your main style first",()=>{
+  const lyrics="melodies, clear powerful male vocals, 88–92 BPM\n[INTRO – Powerful male spoken, crystal-clear]\nI remember who I am";
+  const styles="Arabian Euro House, Lebanese Dabke, R&B, analog synths";
+  assert.equal(api.autoSinger(" "+api.lyricVoiceHints(lyrics),styles)?.name,"Arabic tarab · male");
+  assert.notEqual(api.autoSinger(" "+api.lyricVoiceHints(lyrics),"R&B, Soul")?.arrangement,"Solo female lead","a male song never gets a female singer");
+  assert.equal(api.autoSinger(" "+api.lyricVoiceHints("[Verse]\nEvery man and woman"),"R&B")?.name,"Soulful R&B · female","sung words are not read as voice notes");
+  assert.equal(api.autoSinger("male voice","Spiritual Dance")?.arrangement,undefined,"no fitting male singer: the studio decides instead of switching gender");
 });

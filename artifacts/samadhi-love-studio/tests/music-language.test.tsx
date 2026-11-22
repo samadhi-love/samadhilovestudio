@@ -485,3 +485,17 @@ test("accents for English, Spanish and Portuguese: pick them, or ask for them in
  // A genre word is not an accent request.
  assert.equal(languages.resolveLanguage(auto,"","Southern soul groove with horns").dialect,"");
 });
+
+test("the singer's voice reaches every section first, even with many styles and instruments",async()=>{
+ const h=routeHarness();
+ const styles="Arabian Euro House, Lebanese Dabke, R&B, analog synths, oud, electric keys, driving electronic drums, darbuka, smooth bass";
+ const response=await h.post({action:"song",prompt:styles,title:"Fixture",duration:60,language:"en",selected:true,lyrics:"[Verse]\nI remember who I am\nI am the light\n\n[Chorus]\nI AM the Light, I AM the Love",instruments:"oud, darbuka, analog synths, electric keys, smooth bass, strings",voice:"Singer: an expressive Arabic male tarab singer with tasteful ornamentation, emotional phrasing and clear words."});
+ assert.equal(response.status,200,await response.clone().text());
+ const chunks=h.calls.at(-1)!.payload.composition_plan.chunks.filter((c:any)=>!/Instrumental outro/.test(c.text));
+ assert.ok(chunks.length>0);
+ for(const chunk of chunks){
+  const at=chunk.positive_styles.findIndex((style:string)=>/Arabic male tarab singer/.test(style));
+  assert.ok(at>=0&&at<4,`voice is among the first style hints, got position ${at}`);
+  assert.ok(chunk.negative_styles.includes("off-key vocals"));
+ }
+});

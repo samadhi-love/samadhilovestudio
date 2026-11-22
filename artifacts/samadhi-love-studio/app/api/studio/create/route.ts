@@ -73,7 +73,7 @@ function lyricChunks(lyrics: string, prompt: string, duration: number, sectionDi
       text: section ? (/^\[/.test(section) ? section : "[Verse]\n" + section) : "[Instrumental outro]",
       duration_ms,
       positive_styles: [...(sections[index]?.genre ? [sections[index].genre!] : []), ...notationStyles(sections[index]?.directions ?? []), ...positive_styles].slice(0,20),
-      negative_styles: ["profanity", "sexually explicit lyrics", "graphic violence", "hateful or degrading language"],
+      negative_styles: ["profanity", "sexually explicit lyrics", "graphic violence", "hateful or degrading language", "off-key vocals", "robotic or synthetic-sounding voice", "mumbled or slurred lyrics", "muddy mix"],
       context_adherence: "high",
     };
   });
@@ -288,7 +288,8 @@ async function createMusic(request: Request) {
     draft.notes.vocals = voice;
     draft.notes.instruments=instruments;
     if(genres)draft.tags=genreTags(genres);
-    const direction = [languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+describeInstruments(instruments), "Production: "+productionPolish+".", songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", voice && "Vocal direction: " + voice, "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
+    // The singer comes first: the engine keeps at most 20 style hints, and the voice must never be the one cut off.
+    const direction = [voice && "Vocal direction: " + voice, languageProfile && singingDirection(languageProfile), prompt, instruments&&"Featured instruments: "+describeInstruments(instruments), "Production: "+productionPolish+".", songOpenings[openingMode].direction, captionReady && "Caption-ready vocal production: a forward intelligible lead, clear consonants, manageable phrasing, breathing space between lines, restrained reverb, avoid masking lead vocals with instruments. Follow approved lyrics and section order exactly; avoid added ad-libs unless requested. These directions do not guarantee exact pronunciation or caption recognition.", "Clean, uplifting original lyrics. Avoid profanity, vulgar or sexually explicit language, graphic violence, hate, and degrading expressions."].filter(Boolean).join("\n");
     const durationMs = duration * 1000;
 
     const bpm = /\b\d{2,3}\s*BPM\b/i.exec(prompt)?.[0] ?? "";

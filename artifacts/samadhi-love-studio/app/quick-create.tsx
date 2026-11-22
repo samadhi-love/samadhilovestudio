@@ -1,5 +1,5 @@
 "use client";
-import { SingerChoice, autoSinger, singerById } from "./singer-library";
+import { SingerChoice, autoSinger, lyricVoiceHints, singerById } from "./singer-library";
 import { VoiceChoice } from "./my-voices";
 import type { SavedVoice } from "./my-voice-data";
 import type { BackgroundKey } from "./background-chooser";
@@ -233,7 +233,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   const inferredPerformer=team?.arrangement??promptPerformer(idea);
   // Singer library: Auto fits the genre for one lead singer; a picked singer wins over Auto. Groups and duets skip Auto.
   const genderHint=team?.id==="solo-female"?" female voice":team?.id==="solo-male"?" male voice":"";
-  const autoPick=team&&team.voices>1?undefined:autoSinger(idea+genderHint,`${engineGenre} ${genre}`);
+  const autoPick=team&&team.voices>1?undefined:autoSinger(`${idea}${genderHint} ${useOwnLyrics?lyricVoiceHints(lyrics):""}`,[genre,engineGenre].filter(Boolean).join(", "));
   const chosenSinger=singerId==="auto"?autoPick:singerById(singerId);
   const chosenPerformer=team?team.arrangement:vocalOptions.delivery===defaultCreatorVocals.delivery?(inferredPerformer??chosenSinger?.arrangement):vocalOptions.delivery;
   // A chosen singer replaces the general genre match (keeps the engine's 512-character style limit safe).
@@ -664,6 +664,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           </details>}
           </section>}
           <section className="side-card side-finish" data-testid="side-finish"><h3>🎬 Finish</h3>
+          {customMode&&!instrumental&&!localSketch&&<p className="muted side-singer" data-testid="text-chosen-singer">🎤 Singer: <strong>{team&&team.voices>1?team.name:chosenSinger?.name??"Studio picks the voice"}</strong>{singerId==="auto"&&chosenSinger?" (Auto)":""} · <button type="button" className="text-button" data-testid="button-change-singer" onClick={()=>document.querySelector('[data-testid="side-voice"]')?.scrollIntoView({behavior:"smooth",block:"start"})}>Change</button></p>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
         {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">

@@ -28,7 +28,7 @@ export const singers: readonly Singer[] = [
     direction: "Singer: a clear, powerful male pop-rock lead with controlled grit and an anthemic chorus." },
   { id: "latin", name: "Latin pop · male", line: "Warm and passionate · Spanish phrasing", arrangement: "Solo male lead", fits: /latin|reggaeton|bachata|salsa|bossa|spanish/,
     direction: "Singer: a warm, passionate Latin pop male lead with natural Spanish phrasing and rhythmic flair." },
-  { id: "tarab", name: "Arabic tarab · male", line: "Expressive · ornamented · heartfelt", arrangement: "Solo male lead", fits: /tarab|arabic|lebanese|dabke|khaleeji|maqam/,
+  { id: "tarab", name: "Arabic tarab · male", line: "Expressive · ornamented · heartfelt", arrangement: "Solo male lead", fits: /tarab|arabic|arabian|lebanese|dabke|khaleeji|maqam/,
     direction: "Singer: an expressive Arabic male tarab singer with tasteful ornamentation, emotional phrasing and clear words." },
   { id: "spiritual", name: "Spiritual · calm voice", line: "Gentle and resonant · healing and calm", arrangement: "Solo female lead", fits: /spiritual|devotional|mantra|meditat|healing|ambient/,
     direction: "Singer: a gentle, resonant devotional voice with calm sustained phrasing and a peaceful, healing tone." },
@@ -40,11 +40,23 @@ export const singers: readonly Singer[] = [
 export function autoSinger(idea: string, genres: string): Singer | undefined {
   const text = `${idea} ${genres}`.toLowerCase();
   if (/\bduet\b|\bchoir\b|group vocals|call.and.response/.test(text)) return undefined; // the description already says who sings
-  const fitting = singers.filter(singer => singer.fits.test(text));
-  if (!fitting.length) return undefined;
   // "male" never matches inside "female" (word boundaries).
-  const female = /\b(female|woman|women|girl)\b/.test(text), male = /\b(male|man|men|guy)\b/.test(text);
-  return (female && !male ? fitting.find(s => s.arrangement === "Solo female lead") : male && !female ? fitting.find(s => s.arrangement === "Solo male lead") : undefined) ?? fitting[0];
+  const female = /\b(female|woman|women|girl|alto|soprano)\b/.test(text), male = /\b(male|man|men|guy|baritone)\b/.test(text);
+  const wanted = female && !male ? "Solo female lead" : male && !female ? "Solo male lead" : undefined;
+  // Your main style decides first (the order you listed them), then the description.
+  const sources = [...genres.split(/[,;\n×]/).map(tag => tag.trim().toLowerCase()).filter(Boolean), idea.toLowerCase()];
+  for (const source of sources) {
+    const fitting = singers.filter(singer => singer.fits.test(source));
+    const pick = wanted ? fitting.find(singer => singer.arrangement === wanted) : fitting[0];
+    if (pick) return pick;
+  }
+  return undefined;
+}
+/** Voice words in lyrics: [directions], (cues), {notes} and any line about the vocals. Sung words are ignored. */
+export function lyricVoiceHints(lyrics: string) {
+  const directions = [...lyrics.matchAll(/[[({]([^\])}\r\n]{1,200})[\])}]/g)].map(m => m[1]);
+  const vocalLines = lyrics.split(/\r?\n/).filter(line => /\b(vocals?|voice|singer|sung by)\b/i.test(line));
+  return [...directions, ...vocalLines].join(" ").slice(0, 1000);
 }
 export function singerById(id: string) { return singers.find(singer => singer.id === id); }
 
