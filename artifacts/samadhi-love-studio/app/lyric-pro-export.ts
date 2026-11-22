@@ -134,7 +134,9 @@ async function renderProVideo(
   if (!ctx) throw new Error("The video canvas could not open.");
   const file=await createVideoFile();
   const output = new media.Output({
-    format: new media.Mp4OutputFormat({ fastStart: false }),
+    // Fast start: the file's index goes at the FRONT, so phones, email previews,
+    // Google Drive and messaging apps can play it (not only show the first picture).
+    format: new media.Mp4OutputFormat({ fastStart: "reserve" }),
     target: new media.StreamTarget(file.stream,{chunked:true,chunkSize:1024*1024}),
   });
   let videoCodec = "avc",
@@ -155,9 +157,10 @@ async function renderProVideo(
     },
   });
   const packetVideo=options.checkpoint?new media.EncodedVideoPacketSource("avc"):null;
-  output.addVideoTrack(packetVideo??video, { frameRate: 30 });
-  output.addAudioTrack(sound);
   const total = intro + (end - start) + outro;
+  // Reserved index space: one packet per video frame; AAC packs 1024 samples per packet. A third extra for safety.
+  output.addVideoTrack(packetVideo??video, { frameRate: 30, maximumPacketCount: Math.ceil(total * 30 * 1.34) + 60 });
+  output.addAudioTrack(sound, { maximumPacketCount: Math.ceil((total * audio.sampleRate / 1024) * 1.34) + 60 });
   const from = Math.round(start * audio.sampleRate),
     until = Math.min(audio.length, Math.round(end * audio.sampleRate));
   // Frame-by-frame encoding does not need the page on screen: switching apps,

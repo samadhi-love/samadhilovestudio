@@ -6,6 +6,11 @@ import type { VisualSignal } from "./av-signals";
 import { assetUrl } from "./lyric-pro-data";
 import { videoThemes, type LyricProject } from "./lyric-video-data";
 import type { VideoFrameImage } from "./advertising-footage";
+/** More than 7 words a second (or no time at all) cannot have been sung: a timing artifact. */
+export function squeezedLine(cue: { text: string; time: number; end: number }) {
+  const words = cue.text.split(/\s+/).filter(Boolean).length, seconds = cue.end - cue.time;
+  return words > 0 && (seconds <= 0.05 || words / seconds > 7);
+}
 export function drawProFrame(
   ctx: CanvasRenderingContext2D,
   time: number,
@@ -59,10 +64,14 @@ export function drawProFrame(
             );
             return { ...c, singer: c.singer || marker?.singer };
           });
-  const timedCues = cues.map((cue, index) => ({
+  const allTimed = cues.map((cue, index) => ({
     ...cue,
     end: cue.end ?? cues[index + 1]?.time ?? p.duration,
   }));
+  // Lines the timing squeezed into the intro (faster than anyone sings) were not really sung there:
+  // keep the title card up until the first line that is actually sung.
+  const firstSung = allTimed.findIndex(cue => !squeezedLine(cue));
+  const timedCues = firstSung > 0 ? allTimed.slice(firstSung) : allTimed;
   const look = p.formatLooks?.[project.format] ?? p.look;
   const framed = { ...project, theme, cues: timedCues };
   const signal=options.signal??stemVisualSignal(p.reactiveStem,p.sourceAudioId,sourceTime,project.intensity==="still");

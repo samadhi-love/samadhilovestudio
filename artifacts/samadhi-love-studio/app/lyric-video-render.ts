@@ -124,8 +124,17 @@ export function drawLyricVideo(ctx: CanvasRenderingContext2D, time: number, proj
   const cue = project.cues.findLast(line => line.time <= time);
   if (!cue || (cue.end !== undefined && time >= cue.end)) {
     if (cue) return;
+    // Before the singing starts: the song's title card, with the artist under it.
     ctx.font = "600 57px Georgia";
-    wrap(ctx, title, width * 0.84).forEach((line, index) => ctx.fillText(line.text, width / 2, height * 0.72 + index * 62, width * 0.86));
+    const titleLines = wrap(ctx, title, width * 0.84);
+    titleLines.forEach((line, index) => ctx.fillText(line.text, width / 2, height * 0.72 + index * 62, width * 0.86));
+    const artist = project.pro?.advertisement ? "" : project.pro?.artist?.trim();
+    if (artist && title.trim()) {
+      ctx.font = `500 ${project.pro ? Math.max(22, width * 0.03) : 26}px system-ui`;
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(`by ${artist}`, width / 2, height * 0.72 + titleLines.length * 62 + 14, width * 0.86);
+      ctx.globalAlpha = 1;
+    }
     return;
   }
   const look = project.pro?.formatLooks?.[project.format] ?? project.pro?.look;
