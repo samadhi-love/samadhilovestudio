@@ -2226,7 +2226,7 @@ function LyricVideoProContent(props: Props) {
                   </section>
                 )}
                 {song && project && p && (
-                  <><button type="button" className="mobile-preview-toggle" aria-expanded={mobilePreview} aria-controls="mobile-video-preview" onClick={()=>setMobilePreview(!mobilePreview)}>{mobilePreview?"Hide preview · focus on editing":"Show video preview"}</button><p className="mobile-context-note">Phone exports start at 720p to reduce memory use. Keep Studio visible and your screen awake during rendering. Download the result and check playback before sharing. Existing project framing stays unchanged.</p><div className="lvp-workspace" data-mobile-preview={mobilePreview}>
+                  <><button type="button" className="mobile-preview-toggle" aria-expanded={mobilePreview} aria-controls="mobile-video-preview" onClick={()=>setMobilePreview(!mobilePreview)}>{mobilePreview?"Hide preview · focus on editing":"Show video preview"}</button><p className="mobile-context-note">Phone exports start at 720p to reduce memory use. You can switch apps while it renders; it’s fastest with Studio open and the screen awake. Download the result and check playback before sharing. Existing project framing stays unchanged.</p><div className="lvp-workspace" data-mobile-preview={mobilePreview}>
                     <aside className="lvp-preview-panel" id="mobile-video-preview">
                       {/* The playing video stays in view while the page scrolls; its choices sit below it. */}
                       <div className="lvp-sticky-preview" data-testid="sticky-video-preview">

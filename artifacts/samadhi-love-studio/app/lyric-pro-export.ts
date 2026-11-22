@@ -40,6 +40,17 @@ export async function exportProVideo(
   }
 }
 
+/** Lets the page breathe between frames. Unlike setTimeout, a message-channel hop is not
+ * slowed to once a second (or once a minute) when the tab is in the background. */
+function yieldToBrowser() {
+  return new Promise<void>(resolve => {
+    if (typeof MessageChannel === "undefined") { setTimeout(resolve, 0); return; }
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => { channel.port1.close(); resolve(); };
+    channel.port2.postMessage(null);
+  });
+}
+
 async function renderProVideo(
   options: ProExportOptions,
   progress: (fraction: number) => void,
@@ -55,8 +66,6 @@ async function renderProVideo(
     throw new Error(
       "Choose an excerpt inside the recording, up to ten minutes long.",
     );
-  if (document.visibilityState !== "visible")
-    throw new Error("Keep this page visible while exporting.");
   const media = await import("mediabunny"),
     size = proVideoSize(format, resolution);
   const [avc, aac] = await Promise.all([
@@ -67,6 +76,9 @@ async function renderProVideo(
     }),
   ]);
   if (!avc || !aac || options.preferRecorder) {
+    // The real-time recorder plays the song live, so it needs the page on screen.
+    if (document.visibilityState !== "visible")
+      throw new Error("Keep this page visible while exporting.");
     if(options.requiresFrameEncoding)throw new Error(options.frameEncodingError??"Uploaded-video rendering needs H.264/AAC WebCodecs support. Use a current compatible browser and turn off real-time fallback, or remove the video background.");
     if (intro || outro)
       throw new Error(
@@ -148,11 +160,8 @@ async function renderProVideo(
   const total = intro + (end - start) + outro;
   const from = Math.round(start * audio.sampleRate),
     until = Math.min(audio.length, Math.round(end * audio.sampleRate));
-  let hidden = false;
-  const visibility = () => {
-    if (document.visibilityState !== "visible") hidden = true;
-  };
-  document.addEventListener("visibilitychange", visibility);
+  // Frame-by-frame encoding does not need the page on screen: switching apps,
+  // tabs or covering the window only slows it down, it never stops it.
   const cancel = () => {
     void output.cancel().catch(() => {});
   };
@@ -175,13 +184,7 @@ async function renderProVideo(
     })();
     void soundTask.catch(() => {});
     const frames = Math.ceil(total * 30);
-    const checkVisible=()=>{
-      signal.throwIfAborted();
-      if (hidden)
-        throw new Error(
-          "Export paused because the page was hidden. Return to this device and resume with Studio visible.",
-        );
-    };
+    const checkVisible=()=>signal.throwIfAborted();
     if(options.checkpoint&&packetVideo){
       const segmentFrames=150;
       for(let first=0;first<frames;first+=segmentFrames){
@@ -199,7 +202,7 @@ async function renderProVideo(
               await options.paint(ctx,frame/30);
               checkVisible();
               await source.add((frame-first)/30,Math.min(1/30,total-frame/30));
-              if(frame%6===0)await new Promise<void>(resolve=>setTimeout(resolve,0));
+              if(frame%6===0)await yieldToBrowser();
             }
             source.close();
             await segment.finalize();
@@ -230,7 +233,7 @@ async function renderProVideo(
       await video.add(frame / 30, Math.min(1 / 30, total - frame / 30));
       if (frame % 6 === 0) {
         progress((0.95 * frame) / frames);
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await yieldToBrowser();
       }
     }
     if(!packetVideo)video.close();
@@ -251,7 +254,6 @@ async function renderProVideo(
     await file.dispose();
     throw error;
   } finally {
-    document.removeEventListener("visibilitychange", visibility);
     signal.removeEventListener("abort", cancel);
   }
 }
