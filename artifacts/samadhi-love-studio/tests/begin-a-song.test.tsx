@@ -184,32 +184,29 @@ test("Your Sounds: old prompts, Style DNA and new combos with Leave Out and Spar
  }finally{await h.close();}
 });
 
-test("two takes default on: ACE-Step makes one request for two takes without a cost dialog; ElevenLabs keeps double-cost consent",async()=>{
+test("one take per Begin on every engine: no double-cost dialog, and New take re-runs the same prompt",async()=>{
  const songs=["take-1","take-2"].map((id,i)=>({...freshSong(id,`Take ${i+1}`,i),audioFormat:"mp3" as const}));
  {
-  const h=await setup();const sent:any[]=[];let asked=0;const kept:string[]=[];
+  const h=await setup();const sent:any[]=[];let asked=0;
   try{
-   await act(async()=>h.root.render(<QuickCreate {...base} drafts={songs} engine={ace} favoriteTake={async id=>{kept.push(id);}} generateSong={async i=>{sent.push(i);return {songId:"take-1",songIds:["take-1","take-2"]};}}/>));
+   await act(async()=>h.root.render(<QuickCreate {...base} drafts={songs} engine={ace} generateSong={async i=>{sent.push(i);return {songId:"take-1",songIds:["take-1"]};}}/>));
    h.dom.window.confirm=()=>{asked++;return true;};
    await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A bright song, in English");
    await h.submit();
-   assert.equal(asked,0);assert.equal(sent.length,1);assert.equal(sent[0].versions,2);
-   const takes=document.querySelector('[aria-label="Compare your takes"]')!;assert.equal(takes.querySelectorAll("article").length,2);
-   await act(async()=>q<HTMLButtonElement>("button-favorite-take-take-2")!.click());assert.deepEqual(kept,["take-2"]);
-   await shapeIt(h);assert.equal(q<HTMLInputElement>("checkbox-make-two-versions")!.checked,true);
-   await act(async()=>q<HTMLInputElement>("checkbox-make-two-versions")!.click());
-   await h.submit();assert.equal(sent[1].versions,1);
+   assert.equal(asked,0);assert.equal(sent.length,1);assert.equal(sent[0].versions,1,"ACE-Step asks for one take");
+   await shapeIt(h);assert.equal(q("checkbox-make-two-versions"),null,"no take selector");
   }finally{await h.close();}
  }
  {
-  const h=await setup();const sent:any[]=[];let allow=false;
+  const h=await setup();const sent:any[]=[];let asked=0;
   try{
    await act(async()=>h.root.render(<QuickCreate {...base} drafts={songs} engine={eleven} generateSong={async i=>{sent.push(i);return `take-${sent.length}`;}}/>));
-   h.dom.window.confirm=()=>allow;
+   h.dom.window.confirm=()=>{asked++;return true;};
    await h.input(q<HTMLTextAreaElement>("input-song-description")!,"A bright song, in English");
-   await h.submit();assert.equal(sent.length,0,"declined consent sends nothing");
-   allow=true;await h.submit();
-   assert.equal(sent.length,2);assert.equal("versions" in sent[0],false);assert.equal(sent[1].projectId,"take-1");assert.match(sent[1].title,/Version 2$/);
+   await h.submit();
+   assert.equal(asked,0,"no double-cost dialog");assert.equal(sent.length,1,"ElevenLabs makes exactly one take");assert.equal("versions" in sent[0],false);
+   const again=q<HTMLButtonElement>("button-new-take");
+   if(again){await act(async()=>again.click());await act(async()=>{await new Promise(r=>setTimeout(r,0));});assert.equal(sent.length,2,"New take sends one more request");assert.equal(sent[1].prompt,sent[0].prompt,"same prompt");}
   }finally{await h.close();}
  }
 });

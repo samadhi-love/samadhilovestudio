@@ -29,7 +29,7 @@ test("local song-description help, lyric section insertion and short selection w
  const energy=Array.from({length:60},(_,index)=>index>=30&&index<45?.95:.1);assert.equal(bestShortStart(60,[],energy,15),30);
 });
 test("Create help is local, lyric chips insert at the cursor, and two versions require clear cost consent",async()=>{
- const h=await setup();const requests:any[]=[];let allowTwo=false;
+ const h=await setup();const requests:any[]=[];const allowTwo=false;
  h.dom.window.confirm=()=>allowTwo;
  try{
   await act(async()=>h.root.render(<QuickCreate connected saving={false} drafts={[]} settings={()=>{}} guided={()=>{}} openDrafts={()=>{}} generateSong={async input=>{requests.push(input);return `version-${requests.length}`;}} saveSketch={async()=>undefined} simpleExperience/>));
@@ -39,16 +39,10 @@ test("Create help is local, lyric chips insert at the cursor, and two versions r
   assert.equal(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!.value,"A hopeful pop song about starting again. Sing in English.","the vision carries into Shape It");
   await act(async()=>h.button("Help me describe it").click());
   assert.match(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-idea"]')!.value,/coherent, singable lyrics/);assert.equal(requests.length,0);
-  const versions=document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!;
-  assert.equal(versions.checked,true,"two takes is the default");assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/Two takes/);
-  await act(async()=>versions.click());assert.match(document.querySelector('[data-testid="text-version-cost"]')!.textContent!,/One take/);
-  await act(async()=>versions.click());
+  assert.equal(document.querySelector('[data-testid="checkbox-make-two-versions"]'),null,"one take per Begin; no take selector");
   assert.match(document.querySelector('[data-testid="text-create-summary"]')!.textContent!,/ElevenLabs credits/);
   await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
-  assert.equal(requests.length,0);
-  allowTwo=true;
-  await act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
-  assert.equal(requests.length,2);assert.equal(requests[1].projectId,"version-1");assert.equal(requests[1].title.endsWith("Version 2"),true);
+  assert.equal(requests.length,1,"one take per Begin, sent without a double-cost dialog");assert.equal(allowTwo,false);
  }finally{await h.close();}
 });
 test("owner ACE-Step requests two takes once, compares both, and keeps a favourite without a double-cost dialog",async()=>{
@@ -65,13 +59,13 @@ test("owner ACE-Step requests two takes once, compares both, and keeps a favouri
   assert.equal(document.querySelector('[data-testid="checkbox-make-two-versions"]'),null,"Just Begin has no take selector");
   await h.input(document.querySelector<HTMLTextAreaElement>('[data-testid="input-song-description"]')!,"A hopeful piano soul song in English");
   await act(async()=>document.querySelector("form")!.dispatchEvent(new h.dom.window.Event("submit",{bubbles:true,cancelable:true})));
-  assert.equal(requests.length,1);assert.equal(requests[0].versions,2);
+  assert.equal(requests.length,1);assert.equal(requests[0].versions,1);
   assert.equal(document.querySelectorAll('[aria-label="Compare your takes"] article').length,2);
   await act(async()=>[...document.querySelectorAll<HTMLButtonElement>("button")].find(button=>button.textContent==="Keep as favourite")!.click());
   assert.deepEqual(favourites,["one"]);
   await act(async()=>h.button("New song").click());
   await act(async()=>h.button("Shape It").click());
-  assert.equal(document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]')!.checked,true);
+  assert.equal(document.querySelector('[data-testid="checkbox-make-two-versions"]'),null);
  }finally{await h.close();}
 });
 test("My Songs exposes non-destructive next steps and plays a private melody reference",async()=>{
@@ -208,7 +202,7 @@ test("Simple recognizes the requested language and singer, exposes alternatives 
   assert.match(document.querySelector('[data-testid="text-singing-language"]')!.textContent!,/Spanish/);
   const submit=async()=>act(async()=>document.querySelector('form')!.dispatchEvent(new h.dom.window.Event('submit',{bubbles:true,cancelable:true})));
   await submit();
-  assert.equal(submitted.length,2,"two takes after ElevenLabs consent");
+  assert.equal(submitted.length,1,"one take per Begin");
   assert.match(submitted[0].voice,/Solo female lead/);
   assert.equal(submitted[0].language,"auto");
   assert.equal(submitted[0].prompt,prompt.value);
@@ -222,10 +216,10 @@ test("Simple recognizes the requested language and singer, exposes alternatives 
   for(const part of ["male","female","duet","choir"])assert(document.querySelector(`[data-testid="chip-voice-${part}"]`),part);
   await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="chip-voice-male"]')!.click());
   assert.match(summary(),/conflicts with the description/);
-  await submit();assert.equal(submitted.length,2);
+  await submit();assert.equal(submitted.length,1);
   await h.input(customPrompt,"A warm acoustic song; sing in Spanish with a deep male lead.");
-  await submit();assert.equal(submitted.length,4);
-  assert.match(submitted[2].voice,/Solo male lead/);
+  await submit();assert.equal(submitted.length,2);
+  assert.match(submitted[1].voice,/Solo male lead/);
   assert.equal(customPrompt.value,"A warm acoustic song; sing in Spanish with a deep male lead.");
  }finally{await h.close();}
 });

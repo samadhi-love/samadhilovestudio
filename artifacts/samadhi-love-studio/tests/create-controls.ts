@@ -26,10 +26,7 @@ export function creationIdea() {
   return field;
 }
 
-/** Two takes is the default; fixtures that assert a single request choose One take in Shape It. */
+/** One take per Begin; kept as a no-op so older fixtures read the same. */
 export async function oneTake() {
-  const two = document.querySelector<HTMLInputElement>('[data-testid="checkbox-make-two-versions"]');
-  assert(two, "The take selector lives in Shape It");
-  if (two.checked) await act(async () => two.click());
-  assert.equal(two.checked, false);
+  assert.equal(document.querySelector('[data-testid="checkbox-make-two-versions"]'), null, "There is no take selector: one take per Begin");
 }

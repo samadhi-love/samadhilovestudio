@@ -118,8 +118,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     finally{setPromptBusy(false);}
   }
   const [idea, setIdea] = useState("");
-  // Two takes is the default for every new song. ElevenLabs keeps its double-cost confirmation at Begin.
-  const [makeTwoVersions,setMakeTwoVersions]=useState(true);
+  // One take per Begin. Want another? "New take" re-runs the same prompt, or adjust it first.
   const caps=engineCapabilities[engine?.engine??"elevenlabs"];
   const [negativeStyle,setNegativeStyle]=useState(""),[spark,setSpark]=useState<number|null>(null),[wordsByStudio,setWordsByStudio]=useState(false);
   const [includeWords,setIncludeWords]=useState(false),[lyricStatus,setLyricStatus]=useState(""),[lyricBusy,setLyricBusy]=useState(false);
@@ -158,7 +157,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   type HeldWriting={title:string;prompt:string;lyrics:string;voice:string};
   const [resumable,setResumable]=useState<{device?:unknown;writing?:HeldWriting}|null>(null);
   const holdingDraft=useRef(true);
-  const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,makeTwoVersions,negativeStyle,spark,wordsByStudio,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
+  const recovery=useDraftRecovery("quick-create",{autoLength,manualTime,languageChoice,playChoices,photo,photoName,resultId,takeIds,songMap,mapEnabled,idea,choice,openingMode,customMode,adMode,adBrief,songTitle,voiceEdit,vocalOptions,ownLyrics,lyrics,genreEdit,instrumentsEdit,codeEdit,autoGenre,useHistory,fusionName,fusionVariation,negativeStyle,spark,wordsByStudio,melodyTakes,pendingTake:pendingTake?{...pendingTake,url:undefined}:undefined},value=>{
     // A finished-but-unsaved song or a recorded melody always comes back: that is real work.
     const unsavedAudio=!!value.pendingTake||(Array.isArray(value.melodyTakes)&&value.melodyTakes.length>0);
     if(holdingDraft.current&&!unsavedAudio){
@@ -170,7 +169,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     if(isLanguageChoice(value.languageChoice))setLanguageChoice(value.languageChoice);
     if(validPlayChoices(value.playChoices))setPlayChoices(value.playChoices);if(value.photo instanceof Blob){setPhoto(value.photo);setPhotoName(value.photoName??"My photo");}else{setPhoto(null);setPhotoName("");}setResultId(typeof value.resultId==="string"?value.resultId:undefined);if(Array.isArray(value.takeIds))setTakeIds(value.takeIds.filter((id):id is string=>typeof id==="string").slice(-8));
     setAdMode(value.adMode===true);setAdBrief(recoverMusicalAd(value.adBrief));
-    setMakeTwoVersions(value.makeTwoVersions!==false);setNegativeStyle(typeof value.negativeStyle==="string"?value.negativeStyle:"");setSpark(typeof value.spark==="number"&&value.spark>=0&&value.spark<=2?value.spark:null);setWordsByStudio(value.wordsByStudio===true);
+    setNegativeStyle(typeof value.negativeStyle==="string"?value.negativeStyle:"");setSpark(typeof value.spark==="number"&&value.spark>=0&&value.spark<=2?value.spark:null);setWordsByStudio(value.wordsByStudio===true);
     const recoveredTakes=Array.isArray(value.melodyTakes)?[...value.melodyTakes]:[];
     const priorDraft=value as typeof value & {melodyTake?:unknown;melodyDurationSeconds?:number};
     if(typeof Blob!=="undefined"&&priorDraft.melodyTake instanceof Blob)recoveredTakes.unshift({id:`recovered-${Date.now()}`,blob:priorDraft.melodyTake,durationSeconds:priorDraft.melodyDurationSeconds??30});
@@ -387,7 +386,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
   }
   function startFresh(broadcast=true){
     holdingDraft.current=false;setResumable(null);
-    const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,makeTwoVersions:true,negativeStyle:"",spark:null,wordsByStudio:false,melodyTakes:[],pendingTake:undefined};
+    const blank:Parameters<typeof recovery.reset>[0]={autoLength:true,manualTime:"",languageChoice:defaultLanguageChoice,playChoices:defaultPlayChoices,photo:null,photoName:"",resultId:undefined,takeIds:[],songMap:defaultSongMap,mapEnabled:false,idea:"",choice:defaultCreateChoice,openingMode:"auto",customMode:false,adMode:false,adBrief:emptyMusicalAd,songTitle:"",voiceEdit:null,vocalOptions:defaultCreatorVocals,ownLyrics:false,lyrics:"",genreEdit:null,instrumentsEdit:null,codeEdit:null,autoGenre:false,useHistory:true,fusionName:"",fusionVariation:0,negativeStyle:"",spark:null,wordsByStudio:false,melodyTakes:[],pendingTake:undefined};
     void recovery.reset(blank);writingStatus.reset({title:"",prompt:"",lyrics:"",voice:""});
     if(broadcast)window.dispatchEvent(new window.CustomEvent("versual:new-song",{detail:{scope:recovery.scope,source:"quick"}}));
     setPlayStage("start");setPreviousChoices(null);setError("");setPromptNotice("");setMelodyStatus("");setRecipeId("");setOpenPanel("");
@@ -418,7 +417,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
       try { resolveLanguage(languageChoice, useOwnLyrics ? lyrics : "",idea); if(intentIssue)throw new Error(intentIssue); }
       catch (error) { setError((error as Error).message); return; }
     }
-    if(makeTwoVersions&&!localSketch&&!falActive&&!window.confirm("Make two versions? This uses double your ElevenLabs credits. If the second version fails, the first stays saved."))return;
     const sung=useOwnLyrics?lyrics:"";
     setError(""); setPending(true);
     try {
@@ -440,20 +438,12 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
       } else {
         const input={title,prompt,languagePrompt:idea,autoLength:autoLength&&!adActive&&!mapOn,arrangement:code,duration,openingMode:customMode?openingMode:"auto" as SongOpening,lyrics:sung,voice:vocalDirection,instruments:engineInstruments,genres:engineGenre,...(customMode&&caps.negativeStyle&&negativeStyle.trim()?{negativeStyle:negativeStyle.trim().slice(0,500)}:{}),...(customMode&&caps.spark&&spark!==null?{spark}:{}),autoTitle:!(customMode&&songTitle.trim()),instrumental,...languageChoice,...(adActive?{musicalAd:adBrief}:{}),...(seed?.projectId?{projectId:seed.projectId}:{})};
         videoArmed.current=autoVideo&&!!makeVideo;
-        const answer=await generateSong({...input,...(falActive?{versions:makeTwoVersions?2 as const:1 as const}:{})});
+        const answer=await generateSong({...input,...(falActive?{versions:1 as const}:{})});
         const made=typeof answer==="string"?answer:answer?.songId;
         if(made){
           const madeIds=typeof answer==="object"&&answer.songIds?.length?[...answer.songIds]:[made];setResultId(made);
           if(typeof answer==="object"&&answer.warning)setError(answer.warning);
           if(melodyTakes.length)await saveMelodyReferencesToSong(made);
-          if(makeTwoVersions&&!falActive){
-            try{
-              const secondAnswer=await generateSong({...input,title:(title+" · Version 2").slice(0,100),projectId:seed?.projectId??made});
-              const second=typeof secondAnswer==="string"?secondAnswer:secondAnswer?.songId;
-              if(second)madeIds.push(second);
-              else setError("Version 1 is saved. Version 2 was not confirmed; check Your songs and provider history before retrying.");
-            }catch(cause){setError(`Version 1 is saved. Version 2 was not confirmed: ${cause instanceof Error?cause.message:"check Your songs before retrying."}`);}
-          }
           setTakeIds(ids=>[...new Set([...ids,...madeIds])].slice(-8));setResultId(madeIds.at(-1));
           if(autoSavePrompts&&savePrompt){
             try{
@@ -671,10 +661,6 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
           {customMode&&!instrumental&&!localSketch&&<p className="muted side-singer" data-testid="text-chosen-singer">🎤 Singer: <strong>{team&&team.voices>1?team.name:chosenSinger?.name??"Studio picks the voice"}</strong>{singerId==="auto"&&chosenSinger?" (Auto)":""} · <button type="button" className="text-button" data-testid="button-change-singer" onClick={()=>document.querySelector('[data-testid="side-voice"]')?.scrollIntoView({behavior:"smooth",block:"start"})}>Change</button></p>}
         {error && <p className="notice" role="alert" data-testid="text-create-error">{error}{mode.blocked&&<> <button type="button" className="text-button" data-testid="button-error-connect" onClick={settings}>Connect music account</button></>}</p>}
         <div className="forge-launch">
-        {customMode&&!localSketch&&<div className="version-count-control" role="group" aria-label="Takes">
-          <label className="qc-check"><input type="checkbox" data-testid="checkbox-make-two-versions" checked={makeTwoVersions} onChange={e=>setMakeTwoVersions(e.target.checked)}/> Two takes</label>
-          <p className="muted" data-testid="text-version-cost">{makeTwoVersions?"Two takes, side by side. Both are kept.":"One take."}</p>
-        </div>}
         {makeVideo&&!localSketch&&autoVideo&&<div className="qc-video-plan" role="radiogroup" aria-label="Then make my video" data-testid="label-auto-video">
           <span className="qc-video-plan-title">🎬 Then make my video</span>
           {videoPurposes.map(p=><button type="button" role="radio" key={p.id} aria-checked={autoVideo&&videoPurpose===p.id} className={autoVideo&&videoPurpose===p.id?"active":""}
@@ -707,7 +693,7 @@ export function QuickCreate({ advanced=true, expand, simplify, kidsSing, singWit
     {playful&&result?.audioFormat&&playStage!=="start"&&<section className="creative-play-result" aria-label="Your creation"><p className="eyebrow">YOURS · SAVED PRIVATELY</p><h2 {...songDragProps(result.id)} title="Drag into Make your video">{result.name}</h2><AudioPlayer src={songAudioUrl(result.id,result.audioId)} label="Listen to your creation"/>{chosenVoice&&singWithVoice&&<button type="button" className="primary small" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}
       {playStage==="play"?<><p className="muted">A new take keeps this one safe. A new take uses your same description.</p><div className="actions"><button type="button" className="primary" disabled={busy} onClick={()=>setPlayStage("share")}>Keep this · make it visual</button><button type="button" className="secondary" disabled={busy} onClick={()=>createForm.current?.requestSubmit()}>Try a new take</button>{previousChoices&&<button type="button" className="text-button" disabled={busy} onClick={()=>{setPlayChoices(previousChoices);setPreviousChoices(null);}}>Undo choices</button>}</div><p className="muted">New music requests can use provider credits. All takes remain in Your songs.</p>{takeIds.length>1&&<label>Listen to an earlier take<select value={result.id} disabled={busy} onChange={e=>setResultId(e.target.value)}>{takeIds.map(id=>drafts.find(s=>s.id===id&&!s.deletedAt)).filter((s):s is Song=>!!s?.audioFormat).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}</>:<><p>Your song is saved. Make its video next: the video page opens with your song, where you choose the shape, background, lyric style or your own photo.</p>{makeVideo&&<button type="button" className="primary" disabled={busy} data-testid="button-share-make-video" onClick={()=>void sendToVideo(result,videoPurpose)}>🎬 Make my video</button>}<details><summary>Save audio instead</summary><AudioFormatDownload url={songAudioUrl(result.id,result.audioId)} title={result.name} sourceKey={result.audioId??result.id}/></details><p className="muted">Review lyric timing and the video, then download or use your device’s share options. Nothing is posted automatically.</p></>}
       {pending&&<p role="status">Creating a new take. Your current version stays saved.</p>}{error&&<p role="alert" className="notice">{error}</p>}<button type="button" className="text-button" disabled={busy} onClick={()=>setPlayStage("start")}>Hide this take</button></section>}
-    {!playful&&result?.audioFormat && <div className="quick-result" aria-live="polite"><p>Saved privately in Your songs.</p><SongCard song={result}/><div className="actions creator-next-actions">{chosenVoice&&singWithVoice&&<button type="button" className="primary" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}{makeVideo&&<><button type="button" className="primary" disabled={busy} onClick={()=>makeVideo(result)}>{result.musicalAd?"Make advertising video":result.creationKind==="instrumental"||result.instrumental?"Make music video":"Auto lyric video"}</button><button type="button" className="secondary" disabled={busy} onClick={()=>makeVideo(result,true)}>Make social short</button></>}{publish&&<button type="button" className="secondary" disabled={busy} onClick={()=>publish(result)}>Publish & share</button>}</div><p className="muted">Song actions includes editing, voice recording, mixing, downloads and removal. Publish &amp; share opens release review; external platforms require their own submission.</p><button type="button" className="text-button" disabled={busy} onClick={openDrafts}>Open saved creations <ArrowRight size={15}/></button></div>}
+    {!playful&&result?.audioFormat && <div className="quick-result" aria-live="polite"><p>Saved privately in Your songs.</p><SongCard song={result}/><div className="actions creator-next-actions">{chosenVoice&&singWithVoice&&<button type="button" className="primary" data-testid="button-sing-with-voice" onClick={()=>singWithVoice(result.id,chosenVoice)}>🎤 Sing it with {chosenVoice.name}</button>}{makeVideo&&<><button type="button" className="primary" disabled={busy} onClick={()=>makeVideo(result)}>{result.musicalAd?"Make advertising video":result.creationKind==="instrumental"||result.instrumental?"Make music video":"Auto lyric video"}</button><button type="button" className="secondary" disabled={busy} onClick={()=>makeVideo(result,true)}>Make social short</button></>}<button type="button" className="secondary" disabled={busy} data-testid="button-new-take" title="Same prompt, a fresh take. Change anything above first if you like." onClick={()=>createForm.current?.requestSubmit()}>🔁 New take</button>{publish&&<button type="button" className="secondary" disabled={busy} onClick={()=>publish(result)}>Publish & share</button>}</div><p className="muted">Song actions includes editing, voice recording, mixing, downloads and removal. Publish &amp; share opens release review; external platforms require their own submission.</p><button type="button" className="text-button" disabled={busy} onClick={openDrafts}>Open saved creations <ArrowRight size={15}/></button></div>}
   </section>;
 }
 
