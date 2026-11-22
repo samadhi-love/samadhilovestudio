@@ -28,13 +28,14 @@ export type SongHub={busy:boolean;simple?:boolean;folders:Folder[];station?:Stat
 const Hub=createContext<SongHub|null>(null);
 export function SongHubProvider({value,children}:{value:SongHub;children:ReactNode}){return <Hub.Provider value={value}>{children}</Hub.Provider>;}
 
-type Sheet="tools"|"share"|"download"|"organize";
+type Sheet="tools"|"share"|"download"|"organize"|"videos";
 type MenuItem={key:string;label:string;icon:ReactNode;run:()=>void;disabled?:boolean;danger?:boolean};
 
 // Re-draws only when its song, its reuse action or the shared song hub changes.
 export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:(song:Song)=>void}){
  const hub=useContext(Hub),id=useId(),[name,setName]=useState(song.name),[rename,setRename]=useState(false),[playlist,setPlaylist]=useState("");
  const [status,setStatus]=useState(""),[sheet,setSheet]=useState<Sheet>("tools");
+ const savedVideoCount=song.lyricVideo?.pro?.exports?.filter(v=>v.asset).length??0;
  const [localOpen,setLocalOpen]=useState(false),[localPreview,setLocalPreview]=useState(false),[menu,setMenu]=useState(false);
  const menuRef=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null);
  const open=hub?hub.expanded===song.id:localOpen,preview=hub?hub.preview===song.id:localPreview;
@@ -95,6 +96,7 @@ export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:
    <button type="button" className="song-card-title" disabled={busy||!hub||archived} onClick={()=>act("details")}><strong>{song.name}</strong><span>{song.tags.slice(0,3).join(" · ")||song.stage}</span><small>{time!==null?<time dateTime={new Date(time).toISOString()}>{new Date(time).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short"})}</time>:"Earlier saved creation · date unavailable"} · {archived?"Deleted":blocked?"Needs review":songStatus(song)}{!archived&&hub?.releaseLoaded?" · "+(release?.status??"Private"):""}</small></button>
    <div className="song-card-buttons">
     {ready&&!archived&&<button type="button" className="secondary small song-lyrivid" data-testid={`button-lyrivid-${song.id}`} disabled={busy||!hub} aria-label={`Make a LyriVid for ${song.name}`} onClick={()=>act(videoAction)}><Film size={15}/> LyriVid</button>}
+    {ready&&!archived&&!!song.lyricVideo&&<button type="button" className="secondary small song-videos" data-testid={`button-videos-${song.id}`} disabled={busy||!hub} aria-label={`Saved videos for ${song.name}`} onClick={()=>openSheet("videos")}>🎬 Videos{savedVideoCount?` (${savedVideoCount})`:""}</button>}
     {ready&&!archived&&<button type="button" className="song-play" aria-pressed={preview} aria-label={`${preview?"Close player for":"Play"} ${song.name}`} onClick={togglePreview}><Play size={16} fill={preview?"currentColor":"none"}/></button>}
     {!archived&&<button type="button" className={`song-like${song.favorite?" liked":""}`} aria-pressed={!!song.favorite} aria-label={`${song.favorite?"Unlike":"Like"} ${song.name}`} disabled={busy||!hub} onClick={()=>void hub?.save({...song,favorite:!song.favorite},song.favorite?"Removed from Liked songs":"Added to Liked songs")}><Heart size={18} fill={song.favorite?"currentColor":"none"}/><span>{song.favorite?"Liked":"Like"}</span></button>}
     <div className="song-menu-wrap">
@@ -111,7 +113,8 @@ export const SongCard=memo(function SongCard({song,onReuse}:{song:Song;onReuse?:
   {archived&&<div className="song-card-restore"><p>{deletionNotice}</p>{deletionDeadline(song)!==null&&<p>{canRestoreSong(song)?"Restore before":"Recovery ended"}: {new Date(deletionDeadline(song)!).toLocaleString()}</p>}<button type="button" className="primary small" disabled={busy||!hub||!canRestoreSong(song)} onClick={restore}>Restore to Your songs</button><p className="muted">A restored release remains unlisted until you explicitly publish it again.</p></div>}
   {!archived&&!!melodyReferences.length&&open&&sheet==="tools"&&<section className="song-melody-reference"><h3>Melody references · {melodyReferences.length}</h3><p className="muted">Private recordings saved as references, not sent to the music provider.</p>{melodyReferences.map((reference,index)=><div className="melody-reference-saved" key={reference.assetId}><strong>Take {index+1} · {Math.floor(reference.durationSeconds/60)}:{String(Math.floor(reference.durationSeconds%60)).padStart(2,"0")}</strong><audio controls preload="none" data-testid="melody-reference-player" aria-label={`Play private melody reference ${index+1}`} src={`/api/studio/lyric-assets?song=${encodeURIComponent(song.id)}&asset=${encodeURIComponent(reference.assetId)}`}/></div>)}</section>}
   {open&&!archived&&<div className="song-card-panel" id={`${id}-actions`} data-sheet={sheet}>
-   <div className="song-sheet-head"><h3>{sheet==="tools"?"More tools":sheet==="share"?"Share privately":sheet==="download"?"Download":"Project & playlist"}</h3><button type="button" className="text-button" onClick={()=>setOpen(false)}>Close</button></div>
+   <div className="song-sheet-head"><h3>{sheet==="videos"?"Your videos":sheet==="tools"?"More tools":sheet==="share"?"Share privately":sheet==="download"?"Download":"Project & playlist"}</h3><button type="button" className="text-button" onClick={()=>setOpen(false)}>Close</button></div>
+   {sheet==="videos"&&<section className="song-sheet" data-testid="sheet-videos"><SavedLyricVideos song={song}/>{!savedVideoCount&&<p className="muted">Videos you finish are saved here automatically. Open “Find all saved video files” to check for older ones.</p>}</section>}
    {sheet==="tools"&&<section className="song-sheet">
     <p className="muted">Everything else this song can do. The original recording always stays saved; new generations show their credit estimate first.</p>
     <div className="actions">{button("Edit details","details")}{button("Lyrics & prompts","lyrics")}{button("Save prompt","save-prompt")}{button("Record vocals","record",true)}{button("Open mixer","mix",true)}{isInstrumental(song.instrumental)?button("Remix instrumental","remix",true):button("Remix · new take like this","remix",true)}{button("Make a Short","short-video",true)}</div>

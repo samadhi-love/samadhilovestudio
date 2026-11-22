@@ -1732,7 +1732,7 @@ function LyricVideoProContent(props: Props) {
       setPostCaption(before=>before.trim()?before:readyPostCaption(platform,postSource()));
       setVideoTitle(before=>before.trim()?before:postTextFor("youtube",postSource()).title);
       setStatus(
-        "Video export finished. Download or share the video below. A saved-video link is created automatically for exports up to 120 MB; Studio access is required to open it.",
+        "Video finished and saved privately to My Videos (in Your songs). Download or share it below.",
       );
     } catch (e) {
       if(jobId){setResumeVideo(true);await videoJob({video:"failed",jobId},owner).catch(()=>{});}

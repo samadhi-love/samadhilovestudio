@@ -5,7 +5,7 @@ import {creatorInstruments,worldFusionRecipes} from "../app/creator-music-option
 import {isLyricProject,type LyricProject} from "../app/lyric-video-data";
 import {newProSettings,clipCues} from "../app/lyric-pro-data";import {freshSong} from "../app/studio-data";import {QuickCreate} from "../app/quick-create";
 import {bestShortStart,expandSongDescription,insertLyricSection} from "../app/creation-shortcuts";
-import {SongCard,SongHubProvider,type SongAction,type SongHub} from "../app/song-card";
+import {SongCard,SongHubProvider,type SongAction,type SongHub} from "../app/song-card";import {MyVideos} from "../app/my-videos";
 import {MelodyReferenceRecorder,formatMelodyTimer,melodyReferenceLimitSeconds} from "../app/melody-reference-recorder";
 import {musicLanguages} from "../app/music-language";
 const song={...freshSong("song","World original",0),audioId:"original",audioFormat:"mp3" as const};
@@ -351,5 +351,31 @@ test("Shape It sits side by side: words on the left; sound, voice, finish and re
   await act(async()=>side.querySelector<HTMLButtonElement>('[data-testid="button-recent-video-r1"]')!.click());
   await act(async()=>side.querySelector<HTMLButtonElement>('[data-testid="button-all-songs"]')!.click());
   assert.deepEqual(videos,["r1"]);assert.deepEqual(opened,["all"]);
+ }finally{await h.close();}
+});
+
+test("finished videos are easy to find: a Videos button on the song and one My Videos list, newest first",async()=>{
+ const h=await setup();
+ const value:SongHub={busy:false,simple:true,folders:[],stemsConnected:false,preview:"",setPreview(){},expanded:"",setExpanded(){},save:async()=>true,action:()=>{},archive:async()=>true,duplicate:async()=>true,publish:async()=>{},playlist:async()=>true};
+ const pro={exports:[{id:"v-old",at:"2026-11-20T10:00:00.000Z",format:"wide" as const,extension:"mp4",asset:"asset-old",start:0,end:60},{id:"v-new",at:"2026-11-22T10:00:00.000Z",format:"vertical" as const,extension:"mp4",asset:"asset-new",start:0,end:60},{id:"v-unsaved",at:"2026-11-22T11:00:00.000Z",format:"square" as const,extension:"mp4",start:0,end:60}]};
+ const song={...freshSong("song-v","I AM the Light",0),audioId:"a1",audioFormat:"mp3" as const,lyricVideo:{cues:[],pro} as any};
+ const other={...freshSong("song-w","No video yet",0),audioId:"a2",audioFormat:"mp3" as const};
+ try{
+  function Page(){const [expanded,setExpanded]=useState("");return <SongHubProvider value={{...value,expanded,setExpanded}}><SongCard song={song}/><SongCard song={other}/></SongHubProvider>;}
+  await act(async()=>h.root.render(<Page/>));
+  const button=document.querySelector<HTMLButtonElement>('[data-testid="button-videos-song-v"]')!;
+  assert.match(button.textContent!,/Videos \(2\)/,"only saved videos are counted");
+  assert.equal(document.querySelector('[data-testid="button-videos-song-w"]'),null,"songs without videos stay clean");
+  await act(async()=>button.click());
+  assert.ok(document.querySelector('[data-testid="sheet-videos"]'));
+  assert.match(document.querySelector('[data-testid="sheet-videos"]')!.textContent!,/Download/);
+  await act(async()=>h.root.render(<MyVideos songs={[other,song]}/>));
+  const cards=[...document.querySelectorAll('[data-testid^="my-video-"]')].map(e=>(e as HTMLElement).dataset.testid);
+  assert.deepEqual(cards,["my-video-v-new","my-video-v-old"],"newest first, unsaved exports left out");
+  assert.match(document.querySelector('[data-testid="my-video-v-new"]')!.textContent!,/Phone · Shorts/);
+  await act(async()=>document.querySelector<HTMLButtonElement>('[data-testid="button-watch-v-new"]')!.click());
+  assert.ok(document.querySelector('[data-testid="my-video-v-new"] video'),"watch plays it right there");
+  await act(async()=>h.root.render(<MyVideos songs={[other]}/>));
+  assert.match(document.querySelector('[data-testid="my-videos"]')!.textContent!,/saved here automatically/);
  }finally{await h.close();}
 });

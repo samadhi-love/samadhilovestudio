@@ -63,6 +63,7 @@ import {makeSavedSongPrompt,savedPromptFromSong,sameSavedPrompt,type PromptDraft
 import { VocalStudio } from "./vocal/vocal-studio";
 import type { Role } from "./vocal/session";
 import { SavedLyricVideos } from "./saved-lyric-videos";
+import { MyVideos } from "./my-videos";
 import { CleanLyricsChecker } from "./clean-lyrics-checker";
 import { cleanWordsMessage, hasExplicitWords, isExplicitSong } from "./clean-content";
 import { bestShortStart } from "./creation-shortcuts";
@@ -163,7 +164,7 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
   const [tag, setTag] = useState("");
   const [stage, setStage] = useState("");
   const [explicitView, setExplicitView] = useState(false);
-  const [archiveView, setArchiveView] = useState(false);
+  const [archiveView, setArchiveView] = useState(false), [videosView, setVideosView] = useState(false);
   const [songSort,setSongSort]=useState<SongSort>("newest"),[draftsOnly,setDraftsOnly]=useState(false),[songPreview,setSongPreview]=useState(""),[songExpanded,setSongExpanded]=useState("");
   const [folderFilter, setFolderFilter] = useState("");
   const [libraryMode,setLibraryMode]=useState<"sky"|"list">("sky");
@@ -850,11 +851,12 @@ export default function Studio({ signOut, creatorName }: { signOut: string; crea
         </> : view === "songs" ? <>
           <PageTitle icon={<ListMusic/>} title="Your songs" subtitle="Every song you make becomes a star. Private until you choose to share." action={<div className="actions">{uploadButton}</div>}/>
           <div className="chips library-scope">
-            <button className={`chip ${!explicitView && !archiveView ? "active" : ""}`} aria-pressed={!explicitView && !archiveView} onClick={() => { setExplicitView(false); setArchiveView(false); setTag(""); }}>Active creations</button>
-            <HelpControl subject="Needs cleanup" tip="View songs flagged by the clean-content check so you can review and edit them."><button className={`chip ${explicitView && !archiveView ? "active" : ""}`} aria-pressed={explicitView && !archiveView} onClick={() => { setExplicitView(true); setArchiveView(false); setTag(""); }}>Needs review</button></HelpControl>
-            <button className={`chip ${archiveView ? "active" : ""}`} aria-pressed={archiveView} onClick={() => setArchiveView(true)}>Recently deleted</button>
+            <button className={`chip ${!explicitView && !archiveView && !videosView ? "active" : ""}`} aria-pressed={!explicitView && !archiveView && !videosView} onClick={() => { setExplicitView(false); setArchiveView(false); setVideosView(false); setTag(""); }}>Active creations</button>
+            <button className={`chip ${videosView ? "active" : ""}`} data-testid="chip-my-videos" aria-pressed={videosView} onClick={() => { setVideosView(true); setArchiveView(false); setExplicitView(false); }}>🎬 My Videos</button>
+            <HelpControl subject="Needs cleanup" tip="View songs flagged by the clean-content check so you can review and edit them."><button className={`chip ${explicitView && !archiveView ? "active" : ""}`} aria-pressed={explicitView && !archiveView} onClick={() => { setExplicitView(true); setArchiveView(false); setVideosView(false); setTag(""); }}>Needs review</button></HelpControl>
+            <button className={`chip ${archiveView ? "active" : ""}`} aria-pressed={archiveView} onClick={() => { setArchiveView(true); setVideosView(false); }}>Recently deleted</button>
           </div>
-          {archiveView ? <section className="panel form-panel"><h2>Recently deleted</h2><p className="muted">{deletionNotice}</p>{sortSongs(data.songs.filter(s=>s.deletedAt)).map(s=><SongCard key={s.id} song={s}/>)}{!data.songs.some(s => s.deletedAt) && <p className="muted">No recently deleted songs.</p>}</section> : <>
+          {videosView ? <MyVideos songs={data.songs} makeVideo={() => { navigate("lyric-video"); }}/> : archiveView ? <section className="panel form-panel"><h2>Recently deleted</h2><p className="muted">{deletionNotice}</p>{sortSongs(data.songs.filter(s=>s.deletedAt)).map(s=><SongCard key={s.id} song={s}/>)}{!data.songs.some(s => s.deletedAt) && <p className="muted">No recently deleted songs.</p>}</section> : <>
           {explicitView && <p className="muted playlist-description">Playback and exports are blocked here. Open a song to clean the text or replace a flagged recording.</p>}
           <div className="filters"><label className="search"><Search size={18}/><input aria-label="Search songs" placeholder="Search titles, lyrics, prompts, and tags…" value={query} onChange={e => setQuery(e.target.value)}/>{query && <button aria-label="Clear search" onClick={() => setQuery("")}><X size={16}/></button>}</label>
             <select aria-label="Filter by stage" value={stage} onChange={e => setStage(e.target.value)}><option value="">All stages</option>{stages.map(s => <option key={s}>{s}</option>)}</select></div>
