@@ -27,7 +27,7 @@ canvas[data-sky] { display: block; }
 /* Header and navigation */
 .hero, .banner { position: relative; overflow: hidden; }
 .hero { height: 860px; }
-.banner { height: 420px; }
+.banner { min-height: 420px; padding-bottom: 48px; box-sizing: border-box; }
 .hero canvas, .banner canvas, .band canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,4,13,0.88) 0%, rgba(5,4,13,0.5) 45%, rgba(5,4,13,0) 72%); }
 .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 160px; background: linear-gradient(180deg, rgba(5,4,13,0) 0%, var(--bg) 100%); }
@@ -178,7 +178,7 @@ footer { border-top: 1px solid var(--line); }
   .wrap { padding: 0 20px; }
   .hero { height: 760px; }
   .hero-text { padding-top: 48px; }
-  .banner { height: 380px; }
+  .banner { min-height: 380px; }
   section { padding: 56px 0; }
   .nav { padding-top: 16px; padding-bottom: 8px; }
   .nav-links { width: 100%; flex-wrap: nowrap; overflow-x: auto; gap: 0 18px; padding-bottom: 6px; scrollbar-width: none; }
@@ -243,3 +243,43 @@ body.owner { background: #0a0818; color: #ece9ff; font-family: Inter, system-ui,
 .owner-empty { color: #b7b0dc; }
 button.btn { border: 0; font: inherit; cursor: pointer; }
 button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transparent; color: inherit; }
+
+/* ---------- Golden Om beside the name, on every page ---------- */
+.brand { display: inline-flex; align-items: center; }
+.om { display: inline-block; margin-right: 10px; letter-spacing: 0; font-family: "Tiro Devanagari Sanskrit", "Noto Serif Devanagari", serif; font-size: 1.7em; line-height: 1; font-weight: 400;
+  color: #f2c46d; background: linear-gradient(180deg, #fff1c2 0%, #f2c46d 45%, #c88a2a 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.2px #6b3e1e; paint-order: stroke fill; filter: drop-shadow(0 0 7px rgba(242, 196, 109, .6)); animation: om-float 4.5s ease-in-out infinite; }
+@keyframes om-float { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(2deg); } }
+
+/* ---------- Kriya: Sanskrit-style words ---------- */
+.sanskritish { font-family: "Tiro Devanagari Sanskrit", Georgia, serif; font-style: italic; color: #f2c46d; text-decoration: overline 2px #f2c46d; text-underline-offset: 0; letter-spacing: .02em; }
+.deva { font-family: "Tiro Devanagari Sanskrit", "Noto Serif Devanagari", serif; color: #f2c46d; -webkit-text-stroke: .8px #6b3e1e; }
+.kriya-motto { text-align: center; margin: 8px 0 40px; padding: 28px 16px; border: 1px solid rgba(242, 196, 109, .35); border-radius: 22px; background: radial-gradient(ellipse at center, rgba(242, 196, 109, .14), rgba(5, 4, 13, 0) 70%); }
+.kriya-motto .deva { display: block; font-size: 56px; line-height: 1.2; }
+.kriya-motto .sanskritish { font-size: clamp(22px, 4.6vw, 32px); margin: 10px 0 6px; }
+.kriya-motto .who { color: #cfc8f0; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; }
+.article .wrap { position: relative; }
+.article .wrap > *:not(.kriya-float) { position: relative; z-index: 1; }
+.kriya-float { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.kf { position: absolute; white-space: nowrap; opacity: .09; animation: kriya-drift 26s ease-in-out infinite; }
+.kf.sanskritish { font-size: 26px; }
+.kf.deva { font-size: 64px; }
+.kf-0 { top: 12%; left: -4%; animation-delay: 0s; }
+.kf-1 { top: 24%; left: 30%; animation-delay: -4s; }
+.kf-2 { top: 38%; left: 78%; animation-delay: -8s; }
+.kf-3 { top: 52%; left: -10%; animation-delay: -12s; }
+.kf-4 { top: 66%; left: 70%; animation-delay: -16s; }
+.kf-5 { top: 80%; left: 20%; animation-delay: -20s; }
+.kf-6 { top: 92%; left: 60%; animation-delay: -6s; }
+@keyframes kriya-drift { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(40px, -18px); } 50% { transform: translate(80px, 6px); } 75% { transform: translate(30px, 20px); } }
+
+/* ---------- Chakra figure ---------- */
+.chakra-figure { margin: 36px 0; }
+.chakra-figure svg { width: 100%; height: auto; display: block; font-family: Inter, system-ui, sans-serif; }
+.chakra-figure figcaption { text-align: center; color: #cfc8f0; font-size: 14px; margin-top: 8px; }
+.chakra-figure circle[r="10"] { animation: chakra-pulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes chakra-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .om, .kf, .chakra-figure circle[r="10"] { animation: none; }
+}

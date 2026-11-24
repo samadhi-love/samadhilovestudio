@@ -186,3 +186,22 @@ test("the encyclopedia sections are in the Library but the home page keeps its f
     assert.equal(page.status, 200, slug);
   }
 });
+
+test("Kriya, the masters, the chakras and the 32 paths all have their pages", async () => {
+  const kriya = await call("/teachings/kriya-yoga");
+  assert.match(kriya.body, /Kriya is the key and the way back home/);
+  assert.match(kriya.body, /class="kriya-float" aria-hidden="true"/);
+  const masters = await call("/teachings/the-kriya-masters");
+  for (const name of ["Mahavatar Babaji", "Lahiri Mahasaya", "Sri Yukteswar", "Sanyal Mahasaya", "Yogananda", "Autobiography of a Yogi", "Satyananda Giri", "Hariharananda", "Prajnanananda"]) assert.ok(masters.body.includes(name), name);
+  const med = await call("/teachings/meditation-and-prayer");
+  assert.match(med.body, /class="chakra-figure"/);
+  assert.match(med.body, /href="\/teachings\/kriya-yoga"/);
+  const tab = await call("/library?tab=chakras");
+  assert.equal((tab.body.match(/href="\/teachings\/chakra-/g) || []).length, 7);
+  const paths = await call("/teachings/the-32-paths-of-wisdom");
+  assert.match(paths.body, /thirty-two mysterious Paths of Wisdom/);
+});
+
+test("every page carries the golden Om beside the name", async () => {
+  for (const p of ["/", "/library", "/about", "/teachings/kriya-yoga"]) assert.match((await call(p)).body, /<span class="om" aria-hidden="true">ॐ<\/span>/, p);
+});
