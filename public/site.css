@@ -275,25 +275,21 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 
 /* ---------- Chakra figure ---------- */
 .chakra-figure { margin: 36px 0; }
-.chakra-figure svg { width: 100%; height: auto; display: block; font-family: Inter, system-ui, sans-serif; }
+.chakra-figure img { width: 100%; height: auto; display: block; border-radius: 18px; border: 1px solid rgba(201, 167, 255, .3); box-shadow: 0 0 40px rgba(123, 92, 255, .25); }
 .chakra-figure figcaption { text-align: center; color: #cfc8f0; font-size: 14px; margin-top: 8px; }
-.chakra-figure .pulse { animation: chakra-pulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-@keyframes chakra-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .om, .kf, .chakra-figure .pulse { animation: none; }
+  .om, .kf { animation: none; }
 }
 
 /* ---------- Batch 4: phones ---------- */
-.chakra-figure .chakra-narrow, .chakra-figure .chakra-legend { display: none; }
+.chakra-figure .chakra-legend { display: none; }
 .chakra-legend { list-style: none; padding: 0; margin: 8px 0 0; }
 .chakra-legend li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 0 10px 26px; position: relative; border-bottom: 1px solid rgba(255, 255, 255, .08); }
 .chakra-legend li::before { content: ""; position: absolute; left: 4px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
 .chakra-legend strong { color: var(--c); font-size: 17px; }
 .chakra-legend span { color: #e7e2ff; font-size: 15px; }
 @media (max-width: 640px) {
-  .chakra-figure .chakra-wide { display: none; }
-  .chakra-figure .chakra-narrow { display: block; max-width: 300px; margin: 0 auto; }
   .chakra-figure .chakra-legend { display: block; }
 }
 .swipe-hint { display: none; margin: 6px 0 0; font-size: 13px; color: #cfc8f0; text-align: right; }

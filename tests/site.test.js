@@ -283,3 +283,13 @@ test("each star family page has its original artwork, and the Federation page te
   const gfl = await call("/teachings/galactic-federation-of-light");
   for (const fact of ["Van Tassel", "Law of One", "Confederation of Planets", "Sheldan Nidle", "Haim Eshed", "free will"]) assert.ok(gfl.body.includes(fact), fact);
 });
+
+test("the chakra illustration is served and shown with a description", async () => {
+  const img = await call("/images/chakras.jpg");
+  assert.equal(img.status, 200);
+  assert.equal(img.headers["Content-Type"], "image/jpeg");
+  for (const p of ["/teachings/the-seven-chakras", "/teachings/meditation-and-prayer"]) {
+    const page = await call(p);
+    assert.match(page.body, /<img src="\/images\/chakras\.jpg"[^>]*alt="A person seated in meditation/, p);
+  }
+});

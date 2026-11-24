@@ -19,6 +19,7 @@ const files = {
   "/sky.js": ["public/sky.js", "text/javascript; charset=utf-8"],
   "/favicon.svg": ["public/favicon.svg", "image/svg+xml"],
   "/owner.js": ["public/owner.js", "text/javascript; charset=utf-8"],
+  "/images/chakras.jpg": ["public/images/chakras.jpg", "image/jpeg"],
 };
 
 const security = {
