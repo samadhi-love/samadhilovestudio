@@ -2,7 +2,8 @@
 // Private preview: every page asks for a password until SITE_PUBLIC is set to "true".
 import http from "node:http";
 import { readFile } from "node:fs/promises";
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createHash } from "node:crypto";
+import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { pages, sitemapXml, robotsTxt, setRequest } from "./lib/pages.js";
@@ -46,12 +47,35 @@ function allowed(req) {
   return samePassword(given, password) ? "open" : "ask";
 }
 
-function send(res, status, body, type = "text/html; charset=utf-8", extra = {}) {
-  res.writeHead(status, { ...security, "Content-Type": type, ...(isPublic ? {} : { "X-Robots-Tag": "noindex, nofollow" }), ...extra });
-  res.end(body);
+// Text (pages, styles, scripts, sitemap) is sent compressed when the browser accepts it: about 5 times smaller.
+const compressible = /^(text\/|application\/(json|xml|javascript)|image\/svg)/;
+const packed = new Map(); // compressed copies of the site's own files, made once
+function compress(buf, enc) {
+  return enc === "br"
+    ? zlib.brotliCompressSync(buf, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } })
+    : zlib.gzipSync(buf, { level: 6 });
+}
+function send(res, status, body, type = "text/html; charset=utf-8", extra = {}, cacheKey = null) {
+  const headers = { ...security, "Content-Type": type, ...(isPublic ? {} : { "X-Robots-Tag": "noindex, nofollow" }), ...extra };
+  let out = body;
+  if (out != null && compressible.test(type)) {
+    const buf = Buffer.isBuffer(out) ? out : Buffer.from(String(out));
+    const accept = String(res.acceptEncoding || "");
+    const enc = /\bbr\b/.test(accept) ? "br" : /\bgzip\b/.test(accept) ? "gzip" : null;
+    headers.Vary = "Accept-Encoding";
+    if (enc && buf.length > 1024) {
+      const key = cacheKey && `${cacheKey}|${enc}`;
+      out = key && packed.has(key) ? packed.get(key) : compress(buf, enc);
+      if (key) packed.set(key, out);
+      headers["Content-Encoding"] = enc;
+    } else out = buf;
+  }
+  res.writeHead(status, headers);
+  res.end(out);
 }
 
 export async function handle(req, res) {
+  res.acceptEncoding = req.headers["accept-encoding"];
   const url = new URL(req.url, "http://localhost");
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
 
@@ -78,7 +102,11 @@ export async function handle(req, res) {
     const [file, type] = files[pathname];
     try {
       const body = await readFile(path.join(root, file));
-      return send(res, 200, body, type, { "Cache-Control": "public, max-age=3600" });
+      // A fingerprint of the file: a browser that already has this version gets a tiny "not changed" reply.
+      const etag = `"${createHash("sha1").update(body).digest("base64url").slice(0, 16)}"`;
+      const extra = { "Cache-Control": "public, max-age=3600", ETag: etag };
+      if (String(req.headers["if-none-match"] || "").split(/,\s*/).includes(etag)) { res.writeHead(304, { ...security, ...extra }); return res.end(); }
+      return send(res, 200, body, type, extra, `${pathname}|${etag}`);
     } catch { return send(res, 404, pages.notFound(), undefined); }
   }
 

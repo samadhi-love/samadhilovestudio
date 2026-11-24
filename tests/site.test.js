@@ -7,13 +7,13 @@ process.env.PREVIEW_PASSWORD = "test-preview";
 delete process.env.SITE_PUBLIC;
 const { handle } = await import("../server.js");
 
-function call(path, { auth = true } = {}) {
+function call(path, { auth = true, headers = {} } = {}) {
   return new Promise((resolve) => {
-    const req = { url: path, method: "GET", headers: auth ? { authorization: "Basic " + Buffer.from("samadhi:test-preview").toString("base64") } : {} };
+    const req = { url: path, method: "GET", headers: { ...(auth ? { authorization: "Basic " + Buffer.from("samadhi:test-preview").toString("base64") } : {}), ...headers } };
     const res = {
       headersSent: false, status: 0, headers: {}, body: "",
       writeHead(status, headers) { this.status = status; this.headers = headers; this.headersSent = true; },
-      end(body) { this.body = body ? String(body) : ""; resolve(this); },
+      end(body) { this.raw = body ? Buffer.from(body) : Buffer.alloc(0); this.body = body ? String(body) : ""; resolve(this); },
     };
     handle(req, res);
   });
@@ -292,4 +292,21 @@ test("the chakra illustration is served and shown with a description", async () 
     const page = await call(p);
     assert.match(page.body, /<img src="\/images\/chakras\.jpg"[^>]*alt="A person seated in meditation/, p);
   }
+});
+
+test("weight: pages and files are sent compressed, and unchanged files are not sent twice", async () => {
+  const zlib = await import("node:zlib");
+  const plain = await call("/teachings/lyrans");
+  const gz = await call("/teachings/lyrans", { headers: { "accept-encoding": "gzip, deflate" } });
+  assert.equal(gz.headers["Content-Encoding"], "gzip");
+  assert.equal(zlib.gunzipSync(gz.raw).toString(), plain.body);
+  assert.ok(gz.raw.length < plain.body.length / 3, "compressed page is much smaller");
+  const br = await call("/site.css", { headers: { "accept-encoding": "br" } });
+  assert.equal(br.headers["Content-Encoding"], "br");
+  const etag = br.headers.ETag;
+  assert.ok(etag);
+  const again = await call("/site.css", { headers: { "if-none-match": etag } });
+  assert.equal(again.status, 304);
+  const img = await call("/images/chakras.jpg", { headers: { "accept-encoding": "gzip" } });
+  assert.equal(img.headers["Content-Encoding"], undefined, "photos are already compressed");
 });
