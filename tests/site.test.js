@@ -110,3 +110,34 @@ test("static files are served", async () => {
     assert.equal(res.status, 200, p);
   }
 });
+
+test("new pages open: masters gallery, podcasts, credits and the private picture chooser", async () => {
+  for (const p of ["/masters", "/podcasts", "/credits", "/choose", "/videos"]) {
+    const res = await call(p);
+    assert.equal(res.status, 200, p);
+  }
+  const masters = await call("/masters");
+  for (const name of ["Jesus", "Mother Mary", "Archangel Michael", "Gautama Buddha", "Saint Germain", "Kuan Yin"]) assert.match(masters.body, new RegExp(name));
+});
+
+test("YouTube links of every common shape are understood", async () => {
+  const { youtubeId } = await import("../lib/media.js");
+  assert.equal(youtubeId("https://www.youtube.com/watch?v=dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(youtubeId("https://youtu.be/dQw4w9WgXcQ?t=3"), "dQw4w9WgXcQ");
+  assert.equal(youtubeId("https://www.youtube.com/shorts/dQw4w9WgXcQ"), "dQw4w9WgXcQ");
+  assert.equal(youtubeId("https://example.com/video"), null);
+});
+
+test("picture files are only served from inside the candidates folder", async () => {
+  const { safeCandidatePath } = await import("../lib/pictures.js");
+  assert.equal(safeCandidatePath("/candidates/../server.js"), null);
+  assert.equal(safeCandidatePath("/candidates/giza/../../server.js"), null);
+  assert.ok(safeCandidatePath("/candidates/giza/giza-1.jpg"));
+  const res = await call("/candidates/giza/..%2F..%2Fserver.js");
+  assert.equal(res.status, 404);
+});
+
+test("the home page keeps its look: no sacred-place backdrop there", async () => {
+  const home = await call("/");
+  assert.doesNotMatch(home.body, /class="journey"/);
+});

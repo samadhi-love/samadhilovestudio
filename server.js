@@ -6,6 +6,7 @@ import { timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { pages } from "./lib/pages.js";
+import { safeCandidatePath } from "./lib/pictures.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT) || 3000;
@@ -22,7 +23,7 @@ const security = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "DENY",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.youtube-nocookie.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
 };
 
 function samePassword(given, expected) {
@@ -66,6 +67,15 @@ export async function handle(req, res) {
       const body = await readFile(path.join(root, file));
       return send(res, 200, body, type, { "Cache-Control": "public, max-age=3600" });
     } catch { return send(res, 404, pages.notFound(), undefined); }
+  }
+
+  if (pathname.startsWith("/candidates/")) {
+    const full = safeCandidatePath(pathname);
+    if (!full) return send(res, 404, pages.notFound());
+    const ext = path.extname(full).toLowerCase();
+    const type = ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg";
+    try { return send(res, 200, await readFile(full), type, { "Cache-Control": "public, max-age=86400" }); }
+    catch { return send(res, 404, pages.notFound()); }
   }
 
   const page = pages.route(pathname, url.searchParams);
