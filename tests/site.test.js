@@ -178,7 +178,9 @@ test("the encyclopedia sections are in the Library but the home page keeps its f
   }
   const home = await call("/");
   assert.equal((home.body.match(/<article class="card"><canvas class="orb"/g) || []).length, 5);
-  assert.ok(!home.body.includes("/library?tab=mystics"));
+  const grid = home.body.slice(home.body.indexOf("Five paths of knowledge"), home.body.indexOf('<section class="quote">'));
+  assert.ok(!grid.includes("/library?tab=mystics"), "the home page cards stay the original five");
+  for (const tab of ["sages-and-kings", "mystics", "human-story", "chakras"]) assert.match(home.body, new RegExp(`<nav class="nav[^]*href="/library\\?tab=${tab}"`), `menu links to ${tab}`);
   const lib = await call("/library?tab=human-story");
   assert.match(lib.body, /Atlantis/);
   for (const slug of ["atlantis", "lemuria-and-mu", "solon-the-lawgiver", "kabir", "socrates"]) {
@@ -237,4 +239,36 @@ test("the picture chooser is private: only the signed-in owner can open it", asy
   assert.equal(pub.headers.Location, "/owner/choose");
   const owner = await call("/owner/choose");
   assert.doesNotMatch(owner.body, /Choose your pictures/);
+});
+
+test("search engines: robots.txt, sitemap, canonical links, share previews and full descriptions", async () => {
+  const robots = await call("/robots.txt", { auth: false });
+  assert.equal(robots.status, 200);
+  assert.match(robots.body, /Disallow: \//, "a private preview asks search engines to stay away");
+  const map = await call("/sitemap.xml");
+  assert.match(map.body, /<urlset/);
+  assert.match(map.body, /\/teachings\/kriya-yoga</);
+  assert.doesNotMatch(map.body, /\/owner|\/choose/);
+  const lib = await call("/library");
+  assert.match(lib.body, /<link rel="canonical" href="[^"]*\/library\?tab=teachings">/);
+  assert.match(lib.body, /<meta property="og:url"/);
+  assert.match(lib.body, /<meta name="twitter:card"/);
+  const masters = await call("/masters");
+  const mastersTab = await call("/library?tab=masters");
+  const title = (r) => /<title>([^<]*)<\/title>/.exec(r.body)[1];
+  assert.notEqual(title(masters), title(mastersTab));
+  for (const p of ["/music", "/gallery", "/teachings/archangel-selaphiel", "/teachings/archangel-barachiel", "/teachings/archangel-haniel", "/teachings/archangel-ariel"]) {
+    const d = /<meta name="description" content="([^"]*)"/.exec((await call(p)).body)[1];
+    assert.ok(d.length >= 60, `${p} description is too short: ${d}`);
+  }
+});
+
+test("speed: the full Sanskrit-style font loads only where Sanskrit lettering is used", async () => {
+  const kriya = await call("/teachings/kriya-yoga");
+  assert.match(kriya.body, /family=Tiro\+Devanagari\+Sanskrit:ital@0;1/);
+  for (const p of ["/", "/about", "/teachings/unity"]) {
+    const page = await call(p);
+    assert.doesNotMatch(page.body, /family=Tiro\+Devanagari\+Sanskrit:ital/, p);
+    assert.match(page.body, /family=Tiro\+Devanagari\+Sanskrit&text=%E0%A5%90/, `${p} still loads the ॐ glyph`);
+  }
 });

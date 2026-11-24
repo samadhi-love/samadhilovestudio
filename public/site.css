@@ -33,7 +33,7 @@ canvas[data-sky] { display: block; }
 .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 160px; background: linear-gradient(180deg, rgba(5,4,13,0) 0%, var(--bg) 100%); }
 .nav { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; padding-top: 24px; padding-bottom: 24px; }
 .brand { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: 0.12em; color: var(--ink-strong); text-decoration: none; }
-.nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 20px; font-size: 15px; }
+.nav-links { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 18px; font-size: 15px; }
 .nav-links a { color: var(--ink); text-decoration: none; padding: 10px 0; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--gold); }
 .nav-links .pill { color: #05040d; background: var(--gold); padding: 10px 18px; border-radius: 999px; font-weight: 600; }
@@ -277,9 +277,26 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .chakra-figure { margin: 36px 0; }
 .chakra-figure svg { width: 100%; height: auto; display: block; font-family: Inter, system-ui, sans-serif; }
 .chakra-figure figcaption { text-align: center; color: #cfc8f0; font-size: 14px; margin-top: 8px; }
-.chakra-figure circle[r="10"] { animation: chakra-pulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.chakra-figure .pulse { animation: chakra-pulse 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes chakra-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .om, .kf, .chakra-figure circle[r="10"] { animation: none; }
+  .om, .kf, .chakra-figure .pulse { animation: none; }
 }
+
+/* ---------- Batch 4: phones ---------- */
+.chakra-figure .chakra-narrow, .chakra-figure .chakra-legend { display: none; }
+.chakra-legend { list-style: none; padding: 0; margin: 8px 0 0; }
+.chakra-legend li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 10px 0 10px 26px; position: relative; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.chakra-legend li::before { content: ""; position: absolute; left: 4px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.chakra-legend strong { color: var(--c); font-size: 17px; }
+.chakra-legend span { color: #e7e2ff; font-size: 15px; }
+@media (max-width: 640px) {
+  .chakra-figure .chakra-wide { display: none; }
+  .chakra-figure .chakra-narrow { display: block; max-width: 300px; margin: 0 auto; }
+  .chakra-figure .chakra-legend { display: block; }
+}
+.swipe-hint { display: none; margin: 6px 0 0; font-size: 13px; color: #cfc8f0; text-align: right; }
+.table-wrap.scrolls + .swipe-hint { display: block; }
+.table-wrap.scrolls { background: linear-gradient(to left, rgba(242, 196, 109, .18), rgba(242, 196, 109, 0) 28px) right / 28px 100% no-repeat; }
+.table-wrap.scrolled-end + .swipe-hint { visibility: hidden; }

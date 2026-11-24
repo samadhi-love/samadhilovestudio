@@ -96,3 +96,17 @@ test("the pictures zip is only for the signed-in owner, and contains the picture
   assert.ok(Object.keys(files).length >= 1);
   assert.ok(Object.keys(files).every((n) => n.startsWith("samadhi-love-pictures/")));
 });
+
+test("backdrops use the small copy when it exists, and the original otherwise", async () => {
+  const { backdropFor, candidatesDir } = await import("../lib/pictures.js");
+  const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const folder = path.join(candidatesDir, "zz-test-backdrop");
+  mkdirSync(folder, { recursive: true });
+  try {
+    writeFileSync(path.join(folder, "a.jpg"), "x");
+    assert.equal(backdropFor("candidates/zz-test-backdrop/a.jpg"), "candidates/zz-test-backdrop/a.jpg");
+    writeFileSync(path.join(folder, "a.w960.jpg"), "x");
+    assert.equal(backdropFor("candidates/zz-test-backdrop/a.jpg"), "candidates/zz-test-backdrop/a.w960.jpg");
+    assert.equal(backdropFor(null), null);
+  } finally { rmSync(folder, { recursive: true, force: true }); }
+});

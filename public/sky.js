@@ -13,14 +13,19 @@ stop() {
   window.removeEventListener('resize', this._onResize);
   clearTimeout(this._rt); clearTimeout(this._late);
 }
+paintOne(c) {
+  const w = c.clientWidth, h = c.clientHeight;
+  if (!w || !h || (c._pw === w && c._ph === h)) return;
+  c._pw = w; c._ph = h;
+  try { this.paint(c, c.getAttribute('data-sky')); } catch (e) { /* keep page usable */ }
+}
+// Paints only the scenes on or near the screen; the rest are painted as the reader scrolls to them.
 paintAll() {
   requestAnimationFrame(() => {
-    document.querySelectorAll('canvas[data-sky]').forEach((c) => {
-      const w = c.clientWidth, h = c.clientHeight;
-      if (!w || !h || (c._pw === w && c._ph === h)) return;
-      c._pw = w; c._ph = h;
-      try { this.paint(c, c.getAttribute('data-sky')); } catch (e) { /* keep page usable */ }
-    });
+    const all = document.querySelectorAll('canvas[data-sky]');
+    if (!('IntersectionObserver' in window)) { all.forEach((c) => this.paintOne(c)); return; }
+    if (!this._io) this._io = new IntersectionObserver((list) => list.forEach((en) => { if (en.isIntersecting) this.paintOne(en.target); }), { rootMargin: '400px 0px' });
+    all.forEach((c) => { this._io.unobserve(c); this._io.observe(c); });
   });
 }
 noise(seed) {
@@ -42,7 +47,9 @@ noise(seed) {
   return (x, y, z, o) => { let v = 0, a = 0.5, f = 1, t = 0; for (let i = 0; i < (o || 5); i++) { v += a * n(x * f, y * f, z * f); t += a; a *= 0.5; f *= 2.03; } return v / t; };
 }
 paint(c, mode) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight;
+  // Phones get a lighter drawing: fewer pixels for the same picture.
+  this.light = window.innerWidth < 700;
+  const dpr = Math.min(window.devicePixelRatio || 1, this.light ? 1.5 : 2), w = c.clientWidth, h = c.clientHeight;
   c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
   const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
   const S = this.scenes(w, h)[mode]; if (!S) return;
@@ -82,7 +89,7 @@ scenes(w, h) {
   };
 }
 nebula(g, w, h, fbm, N) {
-  const sc = 4, ow = Math.max(2, Math.ceil(w / sc)), oh = Math.max(2, Math.ceil(h / sc));
+  const sc = this.light ? 6 : 4, ow = Math.max(2, Math.ceil(w / sc)), oh = Math.max(2, Math.ceil(h / sc));
   const off = document.createElement('canvas'); off.width = ow; off.height = oh;
   const o = off.getContext('2d'); const im = o.createImageData(ow, oh); const d = im.data;
   const ax = N.band[0] * w, ay = N.band[1] * h, dx = (N.band[2] - N.band[0]) * w, dy = (N.band[3] - N.band[1]) * h, l2 = dx * dx + dy * dy || 1;
@@ -232,4 +239,20 @@ document.addEventListener('click', (ev) => {
 });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => sky.start());
 else sky.start();
+})();
+
+// Tables wider than the screen: show the "swipe" hint, hide it once the reader reaches the end.
+(function () {
+  function mark() {
+    document.querySelectorAll('.table-wrap').forEach((t) => {
+      t.classList.toggle('scrolls', t.scrollWidth > t.clientWidth + 2);
+      t.classList.toggle('scrolled-end', t.scrollLeft + t.clientWidth >= t.scrollWidth - 2);
+    });
+  }
+  function start() {
+    mark();
+    window.addEventListener('resize', mark, { passive: true });
+    document.querySelectorAll('.table-wrap').forEach((t) => t.addEventListener('scroll', mark, { passive: true }));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { pages } from "./lib/pages.js";
+import { pages, sitemapXml, robotsTxt, setRequest } from "./lib/pages.js";
 import { safeCandidatePath } from "./lib/pictures.js";
 import { handleOwner } from "./lib/owner.js";
 import { refresh, readMedia } from "./lib/posts.js";
@@ -55,6 +55,12 @@ export async function handle(req, res) {
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
 
   if (pathname === "/healthz") return send(res, 200, "ok", "text/plain; charset=utf-8");
+  // The site's own address, for canonical and share links: SITE_URL if set, otherwise the address the visitor used.
+  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim() === "http" ? "http" : "https";
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
+  const origin = (process.env.SITE_URL || (/^[A-Za-z0-9.-]+(:\d+)?$/.test(host) ? `${proto}://${host}` : "")).replace(/\/+$/, "");
+  setRequest(origin, pathname === "/" ? "/" : pathname);
+  if (pathname === "/robots.txt" && (req.method === "GET" || req.method === "HEAD")) return send(res, 200, robotsTxt(isPublic), "text/plain; charset=utf-8", { "Cache-Control": "public, max-age=3600" });
   const isOwner = pathname === "/owner" || pathname.startsWith("/owner/");
   const okMethod = req.method === "GET" || req.method === "HEAD" || (req.method === "POST" && isOwner);
   if (!okMethod) return send(res, 405, "Method not allowed", "text/plain; charset=utf-8", { Allow: isOwner ? "GET, HEAD, POST" : "GET, HEAD" });
@@ -66,6 +72,7 @@ export async function handle(req, res) {
   if (pathname === "/studio" || pathname.startsWith("/studio/")) {
     return send(res, 302, "", "text/plain; charset=utf-8", { Location: pages.studioUrl() });
   }
+  if (pathname === "/sitemap.xml") { await refresh(); return send(res, 200, sitemapXml(), "application/xml; charset=utf-8", { "Cache-Control": isPublic ? "public, max-age=3600" : "no-store" }); }
   if (files[pathname]) {
     const [file, type] = files[pathname];
     try {
