@@ -205,3 +205,10 @@ test("Kriya, the masters, the chakras and the 32 paths all have their pages", as
 test("every page carries the golden Om beside the name", async () => {
   for (const p of ["/", "/library", "/about", "/teachings/kriya-yoga"]) assert.match((await call(p)).body, /<span class="om" aria-hidden="true">ॐ<\/span>/, p);
 });
+
+test("the Star Family tab has the star nations of light and a calm word on the shadow side", async () => {
+  const tab = await call("/library?tab=star-family");
+  for (const slug of ["star-nations-of-light", "pleiadians", "arcturians", "sirians", "andromedans", "lyrans", "orions-of-light", "the-shadow-side", "starseeds"]) assert.ok(tab.body.includes(`/teachings/${slug}`), slug);
+  const shadow = await call("/teachings/the-shadow-side");
+  assert.match(shadow.body, /This is never about people/);
+});
