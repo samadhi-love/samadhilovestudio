@@ -310,3 +310,13 @@ test("weight: pages and files are sent compressed, and unchanged files are not s
   const img = await call("/images/chakras.jpg", { headers: { "accept-encoding": "gzip" } });
   assert.equal(img.headers["Content-Encoding"], undefined, "photos are already compressed");
 });
+
+test("a small golden ॐ sits beside each teaching's name in an open tab, not in the menu or the tab buttons", async () => {
+  const page = await call("/library?tab=mystics");
+  const menu = page.body.match(/<div class="nav-links">[\s\S]*?<\/div>/)[0];
+  assert.doesNotMatch(menu, /om-mini/);
+  const tabs = page.body.match(/<nav class="tabs"[\s\S]*?<\/nav>/)[0];
+  assert.doesNotMatch(tabs, /om-mini/);
+  const names = page.body.match(/<h3 dir="auto">/g).length;
+  assert.equal((page.body.match(/<h3 dir="auto"><span class="om-mini" aria-hidden="true">ॐ<\/span>/g) || []).length, names);
+});

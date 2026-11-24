@@ -301,3 +301,8 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .star-art { margin: 0 0 32px; }
 .star-art svg { width: 100%; height: auto; display: block; border-radius: 18px; border: 1px solid rgba(242, 196, 109, .25); }
 .star-art figcaption { text-align: center; color: #cfc8f0; font-size: 13px; margin-top: 8px; }
+
+/* Small golden ॐ before each menu and tab title */
+.om-mini { display: inline-block; margin-right: 5px; font-family: "Tiro Devanagari Sanskrit", "Noto Serif Devanagari", serif; font-size: 1.12em; line-height: 1; vertical-align: -0.06em; font-weight: 400;
+  color: #f2c46d; text-shadow: 0 0 1px #6b3e1e, 0 0 6px rgba(242, 196, 109, .45); }
+.pill .om-mini, .tab[aria-current="page"] .om-mini { color: #6b3e1e; text-shadow: none; }
