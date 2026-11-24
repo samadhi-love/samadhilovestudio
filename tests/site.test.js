@@ -363,3 +363,20 @@ test("the Humans page tells the story of the fall and the return, with its sourc
   assert.equal(page.status, 200);
   for (const fact of ["Genesis 1:27", "khalifa", "Isaac Luria", "as long as the divine nature lasted in them", "Edgar Cayce", "Philip Sclater", "Luke 15:24", "No archaeological trace", "love and compassion"]) assert.ok(page.body.includes(fact), fact);
 });
+
+test("the Prayers tab holds six short prayers, shown line by line, with the Quran's mercy prayers in Arabic", async () => {
+  const tab = await call("/library?tab=prayers");
+  assert.equal(tab.status, 200);
+  for (const slug of ["prayer-archangel-raphael-healing", "prayer-archangel-zadkiel-mercy", "prayer-for-mercy-from-the-quran", "prayer-to-jesus", "prayer-to-mother-mary", "prayer-of-the-one-light"]) {
+    assert.ok(tab.body.includes(`/teachings/${slug}`), slug);
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<blockquote><p>[^<]+<br>/, slug);
+    assert.doesNotMatch(page.body, /\\(<br>|<\/p>)/, slug);
+  }
+  const quran = await call("/teachings/prayer-for-mercy-from-the-quran");
+  for (const t of ["رَبِّ اغْفِرْ وَارْحَمْ", "23:118", "7:23", "Ya-Sin"]) assert.ok(quran.body.includes(t), t);
+  assert.match(quran.body, /<p class="arabic" dir="rtl" lang="ar">رَبِّ اغْفِرْ/);
+  const med = await call("/teachings/meditation-and-prayer");
+  assert.ok(med.body.includes('href="/library?tab=prayers"'));
+});

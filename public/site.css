@@ -316,3 +316,6 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .om-mini { display: inline-block; margin-right: 5px; font-family: "Tiro Devanagari Sanskrit", "Noto Serif Devanagari", serif; font-size: 1.12em; line-height: 1; vertical-align: -0.06em; font-weight: 400;
   color: #f2c46d; text-shadow: 0 0 1px #6b3e1e, 0 0 6px rgba(242, 196, 109, .45); }
 .pill .om-mini, .tab[aria-current="page"] .om-mini { color: #6b3e1e; text-shadow: none; }
+
+.article p.arabic { font-size: 26px; line-height: 1.9; text-align: right; color: var(--ink-strong); margin-bottom: 4px; }
+.article .rtl p.arabic { font-size: inherit; line-height: inherit; color: inherit; margin-bottom: revert; }
