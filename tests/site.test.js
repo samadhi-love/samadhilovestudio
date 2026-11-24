@@ -380,3 +380,24 @@ test("the Prayers tab holds six short prayers, shown line by line, with the Qura
   const med = await call("/teachings/meditation-and-prayer");
   assert.ok(med.body.includes('href="/library?tab=prayers"'));
 });
+
+test("the Great Flood tab sits beside The Human Story with its four teachings", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("great-flood"), ids.indexOf("human-story") + 1, "right after The Human Story (Atlantis)");
+  const home = await call("/");
+  assert.match(home.body, /<nav class="nav[^]*href="\/library\?tab=great-flood"/, "in the menu");
+  const lib = await call("/library?tab=great-flood");
+  assert.equal(lib.status, 200);
+  for (const t of ["One Memory, Many Peoples", "The Flood Stories of the World", "When the Ice Melted", "The Great Civilizations and the Fall"]) assert.ok(lib.body.includes(t), t);
+  for (const slug of ["the-great-flood", "flood-stories-of-the-world", "when-the-ice-melted", "great-civilizations-and-the-fall"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+  }
+  const stories = await call("/teachings/flood-stories-of-the-world");
+  assert.match(stories.body, /<p class="arabic" dir="rtl" lang="ar">وَقِيلَ يَا أَرْضُ ابْلَعِي/, "Quran 11:44 reads right to left");
+  for (const t of ["Utnapishtim", "Atrahasis", "Genesis 7:11", "al-Judi", "Matsya", "Deucalion", "Popol Vuh", "Yu the Great", "Nunn"]) assert.ok(stories.body.includes(t), t);
+  const science = await call("/teachings/when-the-ice-melted");
+  for (const t of ["120 metres", "Meltwater Pulse 1A", "Younger Dryas", "Doggerland", "Black Sea", "Most scientists do not accept"]) assert.ok(science.body.includes(t), t);
+  const atlantis = await call("/teachings/atlantis");
+  assert.match(atlantis.body, /Great Flood tab/, "Atlantis points to the new tab");
+});
