@@ -100,8 +100,11 @@ export async function handle(req, res) {
     return send(res, 302, "", "text/plain; charset=utf-8", { Location: pages.studioUrl() });
   }
   if (pathname === "/sitemap.xml") { await refresh(); return send(res, 200, sitemapXml(), "application/xml; charset=utf-8", { "Cache-Control": isPublic ? "public, max-age=3600" : "no-store" }); }
-  if (files[pathname]) {
-    const [file, type] = files[pathname];
+  // Samadhi's star family pictures: any /images/star-families/<name>.jpg in that folder.
+  const family = /^\/images\/star-families\/([a-z0-9-]+)\.jpg$/.exec(pathname);
+  const known = files[pathname] || (family && [`public/images/star-families/${family[1]}.jpg`, "image/jpeg"]);
+  if (known) {
+    const [file, type] = known;
     try {
       const body = await readFile(path.join(root, file));
       // A fingerprint of the file: a browser that already has this version gets a tiny "not changed" reply.

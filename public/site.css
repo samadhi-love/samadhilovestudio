@@ -309,6 +309,7 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .star-map figcaption { color: #cfc8f0; font-size: 13px; line-height: 1.5; margin-top: 8px; }
 .star-map figcaption .fine { display: block; margin-top: 4px; }
 @media (max-width: 760px) { .home-sky { grid-template-columns: 1fr; } }
+.star-portrait.tall img { max-width: 520px; margin: 0 auto; }
 .choose-portraits h3 { margin: 28px 0 12px; color: #f2c46d; }
 
 /* Small golden ॐ before each menu and tab title */
