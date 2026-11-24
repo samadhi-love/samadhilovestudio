@@ -300,3 +300,8 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .table-wrap.scrolls + .swipe-hint { display: block; }
 .table-wrap.scrolls { background: linear-gradient(to left, rgba(242, 196, 109, .18), rgba(242, 196, 109, 0) 28px) right / 28px 100% no-repeat; }
 .table-wrap.scrolled-end + .swipe-hint { visibility: hidden; }
+
+/* ---------- Star Nations artwork ---------- */
+.star-art { margin: 0 0 32px; }
+.star-art svg { width: 100%; height: auto; display: block; border-radius: 18px; border: 1px solid rgba(242, 196, 109, .25); }
+.star-art figcaption { text-align: center; color: #cfc8f0; font-size: 13px; margin-top: 8px; }

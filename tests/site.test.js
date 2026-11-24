@@ -272,3 +272,14 @@ test("speed: the full Sanskrit-style font loads only where Sanskrit lettering is
     assert.match(page.body, /family=Tiro\+Devanagari\+Sanskrit&text=%E0%A5%90/, `${p} still loads the ॐ glyph`);
   }
 });
+
+test("each star family page has its original artwork, and the Federation page tells its real history", async () => {
+  for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<figure class="star-art"><svg/, slug);
+    assert.doesNotMatch(page.body, /\{\{home-photo\}\}/, slug);
+  }
+  const gfl = await call("/teachings/galactic-federation-of-light");
+  for (const fact of ["Van Tassel", "Law of One", "Confederation of Planets", "Sheldan Nidle", "Haim Eshed", "free will"]) assert.ok(gfl.body.includes(fact), fact);
+});
