@@ -166,6 +166,7 @@ test("Samadhi's vision is on the About page and linked from every footer", async
   const about = await call("/about");
   assert.match(about.body, /id="vision"/);
   assert.match(about.body, /a place of light, not of sides/);
+  assert.match(about.body, /God gave every soul free will/);
   const home = await call("/");
   assert.match(home.body, /href="\/about#vision"/);
 });
