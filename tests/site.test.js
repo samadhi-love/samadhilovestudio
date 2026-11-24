@@ -170,3 +170,19 @@ test("Samadhi's vision is on the About page and linked from every footer", async
   const home = await call("/");
   assert.match(home.body, /href="\/about#vision"/);
 });
+
+test("the encyclopedia sections are in the Library but the home page keeps its five paths", async () => {
+  for (const id of ["sages-and-kings", "mystics", "human-story"]) {
+    const c = categories.find((x) => x.id === id);
+    assert.ok(c && c.items.length >= 8, id);
+  }
+  const home = await call("/");
+  assert.equal((home.body.match(/<article class="card"><canvas class="orb"/g) || []).length, 5);
+  assert.ok(!home.body.includes("/library?tab=mystics"));
+  const lib = await call("/library?tab=human-story");
+  assert.match(lib.body, /Atlantis/);
+  for (const slug of ["atlantis", "lemuria-and-mu", "solon-the-lawgiver", "kabir", "socrates"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+  }
+});
