@@ -277,7 +277,7 @@ test("each star family page has its original artwork, and the Federation page te
   for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    if (["sirians", "andromedans", "arcturians", "orions-of-light"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
+    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
     else if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
     else assert.match(page.body, /<figure class="star-art"><svg/, slug);
     assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
@@ -347,12 +347,12 @@ test("Samadhi's two council paintings are on the Galactic Federation page with t
 });
 
 test("Samadhi's star family pictures are served, and nothing outside that folder can be reached through it", async () => {
-  for (const f of ["sirians", "andromedans", "arcturians", "orions-of-light"]) {
+  for (const f of ["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians"]) {
     const img = await call(`/images/star-families/${f}.jpg`);
     assert.equal(img.status, 200, f);
     assert.equal(img.headers["Content-Type"], "image/jpeg", f);
   }
-  assert.equal((await call("/images/star-families/pleiadians.jpg")).status, 404);
+  assert.equal((await call("/images/star-families/no-such-family.jpg")).status, 404);
   assert.notEqual((await call("/images/star-families/..%2F..%2Fserver.jpg")).status, 200);
   const lyrans = await call("/teachings/lyrans");
   assert.match(lyrans.body, /<figure class="star-art"><svg/);
