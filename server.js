@@ -74,6 +74,7 @@ export async function handle(req, res) {
     } catch { return send(res, 404, pages.notFound(), undefined); }
   }
 
+  if (pathname === "/choose") return send(res, 302, "", "text/plain; charset=utf-8", { Location: "/owner/choose", "Cache-Control": "no-store" });
   if (isOwner) return handleOwner(req, res, pathname, url.searchParams, send);
 
   if (pathname.startsWith("/media/")) {

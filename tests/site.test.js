@@ -111,8 +111,8 @@ test("static files are served", async () => {
   }
 });
 
-test("new pages open: masters gallery, podcasts, credits and the private picture chooser", async () => {
-  for (const p of ["/masters", "/podcasts", "/credits", "/choose", "/videos"]) {
+test("new pages open: masters gallery, podcasts, credits and videos", async () => {
+  for (const p of ["/masters", "/podcasts", "/credits", "/videos"]) {
     const res = await call(p);
     assert.equal(res.status, 200, p);
   }
@@ -195,7 +195,10 @@ test("Kriya, the masters, the chakras and the 32 paths all have their pages", as
   for (const name of ["Mahavatar Babaji", "Lahiri Mahasaya", "Sri Yukteswar", "Sanyal Mahasaya", "Yogananda", "Autobiography of a Yogi", "Satyananda Giri", "Hariharananda", "Prajnanananda"]) assert.ok(masters.body.includes(name), name);
   const med = await call("/teachings/meditation-and-prayer");
   assert.match(med.body, /class="chakra-figure"/);
-  assert.match(med.body, /href="\/teachings\/kriya-yoga"/);
+  const medArticle = med.body.slice(med.body.indexOf("<article"), med.body.indexOf('<nav class="next"'));
+  assert.match(medArticle, /<a href="\/teachings\/kriya-yoga">Kriya Yoga: The Science of the Soul<\/a>/);
+  assert.match(medArticle, /<a href="\/teachings\/the-kriya-masters">The Masters of Kriya Yoga<\/a>/);
+  assert.match(medArticle, /<a href="\/teachings\/the-seven-chakras">The Seven Chakras<\/a>/);
   const tab = await call("/library?tab=chakras");
   assert.equal((tab.body.match(/href="\/teachings\/chakra-/g) || []).length, 7);
   const paths = await call("/teachings/the-32-paths-of-wisdom");
@@ -211,4 +214,27 @@ test("the Star Family tab has the star nations of light and a calm word on the s
   for (const slug of ["star-nations-of-light", "pleiadians", "arcturians", "sirians", "andromedans", "lyrans", "orions-of-light", "the-shadow-side", "starseeds"]) assert.ok(tab.body.includes(`/teachings/${slug}`), slug);
   const shadow = await call("/teachings/the-shadow-side");
   assert.match(shadow.body, /This is never about people/);
+});
+
+test("no teaching shows an unclickable link, and every 'see *Title*' reference is a working link", async () => {
+  for (const c of categories) for (const it of c.items) {
+    const page = await call(`/teachings/${it.slug}`);
+    const article = page.body.slice(page.body.indexOf("<article"), page.body.indexOf("</article>"));
+    const text = article.replace(/<[^>]+>/g, "");
+    assert.doesNotMatch(text, /\]\((https?:|\/|#)/, `${it.slug} shows a raw [label](link)`);
+    for (const m of String(it.body).matchAll(/[Ss]ee(?: also)? \*([^*]+)\*/g)) {
+      const link = new RegExp(`<a href="(/teachings/[a-z0-9-]+)"><em>${m[1].replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/'/g, "&#39;")}</em></a>`).exec(article);
+      assert.ok(link, `${it.slug}: "see ${m[1]}" is not a link`);
+      assert.equal((await call(link[1])).status, 200, `${it.slug}: ${link[1]} is broken`);
+    }
+    for (const m of article.matchAll(/href="(\/teachings\/[a-z0-9-]+)"/g)) assert.equal((await call(m[1])).status, 200, `${it.slug} links to missing ${m[1]}`);
+  }
+});
+
+test("the picture chooser is private: only the signed-in owner can open it", async () => {
+  const pub = await call("/choose");
+  assert.equal(pub.status, 302);
+  assert.equal(pub.headers.Location, "/owner/choose");
+  const owner = await call("/owner/choose");
+  assert.doesNotMatch(owner.body, /Choose your pictures/);
 });

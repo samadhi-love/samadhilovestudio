@@ -194,3 +194,11 @@ test("sign out ends the session", async () => {
   const res = await call("/owner/logout", { method: "POST", type: URLENC, body: "" });
   assert.match(res.headers["Set-Cookie"], /Max-Age=0/);
 });
+
+test("signed in, the owner can open the picture chooser", async () => {
+  const cookie = await signIn();
+  const res = await call("/owner/choose", { cookie });
+  assert.equal(res.status, 200);
+  assert.match(res.body, /Choose your pictures/);
+  assert.match((await call("/owner", { cookie })).body, /href="\/owner\/choose"/);
+});
