@@ -161,3 +161,11 @@ test("the archangels each have their own page under Masters & Angels", async () 
   const michael = await call("/teachings/archangel-michael");
   assert.match(michael.body, /Who is like God/);
 });
+
+test("Samadhi's vision is on the About page and linked from every footer", async () => {
+  const about = await call("/about");
+  assert.match(about.body, /id="vision"/);
+  assert.match(about.body, /a place of light, not of sides/);
+  const home = await call("/");
+  assert.match(home.body, /href="\/about#vision"/);
+});
