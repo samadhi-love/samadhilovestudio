@@ -2,6 +2,7 @@ run = "node server.js"
 modules = ["nodejs-20"]
 
 [deployment]
+build = ["npm", "install", "--omit=dev"]
 run = ["node", "server.js"]
 deploymentTarget = "autoscale"
 

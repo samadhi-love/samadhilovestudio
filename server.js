@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { pages } from "./lib/pages.js";
 import { safeCandidatePath } from "./lib/pictures.js";
+import { handleOwner } from "./lib/owner.js";
+import { refresh, readMedia } from "./lib/posts.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT) || 3000;
@@ -16,6 +18,7 @@ const files = {
   "/site.css": ["public/site.css", "text/css; charset=utf-8"],
   "/sky.js": ["public/sky.js", "text/javascript; charset=utf-8"],
   "/favicon.svg": ["public/favicon.svg", "image/svg+xml"],
+  "/owner.js": ["public/owner.js", "text/javascript; charset=utf-8"],
 };
 
 const security = {
@@ -52,7 +55,9 @@ export async function handle(req, res) {
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
 
   if (pathname === "/healthz") return send(res, 200, "ok", "text/plain; charset=utf-8");
-  if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method not allowed", "text/plain; charset=utf-8", { Allow: "GET, HEAD" });
+  const isOwner = pathname === "/owner" || pathname.startsWith("/owner/");
+  const okMethod = req.method === "GET" || req.method === "HEAD" || (req.method === "POST" && isOwner);
+  if (!okMethod) return send(res, 405, "Method not allowed", "text/plain; charset=utf-8", { Allow: isOwner ? "GET, HEAD, POST" : "GET, HEAD" });
 
   const gate = allowed(req);
   if (gate === "no-password") return send(res, 503, pages.locked(), undefined, { "Cache-Control": "no-store" });
@@ -69,6 +74,23 @@ export async function handle(req, res) {
     } catch { return send(res, 404, pages.notFound(), undefined); }
   }
 
+  if (isOwner) return handleOwner(req, res, pathname, url.searchParams, send);
+
+  if (pathname.startsWith("/media/")) {
+    const file = await readMedia(pathname.slice(1)).catch(() => null);
+    if (!file) return send(res, 404, pages.notFound());
+    const total = file.bytes.length;
+    const range = /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || ""));
+    const base = { "Cache-Control": "public, max-age=31536000, immutable", "Accept-Ranges": "bytes" };
+    if (range && (range[1] || range[2])) {
+      let start = range[1] ? Number(range[1]) : Math.max(0, total - Number(range[2]));
+      let end = range[1] && range[2] ? Math.min(Number(range[2]), total - 1) : total - 1;
+      if (start >= total || start > end) return send(res, 416, "", "text/plain; charset=utf-8", { "Content-Range": `bytes */${total}` });
+      return send(res, 206, file.bytes.subarray(start, end + 1), file.type, { ...base, "Content-Range": `bytes ${start}-${end}/${total}` });
+    }
+    return send(res, 200, file.bytes, file.type, base);
+  }
+
   if (pathname.startsWith("/candidates/")) {
     const full = safeCandidatePath(pathname);
     if (!full) return send(res, 404, pages.notFound());
@@ -78,6 +100,7 @@ export async function handle(req, res) {
     catch { return send(res, 404, pages.notFound()); }
   }
 
+  await refresh();
   const page = pages.route(pathname, url.searchParams);
   if (!page) return send(res, 404, pages.notFound());
   return send(res, 200, page, undefined, { "Cache-Control": isPublic ? "public, max-age=300" : "no-store" });

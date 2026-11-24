@@ -4,9 +4,14 @@
   "private": true,
   "description": "SAMADHI LOVE: wisdom, light and music for the awakening soul.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@replit/object-storage": "^1.0.0"
   }
 }
