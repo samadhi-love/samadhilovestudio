@@ -28,3 +28,8 @@ Pictures live in `public/candidates/<folder>/`, with their credits in `public/ca
 - Back up: `npm run backup:pictures` copies every picture to `backups/pictures/latest/` and a dated folder, reads each copy back, and checks it.
 - Restore: `npm run restore:pictures` puts back any missing or changed picture (`-- --all` to rewrite every file).
 - Download a zip to your own computer: sign in at `/owner` and tap **Download pictures (zip)**.
+
+## Star family portraits and star maps
+- `lib/starmaps.js` draws the star map for each of the six star homes from real star positions; it sits beside the telescope photo under "Their home in the sky".
+- `scripts/paint-star-families.mjs` paints 3 portraits per star family (18) with FLUX 1.1 Pro Ultra on fal.ai. Needs `FAL_KEY` in Replit Secrets. Run `node scripts/paint-star-families.mjs`; it skips pictures already painted and never deletes anything. The portraits appear first in Choose your pictures (/owner/choose).
+- To show a chosen portrait on a page, add it to `portraitPicks` in `lib/pictures.js`. Until then the page keeps its drawn figure.

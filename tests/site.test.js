@@ -277,8 +277,9 @@ test("each star family page has its original artwork, and the Federation page te
   for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    assert.match(page.body, /<figure class="star-art"><svg/, slug);
-    assert.doesNotMatch(page.body, /\{\{home-photo\}\}/, slug);
+    if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
+    else assert.match(page.body, /<figure class="star-art"><svg/, slug);
+    assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
   }
   const gfl = await call("/teachings/galactic-federation-of-light");
   for (const fact of ["Van Tassel", "Law of One", "Confederation of Planets", "Sheldan Nidle", "Haim Eshed", "free will"]) assert.ok(gfl.body.includes(fact), fact);
@@ -319,4 +320,27 @@ test("a small golden ॐ sits beside each teaching's name in an open tab, not in
   assert.doesNotMatch(tabs, /om-mini/);
   const names = page.body.match(/<h3 dir="auto">/g).length;
   assert.equal((page.body.match(/<h3 dir="auto"><span class="om-mini" aria-hidden="true">ॐ<\/span>/g) || []).length, names);
+});
+
+test("the six star homes each have a star map beside the real sky photo", async () => {
+  const want = { lyrans: "Vega", pleiadians: "The Pleiades", sirians: "Sirius", arcturians: "Arcturus", andromedans: "Andromeda galaxy", "orions-of-light": "Orion's Belt" };
+  for (const [slug, home] of Object.entries(want)) {
+    const page = await call(`/teachings/${slug}`);
+    // On Replit the telescope photo sits beside the map; in this checkout (no picture folder) the map shows alone.
+    assert.match(page.body, /<figure class="star-map">\s*<svg/, slug);
+    assert.ok(page.body.includes(`>${home.replace("'", "&#39;")}</text>`) || page.body.includes(`>${home}</text>`), `${slug} highlights ${home}`);
+  }
+  const hathors = await call("/teachings/hathors");
+  assert.doesNotMatch(hathors.body, /class="star-map"/);
+});
+
+test("Samadhi's two council paintings are on the Galactic Federation page with the AI-painted caption", async () => {
+  for (const f of ["galactic-federation", "council-for-earth"]) {
+    const img = await call(`/images/${f}.jpg`);
+    assert.equal(img.status, 200, f);
+    assert.equal(img.headers["Content-Type"], "image/jpeg", f);
+  }
+  const gfl = await call("/teachings/galactic-federation-of-light");
+  assert.match(gfl.body, /<img src="\/images\/council-for-earth\.jpg"[^>]*alt="Star beings of many kinds/);
+  assert.equal(gfl.body.split("AI-painted artwork for SAMADHI LOVE, as the teachings describe them.").length - 1, 2);
 });
