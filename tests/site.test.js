@@ -274,10 +274,10 @@ test("speed: the full Sanskrit-style font loads only where Sanskrit lettering is
 });
 
 test("each star family page has its original artwork, and the Federation page tells its real history", async () => {
-  for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
+  for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "humans", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
+    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
     else if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
     else assert.match(page.body, /<figure class="star-art"><svg/, slug);
     assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
@@ -347,7 +347,7 @@ test("Samadhi's two council paintings are on the Galactic Federation page with t
 });
 
 test("Samadhi's star family pictures are served, and nothing outside that folder can be reached through it", async () => {
-  for (const f of ["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans"]) {
+  for (const f of ["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"]) {
     const img = await call(`/images/star-families/${f}.jpg`);
     assert.equal(img.status, 200, f);
     assert.equal(img.headers["Content-Type"], "image/jpeg", f);
@@ -356,4 +356,10 @@ test("Samadhi's star family pictures are served, and nothing outside that folder
   assert.notEqual((await call("/images/star-families/..%2F..%2Fserver.jpg")).status, 200);
   const hathors = await call("/teachings/hathors");
   assert.match(hathors.body, /<figure class="star-art"><svg/);
+});
+
+test("the Humans page tells the story of the fall and the return, with its sources and an honest note", async () => {
+  const page = await call("/teachings/humans");
+  assert.equal(page.status, 200);
+  for (const fact of ["Genesis 1:27", "khalifa", "Isaac Luria", "as long as the divine nature lasted in them", "Edgar Cayce", "Philip Sclater", "Luke 15:24", "No archaeological trace", "love and compassion"]) assert.ok(page.body.includes(fact), fact);
 });
