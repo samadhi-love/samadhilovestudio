@@ -141,3 +141,23 @@ test("the home page keeps its look: no sacred-place backdrop there", async () =>
   const home = await call("/");
   assert.doesNotMatch(home.body, /class="journey"/);
 });
+
+test("every teaching with gathered wisdom shows it, and every wisdom entry points to a real teaching", async () => {
+  const { wisdomFor } = await import("../lib/wisdom.js");
+  const { findTeaching } = await import("../lib/content.js");
+  for (const [slug, list] of Object.entries(wisdomFor)) {
+    assert.ok(findTeaching(slug), `wisdom for unknown teaching ${slug}`);
+    const page = await call(`/teachings/${slug}`);
+    assert.match(page.body, /Wisdom from the traditions/, slug);
+    for (const [saying, who, where] of list) assert.ok(saying && who && where, slug);
+  }
+});
+
+test("the archangels each have their own page under Masters & Angels", async () => {
+  const tab = await call("/library?tab=masters");
+  for (const name of ["Michael", "Gabriel", "Raphael", "Uriel", "Raguel", "Sariel", "Remiel", "Selaphiel", "Jegudiel", "Barachiel", "Jeremiel", "Israfil", "Azrael", "Metatron", "Sandalphon", "Raziel", "Haniel", "Jophiel", "Chamuel", "Zadkiel", "Ariel"]) {
+    assert.match(tab.body, new RegExp(`Archangel ${name}`), name);
+  }
+  const michael = await call("/teachings/archangel-michael");
+  assert.match(michael.body, /Who is like God/);
+});
