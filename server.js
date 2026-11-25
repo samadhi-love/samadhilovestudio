@@ -37,6 +37,8 @@ const files = {
   "/images/prayer-right.jpg": ["public/images/prayer-right.jpg", "image/jpeg"],
   "/images/hero-prayer.jpg": ["public/images/hero-prayer.jpg", "image/jpeg"],
   "/images/hero-galaxy.jpg": ["public/images/hero-galaxy.jpg", "image/jpeg"],
+  "/images/teachings-sacred-geometry.jpg": ["public/images/teachings-sacred-geometry.jpg", "image/jpeg"],
+  "/images/home-cosmic-portrait.jpg": ["public/images/home-cosmic-portrait.jpg", "image/jpeg"],
 };
 
 const security = {

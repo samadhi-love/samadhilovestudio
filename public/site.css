@@ -38,13 +38,6 @@ canvas[data-sky] { display: block; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--gold); }
 .nav-links .pill { color: #05040d; background: var(--gold); padding: 10px 18px; border-radius: 999px; font-weight: 600; }
 .nav-links .pill:hover { color: #05040d; background: #ffd98f; }
-.hero-side { position: absolute; z-index: 1; bottom: 40px; width: min(44vw, 620px); height: auto; aspect-ratio: 960 / 536; pointer-events: none;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%), linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%), linear-gradient(180deg, transparent 0, #000 16%, #000 84%, transparent 100%); mask-composite: intersect; }
-.hero-prayer { left: 4vw; }
-.hero-galaxy { right: 4vw; }
-.hero:has(.hero-side) { height: calc(860px + min(44vw, 620px) * 0.56); }
-@media (max-width: 720px) { .hero-side { width: 46vw; bottom: 28px; } .hero-prayer { left: 4vw; } .hero-galaxy { right: 4vw; } .hero:has(.hero-side) { height: calc(760px + 44vw * 0.56); } }
 .hero-text, .banner-text { position: relative; z-index: 1; }
 .hero-text { padding-top: 110px; }
 .banner-text { padding-top: 56px; }
@@ -140,6 +133,8 @@ th { color: var(--ink-strong); background: rgba(160,140,255,0.08); font-weight: 
   background-size: cover; background-position: center 65%; background-repeat: no-repeat; }
 .journey .card { background: linear-gradient(180deg, rgba(15,11,38,0.92) 0%, rgba(10,8,25,0.92) 100%); backdrop-filter: blur(2px); }
 
+/* Samadhi's lettered artwork is a full-colour banner, never a text backdrop. */
+.teachings-library { padding-bottom: 80px; background: radial-gradient(ellipse at 15% 20%, rgba(105,58,175,0.26), transparent 60%), radial-gradient(ellipse at 85% 75%, rgba(65,48,140,0.30), transparent 65%), var(--bg); }
 /* Masters & Angels gallery */
 .master { padding: 0 0 26px; overflow: hidden; }
 .master > :not(.portrait) { margin-left: 26px; margin-right: 26px; }
@@ -206,6 +201,21 @@ footer { border-top: 1px solid var(--line); }
 .cover img { width: 100%; height: auto; border-radius: 18px; display: block; }
 .tab-pictures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 8px 0 32px; }
 .tab-wide { margin: 8px 0 32px; }
+/* Live text overlays the existing picture; no extra picture or sky panel. */
+.prayer-quote-cover { position: relative; overflow: hidden; border-radius: 18px; }
+.prayer-image-caption { position: absolute; z-index: 1; top: clamp(10px, 1vw, 16px); left: clamp(12px, 1.5vw, 20px); width: 32%; padding: 0; text-align: left; color: #fff; }
+.prayer-image-quote { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(11px, 1.25vw, 16px); font-weight: 400; line-height: 1.35; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65); }
+.prayer-image-quote p { margin: 0; }
+.prayer-image-quote span { display: block; }
+.prayer-image-signature { margin: 8px 0 0; color: #fff; font: 400 clamp(10px, 1vw, 13px)/1.35 Georgia, "Times New Roman", serif; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65); }
+.prayer-quote-cover > img { border-radius: 0; }
+@media (max-width: 800px) {
+  .prayer-quote-cover { display: flex; flex-direction: column; }
+  .prayer-quote-cover > img { order: -1; }
+  .prayer-image-caption { position: static; width: 100%; padding: 16px; background: #101624; }
+  .prayer-image-quote { font-size: clamp(11px, 2.9vw, 16px); }
+  .prayer-image-signature { font-size: clamp(10px, 2.45vw, 13px); }
+}
 .cover-small { max-width: 520px; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
@@ -345,3 +355,43 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 
 .article p.arabic { font-size: 26px; line-height: 1.9; text-align: right; color: var(--ink-strong); margin-bottom: 4px; }
 .article .rtl p.arabic { font-size: inherit; line-height: inherit; color: inherit; margin-bottom: revert; }
+
+/* ---------- Shared gold art frame (home triptych, Teachings tablet) ---------- */
+.art-frame { position: relative; margin: 0; border: 1.25px solid rgba(212,175,55,.7); border-radius: 14px; overflow: hidden; background: #0b0820;
+  box-shadow: 0 0 40px rgba(140,90,255,.35), 0 18px 40px -24px rgba(5,4,13,.9); }
+.art-frame::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(5,4,13,.35), inset 0 0 22px rgba(5,4,13,.45); }
+.art-frame img { display: block; width: 100%; height: auto; }
+
+/* ---------- Home triptych ---------- */
+.hero { height: auto; padding-bottom: 72px; }
+.hero > canvas, .hero > .shade { height: 100%; }
+.hero-triptych { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1.4fr 1fr; grid-template-areas: "left centre right"; align-items: center; gap: 28px; max-width: 1240px; margin-top: 64px; }
+.triptych-panel { margin: 0; }
+.triptych-left { grid-area: left; } .triptych-centre { grid-area: centre; } .triptych-right { grid-area: right; }
+.triptych-centre { position: relative; }
+.triptych-centre .art-frame { max-width: 1792px; }
+.triptych-left .art-frame, .triptych-right .art-frame { max-width: 960px; }
+.triptych-caption { position: absolute; left: 0; right: 0; top: 100%; margin-top: 16px; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: clamp(17px, 1.5vw, 21px); letter-spacing: .04em; color: #e2c37a; }
+@keyframes triptych-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.triptych-panel { animation: triptych-rise 1.1s cubic-bezier(.2,.7,.2,1) both; }
+.triptych-centre { animation-delay: .15s; }
+.triptych-left, .triptych-right { animation-delay: .45s; }
+@media (max-width: 720px) {
+  .hero { height: auto; padding-bottom: 48px; }
+  .hero-triptych { grid-template-columns: 1fr 1fr; grid-template-areas: "centre centre" "left right"; gap: 16px; margin-top: 40px; }
+  .triptych-centre { margin-bottom: 8px; }
+  .triptych-caption { position: static; margin-top: 12px; }
+}
+
+/* ---------- Teachings sacred tablet (teachings tab only) ---------- */
+.teachings-masthead { min-height: 0; padding-bottom: 8px; }
+.teachings-library { padding-bottom: 80px; background: radial-gradient(1px 1px at 24px 36px, rgba(236,233,255,.42), transparent), radial-gradient(1px 1px at 64px 92px, rgba(195,174,255,.32), transparent), radial-gradient(ellipse at 15% 20%, rgba(105,58,175,0.26), transparent 60%), radial-gradient(ellipse at 85% 75%, rgba(65,48,140,0.30), transparent 65%), var(--bg); background-size: 127px 173px, 197px 233px, auto, auto, auto; }
+.teachings-art-banner { width: calc(100% - 64px); max-width: 1100px; margin: 8px auto 0; animation: tablet-breathe 7s ease-in-out infinite; }
+.teachings-art-banner img { object-fit: contain; }
+@keyframes tablet-breathe { 0%, 100% { box-shadow: 0 0 40px rgba(140,90,255,.35), 0 0 18px rgba(212,175,55,.10); } 50% { box-shadow: 0 0 40px rgba(140,90,255,.35), 0 0 46px rgba(212,175,55,.32); } }
+.teachings-heading { text-align: center; margin: 36px auto 40px; }
+.teachings-heading h1 { margin: 0; font-size: clamp(40px, 5.5vw, 68px); font-weight: 600; letter-spacing: .06em; }
+.teachings-heading p { margin: 12px auto 0; max-width: 680px; color: var(--ink-soft); }
+@media (max-width: 600px) { .teachings-art-banner { width: calc(100% - 40px); } .teachings-heading { margin: 28px auto 32px; } }
+
+@media (prefers-reduced-motion: reduce) { .triptych-panel, .teachings-art-banner { animation: none; } }
