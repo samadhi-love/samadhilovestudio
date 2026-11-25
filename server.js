@@ -24,6 +24,7 @@ const files = {
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
   "/images/prayer.jpg": ["public/images/prayer.jpg", "image/jpeg"],
+  "/images/prayer-masters.jpg": ["public/images/prayer-masters.jpg", "image/jpeg"],
   "/images/prayer-forest.jpg": ["public/images/prayer-forest.jpg", "image/jpeg"],
   "/images/prayer-desert.jpg": ["public/images/prayer-desert.jpg", "image/jpeg"],
   "/images/prayer-mountain.jpg": ["public/images/prayer-mountain.jpg", "image/jpeg"],
