@@ -28,7 +28,6 @@ const files = {
   "/images/prayer-forest.jpg": ["public/images/prayer-forest.jpg", "image/jpeg"],
   "/images/prayer-desert.jpg": ["public/images/prayer-desert.jpg", "image/jpeg"],
   "/images/prayer-mountain.jpg": ["public/images/prayer-mountain.jpg", "image/jpeg"],
-  "/images/prayer-banner.jpg": ["public/images/prayer-banner.jpg", "image/jpeg"],
   "/images/prayer-four.jpg": ["public/images/prayer-four.jpg", "image/jpeg"],
   "/images/prayer-left.jpg": ["public/images/prayer-left.jpg", "image/jpeg"],
   "/images/prayer-right.jpg": ["public/images/prayer-right.jpg", "image/jpeg"],
