@@ -209,6 +209,15 @@ footer { border-top: 1px solid var(--line); }
 .cover-small { max-width: 520px; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
+/* Pictures standing on each side of a tab heading; on phones they sit side by side above it. */
+.tab-flank { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) minmax(0, 220px); gap: 28px; align-items: center; margin: 36px 0 32px; }
+.tab-flank-text { text-align: center; }
+.tab-flank-text .section-intro { margin-left: auto; margin-right: auto; }
+.tab-side { width: 100%; height: auto; border-radius: 16px; display: block; box-shadow: 0 0 40px rgba(242, 196, 109, .18); }
+@media (max-width: 720px) {
+  .tab-flank { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .tab-flank-text { grid-column: 1 / -1; grid-row: 2; text-align: left; }
+}
 .article .frame { margin: 32px 0; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .photo { margin: 0; }
