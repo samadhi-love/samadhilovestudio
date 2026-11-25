@@ -205,7 +205,9 @@ footer { border-top: 1px solid var(--line); }
 .cover { margin: 0 0 32px; }
 .cover img { width: 100%; height: auto; border-radius: 18px; display: block; }
 .tab-pictures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 8px 0 32px; }
-.tab-wide { margin: 8px 0 32px; }
+.tab-backdrop { position: relative; margin: 8px 0 0; padding: clamp(20px, 4vw, 48px); border-radius: 22px; overflow: hidden;
+  background-image: var(--bg); background-size: cover; background-position: center; }
+.tab-backdrop .card { background: rgba(10,8,24,0.5); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); text-shadow: 0 1px 3px rgba(0,0,0,0.9); border-color: rgba(255,255,255,0.18); }
 .cover-small { max-width: 520px; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
