@@ -38,6 +38,13 @@ canvas[data-sky] { display: block; }
 .nav-links a:hover, .nav-links a[aria-current="page"] { color: var(--gold); }
 .nav-links .pill { color: #05040d; background: var(--gold); padding: 10px 18px; border-radius: 999px; font-weight: 600; }
 .nav-links .pill:hover { color: #05040d; background: #ffd98f; }
+.hero-side { position: absolute; top: 66%; width: min(40vw, 560px); height: auto; transform: translate(-50%, -50%); pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 45%, rgba(0,0,0,0.5) 70%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 45%, rgba(0,0,0,0.5) 70%, transparent 100%); }
+.hero-prayer { left: 24%; top: 77%; width: min(34vw, 480px); opacity: 0.95; }
+.hero-side { z-index: 1; }
+.hero:has(.hero-prayer) { height: 980px; }
+.hero-galaxy { left: 80%; opacity: 0.95; mix-blend-mode: screen; }
+@media (max-width: 720px) { .hero:has(.hero-prayer) { height: 900px; } .hero-side { top: 84%; width: 58vw; } .hero-prayer { left: 27%; top: 86%; width: 58vw; } .hero-galaxy { left: 76%; } }
 .hero-text, .banner-text { position: relative; z-index: 1; }
 .hero-text { padding-top: 110px; }
 .banner-text { padding-top: 56px; }

@@ -68,7 +68,6 @@ scenes(w, h) {
   return {
     hero: { seed: 7, bg: 1, nebula: { cols: [[90, 40, 200], [200, 60, 170], [40, 170, 200], [240, 170, 80]], band: [0, 0.95, 1, 0.05], width: 0.42, strength: 1.25 }, stars: { density: 1 },
       planets: [
-        { type: 'gas', x: w * 0.8, y: h * 0.68, r: Math.min(w * 0.24, h * 0.4), bands: 9, tilt: -0.32, light: L, pal: [[90, 55, 40], [176, 120, 75], [225, 190, 140], [245, 225, 190], [160, 95, 60]], atmo: '255,200,150', atmoA: 0.22, ring: { tilt: -0.32, flat: 0.26, inner: 1.3, outer: 2.05, alpha: 0.8, col: '225,205,170' } },
         { type: 'earth', x: w * 0.56, y: h * 0.21, r: m * 0.075, tilt: 0.35, light: L, atmo: '90,160,255', atmoA: 0.55 },
         { type: 'moon', x: w * 0.63, y: h * 0.12, r: m * 0.022, light: L }] },
     lib: { seed: 17, bg: 1, nebula: { cols: [[60, 50, 210], [190, 60, 190], [40, 190, 210]], band: [0, 0.2, 1, 0.9], width: 0.6, strength: 1.2 }, stars: { density: 1.2 },

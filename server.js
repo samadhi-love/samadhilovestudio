@@ -24,6 +24,8 @@ const files = {
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
   "/images/prayer.jpg": ["public/images/prayer.jpg", "image/jpeg"],
+  "/images/hero-prayer.jpg": ["public/images/hero-prayer.jpg", "image/jpeg"],
+  "/images/hero-galaxy.jpg": ["public/images/hero-galaxy.jpg", "image/jpeg"],
 };
 
 const security = {
