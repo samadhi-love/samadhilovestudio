@@ -401,3 +401,12 @@ test("the Great Flood tab sits beside The Human Story with its four teachings", 
   const atlantis = await call("/teachings/atlantis");
   assert.match(atlantis.body, /Great Flood tab/, "Atlantis points to the new tab");
 });
+
+test("the prayer page opens with its all-paths picture, and every page keeps the place picture as a bottom band", async () => {
+  const img = await call("/images/prayer.jpg");
+  assert.equal(img.status, 200);
+  const page = await call("/teachings/meditation-and-prayer");
+  assert.match(page.body, /<figure class="cover"><img src="\/images\/prayer\.jpg"[^>]*alt="People of many faiths praying/);
+  const css = (await call("/site.css")).body;
+  assert.match(css, /\.journey::after \{[^}]*bottom: 0;/);
+});

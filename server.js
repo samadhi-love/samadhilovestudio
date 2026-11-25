@@ -23,6 +23,7 @@ const files = {
   "/images/chakras.jpg": ["public/images/chakras.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
+  "/images/prayer.jpg": ["public/images/prayer.jpg", "image/jpeg"],
 };
 
 const security = {

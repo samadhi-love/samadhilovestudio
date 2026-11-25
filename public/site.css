@@ -125,7 +125,12 @@ th { color: var(--ink-strong); background: rgba(160,140,255,0.08); font-weight: 
 @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
 /* Sacred places behind the inner pages */
-.journey { background-image: linear-gradient(180deg, var(--bg) 0%, rgba(5,4,13,0.9) 18%, rgba(5,4,13,0.72) 55%, rgba(5,4,13,0.5) 100%), var(--place); background-size: cover; background-position: center bottom; background-repeat: no-repeat; padding-bottom: 120px; }
+/* The sacred place shows as a soft horizon band at the foot of the page, not behind everything. */
+.journey { position: relative; padding-bottom: clamp(220px, 34vh, 360px); }
+.journey > * { position: relative; z-index: 1; }
+.journey::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: clamp(240px, 38vh, 400px); z-index: 0; pointer-events: none;
+  background-image: linear-gradient(180deg, var(--bg) 0%, rgba(5,4,13,0.55) 45%, rgba(5,4,13,0.25) 100%), var(--place);
+  background-size: cover; background-position: center 65%; background-repeat: no-repeat; }
 .journey .card { background: linear-gradient(180deg, rgba(15,11,38,0.92) 0%, rgba(10,8,25,0.92) 100%); backdrop-filter: blur(2px); }
 
 /* Masters & Angels gallery */
