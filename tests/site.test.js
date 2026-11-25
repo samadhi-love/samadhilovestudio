@@ -410,3 +410,22 @@ test("the prayer page opens with its all-paths picture, and every page keeps the
   const css = (await call("/site.css")).body;
   assert.match(css, /\.journey::after \{[^}]*bottom: 0;/);
 });
+
+test("Knowledge & Insight tab: food, compassion, processed food and the sacred seed", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("knowledge"), ids.indexOf("great-flood") + 1);
+  const home = await call("/");
+  assert.match(home.body, /<nav class="nav[^]*href="\/library\?tab=knowledge"/, "in the menu");
+  const lib = await call("/library?tab=knowledge");
+  assert.equal(lib.status, 200);
+  for (const t of ["Food Is Energy", "Compassion on the Plate", "Processed Foods and Meats", "The Sacred Seed"]) assert.ok(lib.body.includes(t), t);
+  const pages = { "food-is-energy": ["SMILES", "Sattvic", "not medical advice"],
+    "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "has <strong>not</strong> shown", "Temple Grandin"],
+    "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "18%"],
+    "the-sacred-seed": ["Genesis 38:9", "Tikkun HaKlali", "Lilith", "brahmacharya", "What medicine says", "No shame"] };
+  for (const [slug, words] of Object.entries(pages)) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    for (const w of words) assert.match(page.body, new RegExp(w), `${slug}: ${w}`);
+  }
+});
