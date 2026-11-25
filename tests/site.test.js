@@ -406,7 +406,7 @@ test("the prayer page opens with its all-paths picture, and every page keeps the
   const img = await call("/images/prayer.jpg");
   assert.equal(img.status, 200);
   const page = await call("/teachings/meditation-and-prayer");
-  assert.match(page.body, /<figure class="cover"><img src="\/images\/prayer\.jpg"[^>]*alt="People of many faiths praying/);
+  assert.match(page.body, /<figure class="cover"><img src="\/images\/prayer\.jpg"[^>]*alt="People of many faiths and ages praying/);
   const css = (await call("/site.css")).body;
   assert.match(css, /\.journey::after \{[^}]*bottom: 0;/);
 });
