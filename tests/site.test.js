@@ -418,7 +418,8 @@ test("home presents the original artwork as a framed triptych with a portrait-fi
   assert.equal((header.match(/class="hero-centrepiece"/g) || []).length, 1);
   assert.equal((header.match(/class="triptych-panel triptych-/g) || []).length, 3);
   assert.ok(header.indexOf(portrait) < header.indexOf(prayer) && header.indexOf(prayer) < header.indexOf(galaxy), "portrait-first reading order matches phones");
-  assert.match(header, /<figcaption class="triptych-caption">Music is for the soul<\/figcaption>/);
+  assert.match(header, /<figcaption class="triptych-caption">♫ ✧ ❨ Music is for the soul ❩ ✧ ♫<\/figcaption>/, "the motto sits under the middle picture");
+  assert.equal((header.match(/Music is for the soul/g) || []).length, 1, "shown once in the home header, not twice");
   assert.ok(header.includes(`<h1>${escapeHtml(site.name)}</h1><p class="lead">${escapeHtml(site.tagline)}</p>`), "title and tagline stay together and unchanged");
   assert.match(header, /Explore the Teachings/);
   assert.match(header, /Listen to the Music/);
