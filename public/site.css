@@ -204,6 +204,7 @@ footer { border-top: 1px solid var(--line); }
 .rtl, [dir="rtl"] { font-family: "Noto Naskh Arabic", "Amiri", "Geeza Pro", "Segoe UI", "Arial", serif; line-height: 1.95; font-size: 1.08em; text-align: right; }
 .cover { margin: 0 0 32px; }
 .cover img { width: 100%; height: auto; border-radius: 18px; display: block; }
+.tab-cover { max-width: 760px; margin: 8px 0 32px; }
 .article .frame { margin: 32px 0; }
 .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .photo { margin: 0; }
