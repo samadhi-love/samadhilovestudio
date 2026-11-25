@@ -433,7 +433,9 @@ test("Knowledge & Insight tab: food, compassion, processed food and the sacred s
 test("Krishna and Shiva stand on each side of the Knowledge & Insight heading", async () => {
   const lib = await call("/library?tab=knowledge");
   assert.match(lib.body, /<div class="tab-flank"><img class="tab-side" src="\/images\/krishna\.jpg"[^]*<h2 class="section-title"[^>]*>Knowledge &amp; Insight<\/h2>[^]*<img class="tab-side" src="\/images\/shiva\.jpg"/);
-  for (const f of ["/images/krishna.jpg", "/images/shiva.jpg"]) assert.equal((await call(f)).status, 200, f);
+  const plate = await call("/teachings/compassion-on-the-plate");
+  assert.match(plate.body, /<figure class="cover"><img src="\/images\/jesus-animals\.jpg"/, "the Good Shepherd picture tops Compassion on the Plate");
+  for (const f of ["/images/krishna.jpg", "/images/shiva.jpg", "/images/jesus-animals.jpg"]) assert.equal((await call(f)).status, 200, f);
   const other = await call("/library?tab=great-flood");
   assert.ok(!other.body.includes("tab-flank"), "other tabs unchanged");
 });
