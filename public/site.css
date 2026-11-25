@@ -205,6 +205,8 @@ footer { border-top: 1px solid var(--line); }
 .cover { margin: 0 0 32px; }
 .cover img { width: 100%; height: auto; border-radius: 18px; display: block; }
 .tab-pictures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 8px 0 32px; }
+.tab-wide { margin: 8px 0 32px; }
+.cover-small { max-width: 520px; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
 .article .frame { margin: 32px 0; }
