@@ -685,3 +685,26 @@ test("Knowledge & Insight: the six healthy-living pages are listed and render", 
     assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, s);
   }
 });
+
+test("Homer tab and the eight new teachers render with their pictures", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("homer"), ids.indexOf("shakespeare") + 1);
+  const tab = await call("/library?tab=homer");
+  for (const s of ["homer-the-man-and-the-mystery", "the-iliad-and-the-odyssey", "the-spiritual-homer"]) assert.ok(tab.body.includes(`href="/teachings/${s}"`), s);
+  const pics = { "homer-the-man-and-the-mystery": "homer", "hermes-trismegistus": "hermes", zoroaster: "zoroaster", orpheus: "orpheus", epictetus: "epictetus", "adi-shankara": "shankara", patanjali: "patanjali", hafiz: "hafiz" };
+  for (const [slug, img] of Object.entries(pics)) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.ok(page.body.includes(`/images/${img}.jpg`), slug);
+    const file = await call(`/images/${img}.jpg`);
+    assert.equal(file.status, 200, img);
+  }
+  const jung = await call("/teachings/carl-jung");
+  assert.equal(jung.status, 200);
+  assert.match(jung.body, /<svg viewBox="0 0 400 400"/);
+  assert.doesNotMatch(jung.body, /\{\{/);
+  const phil = await call("/library?tab=philosophers");
+  for (const s of ["hermes-trismegistus", "zoroaster", "orpheus", "epictetus", "carl-jung"]) assert.ok(phil.body.includes(`href="/teachings/${s}"`), s);
+  const myst = await call("/library?tab=mystics");
+  for (const s of ["adi-shankara", "patanjali", "hafiz"]) assert.ok(myst.body.includes(`href="/teachings/${s}"`), s);
+});
