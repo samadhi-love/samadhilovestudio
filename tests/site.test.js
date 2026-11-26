@@ -383,7 +383,7 @@ test("the Prayers tab holds six short prayers, shown line by line, with the Qura
 
 test("the Great Flood tab sits beside The Human Story with its four teachings", async () => {
   const ids = categories.map((c) => c.id);
-  assert.equal(ids.indexOf("great-flood"), ids.indexOf("human-story") + 1, "right after The Human Story (Atlantis)");
+  assert.equal(ids.indexOf("great-flood"), ids.indexOf("human-story") + 2, "after The Human Story and Beyond the Veil");
   const home = await call("/");
   assert.match(home.body, /<nav class="nav[^]*href="\/library\?tab=great-flood"/, "in the menu");
   const lib = await call("/library?tab=great-flood");
@@ -723,4 +723,29 @@ test("Blessing & Gratitude tab: four pages, placed before Prayers, with the dawn
   const bless = await call("/teachings/blessing-god");
   assert.match(bless.body, /<svg viewBox="0 0 600 330"/);
   assert.match(bless.body, /Modeh ani lefanecha/);
+});
+
+test("Beyond the Veil sits beside The Human Story with seven pages, drawn art, sources and care notes", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("beyond-the-veil"), ids.indexOf("human-story") + 1);
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=beyond-the-veil"/);
+  const tab = await call("/library?tab=beyond-the-veil");
+  assert.equal(tab.status, 200);
+  const slugs = ["beyond-the-veil", "out-of-body-travel-and-astral-projection", "near-death-experiences", "remote-viewing", "channeling", "light-language", "walking-safely-beyond-the-veil"];
+  for (const slug of slugs) {
+    assert.ok(tab.body.includes(`/teachings/${slug}`), `tab links ${slug}`);
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{veil-/, `${slug} has no leftover placeholders`);
+  }
+  for (const slug of ["out-of-body-travel-and-astral-projection", "near-death-experiences", "remote-viewing", "channeling", "light-language"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.match(page.body, /<figure class="cross-hero veil-figure"><svg/, `${slug} has its drawn picture`);
+  }
+  const nde = await call("/teachings/near-death-experiences");
+  for (const fact of ["344", "18%", "2,060", "never something to seek"]) assert.ok(nde.body.includes(fact), fact);
+  const ll = await call("/teachings/light-language");
+  for (const fact of ["Acts 2:4", "Hildegard", "Newberg", "Samadhi&#39;s view|Samadhi's view"]) assert.match(ll.body, new RegExp(fact));
 });
