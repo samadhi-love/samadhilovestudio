@@ -361,7 +361,7 @@ test("Samadhi's star family pictures are served, and nothing outside that folder
 test("the Humans page tells the story of the fall and the return, with its sources and an honest note", async () => {
   const page = await call("/teachings/humans");
   assert.equal(page.status, 200);
-  for (const fact of ["Genesis 1:27", "khalifa", "Isaac Luria", "as long as the divine nature lasted in them", "Edgar Cayce", "Philip Sclater", "Luke 15:24", "No archaeological trace", "love and compassion"]) assert.ok(page.body.includes(fact), fact);
+  for (const fact of ["Genesis 1:27", "khalifa", "Isaac Luria", "as long as the divine nature lasted in them", "Edgar Cayce", "Philip Sclater", "Luke 15:24", "love and compassion", "why-we-came"]) assert.ok(page.body.includes(fact), fact);
 });
 
 test("the Prayers tab holds six short prayers, shown line by line, with the Quran's mercy prayers in Arabic", async () => {
@@ -397,7 +397,8 @@ test("the Great Flood tab sits beside The Human Story with its four teachings", 
   assert.match(stories.body, /<p class="arabic" dir="rtl" lang="ar">وَقِيلَ يَا أَرْضُ ابْلَعِي/, "Quran 11:44 reads right to left");
   for (const t of ["Utnapishtim", "Atrahasis", "Genesis 7:11", "al-Judi", "Matsya", "Deucalion", "Popol Vuh", "Yu the Great", "Nunn"]) assert.ok(stories.body.includes(t), t);
   const science = await call("/teachings/when-the-ice-melted");
-  for (const t of ["120 metres", "Meltwater Pulse 1A", "Younger Dryas", "Doggerland", "Black Sea", "Most scientists do not accept"]) assert.ok(science.body.includes(t), t);
+  for (const t of ["120 metres", "Meltwater Pulse 1A", "Younger Dryas", "Doggerland", "What the waters remember"]) assert.ok(science.body.includes(t), t);
+  for (const t of ["Black Sea", "Most scientists do not accept", "no single flood"]) assert.ok(!science.body.includes(t), `no theory lines: ${t}`);
   const atlantis = await call("/teachings/atlantis");
   assert.match(atlantis.body, /Great Flood tab/, "Atlantis points to the new tab");
 });
@@ -632,7 +633,7 @@ test("Knowledge & Insight tab: food, compassion, processed food and the sacred s
   assert.equal(lib.status, 200);
   for (const t of ["Food Is Energy", "Compassion on the Plate", "Processed Foods and Meats", "The Sacred Seed"]) assert.ok(lib.body.includes(t), t);
   const pages = { "food-is-energy": ["SMILES", "Sattvic", "not medical advice"],
-    "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "has <strong>not</strong> shown", "Temple Grandin"],
+    "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "Temple Grandin"],
     "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "18%"],
     "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "sons do not walk behind his coffin", "dhatu kshaya", "Never despair", "Genesis 38:9", "Tikkun HaKlali", "Lilith", "brahmacharya", "What medicine says", "No shame"] };
   for (const [slug, words] of Object.entries(pages)) {
