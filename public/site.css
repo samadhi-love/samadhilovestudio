@@ -415,6 +415,10 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .violet-how { font-size: 0.9rem; color: #e6dcff; margin: 0 0 14px; }
 .violet-decree { font-family: Georgia, serif; font-size: 0.98rem; line-height: 1.55; color: #f1e8ff; margin: 0 0 10px; }
 .violet-source { font-size: 0.75rem; color: #b9a6dd; margin: 0; }
+.sg-portrait { margin: 8px auto 24px; max-width: 260px; text-align: center; }
+.sg-portrait img { width: 100%; height: auto; display: block; border-radius: 14px; box-shadow: 0 0 30px rgba(242,196,109,0.35); }
+.sg-portrait figcaption { margin-top: 6px; }
 @media (min-width: 1320px) {
+  .sg-portrait { float: left; width: 250px; margin: 0 0 20px -300px; position: relative; z-index: 2; }
   .violet-panel { float: right; width: 250px; margin: 0 -300px 20px 0; position: relative; z-index: 2; }
 }
