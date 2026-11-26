@@ -218,6 +218,7 @@ footer { border-top: 1px solid var(--line); }
 }
 .cover-small { max-width: 520px; }
 .cover-small img[src="/images/babaji.jpg"] { max-width: 300px; margin: 0 auto; }
+.cover-small img[src="/images/yogananda.jpg"] { max-width: 420px; margin: 0 auto; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
 /* Pictures standing on each side of a tab heading; on phones they sit side by side above it. */
