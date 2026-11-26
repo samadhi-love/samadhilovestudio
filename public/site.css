@@ -217,6 +217,7 @@ footer { border-top: 1px solid var(--line); }
   .prayer-image-signature { font-size: clamp(10px, 2.45vw, 13px); }
 }
 .cover-small { max-width: 520px; }
+.cover-small img[src="/images/babaji.jpg"] { max-width: 300px; margin: 0 auto; }
 .tab-pictures img { width: 100%; height: auto; border-radius: 14px; display: block; }
 @media (max-width: 720px) { .tab-pictures { grid-template-columns: 1fr; } }
 /* Pictures standing on each side of a tab heading; on phones they sit side by side above it. */
