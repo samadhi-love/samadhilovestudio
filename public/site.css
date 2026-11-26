@@ -424,3 +424,6 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
   .sg-portrait { float: left; width: 250px; margin: 0 0 20px -300px; position: relative; z-index: 2; }
   .violet-panel { float: right; width: 250px; margin: 0 -300px 20px 0; position: relative; z-index: 2; }
 }
+
+/* Versual tagline in the home page music band */
+.versual-tagline { font-family: Georgia, serif; font-style: italic; font-size: 1.1rem; color: #f2c46d; letter-spacing: 0.02em; margin: -4px 0 12px; }
