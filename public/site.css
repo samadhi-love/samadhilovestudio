@@ -405,3 +405,16 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .cross-card svg { width: 100%; height: auto; display: block; border-radius: 12px; }
 .cross-card figcaption { margin-top: 10px; font-size: 0.92rem; line-height: 1.5; color: var(--muted, #c9c2dd); }
 .cross-card figcaption strong { display: block; color: #f2c46d; font-family: Georgia, serif; font-size: 1.05rem; margin-bottom: 4px; }
+
+/* Saint Germain: violet flame drawing and mantra panel */
+.sg-art { margin: 24px 0; }
+.sg-art svg { width: 100%; height: auto; display: block; border-radius: 18px; }
+.violet-panel { margin: 8px 0 28px; padding: 18px 20px; border-radius: 18px; background: linear-gradient(180deg, rgba(122,60,220,0.28), rgba(40,18,80,0.55)); border: 1px solid rgba(199,155,255,0.45); box-shadow: 0 0 34px rgba(164,92,255,0.25); }
+.violet-eyebrow { font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: #d7b8ff; margin: 0 0 6px; }
+.violet-mantra { font-family: Georgia, serif; font-size: 1.3rem; line-height: 1.45; color: #fff; text-shadow: 0 0 14px rgba(199,155,255,0.8); margin: 0 0 10px; }
+.violet-how { font-size: 0.9rem; color: #e6dcff; margin: 0 0 14px; }
+.violet-decree { font-family: Georgia, serif; font-size: 0.98rem; line-height: 1.55; color: #f1e8ff; margin: 0 0 10px; }
+.violet-source { font-size: 0.75rem; color: #b9a6dd; margin: 0; }
+@media (min-width: 1320px) {
+  .violet-panel { float: right; width: 250px; margin: 0 -300px 20px 0; position: relative; z-index: 2; }
+}
