@@ -1,11 +1,12 @@
 // Checks every outside link in the site's content and lists the ones that do not open.
 // Run with: node scripts/check-links.mjs
+// Note: some big sites (Britannica, Sacred Texts, Project Gutenberg) refuse automatic checkers, so a 403 or 503 from them is not proof the page is gone.
 import { readFileSync, readdirSync } from "node:fs";
 
 const urls = new Set();
 for (const f of readdirSync("lib").filter((n) => n.endsWith(".js"))) {
   const text = readFileSync(`lib/${f}`, "utf8");
-  for (const m of text.matchAll(/\]\((https?:\/\/[^)\s]+)\)/g)) urls.add(m[1]);
+  for (const m of text.matchAll(/\]\((https?:\/\/[^)\s.]+\.[^)\s]+)\)/g)) urls.add(m[1]);
 }
 
 const list = [...urls].sort();
