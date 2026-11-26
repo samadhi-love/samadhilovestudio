@@ -447,3 +447,18 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
   .nav-menu-group a[aria-current="page"] { color: var(--gold); }
   .nav-menu-group a.pill { width: auto; margin-top: 6px; padding: 10px 18px; color: #05040d; background: var(--gold); border-radius: 999px; font-weight: 600; }
 }
+
+/* Sacred Geometry explorer: CSS-only toggles (the site allows no inline scripts). */
+.sgx { position: relative; }
+.sgx > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.sgx .sg-c { opacity: 0; transition: opacity .45s ease; }
+.sgx-lines:checked ~ svg .sg-c { opacity: 1; }
+.sgx .sg-r { transform-box: view-box; }
+.sgx-spin:checked ~ svg .sg-r { animation: sg-spin 80s linear infinite; }
+@keyframes sg-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sgx-spin:checked ~ svg .sg-r { animation: none; } }
+.sgx-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sgx-controls label { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); font-size: 14px; cursor: pointer; user-select: none; }
+.sgx-controls label:hover { border-color: var(--gold); }
+.sgx-lines:checked ~ .sgx-controls label[for$="-l"], .sgx-spin:checked ~ .sgx-controls label[for$="-s"] { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
+.sgx-lines:focus-visible ~ .sgx-controls label[for$="-l"], .sgx-spin:focus-visible ~ .sgx-controls label[for$="-s"] { outline: 2px solid var(--teal); outline-offset: 3px; }

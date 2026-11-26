@@ -749,3 +749,34 @@ test("Beyond the Veil sits beside The Human Story with seven pages, drawn art, s
   const ll = await call("/teachings/light-language");
   for (const fact of ["Acts 2:4", "Hildegard", "Newberg", "Samadhi&#39;s view|Samadhi's view"]) assert.match(ll.body, new RegExp(fact));
 });
+
+test("Sacred Geometry tab follows Tree of Life with six pages, exact drawings, CSS toggles and gentle history notes", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("sacred-geometry"), ids.indexOf("tree-of-life") + 1);
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=sacred-geometry"/);
+  const slugs = ["sacred-geometry", "the-symbols-of-sacred-geometry", "the-five-platonic-solids", "the-golden-ratio-and-fibonacci", "sacred-geometry-in-architecture", "sacred-geometry-what-history-records"];
+  const tab = await call("/library?tab=sacred-geometry");
+  for (const slug of slugs) {
+    assert.ok(tab.body.includes(`/teachings/${slug}`), slug);
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{(geo|tree)-/, `${slug} has no leftover placeholders`);
+    assert.doesNotMatch(page.body, /<script(?![^>]*\bsrc=)/, `${slug} has no inline script`);
+  }
+  const sym = await call("/teachings/the-symbols-of-sacred-geometry");
+  assert.equal((sym.body.match(/<figure class="cross-hero sgx">/g) || []).length, 10, "ten exact drawings");
+  assert.match(sym.body, /tol-figure/, "the Tree of Life drawing is reused");
+  assert.match(sym.body, /<input type="checkbox" id="sgx-metatron-l" class="sgx-lines">/);
+  assert.match(sym.body, /<label for="sgx-metatron-l">Show the 13 circles<\/label>/);
+  const meta = sym.body.split('<figure class="cross-hero sgx">').find((part) => part.includes('id="metatron-t"')).split("</svg>")[0];
+  assert.equal((meta.match(/<line /g) || []).length, 78, "Metatron's Cube has 78 lines");
+  for (const t of ["√3", "137.5°", "43", "Euclid"]) assert.ok(sym.body.includes(t), t);
+  const css = (await call("/site.css")).body;
+  assert.match(css, /\.sgx-lines:checked ~ svg \.sg-c \{ opacity: 1; \}/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.sgx-spin/);
+  const hist = await call("/teachings/sacred-geometry-what-history-records");
+  for (const t of ["red ochre", "late 20th century", "No ancient plan"]) assert.ok(hist.body.includes(t), t);
+  assert.doesNotMatch(hist.body, /\bmyth\b/i, "gentle wording, no 'myth' labels");
+});
