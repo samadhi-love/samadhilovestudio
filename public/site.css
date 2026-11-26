@@ -462,3 +462,11 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .sgx-controls label:hover { border-color: var(--gold); }
 .sgx-lines:checked ~ .sgx-controls label[for$="-l"], .sgx-spin:checked ~ .sgx-controls label[for$="-s"] { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
 .sgx-lines:focus-visible ~ .sgx-controls label[for$="-l"], .sgx-spin:focus-visible ~ .sgx-controls label[for$="-s"] { outline: 2px solid var(--teal); outline-offset: 3px; }
+/* Philosophy: six branch cards */
+.philo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 18px 0 26px; }
+.philo-card { background: rgba(255,255,255,.05); border: 1px solid rgba(242,196,109,.28); border-radius: 14px; padding: 16px 16px 12px; }
+.philo-card h3 { margin: 8px 0 2px; font-size: 1.08rem; }
+.philo-card p { margin: 4px 0; font-size: .95rem; }
+.philo-card .philo-q { color: #f2c46d; font-style: italic; }
+.philo-icon { width: 42px; height: 42px; color: #f2c46d; }
+.philo-figure svg { width: 100%; height: auto; display: block; }

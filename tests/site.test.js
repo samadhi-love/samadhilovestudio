@@ -780,3 +780,27 @@ test("Sacred Geometry tab follows Tree of Life with six pages, exact drawings, C
   for (const t of ["red ochre", "late 20th century", "No ancient plan"]) assert.ok(hist.body.includes(t), t);
   assert.doesNotMatch(hist.body, /\bmyth\b/i, "gentle wording, no 'myth' labels");
 });
+
+test("Philosophy pages open the Philosophers tab with the owl, six branch cards and the every-seeker message", async () => {
+  const tabItems = categories.find((c) => c.id === "philosophers").items.map((i) => i.slug);
+  const slugs = ["what-is-philosophy", "the-six-branches-of-philosophy", "who-is-a-philosopher", "philosophy-as-medicine-for-the-soul"];
+  assert.deepEqual(tabItems.slice(0, 4), slugs);
+  assert.ok(tabItems.includes("socrates") && tabItems.includes("carl-jung"), "existing philosophers kept");
+  for (const slug of slugs) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{philo-/, `${slug} has no leftover placeholders`);
+    assert.doesNotMatch(page.body, /<script(?![^>]*\bsrc=)/, `${slug} has no inline script`);
+  }
+  const what = await call("/teachings/what-is-philosophy");
+  assert.match(what.body, /id="po-t"/, "owl emblem drawn");
+  for (const t of ["love of wisdom", "Pythagoras", "darshana", "ubuntu", "Samadhi"]) assert.ok(what.body.includes(t), t);
+  const branches = await call("/teachings/the-six-branches-of-philosophy");
+  assert.equal((branches.body.match(/class="philo-card"/g) || []).length, 6, "six branch cards");
+  assert.equal((branches.body.match(/class="philo-icon"/g) || []).length, 6, "six emblems");
+  const who = await call("/teachings/who-is-a-philosopher");
+  for (const t of ["stonemason", "born a slave", "weaver", "shoemaker", "You may be one of them"]) assert.ok(who.body.includes(t), t);
+  const css = (await call("/site.css")).body;
+  assert.match(css, /\.philo-grid \{/);
+});
