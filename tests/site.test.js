@@ -804,3 +804,10 @@ test("Philosophy pages open the Philosophers tab with the owl, six branch cards 
   const css = (await call("/site.css")).body;
   assert.match(css, /\.philo-grid \{/);
 });
+
+test("Philosophy tab: short menu name, full heading", async () => {
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=philosophers"[^>]*>Philosophy</);
+  const tab = await call("/library?tab=philosophers");
+  assert.ok(tab.body.includes("Philosophy and the Great Philosophers"));
+});
