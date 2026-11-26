@@ -708,3 +708,18 @@ test("Homer tab and the eight new teachers render with their pictures", async ()
   const myst = await call("/library?tab=mystics");
   for (const s of ["adi-shankara", "patanjali", "hafiz"]) assert.ok(myst.body.includes(`href="/teachings/${s}"`), s);
 });
+
+test("Blessing & Gratitude tab: four pages, placed before Prayers, with the dawn drawing", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("blessing"), ids.indexOf("prayers") - 1);
+  const tab = await call("/library?tab=blessing");
+  for (const s of ["blessing-god", "the-power-of-gratitude", "the-power-of-affirmations", "a-day-of-blessing"]) {
+    assert.ok(tab.body.includes(`href="/teachings/${s}"`), s);
+    const page = await call(`/teachings/${s}`);
+    assert.equal(page.status, 200, s);
+    assert.doesNotMatch(page.body, /\{\{/, s);
+  }
+  const bless = await call("/teachings/blessing-god");
+  assert.match(bless.body, /<svg viewBox="0 0 600 330"/);
+  assert.match(bless.body, /Modeh ani lefanecha/);
+});
