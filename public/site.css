@@ -427,3 +427,23 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 
 /* Versual tagline in the home page music band */
 .versual-tagline { font-family: Georgia, serif; font-style: italic; font-size: 1.1rem; color: #f2c46d; letter-spacing: 0.02em; margin: -4px 0 12px; }
+
+/* Phone menu: the long link list folds into a "Menu" button that opens grouped links. */
+.nav-menu { display: none; }
+@media (max-width: 720px) {
+  .nav-links { display: none; }
+  .nav-menu { display: block; width: 100%; }
+  .nav-menu summary { list-style: none; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: rgba(15,11,38,0.75); font-weight: 600; cursor: pointer; }
+  .nav-menu summary::-webkit-details-marker { display: none; }
+  .nav-menu summary:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+  .nav-menu-bars, .nav-menu-bars::before, .nav-menu-bars::after { display: block; width: 18px; height: 2px; background: var(--gold); border-radius: 2px; position: relative; content: ""; }
+  .nav-menu-bars::before { position: absolute; top: -6px; } .nav-menu-bars::after { position: absolute; top: 6px; }
+  .nav-menu[open] .nav-menu-bars { background: transparent; }
+  .nav-menu[open] .nav-menu-bars::before { top: 0; transform: rotate(45deg); } .nav-menu[open] .nav-menu-bars::after { top: 0; transform: rotate(-45deg); }
+  .nav-menu-panel { margin-top: 12px; padding: 16px 18px 8px; border: 1px solid var(--line); border-radius: 18px; background: rgba(10,8,25,0.96); }
+  .nav-menu-group { margin-bottom: 14px; }
+  .nav-menu-title { margin: 0 0 4px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+  .nav-menu-group a { display: inline-block; width: 49%; padding: 9px 0; color: var(--ink); text-decoration: none; font-size: 15px; vertical-align: top; }
+  .nav-menu-group a[aria-current="page"] { color: var(--gold); }
+  .nav-menu-group a.pill { width: auto; margin-top: 6px; padding: 10px 18px; color: #05040d; background: var(--gold); border-radius: 999px; font-weight: 600; }
+}

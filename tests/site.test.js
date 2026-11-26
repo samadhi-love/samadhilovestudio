@@ -414,7 +414,7 @@ test("home presents the original artwork as a framed triptych with a portrait-fi
   const portrait = header.match(/<img class="hero-centrepiece"[^>]*>/)?.[0] || "";
   assert.match(prayer, /src="\/images\/hero-prayer\.jpg" width="960" height="536"/);
   assert.match(galaxy, /src="\/images\/hero-galaxy\.jpg" width="960" height="536"/);
-  assert.match(portrait, /src="\/images\/home-cosmic-portrait\.jpg" width="1792" height="1008"/);
+  assert.match(portrait, /src="\/images\/home-cosmic-portrait\.jpg" width="1400" height="788"/);
   assert.equal((header.match(/class="hero-centrepiece"/g) || []).length, 1);
   assert.equal((header.match(/class="triptych-panel triptych-/g) || []).length, 3);
   assert.ok(header.indexOf(portrait) < header.indexOf(prayer) && header.indexOf(prayer) < header.indexOf(galaxy), "portrait-first reading order matches phones");
@@ -503,8 +503,8 @@ test("Teachings presents the original artwork as a framed tablet with its title 
   const imageSrc = "/images/teachings-sacred-geometry.jpg";
   const artwork = categories.find(c => c.id === "teachings").artwork;
   assert.equal(artwork.src, imageSrc);
-  assert.equal(artwork.width, 1792);
-  assert.equal(artwork.height, 1008);
+  assert.equal(artwork.width, 1400);
+  assert.equal(artwork.height, 788);
   const image = await call(imageSrc);
   assert.equal(image.status, 200);
   assert.equal(image.headers["Content-Type"], "image/jpeg");
@@ -526,7 +526,7 @@ test("Teachings presents the original artwork as a framed tablet with its title 
     assert.match(page.body, /<section class="teachings-library"/);
     const figure = page.body.match(/<figure class="teachings-art-banner art-frame">([^]*?)<\/figure>/)?.[0] || "";
     assert.ok(figure.includes(`src="${imageSrc}"`));
-    assert.match(figure, /width="1792" height="1008"/);
+    assert.match(figure, /width="1400" height="788"/);
     assert.doesNotMatch(figure, /figcaption|prayer-image-caption/, "no overlaid text or credit line");
     assert.ok(page.body.includes(`${figure}<div class="teachings-heading wrap"><h1>Teachings</h1>`), "page title sits directly under the tablet");
     assert.equal((page.body.match(/<h1[\s>]/g) || []).length, 1, "no competing Library title above the artwork");
