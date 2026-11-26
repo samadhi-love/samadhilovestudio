@@ -651,3 +651,26 @@ test("Krishna and Shiva stand on each side of the Knowledge & Insight heading", 
   const other = await call("/library?tab=great-flood");
   assert.ok(!other.body.includes("tab-flank"), "other tabs unchanged");
 });
+
+test("Tree of Life: its own branch after the Chakras, with the Sefirot drawing and all eight pages", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("tree-of-life"), ids.indexOf("chakras") + 1);
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=tree-of-life"/);
+  const tab = await call("/library?tab=tree-of-life");
+  assert.equal(tab.status, 200);
+  const slugs = ["the-tree-of-life", "the-ten-sefirot", "the-four-worlds", "the-breaking-of-the-vessels", "tree-of-life-in-scripture", "the-world-trees", "the-tree-in-the-western-mysteries", "living-the-tree-of-life"];
+  for (const s of slugs) {
+    assert.ok(tab.body.includes(`href="/teachings/${s}"`), s);
+    const page = await call(`/teachings/${s}`);
+    assert.equal(page.status, 200, s);
+    assert.doesNotMatch(page.body, /\{\{/, s);
+  }
+  const sef = await call("/teachings/the-ten-sefirot");
+  assert.match(sef.body, /<svg viewBox="0 0 400 700"[^>]*role="img"/);
+  const tree = sef.body.slice(sef.body.indexOf('<svg viewBox="0 0 400 700"'), sef.body.indexOf("</svg>", sef.body.indexOf('<svg viewBox="0 0 400 700"')));
+  assert.equal((tree.match(/<line x1=/g) || []).length, 22);
+  for (const n of ["Keter", "Chokhmah", "Binah", "Chesed", "Gevurah", "Tiferet", "Netzach", "Hod", "Yesod", "Malkhut"]) assert.ok(sef.body.includes(`>${n}</text>`), n);
+  const trees = await call("/teachings/the-world-trees");
+  assert.match(trees.body, /I ween that I hung on the windy tree,<br>Hung there for nights full nine;<br>/);
+});
