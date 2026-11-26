@@ -395,3 +395,13 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 @media (max-width: 600px) { .teachings-art-banner { width: calc(100% - 40px); } .teachings-heading { margin: 28px auto 32px; } }
 
 @media (prefers-reduced-motion: reduce) { .triptych-panel, .teachings-art-banner { animation: none; } }
+
+/* The Cross of Light drawings */
+.cross-hero { margin: 28px 0; }
+.cross-hero svg { width: 100%; height: auto; display: block; border-radius: 18px; }
+.cross-hero figcaption { margin-top: 8px; }
+.cross-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px; margin: 28px 0; }
+.cross-card { margin: 0; background: rgba(255,255,255,0.03); border: 1px solid rgba(242,196,109,0.18); border-radius: 18px; padding: 12px; }
+.cross-card svg { width: 100%; height: auto; display: block; border-radius: 12px; }
+.cross-card figcaption { margin-top: 10px; font-size: 0.92rem; line-height: 1.5; color: var(--muted, #c9c2dd); }
+.cross-card figcaption strong { display: block; color: #f2c46d; font-family: Georgia, serif; font-size: 1.05rem; margin-bottom: 4px; }
