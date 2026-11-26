@@ -674,3 +674,14 @@ test("Tree of Life: its own branch after the Chakras, with the Sefirot drawing a
   const trees = await call("/teachings/the-world-trees");
   assert.match(trees.body, /I ween that I hung on the windy tree,<br>Hung there for nights full nine;<br>/);
 });
+
+test("Knowledge & Insight: the six healthy-living pages are listed and render", async () => {
+  const tab = await call("/library?tab=knowledge");
+  for (const s of ["the-three-whites", "fried-foods-and-the-third-eye", "fluoride-and-the-pineal-gland", "soft-drinks-and-energy-drinks", "artificial-food-colours", "drinking-water-wisely"]) {
+    assert.ok(tab.body.includes(`href="/teachings/${s}"`), s);
+    const page = await call(`/teachings/${s}`);
+    assert.equal(page.status, 200, s);
+    assert.match(page.body, /not medical advice/, s);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, s);
+  }
+});
