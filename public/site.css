@@ -1033,3 +1033,13 @@ footer a, .footer a { font-family: var(--display); letter-spacing: .05em; }
 .nav-menu-end a.pill, .nav-menu-group a.pill { color: #fff6d6 !important; background: linear-gradient(180deg, #3d3320 0%, #241c0e 60%, #17120a 100%) !important; border: 1px solid #ffd77a; border-radius: 4px !important; font-family: var(--display); letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 0 0 1px rgba(255, 215, 122, .5), 0 0 14px rgba(255, 200, 90, .7); }
 .skip { background: #241c0e; color: #fff6d6; border: 1px solid #ffd77a; }
 .nav-sign { width: 24px; height: 24px; vertical-align: -6px; margin-right: 8px; filter: drop-shadow(0 0 4px rgba(242, 196, 109, .4)); }
+
+/* Section headings everywhere (Library tab headings, page sections): gold, key line, soft gold line under */
+h2.section-title { font-family: var(--display); color: #f6e2b0; display: inline-block; padding-bottom: 14px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2012%22%3E%3Cpath%20d%3D%22M0%2011.5H20V.5H4V8.5H12V4.5M20%2011.5H24%22%20fill%3D%22none%22%20stroke%3D%22%23c9a24d%22%20stroke-width%3D%221.2%22/%3E%3C/svg%3E") left bottom / 20px 10px repeat-x; text-shadow: 0 0 16px rgba(242, 196, 109, .3); }
+.section-intro { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #eadfc4; }
+.teachings-heading p { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #eadfc4; }
+/* Library: Samadhi's candlelit desk where the planet used to be */
+.banner-desk { position: absolute; top: 0; right: 0; bottom: 0; width: min(62%, 900px); z-index: 0; }
+.banner-desk img { width: 100%; height: 100%; object-fit: cover; object-position: 60% 55%; display: block; }
+.banner-desk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--bg) 0%, rgba(8, 7, 5, .55) 22%, rgba(8, 7, 5, 0) 50%), linear-gradient(0deg, var(--bg) 0%, rgba(8, 7, 5, 0) 30%); }
+@media (max-width: 760px) { .banner-desk { width: 100%; opacity: .45; } }

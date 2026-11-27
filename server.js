@@ -67,6 +67,7 @@ const files = {
   "/images/om-coin.png": ["public/images/om-coin.png", "image/png"],
   "/images/library-column.png": ["public/images/library-column.png", "image/png"],
   "/images/hero-scroll.jpg": ["public/images/hero-scroll.jpg", "image/jpeg"],
+  "/images/library-desk.jpg": ["public/images/library-desk.jpg", "image/jpeg"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
