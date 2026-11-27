@@ -45,6 +45,8 @@ const files = {
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
   "/images/cross-of-light.jpg": ["public/images/cross-of-light.jpg", "image/jpeg"],
   "/images/ankh.jpg": ["public/images/ankh.jpg", "image/jpeg"],
+  "/images/tau-cross.jpg": ["public/images/tau-cross.jpg", "image/jpeg"],
+  "/images/celtic-cross.jpg": ["public/images/celtic-cross.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
