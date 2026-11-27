@@ -917,3 +917,36 @@ test("Enoch: Idris page in Prophets & Teachers and The Books of Enoch in Sacred 
   const m = await call("/teachings/archangel-metatron");
   assert.match(m.body, /href="\/teachings\/enoch"/);
 });
+
+test("Start Here and Practices: where to begin, glossary, principles, breath guides, trataka, prompts and opt-in sound", async () => {
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=start"/);
+  assert.match(home.body, /href="\/library\?tab=practices"/);
+  const lib = await call("/library");
+  assert.match(lib.body, /<link rel="canonical" href="[^"]*\/library\?tab=teachings">/, "library still opens on Teachings");
+  for (const slug of ["where-to-begin", "glossary", "principles-and-care", "practices-and-inner-work", "breath-of-peace", "trataka", "questions-to-sit-with", "sound-for-stillness"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.doesNotMatch(page.body, /\{\{(practice|start)-/, `${slug} has no leftover placeholders`);
+    assert.doesNotMatch(page.body, /<script(?![^>]*\bsrc=)/, `${slug} has no inline script`);
+  }
+  const breath = await call("/teachings/breath-of-peace");
+  for (const k of ["belly", "box", "nadi", "kapal"]) assert.match(breath.body, new RegExp(`data-px-pacer="${k}"`), k);
+  assert.match(breath.body, /<script src="\/practice\.js\?v=/);
+  assert.match(breath.body, /Please do not practise Kapalbhati/);
+  assert.match(breath.body, /data-sound="off" aria-pressed="true"/, "silence is the default");
+  assert.doesNotMatch(breath.body, /data-px-chimes checked/, "chimes are off until chosen");
+  const tk = await call("/teachings/trataka");
+  assert.equal((tk.body.match(/name="tk-shape"/g) || []).length, 4);
+  const gl = await call("/teachings/glossary");
+  assert.ok((gl.body.match(/class="gl-item"/g) || []).length >= 70, "glossary has at least 70 words");
+  assert.match(gl.body, /Sefirot/);
+  const care = await call("/teachings/principles-and-care");
+  assert.match(care.body, /988/);
+  const sound = await call("/teachings/sound-for-stillness");
+  assert.match(sound.body, /not supported by research/);
+  const plain = await call("/teachings/the-torah");
+  assert.doesNotMatch(plain.body, /practice\.js/, "the practice script loads only where needed");
+  const js = await call("/practice.js");
+  assert.equal(js.status, 200);
+});

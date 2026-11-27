@@ -18,6 +18,7 @@ const isPublic = process.env.SITE_PUBLIC === "true";
 const files = {
   "/site.css": ["public/site.css", "text/css; charset=utf-8"],
   "/sky.js": ["public/sky.js", "text/javascript; charset=utf-8"],
+  "/practice.js": ["public/practice.js", "text/javascript; charset=utf-8"],
   "/favicon.svg": ["public/favicon.svg", "image/svg+xml"],
   "/owner.js": ["public/owner.js", "text/javascript; charset=utf-8"],
   "/images/chakras.jpg": ["public/images/chakras.jpg", "image/jpeg"],
