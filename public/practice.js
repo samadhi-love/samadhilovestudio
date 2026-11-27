@@ -236,4 +236,32 @@
       apply();
     }));
   });
+
+  // ---------- Numerology (reflection only; nothing is stored or sent) ----------
+  $$("[data-px-num]").forEach((box) => {
+    const reduce = (n) => { const steps = [n]; while (n > 9 && n !== 11 && n !== 22 && n !== 33) { n = String(n).split("").reduce((a, d) => a + Number(d), 0); steps.push(n); } return { n, steps }; };
+    const showMean = (n, where) => {
+      const src = $(`.nc-mean[data-n="${n}"]`, box);
+      if (where) { where.innerHTML = ""; if (src) { const c = src.cloneNode(true); c.hidden = false; where.appendChild(c); } return; }
+      $$(".nc-mean", box).forEach((m) => { m.hidden = m.dataset.n !== String(n); });
+    };
+    const dateIn = $("[data-nc-date]", box), dateOut = $("[data-nc-steps]", box);
+    $("[data-nc-go]", box).addEventListener("click", () => {
+      const digits = (dateIn.value || "").replace(/\D/g, "");
+      if (digits.length !== 8) { dateOut.textContent = "Please choose a full date of birth."; showMean(0); return; }
+      const sum = digits.split("").reduce((a, d) => a + Number(d), 0);
+      const r = reduce(sum);
+      dateOut.textContent = `${digits.split("").join(" + ")} = ${r.steps.join(" → ")}. Your life path number is ${r.n}.`;
+      showMean(r.n);
+    });
+    const nameIn = $("[data-nc-name]", box), nameOut = $("[data-nc-name-steps]", box), nameMean = $("[data-nc-name-out]", box);
+    $("[data-nc-name-go]", box).addEventListener("click", () => {
+      const letters = (nameIn.value || "").toUpperCase().normalize("NFD").replace(/[^A-Z]/g, "");
+      if (!letters) { nameOut.textContent = "Please type a name using the letters A to Z."; nameMean.innerHTML = ""; return; }
+      const vals = letters.split("").map((ch) => ((ch.charCodeAt(0) - 65) % 9) + 1);
+      const r = reduce(vals.reduce((a, v) => a + v, 0));
+      nameOut.textContent = `${vals.join(" + ")} = ${r.steps.join(" → ")}. The name number is ${r.n}.`;
+      showMean(r.n, nameMean);
+    });
+  });
 })();
