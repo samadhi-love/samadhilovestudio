@@ -1090,3 +1090,13 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   assert.match(fast.body, /not for everyone/);
   assert.ok(!/\d+\s?(g|grams|kcal|calories)\b/i.test(fast.body.replace(/<[^>]+>/g, " ")), "no measurements on the fasting page");
 });
+
+test("The Power of Words: in Spirit in Daily Life, Bava Metzia 58b, no swear words, labelled as spiritual teaching", async () => {
+  const dl = categories.find((c) => c.id === "daily-life");
+  assert.equal(dl.items[1].slug, "the-power-of-words");
+  const page = await call("/teachings/the-power-of-words");
+  assert.equal(page.status, 200);
+  const low = page.body.toLowerCase();
+  for (const t of ["Bava Metzia 58b", "Proverbs 18:21", "James 3:9", "Ephesians 4:29", "Sahih al-Bukhari 6018", "Right Speech", "17:15", "lashon hara", "ona", "not as proven science", "the-mirror-seeing-god-in-every-face", "the-golden-rule", "the-power-of-affirmations", "blessing-god"]) assert.ok(low.includes(t.toLowerCase()), t);
+  assert.match(page.body, /Stage 10 of 12: Spirit in Daily Life/);
+});
