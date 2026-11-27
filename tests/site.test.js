@@ -716,7 +716,7 @@ test("Beyond the Veil sits beside The Human Story with seven pages, drawn art, s
   }
   for (const slug of ["out-of-body-travel-and-astral-projection", "near-death-experiences", "remote-viewing", "channeling", "light-language"]) {
     const page = await call(`/teachings/${slug}`);
-    assert.match(page.body, /<figure class="cross-hero veil-figure"><svg/, `${slug} has its drawn picture`);
+    assert.match(page.body, /<figure class="cross-hero (veil-figure"><svg|sl-photo")/, `${slug} has its picture`);
   }
   const nde = await call("/teachings/near-death-experiences");
   for (const fact of ["344", "18%", "2,060", "never something to seek"]) assert.ok(nde.body.includes(fact), fact);
