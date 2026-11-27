@@ -1227,3 +1227,10 @@ test("The Soul's Journey uses Samadhi's door and stairway pictures, no drawings"
     assert.ok(!/class="sj-figure"/.test(page.body), `${i.slug}: no drawn figure`);
   }
 });
+
+test("The I AM Teachings open with Samadhi's picture of the Chart of the I AM Presence", async () => {
+  const page = await call("/teachings/the-i-am-teachings");
+  assert.ok(page.body.includes('src="/images/i-am-chart.jpg"'));
+  assert.ok(!/id="ms-ch-t"/.test(page.body), "the drawing is gone");
+  assert.equal((await call("/images/i-am-chart.jpg")).status, 200);
+});

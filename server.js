@@ -30,6 +30,7 @@ const files = {
   "/images/daily-lamp.jpg": ["public/images/daily-lamp.jpg", "image/jpeg"],
   "/images/soul-door.jpg": ["public/images/soul-door.jpg", "image/jpeg"],
   "/images/soul-stairs.jpg": ["public/images/soul-stairs.jpg", "image/jpeg"],
+  "/images/i-am-chart.jpg": ["public/images/i-am-chart.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
