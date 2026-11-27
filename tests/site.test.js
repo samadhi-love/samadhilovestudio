@@ -1112,7 +1112,9 @@ test("The Names of God: beside Teachings, ten equal traditions, the Holy Name ne
     const page = await call(`/teachings/${t.slug}`);
     assert.equal(page.status, 200, t.slug);
     assert.ok(!/Yahweh|Jehovah|Yahveh/i.test(page.body), `${t.slug}: no pronunciation of the Holy Name`);
-    assert.ok(!/<img /.test(page.body.split('<article class="article">')[1] || ""), `${t.slug}: no pictures in the teaching`);
+    const imgs = [...(page.body.split('<article class="article">')[1] || "").matchAll(/<img [^>]*src="([^"]+)"/g)].map((m) => m[1]);
+    // No images of God; only the Indigenous page carries a nature picture (Samadhi's own, light over the prairie).
+    assert.deepEqual(imgs, t.id === "indigenous" ? ["/images/wakan-tanka.jpg"] : [], `${t.slug}: pictures`);
     // The foot of the page (from "Explore the connection" on) carries no sacred script.
     const foot = page.body.slice(page.body.lastIndexOf("Explore the connection"));
     assert.ok(!/[֐-׿؀-ۿऀ-ॿ਀-੿一-鿿]/.test(foot), `${t.slug}: no sacred script at the foot`);

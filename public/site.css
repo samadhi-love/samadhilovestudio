@@ -838,3 +838,5 @@ body.tk-open { overflow: hidden; }
 .he-photo-beat { transform-origin: 50% 47%; animation: he-heartbeat 2.4s ease-in-out infinite; }
 @keyframes he-heartbeat { 0%, 40%, 100% { transform: scale(1); } 12% { transform: scale(1.045); } 22% { transform: scale(1.01); } 30% { transform: scale(1.04); } }
 @media (prefers-reduced-motion: reduce) { .he-photo-beat { animation: none; } }
+
+.nm-nature-photo { border-radius: 12px; max-width: 420px; margin-bottom: 10px; }
