@@ -863,7 +863,7 @@ test("Sacred Texts tab: five pages, emblems, 231 gates and history notes", async
   assert.equal(ids.indexOf("sacred-texts"), ids.indexOf("sacred-geometry") + 1);
   const home = await call("/");
   assert.match(home.body, /href="\/library\?tab=sacred-texts"/);
-  const slugs = ["sacred-texts", "the-torah", "sefer-yetzirah", "the-zohar", "sacred-texts-what-history-records"];
+  const slugs = ["sacred-texts", "the-torah", "sefer-yetzirah", "the-zohar", "the-books-of-enoch", "sacred-texts-what-history-records"];
   for (const slug of slugs) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
@@ -887,11 +887,11 @@ test("Prophets & Teachers tab: overview with filters, golden rule strip and nine
   const home = await call("/");
   assert.match(home.body, /href="\/library\?tab=prophets"/);
   const ov = await call("/teachings/prophets-and-teachers");
-  assert.equal((ov.body.match(/class="pf-card /g) || []).length, 9, "nine cards");
+  assert.equal((ov.body.match(/class="pf-card /g) || []).length, 10, "ten cards, Enoch included");
   for (const f of ["all", "abr", "dha", "per", "sik"]) assert.match(ov.body, new RegExp(`id="pf-${f}"`), f);
   assert.equal((ov.body.match(/class="pf-gold-card"/g) || []).length, 8, "golden rule strip");
   assert.match(ov.body, /do not teach reincarnation/);
-  const slugs = ["abraham", "moses", "zarathushtra", "the-buddha", "isaiah-jeremiah-ezekiel", "jesus-of-nazareth", "muhammad", "krishna-and-rama", "guru-nanak"];
+  const slugs = ["enoch", "abraham", "moses", "zarathushtra", "the-buddha", "isaiah-jeremiah-ezekiel", "jesus-of-nazareth", "muhammad", "krishna-and-rama", "guru-nanak"];
   for (const slug of slugs) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
@@ -903,4 +903,17 @@ test("Prophets & Teachers tab: overview with filters, golden rule strip and nine
   assert.doesNotMatch(m.body.split("<main")[1] || m.body, /<img [^>]*alt="[^"]*Muhammad/i, "no picture of the Prophet");
   const css = (await call("/site.css")).body;
   assert.match(css, /#pf-abr:checked ~ \.pf-grid \.pf-card:not\(\.pf-abr\)/);
+});
+
+test("Enoch: Idris page in Prophets & Teachers and The Books of Enoch in Sacred Texts, cross-linked", async () => {
+  const e = await call("/teachings/enoch");
+  for (const t of ["he was not; for God took him", "Idris", "fourth heaven", "Metatron", "Hebrews 11:5"]) assert.ok(e.body.includes(t), t);
+  assert.match(e.body, /href="\/teachings\/the-books-of-enoch"/);
+  const b = await call("/teachings/the-books-of-enoch");
+  for (const t of ["Watchers", "364 days", "360 books", "Rabbi Ishmael", "Ethiopian and Eritrean Orthodox", "John Dee", "modern name"]) assert.ok(b.body.includes(t), t);
+  assert.match(b.body, /id="st-heavens-t"/);
+  assert.match(b.body, /id="st-sungates-t"/);
+  assert.doesNotMatch(b.body, /\{\{text-/);
+  const m = await call("/teachings/archangel-metatron");
+  assert.match(m.body, /href="\/teachings\/enoch"/);
 });
