@@ -62,6 +62,7 @@ const files = {
   "/images/sign-laurel.png": ["public/images/sign-laurel.png", "image/png"],
   "/images/sign-flower.png": ["public/images/sign-flower.png", "image/png"],
   "/images/sign-temple.png": ["public/images/sign-temple.png", "image/png"],
+  "/images/sign-book.png": ["public/images/sign-book.png", "image/png"],
   "/images/library-column.png": ["public/images/library-column.png", "image/png"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
