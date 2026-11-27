@@ -1009,7 +1009,7 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
   for (const t of ["which he hath planted", "Zarephath", "Tyre and Sidon", "Qana", "Qadisha"]) assert.ok(leb.body.includes(t), t);
   assert.match(leb.body, /<img src="\/images\/cedars-of-lebanon\.jpg" width="1400" height="788"/);
   assert.match(leb.body, /An artistic vision of the cedars of Lebanon/);
-  assert.ok(leb.body.indexOf("cedars-of-lebanon.jpg") < leb.body.indexOf('id="sl-cedar-t"'), "picture first, drawing below");
+  assert.doesNotMatch(leb.body, /id="sl-cedar-t"/, "only the real cedar picture, no drawn cedar");
   const img = await call("/images/cedars-of-lebanon.jpg");
   assert.equal(img.status, 200);
 });
