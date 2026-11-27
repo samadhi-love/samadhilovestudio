@@ -267,3 +267,14 @@ else sky.start();
   // Older browsers without exclusive <details name>: opening one panel closes the other.
   document.querySelectorAll(".nav-drop").forEach((d) => d.addEventListener("toggle", () => { if (d.open) open().forEach((o) => { if (o !== d) o.removeAttribute("open"); }); }));
 })();
+
+// Star maps: on a narrow screen the map scrolls sideways; open it centred on the star family's home.
+for (const box of document.querySelectorAll(".star-map-scroll[data-focus]")) {
+  const centre = () => {
+    if (box.scrollWidth <= box.clientWidth) return;
+    const want = Number(box.dataset.focus) * box.scrollWidth - box.clientWidth / 2;
+    box.scrollLeft = Math.max(0, Math.min(box.scrollWidth - box.clientWidth, want));
+  };
+  centre();
+  window.addEventListener("load", centre, { once: true });
+}

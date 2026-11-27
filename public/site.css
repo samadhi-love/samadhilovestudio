@@ -346,6 +346,16 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .star-map svg { width: 100%; height: auto; display: block; border-radius: 18px; border: 1px solid rgba(242, 196, 109, .25); }
 .star-map figcaption { color: #cfc8f0; font-size: 13px; line-height: 1.5; margin-top: 8px; }
 .star-map figcaption .fine { display: block; margin-top: 4px; }
+.star-map figcaption p { margin: 6px 0 0; }
+.star-map .star-map-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 18px; }
+.star-map .sm-swipe { display: none; }
+@media (max-width: 600px) {
+  .star-map .star-map-scroll svg { min-width: 640px; }
+  .star-map .sm-swipe { display: block; }
+}
+.star-map .sm-tw { animation: sm-twinkle 6s ease-in-out infinite; }
+@keyframes sm-twinkle { 0%, 100% { opacity: .5; } 50% { opacity: .36; } }
+@media (prefers-reduced-motion: reduce) { .star-map .sm-tw { animation: none; } }
 @media (max-width: 760px) { .home-sky { grid-template-columns: 1fr; } }
 .star-portrait.tall img { max-width: 520px; margin: 0 auto; }
 .choose-portraits h3 { margin: 28px 0 12px; color: #f2c46d; }

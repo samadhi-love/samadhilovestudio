@@ -329,8 +329,8 @@ test("the six star homes each have a star map beside the real sky photo", async 
   for (const [slug, home] of Object.entries(want)) {
     const page = await call(`/teachings/${slug}`);
     // On Replit the telescope photo sits beside the map; in this checkout (no picture folder) the map shows alone.
-    assert.match(page.body, /<figure class="star-map">\s*<svg/, slug);
-    assert.ok(page.body.includes(`>${home.replace("'", "&#39;")}</text>`) || page.body.includes(`>${home}</text>`), `${slug} highlights ${home}`);
+    assert.match(page.body, /<figure class="star-map">\s*<div class="star-map-scroll"[^>]*><svg/, slug);
+    assert.ok(page.body.includes(`>${home.replace("'", "&#39;")}</tspan>`) || page.body.includes(`>${home}</tspan>`), `${slug} highlights ${home}`);
   }
   const hathors = await call("/teachings/hathors");
   assert.doesNotMatch(hathors.body, /class="star-map"/);
@@ -1249,4 +1249,32 @@ test("Samadhi's rose, heart and cross pictures replace the drawings", async () =
   assert.ok(page.body.includes('src="/images/world-soul-cross.jpg"') && page.body.includes('src="/images/rose-cross.jpg"'));
   for (const slug of ["greed-wanting-more-than-we-need", "grace-surrender-and-humility"]) assert.ok((await call(`/teachings/${slug}`)).body.includes('src="/images/heart-light.jpg"'), slug);
   for (const f of ["rose-heart", "rose-cross", "world-soul-cross", "heart-light"]) assert.equal((await call(`/images/${f}.jpg`)).status, 200, f);
+});
+
+test("every star map renders the real sky, and every label on it gives a distance in light-years", async () => {
+  const { starMap, starMapFamilies, starColor } = await import("../lib/starmaps.js");
+  const { SKY } = await import("../lib/starmap-data.js");
+  assert.equal(starMapFamilies.length, 6);
+  for (const family of starMapFamilies) {
+    const svg = starMap(family);
+    assert.match(svg, /<svg viewBox="0 0 800 450"/, family);
+    // Real catalogue stars, never random ones.
+    assert.ok(SKY[family].stars.length >= 25, `${family} has catalogue stars`);
+    assert.ok(SKY[family].stars.every(([x, y, mag]) => mag <= 6 && x > -10 && x < 810 && y > -10 && y < 460), `${family} stars are on the map`);
+    assert.doesNotMatch(svg, /Math\.random/);
+    const labels = svg.match(/<text class="sm-label"[\s\S]*?<\/text>/g) || [];
+    assert.ok(labels.length >= 3, `${family} has labels`);
+    for (const l of labels) assert.match(l, /light-years<\/tspan>/, `${family}: ${l.replace(/<[^>]+>/g, " ")}`);
+    // North up, east left, and the plain-language notes underneath.
+    assert.match(svg, /N ↑ · E ←/);
+    assert.match(svg, /A light-year is how far light travels in one year, about 5\.9 trillion miles\. The light you see from .+ tonight left (it|them) about [\d.,]+( million)? years ago\./);
+    assert.match(svg, /How to find it:/);
+    assert.match(svg, /What makes it special:/);
+  }
+  // True colours: red-orange Betelgeuse is warmer than blue-white Rigel.
+  const warm = (hex) => parseInt(hex.slice(1, 3), 16) - parseInt(hex.slice(5, 7), 16);
+  assert.ok(warm(starColor(1.85)) > 60 && warm(starColor(-0.03)) < 10);
+  // Twinkle respects visitors who prefer less motion.
+  const css = (await import("node:fs")).readFileSync(new URL("../public/site.css", import.meta.url), "utf8");
+  assert.match(css, /prefers-reduced-motion: reduce\) \{ \.star-map \.sm-tw \{ animation: none/);
 });
