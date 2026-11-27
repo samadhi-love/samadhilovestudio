@@ -2,6 +2,9 @@
 
 Wisdom, light and music for the awakening soul. A separate app from Versual Studio.
 
+## Writing
+Read [WRITING-GUIDE.md](WRITING-GUIDE.md) before writing or changing any page.
+
 ## Run and check
 - Run: `npm install` once (one package: `@replit/object-storage`), then `node server.js` (Node 20+).
 - Check: `npm test` (all tests must pass before publishing).

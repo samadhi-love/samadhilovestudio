@@ -500,14 +500,21 @@ test("inner pages use their title-matched backdrops and retain picture credits",
   }
 });
 
-test("Teachings no longer shows the retired sacred-geometry artwork (holy name used as decoration, Nov 2026)", async () => {
-  assert.equal(categories.find((c) => c.id === "teachings").artwork, undefined);
+test("Restored by Samadhi: the sacred-geometry artwork tops Teachings and prayer-masters is on the Prayer to Jesus", async () => {
+  const artwork = categories.find((c) => c.id === "teachings").artwork;
+  assert.equal(artwork.src, "/images/teachings-sacred-geometry.jpg");
   const tab = await call("/library?tab=teachings");
-  assert.ok(!tab.body.includes("/images/teachings-sacred-geometry.jpg"));
-  const prayer = await call("/library?tab=prayers");
-  assert.ok(!prayer.body.includes("prayer-golden.jpg"));
-  const all = await Promise.all(categories.find((c) => c.id === "prayers").items.map((i) => call(`/teachings/${i.slug}`)));
-  assert.ok(all.every((p) => !p.body.includes("prayer-masters.jpg")));
+  assert.ok(tab.body.includes('<figure class="teachings-art-banner art-frame"><img src="/images/teachings-sacred-geometry.jpg"'));
+  const jesus = await call("/teachings/prayer-to-jesus");
+  assert.ok(jesus.body.includes('src="/images/prayer-masters.jpg"'));
+  const prayers = await call("/library?tab=prayers");
+  assert.ok(!prayers.body.includes("prayer-golden.jpg"));
+  const { readFileSync } = await import("node:fs");
+  const list = readFileSync(new URL("../public/images/replacements/LIST.md", import.meta.url), "utf8");
+  assert.match(list, /mystery-school symbols, masters, angels and star beings are welcome/);
+  assert.ok(!/holy names used as decoration/.test(list));
+  const guide = readFileSync(new URL("../WRITING-GUIDE.md", import.meta.url), "utf8");
+  assert.match(guide.split("\n").slice(0, 4).join(" "), /Every page is written for seekers who are ready and questioning/);
 });
 
 test("reviewed nude artworks are not used by teachings, masters or the chooser", async () => {
@@ -601,7 +608,7 @@ test("Knowledge & Insight tab: food, compassion, processed food and the sacred s
   const pages = { "food-is-energy": ["SMILES", "Sattvic", "not medical advice"],
     "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "Temple Grandin"],
     "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "the higher the risk"],
-    "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "dhatu kshaya", "Never despair", "every soul can begin again", "Genesis 38:9", "Tikkun HaKlali", "brahmacharya", "What medicine says", "No shame"] };
+    "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "dhatu kshaya", "Never despair", "every soul can begin again", "Lilith", "Genesis 38:9", "Tikkun HaKlali", "brahmacharya", "What medicine says", "No shame"] };
   for (const [slug, words] of Object.entries(pages)) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
@@ -1151,14 +1158,15 @@ test("Respect fixes: no shrine photo as a background, statement paragraph, no fe
   assert.match(about.body, /I represent no sect or group, and this site is not one\./);
   assert.ok(about.body.indexOf("I seek to heal, not to hurt") < about.body.indexOf("What I offer is simple"));
   const seed = await call("/teachings/the-sacred-seed");
-  assert.ok(!/Lilith|demon|mazikin|liable to death|coffin/i.test(seed.body));
+  assert.match(seed.body, /Lilith/, "the Lilith passage is restored (Samadhi, Nov 2026)");
+  assert.ok(!/liable to death|coffin/i.test(seed.body));
   assert.match(seed.body, /No one should fall into despair; every soul can begin again\./);
 });
 
 test("Replacement pictures: a numbered file in public/images/replacements takes its place automatically", async () => {
   const { writeFileSync, rmSync, existsSync } = await import("node:fs");
   const { REPLACEMENTS, replacementsDir } = await import("../lib/replacements.js");
-  assert.deepEqual(REPLACEMENTS.map((r) => r.n), ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11"]);
+  assert.deepEqual(REPLACEMENTS.map((r) => r.n), ["01", "02", "03", "04", "05", "06", "07", "08", "11"], "09 and 10 withdrawn; numbers never change");
   assert.ok(existsSync(`${replacementsDir}/LIST.md`));
   const before = await call("/teachings/andromedans");
   assert.ok(!before.body.includes("/images/replacements/01"), "nothing changes until the file exists");
