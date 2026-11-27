@@ -25,6 +25,7 @@ const files = {
   "/images/chakras.jpg": ["public/images/chakras.jpg", "image/jpeg"],
   "/images/cedars-of-lebanon.jpg": ["public/images/cedars-of-lebanon.jpg", "image/jpeg"],
   "/images/jerusalem-olives.jpg": ["public/images/jerusalem-olives.jpg", "image/jpeg"],
+  "/images/peace-dove.jpg": ["public/images/peace-dove.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
