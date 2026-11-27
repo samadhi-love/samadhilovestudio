@@ -470,3 +470,58 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .philo-card .philo-q { color: #f2c46d; font-style: italic; }
 .philo-icon { width: 42px; height: 42px; color: #f2c46d; }
 .philo-figure svg { width: 100%; height: auto; display: block; }
+/* Tree of Life explorer: radio buttons drive every layer (no scripts). */
+.tolx { position: relative; display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.tolx > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.tolx > svg { width: 100%; height: auto; display: block; }
+.tolx figcaption { grid-column: 1 / -1; }
+.tx-controls { margin: 0 0 14px; }
+.tx-note { display: none; background: rgba(255,255,255,.04); border: 1px solid rgba(242,196,109,.25); border-radius: 14px; padding: 6px 18px 10px; }
+.tx-note h3 { margin: 10px 0 6px; color: var(--gold); }
+.tx-note p, .tx-note li { font-size: .98rem; }
+.tx-layer { opacity: 0; transition: opacity .5s ease; }
+#tx-tree:checked ~ .tx-side .tx-n-tree, #tx-pillars:checked ~ .tx-side .tx-n-pillars, #tx-flash:checked ~ .tx-side .tx-n-flash, #tx-return:checked ~ .tx-side .tx-n-return, #tx-paths:checked ~ .tx-side .tx-n-paths, #tx-triads:checked ~ .tx-side .tx-n-triads, #tx-worlds:checked ~ .tx-side .tx-n-worlds { display: block; }
+#tx-pillars:checked ~ svg .tx-l-pillars, #tx-flash:checked ~ svg .tx-l-flash, #tx-return:checked ~ svg .tx-l-return, #tx-paths:checked ~ svg .tx-l-paths, #tx-triads:checked ~ svg .tx-l-triads, #tx-worlds:checked ~ svg .tx-l-worlds { opacity: 1; }
+#tx-tree:checked ~ .tx-side label[for="tx-tree"], #tx-pillars:checked ~ .tx-side label[for="tx-pillars"], #tx-flash:checked ~ .tx-side label[for="tx-flash"], #tx-return:checked ~ .tx-side label[for="tx-return"], #tx-paths:checked ~ .tx-side label[for="tx-paths"], #tx-triads:checked ~ .tx-side label[for="tx-triads"], #tx-worlds:checked ~ .tx-side label[for="tx-worlds"] { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
+.tolx > input:focus-visible ~ .tx-side .tx-controls { outline: 2px solid var(--teal); outline-offset: 4px; border-radius: 12px; }
+#tx-pillars:checked ~ svg .tx-pillar, #tx-worlds:checked ~ svg .tx-world, #tx-triads:checked ~ svg .tx-tri { animation: tx-fadein 1.2s ease both; }
+#tx-pillars:checked ~ svg .tx-pillar rect { animation: tx-breathe 4s ease-in-out infinite; }
+#tx-flash:checked ~ svg .tx-l-flash { stroke-dasharray: 1; animation: tx-draw 5s ease-in-out infinite; }
+#tx-return:checked ~ svg .tx-l-return { stroke-dasharray: 1; animation: tx-climb 6s ease-in-out infinite; }
+#tx-flash:checked ~ svg .tx-node[style] .tx-orb { animation: tx-lit 5s ease-in-out infinite; animation-delay: calc(var(--d) * .38s); }
+#tx-return:checked ~ svg .tx-node[style] .tx-orb { animation: tx-lit-green 6s ease-in-out infinite; animation-delay: calc((9 - var(--d)) * .45s); }
+#tx-paths:checked ~ svg .tx-path { opacity: 0; animation: tx-path 8s ease-in-out infinite; }
+@keyframes tx-fadein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tx-breathe { 50% { opacity: .3; } }
+@keyframes tx-draw { 0% { stroke-dashoffset: 1; } 60%, 85% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes tx-climb { 0% { stroke-dashoffset: 1; } 65%, 88% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes tx-lit { 0%, 100% { fill: #120d24; } 10%, 30% { fill: #f2c46d; } }
+@keyframes tx-lit-green { 0%, 100% { fill: #120d24; } 10%, 30% { fill: #3fae6a; } }
+@keyframes tx-path { 0% { opacity: 0; } 5%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .tolx svg * { animation: none !important; }
+  #tx-flash:checked ~ svg .tx-l-flash, #tx-return:checked ~ svg .tx-l-return { stroke-dasharray: none; }
+  #tx-paths:checked ~ svg .tx-path { opacity: 1; }
+}
+@media (max-width: 760px) { .tolx { grid-template-columns: 1fr; } .tolx > svg { max-width: 420px; margin: 0 auto; } }
+/* Chakra lotuses: checkboxes for colour, breathing and rising energy (no scripts). */
+.lx { position: relative; }
+.lx > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.lx > svg { width: 100%; max-width: 520px; height: auto; display: block; margin: 0 auto; }
+.lx-all > svg { max-width: 440px; }
+.lx-controls { justify-content: center; }
+.lx .lx-fill { transition: opacity .8s ease; }
+.lx-col:checked ~ svg .lx-fill { opacity: .55; }
+.lx-col:checked ~ svg circle.lx-fill { opacity: .75; }
+.lx .lx-b { transform-box: fill-box; transform-origin: center; }
+.lx-br:checked ~ svg .lx-b { animation: lx-breathe 7s ease-in-out infinite; }
+.lx-br:checked ~ svg .lx-halo { animation: lx-halo 7s ease-in-out infinite; }
+.lx-rise:checked ~ svg .lx-dot { animation: lx-rise 7s ease-in-out infinite; }
+.lx-rise:checked ~ svg .lx-glow { animation: lx-glow 7s ease-in-out infinite; animation-delay: calc(var(--i) * .95s); }
+.lx-col:checked ~ .lx-controls .lx-lc, .lx-br:checked ~ .lx-controls .lx-lb, .lx-rise:checked ~ .lx-controls .lx-lr { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
+.lx-col:focus-visible ~ .lx-controls .lx-lc, .lx-br:focus-visible ~ .lx-controls .lx-lb, .lx-rise:focus-visible ~ .lx-controls .lx-lr { outline: 2px solid var(--teal); outline-offset: 3px; }
+@keyframes lx-breathe { 0%, 100% { transform: scale(.9); } 50% { transform: scale(1.04); } }
+@keyframes lx-halo { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
+@keyframes lx-rise { 0% { opacity: 0; transform: translateY(0); } 8% { opacity: 1; } 90% { opacity: 1; transform: translateY(var(--rise)); } 100% { opacity: 0; transform: translateY(var(--rise)); } }
+@keyframes lx-glow { 0%, 20%, 100% { opacity: 0; } 8% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .lx svg * { animation: none !important; } .lx-rise:checked ~ svg .lx-glow { opacity: .35; } }

@@ -811,3 +811,25 @@ test("Philosophy tab: short menu name, full heading", async () => {
   const tab = await call("/library?tab=philosophers");
   assert.ok(tab.body.includes("Philosophy and the Great Philosophers"));
 });
+
+test("Tree of Life explorer and chakra lotuses: animated drawings driven by CSS only", async () => {
+  const sef = await call("/teachings/the-ten-sefirot");
+  assert.equal((sef.body.match(/name="tx-step"/g) || []).length, 7, "seven explorer steps");
+  for (const t of ["The lightning flash", "The path of return", "The 22 paths", "Four worlds", "thirty-two paths of wisdom"]) assert.ok(sef.body.includes(t), t);
+  assert.equal((sef.body.match(/class="tx-path"/g) || []).length, 22, "22 paths animate");
+  assert.doesNotMatch(sef.body, /\{\{tree-/);
+  const counts = { "chakra-root": 4, "chakra-sacral": 6, "chakra-solar-plexus": 10, "chakra-heart": 12, "chakra-throat": 16 };
+  for (const [slug, n] of Object.entries(counts)) {
+    const page = await call(`/teachings/${slug}`);
+    const fig = page.body.split('<figure class="cross-hero lx">')[1].split("</svg>")[0];
+    const fill = fig.split('class="lx-fill"')[1].split("</g>")[0];
+    assert.equal((fill.match(/<path /g) || []).length, n, `${slug} has ${n} petals`);
+    assert.doesNotMatch(page.body, /\{\{lotus-/);
+  }
+  const all = await call("/teachings/the-seven-chakras");
+  assert.match(all.body, /id="lx-all-r" class="lx-rise"/);
+  assert.equal((all.body.match(/class="lx-node"/g) || []).length, 7);
+  const css = (await call("/site.css")).body;
+  assert.match(css, /#tx-flash:checked ~ svg \.tx-l-flash/);
+  assert.match(css, /\.lx-rise:checked ~ svg \.lx-dot/);
+});
