@@ -55,6 +55,8 @@ const files = {
   "/images/new-heart.jpg": ["public/images/new-heart.jpg", "image/jpeg"],
   "/images/dove-lamb.jpg": ["public/images/dove-lamb.jpg", "image/jpeg"],
   "/images/lamp-niche.jpg": ["public/images/lamp-niche.jpg", "image/jpeg"],
+  "/images/lotus-sunrise.jpg": ["public/images/lotus-sunrise.jpg", "image/jpeg"],
+  "/images/flute-bow-lotus.jpg": ["public/images/flute-bow-lotus.jpg", "image/jpeg"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
