@@ -1048,7 +1048,7 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   assert.match(death.body, /Samadhi&#39;s view|Samadhi's view/);
   const board = await call("/teachings/the-life-review-and-the-karmic-board");
   assert.match(board.body, /Vairochana/);
-  assert.match(board.body, /shown as lights rather than faces/);
+  assert.ok(board.body.includes('src="/images/soul-stairs.jpg"'), "Samadhi's stairway picture");
   // Every teaching in a Path tab carries the Path of Study sign; the wheel links all twelve stages.
   const page = await call("/teachings/love-and-marriage");
   assert.match(page.body, /class="path-strip"[\s\S]*Stage 10 of 12: The Heart and Daily Life[\s\S]*Next stage: Beyond the Veil/);
@@ -1218,4 +1218,12 @@ test("Spirit in Daily Life opens every lesson with Samadhi's lamp picture", asyn
     assert.ok(page.body.includes('src="/images/daily-lamp.jpg"'), i.slug);
   }
   assert.equal((await call("/images/daily-lamp.jpg")).status, 200);
+});
+
+test("The Soul's Journey uses Samadhi's door and stairway pictures, no drawings", async () => {
+  for (const i of categories.find((c) => c.id === "souls-journey").items) {
+    const page = await call(`/teachings/${i.slug}`);
+    assert.ok(/src="\/images\/soul-(door|stairs)\.jpg"/.test(page.body), i.slug);
+    assert.ok(!/class="sj-figure"/.test(page.body), `${i.slug}: no drawn figure`);
+  }
 });
