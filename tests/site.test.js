@@ -207,8 +207,8 @@ test("Kriya, the masters, the chakras and the 32 paths all have their pages", as
   assert.match(paths.body, /thirty-two mysterious Paths of Wisdom/);
 });
 
-test("every page carries the golden Om beside the name", async () => {
-  for (const p of ["/", "/library", "/about", "/teachings/kriya-yoga"]) assert.match((await call(p)).body, /<span class="om" aria-hidden="true">ॐ<\/span>/, p);
+test("every page carries Samadhi's golden Om coin beside the name", async () => {
+  for (const p of ["/", "/library", "/about", "/teachings/kriya-yoga"]) assert.match((await call(p)).body, /<span class="om om-coin" aria-hidden="true"><img src="\/images\/om-coin\.png"/, p);
 });
 
 test("the Star Family tab has the star nations of light and a calm word on the shadow side", async () => {
@@ -945,7 +945,7 @@ test("Navigation: six top items, Library panel in seven families, every tab reac
   for (const c of categories) assert.ok(phone.includes(`href="/library?tab=${c.id}"`), `${c.id} reachable from the phone menu`);
   assert.equal((phone.match(/<details class="nav-family">/g) || []).length >= 5, true, "families fold closed on phones");
   assert.doesNotMatch(phone, /<details class="nav-family" open/);
-  const titles = [...panel.matchAll(/<p class="nav-col-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
+  const titles = [...panel.matchAll(/<p class="nav-col-title">(?:<img [^>]*>)?([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
   assert.deepEqual(titles, libraryFamilies.map((f) => f.label));
   const music = desk.match(/<div class="nav-panel nav-panel-music">[\s\S]*?<\/div>/)[0];
   assert.match(music, /href="\/music">Songs</);

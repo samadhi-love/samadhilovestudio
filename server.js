@@ -64,6 +64,7 @@ const files = {
   "/images/sign-temple.png": ["public/images/sign-temple.png", "image/png"],
   "/images/sign-book.png": ["public/images/sign-book.png", "image/png"],
   "/images/sign-flame.png": ["public/images/sign-flame.png", "image/png"],
+  "/images/om-coin.png": ["public/images/om-coin.png", "image/png"],
   "/images/library-column.png": ["public/images/library-column.png", "image/png"],
   "/images/hero-scroll.jpg": ["public/images/hero-scroll.jpg", "image/jpeg"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
