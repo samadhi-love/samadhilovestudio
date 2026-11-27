@@ -22,6 +22,7 @@ const files = {
   "/favicon.svg": ["public/favicon.svg", "image/svg+xml"],
   "/owner.js": ["public/owner.js", "text/javascript; charset=utf-8"],
   "/images/chakras.jpg": ["public/images/chakras.jpg", "image/jpeg"],
+  "/images/cedars-of-lebanon.jpg": ["public/images/cedars-of-lebanon.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
   "/images/prayer.jpg": ["public/images/prayer.jpg", "image/jpeg"],

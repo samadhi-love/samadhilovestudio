@@ -1007,4 +1007,9 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
   for (const t of ["Isaac and Ishmael buried him", "as if he had killed all mankind", "Blessed are the peacemakers", "They shall not hurt nor destroy in all my holy mountain", "A prayer for peace"]) assert.ok(peace.body.includes(t), t);
   const leb = await call("/teachings/lebanon-in-scripture");
   for (const t of ["which he hath planted", "Zarephath", "Tyre and Sidon", "Qana", "Qadisha"]) assert.ok(leb.body.includes(t), t);
+  assert.match(leb.body, /<img src="\/images\/cedars-of-lebanon\.jpg" width="1400" height="788"/);
+  assert.match(leb.body, /An artistic vision of the cedars of Lebanon/);
+  assert.ok(leb.body.indexOf("cedars-of-lebanon.jpg") < leb.body.indexOf('id="sl-cedar-t"'), "picture first, drawing below");
+  const img = await call("/images/cedars-of-lebanon.jpg");
+  assert.equal(img.status, 200);
 });
