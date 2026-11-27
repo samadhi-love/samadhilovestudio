@@ -15,7 +15,7 @@ function call(path, authenticated = true) {
 }
 
 test("the yoga teaching sits right after Meditation and Prayer, with working neighbours", async () => {
-  const teachings = categories.find((c) => c.id === "teachings").items;
+  const teachings = categories.find((c) => c.id === "practices").items; // moved to Practices (Nov 2026 reorganization)
   const index = teachings.findIndex((item) => item.slug === "meditation-and-yoga");
   assert.ok(index > 0);
   assert.equal(teachings[index - 1].slug, "meditation-and-prayer");

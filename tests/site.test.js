@@ -66,11 +66,11 @@ test("each Library tab lists its teachings and each teaching has its own page", 
   }
 });
 
-test("slugs are unique and the home page shows the five families", async () => {
+test("slugs are unique and the home page shows the seven families", async () => {
   const slugs = categories.flatMap((c) => c.items.map((i) => i.slug));
   assert.equal(new Set(slugs).size, slugs.length);
   const home = await call("/");
-  assert.match(home.body, /Five families of knowledge/);
+  assert.match(home.body, /Seven families of knowledge/);
   assert.match(home.body, /♫ ✧ ❨ Music is for the soul ❩ ✧ ♫/);
 });
 
@@ -177,8 +177,8 @@ test("the encyclopedia sections are in the Library and in the home page families
     assert.ok(c && c.items.length >= 8, id);
   }
   const home = await call("/");
-  assert.equal((home.body.match(/<article class="card family-card"><canvas class="orb"/g) || []).length, 5);
-  const grid = home.body.slice(home.body.indexOf("Five families of knowledge"), home.body.indexOf('<section class="quote">'));
+  assert.equal((home.body.match(/<article class="card family-card"><canvas class="orb"/g) || []).length, 7);
+  const grid = home.body.slice(home.body.indexOf("Seven families of knowledge"), home.body.indexOf('<section class="quote">'));
   for (const id of ["teachings", "mystics", "chakras", "human-story", "ages-of-the-world", "prayers"]) assert.ok(grid.includes(`/library?tab=${id}`), `home family cards link ${id}`);
   for (const tab of ["sages-and-kings", "mystics", "human-story", "chakras"]) assert.match(home.body, new RegExp(`<nav class="nav[^]*href="/library\\?tab=${tab}"`), `menu links to ${tab}`);
   const lib = await call("/library?tab=human-story");
@@ -679,9 +679,13 @@ test("Homer tab and the eight new teachers render with their pictures", async ()
   assert.match(jung.body, /\/images\/jung-mandala\.jpg/);
   assert.doesNotMatch(jung.body, /\{\{/);
   const phil = await call("/library?tab=philosophers");
-  for (const s of ["hermes-trismegistus", "zoroaster", "orpheus", "epictetus", "carl-jung"]) assert.ok(phil.body.includes(`href="/teachings/${s}"`), s);
+  for (const s of ["zoroaster", "epictetus", "carl-jung"]) assert.ok(phil.body.includes(`href="/teachings/${s}"`), s);
+  const herm = await call("/library?tab=hermetic-wisdom");
+  for (const s of ["hermes-trismegistus", "orpheus"]) assert.ok(herm.body.includes(`href="/teachings/${s}"`), s);
   const myst = await call("/library?tab=mystics");
-  for (const s of ["adi-shankara", "patanjali", "hafiz"]) assert.ok(myst.body.includes(`href="/teachings/${s}"`), s);
+  for (const s of ["adi-shankara", "hafiz"]) assert.ok(myst.body.includes(`href="/teachings/${s}"`), s);
+  const yoga = await call("/library?tab=yoga-kriya");
+  assert.ok(yoga.body.includes('href="/teachings/patanjali"'), "patanjali");
 });
 
 test("Blessing & Gratitude tab: four pages, placed before Prayers, with Samadhi's sunrise picture", async () => {
@@ -779,9 +783,9 @@ test("Philosophy pages open the Philosophers tab with the owl, six branch cards 
   assert.match(css, /\.philo-grid \{/);
 });
 
-test("Philosophy tab: short menu name, full heading", async () => {
+test("Philosophy tab: menu name The Great Philosophers, full heading", async () => {
   const home = await call("/");
-  assert.match(home.body, /href="\/library\?tab=philosophers"[^>]*>Philosophy</);
+  assert.match(home.body, /href="\/library\?tab=philosophers"[^>]*>The Great Philosophers</);
   const tab = await call("/library?tab=philosophers");
   assert.ok(tab.body.includes("Philosophy and the Great Philosophers"));
 });
@@ -927,7 +931,7 @@ test("Start Here and Practices: where to begin, glossary, principles, breath gui
   assert.equal(js.status, 200);
 });
 
-test("Navigation: six top items, Library panel in five families, every tab reachable, grouped Library page", async () => {
+test("Navigation: six top items, Library panel in seven families, every tab reachable, grouped Library page", async () => {
   const { libraryFamilies } = await import("../lib/content.js");
   const home = await call("/");
   const desk = home.body.match(/<div class="nav-links">[\s\S]*?<\/div>\n<details class="nav-menu">/)[0];
@@ -942,7 +946,7 @@ test("Navigation: six top items, Library panel in five families, every tab reach
   assert.equal((phone.match(/<details class="nav-family">/g) || []).length >= 5, true, "families fold closed on phones");
   assert.doesNotMatch(phone, /<details class="nav-family" open/);
   const titles = [...panel.matchAll(/<p class="nav-col-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
-  assert.deepEqual(titles.slice(0, 5), libraryFamilies.map((f) => f.label));
+  assert.deepEqual(titles, libraryFamilies.map((f) => f.label));
   const music = desk.match(/<div class="nav-panel nav-panel-music">[\s\S]*?<\/div>/)[0];
   assert.match(music, /href="\/music">Songs</);
   const lib = await call("/library?tab=sacred-texts");
@@ -951,7 +955,7 @@ test("Navigation: six top items, Library panel in five families, every tab reach
   const teach = await call("/teachings/the-zohar");
   assert.match(teach.body, /<summary class="is-current">Library/, "and on a teaching page");
   const groups = [...lib.body.matchAll(/<h2 class="tab-family-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
-  assert.deepEqual(groups.slice(0, 5), libraryFamilies.map((f) => f.label));
+  assert.deepEqual(groups, libraryFamilies.map((f) => f.label));
   const order = libraryFamilies[0].tabs.filter((id) => categories.some((c) => c.id === id)).map((id) => lib.body.indexOf(`class="tab" href="/library?tab=${id}"`));
   assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs in family order");
   const foot = home.body.match(/<nav aria-label="Footer">([\s\S]*?)<\/nav>/)[1];
@@ -1040,7 +1044,7 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   for (const id of ["souls-journey", "mystery-schools", "daily-life"]) assert.ok(ids.includes(id), id);
   assert.equal(categories.find((c) => c.id === "souls-journey").items.length, 7);
   const fam = Object.fromEntries(libraryFamilies.map((f) => [f.id, f.tabs]));
-  assert.ok(fam.spiritual.includes("souls-journey") && fam.spiritual.includes("daily-life") && fam.messengers.includes("mystery-schools"));
+  assert.ok(fam.spiritual.includes("souls-journey") && fam.practice.includes("daily-life") && fam.sciences.includes("mystery-schools"));
   const added = { practices: ["sacred-sound-mantra-and-frequency", "the-power-of-silence", "fasting-across-the-traditions"], "beyond-the-veil": ["dreams-the-language-of-the-soul"], teachings: ["the-divine-feminine", "grace-surrender-and-humility"], "sacred-geometry": ["numerology-the-meaning-of-numbers"], start: ["the-path-of-study"] };
   for (const [tab, slugs] of Object.entries(added)) for (const s of slugs) assert.ok(categories.find((c) => c.id === tab).items.some((i) => i.slug === s), s);
   // Samadhi's numbers are labelled as the teaching of this path; the Karmic Board is drawn as lights.
@@ -1295,4 +1299,78 @@ test("The Ten Sefirot: Samadhi's golden tree with the animated Tree of Life on t
   assert.equal((fig.match(/class="tl-note" id="tln-/g) || []).length, 11, "a note for every sphere");
   const css = (await import("node:fs")).readFileSync(new URL("../public/site.css", import.meta.url), "utf8");
   assert.match(css, /prefers-reduced-motion: reduce\) \{\n  \.tl-gold-figure \.tl-flow/);
+});
+
+test("Library reorganization: all 275 teachings still in a tab, every old tab link opens, nothing lost", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const { STAGES } = await import("../lib/path.js");
+  const fs = await import("node:fs");
+  const before = JSON.parse(fs.readFileSync(new URL("./fixtures/library-before-reorg.json", import.meta.url), "utf8"));
+  assert.equal(before.slugs.length, 275);
+  const now = categories.flatMap((c) => c.items.map((i) => i.slug));
+  assert.equal(now.length, 275, "still 275 teachings");
+  assert.deepEqual([...now].sort(), before.slugs, "the very same teachings, none lost or added");
+  // Every teaching shows up in a tab of the Library, and every page still opens at its old address.
+  const listed = new Set();
+  for (const c of categories) {
+    const lib = await call(`/library?tab=${c.id}`);
+    assert.equal(lib.status, 200, c.id);
+    for (const m of lib.body.matchAll(/<a class="more" href="\/teachings\/([^"]+)"/g)) listed.add(m[1]);
+  }
+  for (const slug of before.slugs) {
+    assert.ok(listed.has(slug), `${slug} appears in a Library tab`);
+    assert.equal((await call(`/teachings/${slug}`)).status, 200, slug);
+  }
+  // Every old tab id still exists and opens.
+  for (const id of before.tabs) {
+    assert.ok(categories.some((c) => c.id === id), `tab ${id} kept`);
+    const lib = await call(`/library?tab=${id}`);
+    assert.match(lib.body, new RegExp(`href="/library\\?tab=${id}" aria-current="page"`), `old link /library?tab=${id} opens its tab`);
+  }
+  // Families: Start Here first, no "More", the new family between the first two.
+  assert.deepEqual(libraryFamilies.map((f) => f.id), ["start", "spiritual", "practice", "messengers", "philosophy", "sciences", "history"]);
+  assert.deepEqual(libraryFamilies.find((f) => f.id === "practice").tabs, ["practices", "yoga-kriya", "prayers", "blessing", "daily-life", "knowledge"]);
+  const grouped = categories.filter((c) => libraryFamilies.some((f) => f.tabs.includes(c.id)));
+  assert.equal(grouped.length, categories.length, "every tab belongs to a family, so More is gone");
+  const home = await call("/");
+  assert.doesNotMatch(home.body, /nav-col-title">More</);
+  assert.ok(home.body.indexOf('nav-col-title">Start Here') < home.body.indexOf('nav-col-title">The Soul and the Divine'), "Start Here first in the menu");
+  assert.match(home.body, /href="\/library\?tab=start">New here\? Start Here/);
+  const cards = [...home.body.matchAll(/<article class="card family-card">[\s\S]*?<h3>([^<]+)<\/h3>/g)].map((m) => m[1].replace("&amp;", "&"));
+  assert.equal(cards[0], "Start Here");
+  // Moves.
+  const tabOf = (slug) => categories.find((c) => c.items.some((i) => i.slug === slug)).id;
+  const moved = {
+    "yoga-kriya": ["kriya-yoga", "the-kriya-masters", "paramahansa-yogananda", "patanjali"],
+    practices: ["meditation-and-prayer", "meditation-and-yoga"],
+    "hermetic-wisdom": ["the-seven-hermetic-principles", "the-cross-of-light", "hermes-trismegistus", "orpheus"],
+    "tree-of-life": ["the-32-paths-of-wisdom"],
+    "wisdom-stories": ["solon-and-croesus", "allegory-of-the-cave", "death-of-socrates", "diogenes-and-alexander", "zhuangzi-butterfly", "pythagoras-music-of-numbers"],
+  };
+  for (const [id, slugs] of Object.entries(moved)) for (const s of slugs) assert.equal(tabOf(s), id, s);
+  assert.equal(tabOf("babaji-the-deathless-yogi"), "krishna-shiva");
+  assert.match((await call("/library?tab=yoga-kriya")).body, /href="\/teachings\/babaji-the-deathless-yogi"/);
+  assert.ok(libraryFamilies.find((f) => f.id === "sciences").tabs.includes("mystery-schools"));
+  assert.ok(!libraryFamilies.find((f) => f.id === "messengers").tabs.includes("mystery-schools"));
+  assert.equal(libraryFamilies.find((f) => f.id === "messengers").tabs.filter((t) => t === "masters").length, 1, "Masters & Angels stays one tab");
+  // Labels and titles.
+  const label = (id) => categories.find((c) => c.id === id).label;
+  assert.equal(label("teachings"), "Foundations");
+  assert.equal(label("philosophers"), "The Great Philosophers");
+  assert.equal(label("wisdom"), "Sayings for the Heart");
+  assert.equal(label("knowledge"), "Knowledge & Insight");
+  assert.match((await call("/library?tab=knowledge")).body, /Health, food and energy/);
+  assert.equal(libraryFamilies.find((f) => f.id === "spiritual").label, "The Soul and the Divine");
+  assert.equal(libraryFamilies.find((f) => f.id === "sciences").label, "Sacred Sciences and Mysteries");
+  const title = (slug) => categories.flatMap((c) => c.items).find((i) => i.slug === slug).title;
+  assert.equal(title("meditation-and-prayer"), "Meditation and Prayer: A Simple Daily Practice");
+  assert.equal(title("meditation-and-yoga"), "Yoga and Meditation: The Classical Paths");
+  assert.equal(title("zoroaster"), "Zoroaster's Words: The Gathas and the Sacred Fire");
+  assert.equal(title("the-thinkers"), "Twenty Great Thinkers in Brief");
+  assert.match((await call("/teachings/zoroaster")).body, /href="\/teachings\/zarathushtra"/);
+  assert.match((await call("/teachings/zarathushtra")).body, /href="\/teachings\/zoroaster"/);
+  // The Path of Study still covers every tab.
+  const staged = STAGES.flatMap((s) => s.tabs);
+  for (const [n, id] of [[9, "yoga-kriya"], [8, "hermetic-wisdom"], [6, "wisdom-stories"]]) assert.ok(STAGES.find((s) => s.n === n).tabs.includes(id), id);
+  for (const c of categories) assert.ok(staged.includes(c.id), `${c.id} is in a Path of Study stage`);
 });

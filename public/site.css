@@ -876,3 +876,9 @@ body.tk-open { overflow: hidden; }
   .tl-gold-figure .tl-pulse .tl-halo { opacity: .35; }
 }
 .tl-gold-figure .tl-node.is-chosen .tl-orb { stroke: #fff; stroke-width: 6; }
+
+/* Library: tab subtitles and "see also" links */
+.tab-subtitle { color: var(--gold, #f2c46d); margin: 4px 0 0; font-style: italic; }
+.tab-also { margin: 6px 0 0; }
+.tab .tab-sub { opacity: .75; font-size: .88em; }
+.nav-sub { display: block; font-size: .8em; opacity: .7; }
