@@ -676,7 +676,7 @@ test("Homer tab and the eight new teachers render with their pictures", async ()
   }
   const jung = await call("/teachings/carl-jung");
   assert.equal(jung.status, 200);
-  assert.match(jung.body, /<svg viewBox="0 0 400 400"/);
+  assert.match(jung.body, /\/images\/jung-mandala\.jpg/);
   assert.doesNotMatch(jung.body, /\{\{/);
   const phil = await call("/library?tab=philosophers");
   for (const s of ["hermes-trismegistus", "zoroaster", "orpheus", "epictetus", "carl-jung"]) assert.ok(phil.body.includes(`href="/teachings/${s}"`), s);
@@ -1053,7 +1053,7 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   const page = await call("/teachings/love-and-marriage");
   assert.match(page.body, /class="path-strip"[\s\S]*Stage 10 of 12: The Heart and Daily Life[\s\S]*Next stage: Beyond the Veil/);
   const path = await call("/teachings/the-path-of-study");
-  assert.equal((path.body.match(/class="pw-node"/g) || []).length, 12);
+  assert.match(path.body, /\/images\/path-wheel\.jpg/);
   assert.equal((path.body.match(/class="pw-stage"/g) || []).length, 12);
   const last = await call("/teachings/losing-someone-we-love");
   assert.match(last.body, /Next stage: Arriving/);
