@@ -857,3 +857,50 @@ test("Animated Tree of Life and chakra lotuses render with CSS-only buttons", as
   assert.match(css, /#tx-flash:checked ~ svg \.tx-l-flash/);
   assert.match(css, /\.lx-col:checked ~ svg \.lx-fill/);
 });
+
+test("Sacred Texts tab: five pages, emblems, 231 gates and history notes", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("sacred-texts"), ids.indexOf("sacred-geometry") + 1);
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=sacred-texts"/);
+  const slugs = ["sacred-texts", "the-torah", "sefer-yetzirah", "the-zohar", "sacred-texts-what-history-records"];
+  for (const slug of slugs) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{(text|prophet)-/, `${slug} has no leftover placeholders`);
+    assert.doesNotMatch(page.body, /<script(?![^>]*\bsrc=)/, `${slug} has no inline script`);
+  }
+  const sy = await call("/teachings/sefer-yetzirah");
+  const gates = sy.body.split('class="sg-c"')[1].split("</g>")[0];
+  assert.equal((gates.match(/<line /g) || []).length, 231, "231 gates");
+  assert.match(sy.body, /id="st-cube-t"/);
+  const ov = await call("/teachings/sacred-texts");
+  for (const t of ["Peshat", "Remez", "Derash", "Sod", "Hagigah"]) assert.ok(ov.body.includes(t), t);
+  const hist = await call("/teachings/sacred-texts-what-history-records");
+  for (const t of ["Moses de Le", "Dead Sea Scrolls", "1558"]) assert.ok(hist.body.includes(t), t);
+});
+
+test("Prophets & Teachers tab: overview with filters, golden rule strip and nine emblem pages, no portraits", async () => {
+  const ids = categories.map((c) => c.id);
+  assert.equal(ids.indexOf("prophets"), ids.indexOf("masters") + 1);
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=prophets"/);
+  const ov = await call("/teachings/prophets-and-teachers");
+  assert.equal((ov.body.match(/class="pf-card /g) || []).length, 9, "nine cards");
+  for (const f of ["all", "abr", "dha", "per", "sik"]) assert.match(ov.body, new RegExp(`id="pf-${f}"`), f);
+  assert.equal((ov.body.match(/class="pf-gold-card"/g) || []).length, 8, "golden rule strip");
+  assert.match(ov.body, /do not teach reincarnation/);
+  const slugs = ["abraham", "moses", "zarathushtra", "the-buddha", "isaiah-jeremiah-ezekiel", "jesus-of-nazareth", "muhammad", "krishna-and-rama", "guru-nanak"];
+  for (const slug of slugs) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /class="pf-hero-art"/, `${slug} has its emblem`);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{prophet-/, slug);
+  }
+  const m = await call("/teachings/muhammad");
+  assert.doesNotMatch(m.body.split("<main")[1] || m.body, /<img [^>]*alt="[^"]*Muhammad/i, "no picture of the Prophet");
+  const css = (await call("/site.css")).body;
+  assert.match(css, /#pf-abr:checked ~ \.pf-grid \.pf-card:not\(\.pf-abr\)/);
+});

@@ -545,3 +545,26 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 @keyframes lx-rise { 0% { transform: translateY(0); opacity: 0; } 5% { opacity: 1; } 85% { transform: translateY(var(--rise)); opacity: 1; } 100% { transform: translateY(var(--rise)); opacity: 0; } }
 @keyframes lx-glow { 0%, 100% { opacity: 0; } 6% { opacity: .55; } 20% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .lx svg * { animation: none !important; } .lx-rise:checked ~ svg .lx-glow { opacity: .35; } }
+/* Sacred Texts and Prophets & Teachers */
+.st-figure svg { width: 100%; height: auto; display: block; }
+.pf-explorer { position: relative; margin: 14px 0 26px; }
+.pf-explorer > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.pf-controls { margin-bottom: 14px; }
+.pf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.pf-card { display: block; text-decoration: none; color: var(--ink); background: rgba(255,255,255,.05); border: 1px solid rgba(242,196,109,.28); border-radius: 14px; padding: 16px; transition: border-color .2s, transform .2s; }
+.pf-card:hover, .pf-card:focus-visible { border-color: var(--gold); transform: translateY(-2px); }
+.pf-card h3 { margin: 8px 0 2px; font-size: 1.08rem; color: var(--ink); }
+.pf-card p { margin: 4px 0; font-size: .94rem; }
+.pf-card .pf-era { color: var(--gold); font-style: italic; }
+.pf-card .pf-trad { color: #bfb3dc; font-size: .88rem; }
+.pf-icon { width: 44px; height: 44px; color: #f2c46d; }
+#pf-abr:checked ~ .pf-grid .pf-card:not(.pf-abr), #pf-dha:checked ~ .pf-grid .pf-card:not(.pf-dha), #pf-per:checked ~ .pf-grid .pf-card:not(.pf-per), #pf-sik:checked ~ .pf-grid .pf-card:not(.pf-sik) { display: none; }
+#pf-all:checked ~ .pf-controls label[for="pf-all"], #pf-abr:checked ~ .pf-controls label[for="pf-abr"], #pf-dha:checked ~ .pf-controls label[for="pf-dha"], #pf-per:checked ~ .pf-controls label[for="pf-per"], #pf-sik:checked ~ .pf-controls label[for="pf-sik"] { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
+.pf-explorer > input:focus-visible ~ .pf-controls { outline: 2px solid var(--teal); outline-offset: 4px; border-radius: 12px; }
+.pf-golden { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 14px 0 26px; }
+.pf-gold-card { margin: 0; padding: 14px 16px; border-radius: 14px; background: linear-gradient(160deg, rgba(242,196,109,.14), rgba(255,255,255,.03)); border: 1px solid rgba(242,196,109,.3); }
+.pf-gold-card p { margin: 0 0 8px; font-style: italic; }
+.pf-gold-card footer { font-size: .85rem; color: #d9cfee; }
+.pf-hero-art, .pf-banner-row { display: flex; justify-content: center; align-items: center; gap: 18px; flex-wrap: wrap; padding: 34px 20px; border-radius: 18px; background: radial-gradient(circle at 50% 45%, #271c4c, #07060f 80%); }
+.pf-hero-art .pf-icon { width: 140px; height: 140px; filter: drop-shadow(0 0 18px rgba(242,196,109,.45)); }
+.pf-banner-row .pf-icon { width: 56px; height: 56px; filter: drop-shadow(0 0 10px rgba(242,196,109,.35)); }
