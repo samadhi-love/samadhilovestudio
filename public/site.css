@@ -714,3 +714,65 @@ body.tk-open { overflow: hidden; }
 @keyframes he-beat { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
 @keyframes he-turn { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .he-beat, .he-rays { animation: none; } }
+
+/* The Soul's Journey: doorway of light, the Karmic Board's lights, the wheel of return */
+.sj-figure svg { width: 100%; height: auto; display: block; max-width: 660px; margin: 0 auto; }
+.sj-breathe { transform-box: fill-box; transform-origin: center; animation: sj-breathe 8s ease-in-out infinite; }
+.sj-spark { animation: sj-rise 9s linear infinite; animation-delay: var(--d, 0s); opacity: 0; }
+.sj-light { animation: sj-glow 6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+.sj-turn { transform-origin: 300px 175px; animation: he-turn 120s linear infinite; }
+@keyframes sj-breathe { 0%, 100% { transform: scale(.92); opacity: .8; } 50% { transform: scale(1.06); opacity: 1; } }
+@keyframes sj-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } 100% { transform: translateY(-190px); opacity: 0; } }
+@keyframes sj-glow { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .sj-breathe, .sj-spark, .sj-light, .sj-turn { animation: none; } .sj-spark { opacity: .5; } }
+
+/* The Mystery Schools: rose of light, rose cross, Chart of the I AM Presence */
+.ms-figure svg { width: 100%; height: auto; display: block; max-width: 660px; margin: 0 auto; }
+.ms-bloom { transform-box: fill-box; transform-origin: center; animation: ms-bloom 10s ease-in-out infinite; }
+.ms-turn { transform-origin: 300px 78px; animation: he-turn 80s linear infinite; }
+.ms-flicker { transform-box: fill-box; transform-origin: 50% 100%; animation: ms-flicker 4s ease-in-out infinite; }
+.ms-cord { animation: sj-glow 5s ease-in-out infinite; }
+@keyframes ms-bloom { 0%, 100% { transform: scale(.93) rotate(0deg); } 50% { transform: scale(1.05) rotate(8deg); } }
+@keyframes ms-flicker { 0%, 100% { transform: scaleY(.96); } 50% { transform: scaleY(1.05); } }
+@media (prefers-reduced-motion: reduce) { .ms-bloom, .ms-turn, .ms-flicker, .ms-cord { animation: none; } }
+
+/* Spirit in Daily Life: the lamp */
+.dl-figure svg { width: 100%; height: auto; display: block; max-width: 640px; margin: 0 auto; }
+.dl-flame { transform-box: fill-box; transform-origin: 50% 100%; animation: ms-flicker 3s ease-in-out infinite; }
+.dl-ring { transform-box: fill-box; transform-origin: center; animation: sj-breathe 6s ease-in-out infinite; animation-delay: var(--d, 0s); }
+@media (prefers-reduced-motion: reduce) { .dl-flame, .dl-ring { animation: none; } }
+
+/* Additions: moon and lotus, sound waves, number wheel, numerology calculator */
+.ad-figure svg { width: 100%; height: auto; display: block; max-width: 640px; margin: 0 auto; }
+.ad-wave { animation: ad-wave 7s ease-in-out infinite; animation-delay: var(--d, 0s); transform-box: fill-box; transform-origin: center; }
+@keyframes ad-wave { 0%, 100% { transform: scaleY(.6); opacity: .6; } 50% { transform: scaleY(1.1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ad-wave { animation: none; } }
+.nc { border: 1px solid rgba(242,196,109,.35); border-radius: 16px; padding: 18px 20px; background: rgba(20,16,40,.55); margin: 18px 0; }
+.nc-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin: 8px 0; }
+.nc-row label { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: #d9d4f5; flex: 1 1 220px; }
+.nc-row input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: rgba(0,0,0,.35); color: #fff; color-scheme: dark; }
+.nc-steps { color: #f2c46d; min-height: 1.4em; margin: 6px 0; }
+.nc-mean { display: flex; gap: 16px; align-items: center; background: rgba(242,196,109,.08); border-radius: 12px; padding: 10px 14px; margin: 8px 0; }
+.nc-mean p { margin: 0; }
+.nc-big { font-family: Georgia, serif; font-size: 44px; color: #fff3c4; line-height: 1; min-width: 56px; text-align: center; }
+
+/* The Path of Study: wheel, stage cards, the sign under each teaching, the home band */
+.pw-figure svg { width: 100%; height: auto; display: block; max-width: 720px; margin: 0 auto; }
+.pw-node { cursor: pointer; }
+.pw-node:hover circle, .pw-node:focus circle { fill: #4a3a86; }
+.pw-node:focus { outline: none; }
+.pw-node:focus-visible circle { stroke-width: 3; }
+.pw-turn { transform-origin: 300px 200px; animation: he-turn 160s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .pw-turn { animation: none; } }
+.pw-stages { list-style: none; padding: 0; margin: 18px 0; display: grid; gap: 14px; counter-reset: none; }
+.pw-stage { border: 1px solid rgba(242,196,109,.28); border-radius: 16px; padding: 16px 18px; background: rgba(20,16,40,.5); }
+.pw-stage h3 { margin: 2px 0 6px; }
+.pw-stage p { margin: 4px 0; }
+.pw-num { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #f2c46d; }
+.pw-tabs a { white-space: nowrap; }
+.path-strip { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin: 28px 0 8px; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(242,196,109,.3); background: rgba(242,196,109,.07); font-size: 15px; }
+.path-strip a { text-decoration: none; }
+.path-strip-label { display: inline-block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: #f2c46d; margin-right: 6px; }
+.path-band { margin-top: 26px; padding: 22px 24px; border-radius: 18px; border: 1px solid rgba(242,196,109,.35); background: linear-gradient(135deg, rgba(43,32,82,.7), rgba(20,16,40,.6)); }
+.path-band h3 { margin: 4px 0 8px; font-size: 24px; }
+.path-band p { color: #d9d4f5; max-width: 760px; }
