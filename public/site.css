@@ -697,4 +697,9 @@ body.tk-open { overflow: hidden; }
 /* Sacred Lands */
 .sl-figure svg { width: 100%; height: auto; display: block; }
 .sl-figure svg[aria-labelledby="sl-map-t"] { max-width: 600px; margin: 0 auto; }
-.sl-cedar svg { max-width: 520px; margin: 0 auto; }
+.sl-cedar svg { max-width: 640px; margin: 0 auto; }
+.sl-cedar .cd-sway { animation: cd-sway 9s ease-in-out infinite; }
+.sl-cedar .cd-glint { animation: cd-glint 8s ease-in-out infinite; opacity: 0; }
+@keyframes cd-sway { 0%, 100% { transform: rotate(0deg) translateX(0); } 30% { transform: rotate(.9deg) translateX(2px); } 65% { transform: rotate(-.6deg) translateX(-1.5px); } }
+@keyframes cd-glint { 0% { opacity: 0; transform: translateY(6px); } 25% { opacity: .95; } 55% { opacity: .25; } 75% { opacity: .85; } 100% { opacity: 0; transform: translateY(-22px); } }
+@media (prefers-reduced-motion: reduce) { .sl-cedar .cd-sway, .sl-cedar .cd-glint { animation: none; } .sl-cedar .cd-glint { opacity: .6; } }
