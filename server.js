@@ -43,6 +43,8 @@ const files = {
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
+  "/images/cross-of-light.jpg": ["public/images/cross-of-light.jpg", "image/jpeg"],
+  "/images/ankh.jpg": ["public/images/ankh.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
