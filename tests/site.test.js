@@ -954,7 +954,7 @@ test("Navigation: six top items, Library panel in seven families, every tab reac
   assert.match(lib.body, /<a href="\/library\?tab=sacred-texts" aria-current="page">Sacred Texts<\/a>/);
   const teach = await call("/teachings/the-zohar");
   assert.match(teach.body, /<summary class="is-current">Library/, "and on a teaching page");
-  const groups = [...lib.body.matchAll(/<h2 class="tab-family-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
+  const groups = [...lib.body.matchAll(/<h2 class="tab-family-title">(?:<img [^>]*>)?<span>([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
   assert.deepEqual(groups, libraryFamilies.map((f) => f.label));
   const order = libraryFamilies[0].tabs.filter((id) => categories.some((c) => c.id === id)).map((id) => lib.body.indexOf(`class="tab" href="/library?tab=${id}"`));
   assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs in family order");
