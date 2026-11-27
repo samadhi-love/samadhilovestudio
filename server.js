@@ -34,6 +34,7 @@ const files = {
   "/images/rose-heart.jpg": ["public/images/rose-heart.jpg", "image/jpeg"],
   "/images/rose-cross.jpg": ["public/images/rose-cross.jpg", "image/jpeg"],
   "/images/world-soul-cross.jpg": ["public/images/world-soul-cross.jpg", "image/jpeg"],
+  "/images/heart-light.jpg": ["public/images/heart-light.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
