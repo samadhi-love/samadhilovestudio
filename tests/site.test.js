@@ -870,7 +870,8 @@ test("Prophets & Teachers tab: overview with filters, golden rule strip and nine
   for (const slug of slugs) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    assert.match(page.body, /class="pf-hero-art"/, `${slug} has its emblem`);
+    assert.match(page.body, /class="pf-hero-art"|class="cross-hero sl-photo"/, `${slug} has its emblem or Samadhi's symbol picture`);
+    assert.ok(!/class="cross-hero sl-photo"/.test(page.body) || /does not picture the prophets' faces/.test(page.body), `${slug} keeps the respect note`);
     assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
     assert.doesNotMatch(page.body, /\{\{prophet-/, slug);
   }
