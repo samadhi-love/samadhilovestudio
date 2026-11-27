@@ -277,8 +277,8 @@ test("each star family page has its original artwork, and the Federation page te
   for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "humans", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    // Star family photo portraits are switched off until every family shows mixed skin tones (Nov 2026).
-    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) { assert.doesNotMatch(page.body, /images\/star-families\//, slug); assert.match(page.body, /<figure class="star-art"><svg/, slug); }
+    // Samadhi turned the seven portraits back on (Nov 2026).
+    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
     else if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
     else assert.match(page.body, /<figure class="star-art"><svg/, slug);
     assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
@@ -767,7 +767,7 @@ test("Philosophy pages open the Philosophers tab with the owl, six branch cards 
     assert.doesNotMatch(page.body, /<script(?![^>]*\bsrc=)/, `${slug} has no inline script`);
   }
   const what = await call("/teachings/what-is-philosophy");
-  assert.match(what.body, /id="po-t"/, "owl emblem drawn");
+  assert.ok(what.body.includes('src="/images/athena-owl.jpg"'), "Samadhi's owl picture");
   for (const t of ["love of wisdom", "Pythagoras", "darshana", "ubuntu", "Samadhi"]) assert.ok(what.body.includes(t), t);
   const branches = await call("/teachings/the-six-branches-of-philosophy");
   assert.equal((branches.body.match(/class="philo-card"/g) || []).length, 6, "six branch cards");
