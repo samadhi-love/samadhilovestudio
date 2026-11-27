@@ -56,7 +56,7 @@ test("each Library tab lists its teachings and each teaching has its own page", 
   for (const c of categories) {
     const tab = await call(`/library?tab=${c.id}`);
     assert.equal(tab.status, 200);
-    assert.match(tab.body, new RegExp(`aria-current="page"[^>]*>${c.label.replace("&", "&amp;")}`));
+    assert.match(tab.body, new RegExp(`aria-current="page"[^>]*>${c.label.replace("&", "&amp;").replace("'", "&#39;")}`));
     for (const it of c.items) {
       assert.ok(tab.body.includes(`/teachings/${it.slug}`), it.slug);
       const page = await call(`/teachings/${it.slug}`);
@@ -981,10 +981,9 @@ test("Navigation: six top items, Library panel in five families, every tab reach
   assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs in family order");
   const foot = home.body.match(/<nav aria-label="Footer">([\s\S]*?)<\/nav>/)[1];
   assert.deepEqual([...foot.matchAll(/>([^<]+)<\/a>/g)].map((m) => m[1]), ["Library of Light", "Masters &amp; Angels", "Music", "Versual Studio", "About", "My Vision", "Contact", "Picture credits"]);
-  assert.match(home.body, /Sacred Geometry: The Language of Creation/);
-  assert.match(home.body, /The Power of Meditation and Yoga/);
-  const prayer = categories.find((c) => c.id === "prayers").items[0];
-  assert.ok(home.body.includes(`href="/teachings/${prayer.slug}"`), "first prayer on the home page");
+  // "New teachings" on the home page shows the newest series (updated Nov 2026).
+  for (const slug of ["death-is-a-doorway", "the-mystery-schools", "love-and-marriage"]) assert.ok(home.body.includes(`href="/teachings/${slug}"`), slug);
+  assert.ok(home.body.includes('href="/teachings/the-path-of-study"'), "Path of Study on the home page");
   assert.equal(categories.find((c) => c.id === "knowledge").blurb, "Science and spirit side by side for a healthy life and good energy: food, water, the life-force, forgiveness and more.");
 });
 
@@ -1057,4 +1056,37 @@ test("One Source, One Message: in Prophets & Teachers after the overview, honest
   for (const t of ["We make no distinction between any of them", "Truth is one", "The hard stories", "Badr", "Origen", "Eduyot", "There is no hell, only the lives we create"]) assert.ok(page.body.includes(t), t);
   assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/);
   assert.match(page.body, /<h2[^>]*>Sources<\/h2>/);
+});
+
+test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Life, additions and the Path of Study", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const ids = categories.map((c) => c.id);
+  for (const id of ["souls-journey", "mystery-schools", "daily-life"]) assert.ok(ids.includes(id), id);
+  assert.equal(categories.find((c) => c.id === "souls-journey").items.length, 7);
+  const fam = Object.fromEntries(libraryFamilies.map((f) => [f.id, f.tabs]));
+  assert.ok(fam.spiritual.includes("souls-journey") && fam.spiritual.includes("daily-life") && fam.messengers.includes("mystery-schools"));
+  const added = { practices: ["sacred-sound-mantra-and-frequency", "the-power-of-silence", "fasting-across-the-traditions"], "beyond-the-veil": ["dreams-the-language-of-the-soul"], teachings: ["the-divine-feminine", "grace-surrender-and-humility"], "sacred-geometry": ["numerology-the-meaning-of-numbers"], start: ["the-path-of-study"] };
+  for (const [tab, slugs] of Object.entries(added)) for (const s of slugs) assert.ok(categories.find((c) => c.id === tab).items.some((i) => i.slug === s), s);
+  // Samadhi's numbers are labelled as the teaching of this path; the Karmic Board is drawn as lights.
+  const death = await call("/teachings/the-144-year-cycle");
+  assert.match(death.body, /The teaching of this path/);
+  assert.match(death.body, /Samadhi&#39;s view|Samadhi's view/);
+  const board = await call("/teachings/the-life-review-and-the-karmic-board");
+  assert.match(board.body, /Vairochana/);
+  assert.match(board.body, /shown as lights rather than faces/);
+  // Every teaching in a Path tab carries the Path of Study sign; the wheel links all twelve stages.
+  const page = await call("/teachings/love-and-marriage");
+  assert.match(page.body, /class="path-strip"[\s\S]*Stage 10 of 12: Spirit in Daily Life[\s\S]*Next stage: Beyond the Veil/);
+  const path = await call("/teachings/the-path-of-study");
+  assert.equal((path.body.match(/class="pw-node"/g) || []).length, 12);
+  assert.equal((path.body.match(/class="pw-stage"/g) || []).length, 12);
+  const last = await call("/teachings/losing-someone-we-love");
+  assert.match(last.body, /Next stage: Arriving/);
+  // The numerology calculator loads the practice script; the care notes are present.
+  const num = await call("/teachings/numerology-the-meaning-of-numbers");
+  assert.match(num.body, /data-px-num/);
+  assert.match(num.body, /practice\.js/);
+  const fast = await call("/teachings/fasting-across-the-traditions");
+  assert.match(fast.body, /not for everyone/);
+  assert.ok(!/\d+\s?(g|grams|kcal|calories)\b/i.test(fast.body.replace(/<[^>]+>/g, " ")), "no measurements on the fasting page");
 });
