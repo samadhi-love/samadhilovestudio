@@ -1333,8 +1333,9 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   const grouped = categories.filter((c) => libraryFamilies.some((f) => f.tabs.includes(c.id)));
   assert.equal(grouped.length, categories.length, "every tab belongs to a family, so More is gone");
   const home = await call("/");
-  assert.doesNotMatch(home.body, /nav-col-title">More</);
-  assert.ok(home.body.indexOf('nav-col-title">Start Here') < home.body.indexOf('nav-col-title">The Soul and the Divine'), "Start Here first in the menu");
+  assert.doesNotMatch(home.body, /nav-col-title">(?:<img [^>]*>)?More</);
+  const navStart = home.body.search(/nav-col-title">(?:<img [^>]*>)?Start Here/), navSoul = home.body.search(/nav-col-title">(?:<img [^>]*>)?The Soul and the Divine/);
+  assert.ok(navStart > 0 && navStart < navSoul, "Start Here first in the menu");
   assert.match(home.body, /href="\/library\?tab=start"><svg[\s\S]*?<\/svg>New here\? Start Here/);
   const cards = [...home.body.matchAll(/<article class="card family-card stone-card">[\s\S]*?<h3>([^<]+)<\/h3>/g)].map((m) => m[1].replace("&amp;", "&"));
   assert.equal(cards[0], "Start Here");
