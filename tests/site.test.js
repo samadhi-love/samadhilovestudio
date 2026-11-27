@@ -414,9 +414,9 @@ test("home presents the original artwork as a framed triptych with a portrait-fi
   const prayer = header.match(/<img class="hero-prayer"[^>]*>/)?.[0] || "";
   const galaxy = header.match(/<img class="hero-galaxy"[^>]*>/)?.[0] || "";
   const portrait = header.match(/<img class="hero-centrepiece"[^>]*>/)?.[0] || "";
-  assert.match(prayer, /src="\/images\/hero-prayer\.jpg" width="960" height="536"/);
-  assert.match(galaxy, /src="\/images\/hero-galaxy\.jpg" width="960" height="536"/);
-  assert.match(portrait, /src="\/images\/home-cosmic-portrait\.jpg" width="1400" height="788"/);
+  assert.match(prayer, /src="\/images\/home-om-book\.jpg" width="960" height="536"/);
+  assert.match(galaxy, /src="\/images\/home-temple-stars\.jpg" width="960" height="536"/);
+  assert.match(portrait, /src="\/images\/home-sound-scroll\.jpg" width="1400" height="788"/);
   assert.equal((header.match(/class="hero-centrepiece"/g) || []).length, 1);
   assert.equal((header.match(/class="triptych-panel triptych-/g) || []).length, 3);
   assert.ok(header.indexOf(portrait) < header.indexOf(prayer) && header.indexOf(prayer) < header.indexOf(galaxy), "portrait-first reading order matches phones");
