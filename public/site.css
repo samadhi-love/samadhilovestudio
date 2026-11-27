@@ -693,3 +693,8 @@ body.tk-open { overflow: hidden; }
 .family-tabs li::before { content: none !important; }
 .family-tabs a { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(242,196,109,.35); }
 .family-tabs a:hover { color: var(--gold); }
+
+/* Sacred Lands */
+.sl-figure svg { width: 100%; height: auto; display: block; }
+.sl-figure svg[aria-labelledby="sl-map-t"] { max-width: 600px; margin: 0 auto; }
+.sl-cedar svg { max-width: 520px; margin: 0 auto; }

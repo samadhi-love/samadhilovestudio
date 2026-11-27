@@ -986,3 +986,25 @@ test("Navigation: six top items, Library panel in five families, every tab reach
   assert.ok(home.body.includes(`href="/teachings/${prayer.slug}"`), "first prayer on the home page");
   assert.equal(categories.find((c) => c.id === "knowledge").blurb, "Science and spirit side by side for a healthy life and good energy: food, water, the life-force, forgiveness and more.");
 });
+
+test("Sacred Lands: four peaceful pages in History & Origins, a map with no modern borders, every quote sourced", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  assert.ok(libraryFamilies.find((f) => f.id === "history").tabs.includes("sacred-lands"));
+  const home = await call("/");
+  assert.match(home.body, /href="\/library\?tab=sacred-lands"/);
+  for (const slug of ["the-holy-land-and-lebanon", "jerusalem-city-of-peace", "lebanon-in-scripture", "peace-in-the-land-of-god"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/, `${slug} has sources`);
+    assert.doesNotMatch(page.body, /\{\{land-/, `${slug} has no leftover placeholders`);
+    assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/, `${slug} labels Samadhi's view`);
+  }
+  const map = await call("/teachings/the-holy-land-and-lebanon");
+  assert.match(map.body, /id="sl-map-t"/);
+  assert.match(map.body, /No modern borders are drawn/);
+  assert.match(map.body, /blessed for \(all\) peoples/);
+  const peace = await call("/teachings/peace-in-the-land-of-god");
+  for (const t of ["Isaac and Ishmael buried him", "as if he had killed all mankind", "Blessed are the peacemakers", "They shall not hurt nor destroy in all my holy mountain", "A prayer for peace"]) assert.ok(peace.body.includes(t), t);
+  const leb = await call("/teachings/lebanon-in-scripture");
+  for (const t of ["which he hath planted", "Zarephath", "Tyre and Sidon", "Qana", "Qadisha"]) assert.ok(leb.body.includes(t), t);
+});
