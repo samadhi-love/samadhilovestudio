@@ -177,7 +177,7 @@ test("the encyclopedia sections are in the Library and in the home page families
     assert.ok(c && c.items.length >= 8, id);
   }
   const home = await call("/");
-  assert.equal((home.body.match(/<article class="card family-card"><canvas class="orb"/g) || []).length, 7);
+  assert.equal((home.body.match(/<article class="card family-card stone-card">(<canvas class="orb"|<img class="family-sign")/g) || []).length, 7);
   const grid = home.body.slice(home.body.indexOf("Seven families of knowledge"), home.body.indexOf('<section class="quote">'));
   for (const id of ["teachings", "mystics", "chakras", "human-story", "ages-of-the-world", "prayers"]) assert.ok(grid.includes(`/library?tab=${id}`), `home family cards link ${id}`);
   for (const tab of ["sages-and-kings", "mystics", "human-story", "chakras"]) assert.match(home.body, new RegExp(`<nav class="nav[^]*href="/library\\?tab=${tab}"`), `menu links to ${tab}`);
@@ -1335,8 +1335,8 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   const home = await call("/");
   assert.doesNotMatch(home.body, /nav-col-title">More</);
   assert.ok(home.body.indexOf('nav-col-title">Start Here') < home.body.indexOf('nav-col-title">The Soul and the Divine'), "Start Here first in the menu");
-  assert.match(home.body, /href="\/library\?tab=start">New here\? Start Here/);
-  const cards = [...home.body.matchAll(/<article class="card family-card">[\s\S]*?<h3>([^<]+)<\/h3>/g)].map((m) => m[1].replace("&amp;", "&"));
+  assert.match(home.body, /href="\/library\?tab=start"><svg[\s\S]*?<\/svg>New here\? Start Here/);
+  const cards = [...home.body.matchAll(/<article class="card family-card stone-card">[\s\S]*?<h3>([^<]+)<\/h3>/g)].map((m) => m[1].replace("&amp;", "&"));
   assert.equal(cards[0], "Start Here");
   // Moves.
   const tabOf = (slug) => categories.find((c) => c.items.some((i) => i.slug === slug)).id;
