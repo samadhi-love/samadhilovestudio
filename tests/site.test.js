@@ -277,7 +277,8 @@ test("each star family page has its original artwork, and the Federation page te
   for (const slug of ["lyrans", "pleiadians", "sirians", "arcturians", "andromedans", "orions-of-light", "hathors", "essassani", "humans", "galactic-federation-of-light", "star-nations-of-light", "the-shadow-side"]) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
-    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
+    // Star family photo portraits are switched off until every family shows mixed skin tones (Nov 2026).
+    if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) { assert.doesNotMatch(page.body, /images\/star-families\//, slug); assert.match(page.body, /<figure class="star-art"><svg/, slug); }
     else if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
     else assert.match(page.body, /<figure class="star-art"><svg/, slug);
     assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
@@ -499,49 +500,14 @@ test("inner pages use their title-matched backdrops and retain picture credits",
   }
 });
 
-test("Teachings presents the original artwork as a framed tablet with its title beneath and a purple starfield", async () => {
-  const { readFileSync } = await import("node:fs");
-  const imageSrc = "/images/teachings-sacred-geometry.jpg";
-  const artwork = categories.find(c => c.id === "teachings").artwork;
-  assert.equal(artwork.src, imageSrc);
-  assert.equal(artwork.width, 1400);
-  assert.equal(artwork.height, 788);
-  const image = await call(imageSrc);
-  assert.equal(image.status, 200);
-  assert.equal(image.headers["Content-Type"], "image/jpeg");
-  const css = readFileSync(new URL("../public/site.css", import.meta.url), "utf8");
-  const frameRule = css.match(/\.teachings-art-banner\s*\{([^}]+)\}/)?.[1] || "";
-  assert.match(frameRule, /max-width:\s*1100px/);
-  assert.match(frameRule, /margin:\s*8px auto 0/);
-  assert.match(frameRule, /animation:\s*tablet-breathe 7s/);
-  const imageRule = css.match(/\.art-frame img\s*\{([^}]+)\}/)?.[1] || "";
-  assert.match(imageRule, /width:\s*100%/);
-  assert.match(imageRule, /height:\s*auto/);
-  assert.match(css, /\.teachings-art-banner img\s*\{[^}]*object-fit:\s*contain/);
-  assert.doesNotMatch(imageRule, /filter:|opacity:|mix-blend-mode:/, "do not dim or recolour the artwork");
-  assert.match(css, /\.teachings-library\s*\{[^}]*radial-gradient/, "keep a purple cosmic surface below the banner");
-  assert.doesNotMatch(css, /\.journey-teachings/, "the former Jerusalem and light-veil treatment is retired");
-  for (const url of ["/library", "/library?tab=teachings"]) {
-    const page = await call(url);
-    assert.equal(page.status, 200);
-    assert.match(page.body, /<section class="teachings-library"/);
-    const figure = page.body.match(/<figure class="teachings-art-banner art-frame">([^]*?)<\/figure>/)?.[0] || "";
-    assert.ok(figure.includes(`src="${imageSrc}"`));
-    assert.match(figure, /width="1400" height="788"/);
-    assert.doesNotMatch(figure, /figcaption|prayer-image-caption/, "no overlaid text or credit line");
-    assert.ok(page.body.includes(`${figure}<div class="teachings-heading wrap"><h1>Teachings</h1>`), "page title sits directly under the tablet");
-    assert.equal((page.body.match(/<h1[\s>]/g) || []).length, 1, "no competing Library title above the artwork");
-    assert.ok(page.body.indexOf(figure) < page.body.indexOf('<nav class="tabs"'), "the banner comes before the tabs");
-    assert.doesNotMatch(page.body, /class="journey|--place:url|dome-and-temple-mount/, "no Jerusalem or artwork backdrop behind the teachings");
-  }
-  const credits = await call("/credits");
-  assert.match(credits.body, /Artwork by SAMADHI LOVE/);
-  for (const url of ["/", "/masters", "/about", "/contact", ...categories.filter(c => c.id !== "teachings").map(c => `/library?tab=${c.id}`), ...categories.flatMap(c => c.items.map(it => `/teachings/${it.slug}`))]) {
-    const page = await call(url);
-    assert.ok(!page.body.includes(imageSrc), `${url}: banner belongs only to the Teachings listing`);
-  }
-  const gallery = await call("/gallery");
-  assert.ok(!gallery.body.includes(imageSrc), "the hidden artwork is not added to the Gallery");
+test("Teachings no longer shows the retired sacred-geometry artwork (holy name used as decoration, Nov 2026)", async () => {
+  assert.equal(categories.find((c) => c.id === "teachings").artwork, undefined);
+  const tab = await call("/library?tab=teachings");
+  assert.ok(!tab.body.includes("/images/teachings-sacred-geometry.jpg"));
+  const prayer = await call("/library?tab=prayers");
+  assert.ok(!prayer.body.includes("prayer-golden.jpg"));
+  const all = await Promise.all(categories.find((c) => c.id === "prayers").items.map((i) => call(`/teachings/${i.slug}`)));
+  assert.ok(all.every((p) => !p.body.includes("prayer-masters.jpg")));
 });
 
 test("reviewed nude artworks are not used by teachings, masters or the chooser", async () => {
@@ -603,7 +569,7 @@ test("only the Prayers tab overlays Samadhi's quote on its existing angels pictu
   ]) assert.ok(tab.body.includes(`<span>${line}</span>`), line);
   assert.match(tab.body, /<p class="prayer-image-signature">— Samadhi-Love<\/p>/);
   assert.doesNotMatch(tab.body, /<strong>Did God ever ask for that\?<\/strong>/);
-  assert.match(tab.body, /<\/figcaption><img src="\/images\/prayer-golden\.jpg"/, "the unchanged picture stays separate from the live text");
+  assert.match(tab.body, /<\/figcaption><img src="\/images\/prayer-mountain\.jpg"/, "the picture stays separate from the live text (prayer-golden retired Nov 2026)");
   const css = (await call("/site.css")).body;
   assert.match(css, /\.prayer-image-caption \{[^}]*text-align: left;/, "quote and signature stay in the top-left corner");
   assert.match(css, /\.prayer-image-caption \{[^}]*position: absolute;[^}]*width: 32%;/, "the live text overlays the actual picture rather than a separate side panel");
@@ -635,7 +601,7 @@ test("Knowledge & Insight tab: food, compassion, processed food and the sacred s
   const pages = { "food-is-energy": ["SMILES", "Sattvic", "not medical advice"],
     "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "Temple Grandin"],
     "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "the higher the risk"],
-    "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "sons do not walk behind his coffin", "dhatu kshaya", "Never despair", "Genesis 38:9", "Tikkun HaKlali", "Lilith", "brahmacharya", "What medicine says", "No shame"] };
+    "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "dhatu kshaya", "Never despair", "every soul can begin again", "Genesis 38:9", "Tikkun HaKlali", "brahmacharya", "What medicine says", "No shame"] };
   for (const [slug, words] of Object.entries(pages)) {
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
@@ -1176,4 +1142,61 @@ test("Part E: closing words on every teaching, care on pages about death, health
   const all = categories.flatMap((c) => c.items).map((i) => i.body).join(" ");
   assert.ok(!/Jehovah|Yahweh/.test(all), "the Holy Name is not spelled out anywhere");
   assert.ok(!/religions carry dogma|religion is wrong/i.test(all));
+});
+
+test("Respect fixes: no shrine photo as a background, statement paragraph, no fear in The Sacred Seed", async () => {
+  const { placeForPage } = await import("../lib/pictures.js");
+  assert.ok(!Object.values(placeForPage).includes("jerusalem"));
+  const about = await call("/about");
+  assert.match(about.body, /I represent no sect or group, and this site is not one\./);
+  assert.ok(about.body.indexOf("I seek to heal, not to hurt") < about.body.indexOf("What I offer is simple"));
+  const seed = await call("/teachings/the-sacred-seed");
+  assert.ok(!/Lilith|demon|mazikin|liable to death|coffin/i.test(seed.body));
+  assert.match(seed.body, /No one should fall into despair; every soul can begin again\./);
+});
+
+test("Replacement pictures: a numbered file in public/images/replacements takes its place automatically", async () => {
+  const { writeFileSync, rmSync, existsSync } = await import("node:fs");
+  const { REPLACEMENTS, replacementsDir } = await import("../lib/replacements.js");
+  assert.deepEqual(REPLACEMENTS.map((r) => r.n), ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11"]);
+  assert.ok(existsSync(`${replacementsDir}/LIST.md`));
+  const before = await call("/teachings/andromedans");
+  assert.ok(!before.body.includes("/images/replacements/01"), "nothing changes until the file exists");
+  const png = Buffer.from("89504e470d0a1a0a0000000d4948445200000001000000010806000000", "hex");
+  const file = `${replacementsDir}/01.png`;
+  writeFileSync(file, png);
+  try {
+    const after = await call("/teachings/andromedans");
+    assert.match(after.body, /<img src="\/images\/replacements\/01\.png"/);
+    const img = await call("/images/replacements/01.png");
+    assert.equal(img.status, 200);
+    assert.equal(img.headers["Content-Type"], "image/png");
+  } finally { rmSync(file); }
+  assert.notEqual((await call("/images/replacements/99.png")).status, 200, "only numbers on the list are served");
+  assert.notEqual((await call("/images/replacements/LIST.md")).status, 200);
+});
+
+test("Samadhi's promise on every page, his sayings at the end of each tab, and one address setting", async () => {
+  const { site, SAMADHI_SAYINGS, groupByFamily } = await import("../lib/content.js");
+  for (const p of ["/teachings/the-names-of-god", "/about", "/library?tab=prayers", "/music", "/terms", "/"]) {
+    const r = await call(p);
+    assert.equal((r.body.match(/class="promise"/g) || []).length, 1, `${p}: promise once`);
+    assert.match(r.body, /<a href="\/about#statement">personal beliefs<\/a>/, p);
+  }
+  const teach = await call("/teachings/the-names-of-god");
+  assert.ok(teach.body.indexOf('class="promise"') < teach.body.indexOf("Take what resonates"), "promise sits above the closing lines");
+  const terms = await call("/terms");
+  assert.match(terms.body, /<h2>Personal beliefs<\/h2>/);
+  assert.match(terms.body, /No violence, sexual content or hatred is published here\./);
+  assert.ok(terms.body.includes(`By using ${site.address} you agree`));
+  const order = groupByFamily(categories).flatMap((g) => g.cats.map((c) => c.id));
+  let last = "";
+  for (const id of order) {
+    const tab = await call(`/library?tab=${id}`);
+    const m = tab.body.match(/<figure class="samadhi-saying"><blockquote>([^<]+)<\/blockquote><figcaption>— Samadhi<\/figcaption>/);
+    assert.ok(m, id);
+    assert.ok(SAMADHI_SAYINGS.map((q) => q.replace(/'/g, "&#39;")).includes(m[1]), id);
+    assert.notEqual(m[1], last, `${id}: not the same saying as the tab before`);
+    last = m[1];
+  }
 });

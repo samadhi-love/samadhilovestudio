@@ -7,6 +7,7 @@ import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { pages, sitemapXml, robotsTxt, setRequest } from "./lib/pages.js";
+import { replacementFile } from "./lib/replacements.js";
 import { safeCandidatePath } from "./lib/pictures.js";
 import { handleOwner } from "./lib/owner.js";
 import { refresh, readMedia } from "./lib/posts.js";
@@ -132,7 +133,7 @@ export async function handle(req, res) {
   if (pathname === "/sitemap.xml") { await refresh(); return send(res, 200, sitemapXml(), "application/xml; charset=utf-8", { "Cache-Control": isPublic ? "public, max-age=3600" : "no-store" }); }
   // Samadhi's star family pictures: any /images/star-families/<name>.jpg in that folder.
   const family = /^\/images\/star-families\/([a-z0-9-]+)\.jpg$/.exec(pathname);
-  const known = files[pathname] || (family && [`public/images/star-families/${family[1]}.jpg`, "image/jpeg"]);
+  const known = files[pathname] || (family && [`public/images/star-families/${family[1]}.jpg`, "image/jpeg"]) || replacementFile(pathname);
   if (known) {
     const [file, type] = known;
     try {

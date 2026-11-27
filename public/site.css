@@ -818,3 +818,13 @@ body.tk-open { overflow: hidden; }
 .sl-figure svg { width: 100%; height: auto; display: block; max-width: 680px; margin: 0 auto; }
 .sl-dove { animation: sj-glow 7s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sl-dove { animation: none; } }
+
+/* Samadhi's promise and sayings: small, calm, clearly his own */
+.promise { font-size: 14px; line-height: 1.6; color: #cfc8e8; max-width: 720px; margin: 8px auto 12px; text-align: center; }
+.promise a { color: #f2c46d; }
+.promise-sign { white-space: nowrap; color: #f2c46d; }
+.closing-page { margin: 24px auto 0; max-width: 760px; box-sizing: border-box; padding: 14px 18px; border-top: 1px solid rgba(242,196,109,.25); }
+.terms-promise .promise { text-align: left; }
+.samadhi-saying { margin: 34px auto 6px; max-width: 640px; text-align: center; padding: 16px 20px; border-radius: 16px; border: 1px dashed rgba(242,196,109,.45); background: rgba(242,196,109,.06); }
+.samadhi-saying blockquote { margin: 0; font-family: Georgia, serif; font-size: 21px; color: #fff3c4; }
+.samadhi-saying figcaption { margin-top: 6px; color: #f2c46d; font-size: 14px; letter-spacing: .06em; }
