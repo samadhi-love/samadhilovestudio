@@ -40,6 +40,7 @@ const files = {
   "/images/veil-tunnel.jpg": ["public/images/veil-tunnel.jpg", "image/jpeg"],
   "/images/veil-eye.jpg": ["public/images/veil-eye.jpg", "image/jpeg"],
   "/images/veil-language.jpg": ["public/images/veil-language.jpg", "image/jpeg"],
+  "/images/veil-channeling.jpg": ["public/images/veil-channeling.jpg", "image/jpeg"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
