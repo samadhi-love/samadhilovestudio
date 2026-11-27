@@ -516,10 +516,14 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .lx .lx-b { transform-box: fill-box; transform-origin: center; }
 .lx-br:checked ~ svg .lx-b { animation: lx-breathe 7s ease-in-out infinite; }
 .lx-br:checked ~ svg .lx-halo { animation: lx-halo 7s ease-in-out infinite; }
+.lx .lx-s { transform-box: fill-box; transform-origin: center; }
+.lx-spin:checked ~ svg .lx-s { animation: lx-spin var(--sp, 18s) linear infinite; }
+.lx-all .lx-br:checked ~ svg .lx-b { animation-delay: calc(var(--i) * -1s); }
 .lx-rise:checked ~ svg .lx-dot { animation: lx-rise 7s ease-in-out infinite; }
 .lx-rise:checked ~ svg .lx-glow { animation: lx-glow 7s ease-in-out infinite; animation-delay: calc(var(--i) * .95s); }
 .lx-col:checked ~ .lx-controls .lx-lc, .lx-br:checked ~ .lx-controls .lx-lb, .lx-rise:checked ~ .lx-controls .lx-lr { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
 .lx-col:focus-visible ~ .lx-controls .lx-lc, .lx-br:focus-visible ~ .lx-controls .lx-lb, .lx-rise:focus-visible ~ .lx-controls .lx-lr { outline: 2px solid var(--teal); outline-offset: 3px; }
+@keyframes lx-spin { to { transform: rotate(360deg); } }
 @keyframes lx-breathe { 0%, 100% { transform: scale(.9); } 50% { transform: scale(1.04); } }
 @keyframes lx-halo { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 @keyframes lx-rise { 0% { opacity: 0; transform: translateY(0); } 8% { opacity: 1; } 90% { opacity: 1; transform: translateY(var(--rise)); } 100% { opacity: 0; transform: translateY(var(--rise)); } }
@@ -529,18 +533,22 @@ button.btn-ghost { border: 1px solid rgba(255,255,255,.35); background: transpar
 .lx { position: relative; }
 .lx > input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 .lx > svg { width: 100%; height: auto; display: block; max-width: 560px; margin: 0 auto; }
-.lx.lx-all > svg { max-width: 420px; }
+.lx.lx-all > svg { max-width: 640px; }
 .lx-controls { justify-content: center; }
 .lx .lx-fill { transition: opacity .8s ease; }
 .lx-col:checked ~ svg .lx-fill { opacity: .55; }
 .lx .lx-b { transform-box: fill-box; transform-origin: center; }
 .lx-br:checked ~ svg .lx-b { animation: lx-breathe 7s ease-in-out infinite; }
 .lx-br:checked ~ svg .lx-halo { animation: lx-halo 7s ease-in-out infinite; }
+.lx .lx-s { transform-box: fill-box; transform-origin: center; }
+.lx-spin:checked ~ svg .lx-s { animation: lx-spin var(--sp, 18s) linear infinite; }
+.lx-all .lx-br:checked ~ svg .lx-b { animation-delay: calc(var(--i) * -1s); }
 .lx-rise:checked ~ svg .lx-dot { animation: lx-rise 8s ease-in infinite; }
 .lx-rise:checked ~ svg .lx-glow { animation: lx-glow 8s ease-in-out infinite; animation-delay: calc(var(--i) * 1s); }
-.lx-col:checked ~ .sgx-controls .lx-lc, .lx-br:checked ~ .sgx-controls .lx-lb, .lx-rise:checked ~ .sgx-controls .lx-lr { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
-.lx-col:focus-visible ~ .sgx-controls .lx-lc, .lx-br:focus-visible ~ .sgx-controls .lx-lb, .lx-rise:focus-visible ~ .sgx-controls .lx-lr { outline: 2px solid var(--teal); outline-offset: 3px; }
-@keyframes lx-breathe { 0%, 100% { transform: scale(.9); } 50% { transform: scale(1.06); } }
+.lx-col:checked ~ .sgx-controls .lx-lc, .lx-br:checked ~ .sgx-controls .lx-lb, .lx-rise:checked ~ .sgx-controls .lx-lr, .lx-spin:checked ~ .sgx-controls .lx-ls { background: var(--gold); border-color: var(--gold); color: #05040d; font-weight: 600; }
+.lx-col:focus-visible ~ .sgx-controls .lx-lc, .lx-br:focus-visible ~ .sgx-controls .lx-lb, .lx-rise:focus-visible ~ .sgx-controls .lx-lr, .lx-spin:focus-visible ~ .sgx-controls .lx-ls { outline: 2px solid var(--teal); outline-offset: 3px; }
+@keyframes lx-spin { to { transform: rotate(360deg); } }
+@keyframes lx-breathe { 0%, 100% { transform: scale(.82); } 50% { transform: scale(1.12); } }
 @keyframes lx-halo { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 @keyframes lx-rise { 0% { transform: translateY(0); opacity: 0; } 5% { opacity: 1; } 85% { transform: translateY(var(--rise)); opacity: 1; } 100% { transform: translateY(var(--rise)); opacity: 0; } }
 @keyframes lx-glow { 0%, 100% { opacity: 0; } 6% { opacity: .55; } 20% { opacity: 0; } }
