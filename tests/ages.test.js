@@ -33,8 +33,7 @@ test("the Ages of the World Library tab follows Great Flood and contains the sev
     assert.ok(at > previous, slug);
     previous = at;
   }
-  assert.deepEqual(homePaths, ["teachings", "masters", "star-family", "philosophers", "wisdom"]);
-  assert.ok(!render("/").includes("/library?tab=ages-of-the-world"), "home remains unchanged");
+  assert.ok(render("/").includes("/library?tab=ages-of-the-world"), "the home page's History & Origins family links to it");
 });
 
 test("every new teaching renders with working Previous and Next links and appears in the sitemap", () => {

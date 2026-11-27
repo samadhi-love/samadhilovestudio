@@ -66,11 +66,11 @@ test("each Library tab lists its teachings and each teaching has its own page", 
   }
 });
 
-test("slugs are unique and the home page shows five paths", async () => {
+test("slugs are unique and the home page shows the five families", async () => {
   const slugs = categories.flatMap((c) => c.items.map((i) => i.slug));
   assert.equal(new Set(slugs).size, slugs.length);
   const home = await call("/");
-  assert.match(home.body, /Five paths of knowledge/);
+  assert.match(home.body, /Five families of knowledge/);
   assert.match(home.body, /♫ ✧ ❨ Music is for the soul ❩ ✧ ♫/);
 });
 
@@ -171,15 +171,15 @@ test("Samadhi's vision is on the About page and linked from every footer", async
   assert.match(home.body, /href="\/about#vision"/);
 });
 
-test("the encyclopedia sections are in the Library but the home page keeps its five paths", async () => {
+test("the encyclopedia sections are in the Library and in the home page families", async () => {
   for (const id of ["sages-and-kings", "mystics", "human-story"]) {
     const c = categories.find((x) => x.id === id);
     assert.ok(c && c.items.length >= 8, id);
   }
   const home = await call("/");
-  assert.equal((home.body.match(/<article class="card"><canvas class="orb"/g) || []).length, 5);
-  const grid = home.body.slice(home.body.indexOf("Five paths of knowledge"), home.body.indexOf('<section class="quote">'));
-  assert.ok(!grid.includes("/library?tab=mystics"), "the home page cards stay the original five");
+  assert.equal((home.body.match(/<article class="card family-card"><canvas class="orb"/g) || []).length, 5);
+  const grid = home.body.slice(home.body.indexOf("Five families of knowledge"), home.body.indexOf('<section class="quote">'));
+  for (const id of ["teachings", "mystics", "chakras", "human-story", "ages-of-the-world", "prayers"]) assert.ok(grid.includes(`/library?tab=${id}`), `home family cards link ${id}`);
   for (const tab of ["sages-and-kings", "mystics", "human-story", "chakras"]) assert.match(home.body, new RegExp(`<nav class="nav[^]*href="/library\\?tab=${tab}"`), `menu links to ${tab}`);
   const lib = await call("/library?tab=human-story");
   assert.match(lib.body, /Atlantis/);
@@ -949,4 +949,40 @@ test("Start Here and Practices: where to begin, glossary, principles, breath gui
   assert.doesNotMatch(plain.body, /practice\.js/, "the practice script loads only where needed");
   const js = await call("/practice.js");
   assert.equal(js.status, 200);
+});
+
+test("Navigation: six top items, Library panel in five families, every tab reachable, grouped Library page", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const home = await call("/");
+  const desk = home.body.match(/<div class="nav-links">[\s\S]*?<\/div>\n<details class="nav-menu">/)[0];
+  const top = desk.replace(/<div class="nav-panel[\s\S]*?<\/details>/g, "</details>");
+  assert.deepEqual([...top.matchAll(/<summary[^>]*>([^<]+)</g)].map((m) => m[1].trim()), ["Library", "Music"]);
+  assert.deepEqual([...top.matchAll(/<a [^>]*>([^<]+)<\/a>/g)].map((m) => m[1]), ["Masters &amp; Angels", "Versual Studio", "About", "Contact"]);
+  assert.match(desk, /<a class="pill" href="\/contact">Contact<\/a>/);
+  const panel = desk.match(/<div class="nav-panel nav-panel-library">[\s\S]*?<\/details>/)[0];
+  for (const c of categories) assert.ok(panel.includes(`href="/library?tab=${c.id}"`), `${c.id} reachable from the desktop menu`);
+  const phone = home.body.match(/<details class="nav-menu">[\s\S]*?<\/nav>/)[0];
+  for (const c of categories) assert.ok(phone.includes(`href="/library?tab=${c.id}"`), `${c.id} reachable from the phone menu`);
+  assert.equal((phone.match(/<details class="nav-family">/g) || []).length >= 5, true, "families fold closed on phones");
+  assert.doesNotMatch(phone, /<details class="nav-family" open/);
+  const titles = [...panel.matchAll(/<p class="nav-col-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
+  assert.deepEqual(titles.slice(0, 5), libraryFamilies.map((f) => f.label));
+  const music = desk.match(/<div class="nav-panel nav-panel-music">[\s\S]*?<\/div>/)[0];
+  assert.match(music, /href="\/music">Songs</);
+  const lib = await call("/library?tab=sacred-texts");
+  assert.match(lib.body, /<summary class="is-current">Library/, "Library is highlighted on a tab");
+  assert.match(lib.body, /<a href="\/library\?tab=sacred-texts" aria-current="page">Sacred Texts<\/a>/);
+  const teach = await call("/teachings/the-zohar");
+  assert.match(teach.body, /<summary class="is-current">Library/, "and on a teaching page");
+  const groups = [...lib.body.matchAll(/<h2 class="tab-family-title">([^<]+)</g)].map((m) => m[1].replace("&amp;", "&"));
+  assert.deepEqual(groups.slice(0, 5), libraryFamilies.map((f) => f.label));
+  const order = libraryFamilies[0].tabs.filter((id) => categories.some((c) => c.id === id)).map((id) => lib.body.indexOf(`class="tab" href="/library?tab=${id}"`));
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs in family order");
+  const foot = home.body.match(/<nav aria-label="Footer">([\s\S]*?)<\/nav>/)[1];
+  assert.deepEqual([...foot.matchAll(/>([^<]+)<\/a>/g)].map((m) => m[1]), ["Library of Light", "Masters &amp; Angels", "Music", "Versual Studio", "About", "My Vision", "Contact", "Picture credits"]);
+  assert.match(home.body, /Sacred Geometry: The Language of Creation/);
+  assert.match(home.body, /The Power of Meditation and Yoga/);
+  const prayer = categories.find((c) => c.id === "prayers").items[0];
+  assert.ok(home.body.includes(`href="/teachings/${prayer.slug}"`), "first prayer on the home page");
+  assert.equal(categories.find((c) => c.id === "knowledge").blurb, "Science and spirit side by side for a healthy life and good energy: food, water, the life-force, forgiveness and more.");
 });

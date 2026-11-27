@@ -255,3 +255,15 @@ else sky.start();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+// Menu panels are plain <details>; this only adds niceties: a click outside or Escape closes an open panel.
+(() => {
+  const open = () => [...document.querySelectorAll(".nav-drop[open]")];
+  document.addEventListener("click", (e) => { open().forEach((d) => { if (!d.contains(e.target)) d.removeAttribute("open"); }); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    open().forEach((d) => { d.removeAttribute("open"); const s = d.querySelector("summary"); if (s && d.contains(document.activeElement)) s.focus(); });
+  });
+  // Older browsers without exclusive <details name>: opening one panel closes the other.
+  document.querySelectorAll(".nav-drop").forEach((d) => d.addEventListener("toggle", () => { if (d.open) open().forEach((o) => { if (o !== d) o.removeAttribute("open"); }); }));
+})();
