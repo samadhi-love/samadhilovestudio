@@ -1026,6 +1026,11 @@ test("The Heart and the Ego: three linked teachings in the Teachings tab, source
     assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/);
     for (const other of slugs) assert.ok(page.body.includes(`href="/teachings/${other}"`), `${slug} links ${other}`);
   }
+  for (const slug of slugs) assert.match((await call(`/teachings/${slug}`)).body, /id="he-t"/, `${slug} has the golden heart`);
+  const mary = await call("/teachings/prayer-to-mother-mary");
+  assert.match(mary.body, /\/images\/sacred-hearts\.jpg/);
+  assert.match(mary.body, /An artistic vision of the Immaculate Heart of Mary/);
+  assert.equal((await call("/images/sacred-hearts.jpg")).status, 200);
   const charity = await call("/teachings/charity-sharing-our-blessings");
   assert.match(charity.body, /A word of care/);
   for (const t of ["tzedakah", "zakat", "Maimonides", "lendeth unto the LORD"]) assert.ok(charity.body.includes(t), t);
