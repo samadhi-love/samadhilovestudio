@@ -508,10 +508,11 @@ test("Restored by Samadhi: the sacred-geometry artwork tops Teachings and prayer
   const jesus = await call("/teachings/prayer-to-jesus");
   assert.ok(jesus.body.includes('src="/images/prayer-masters.jpg"'));
   const prayers = await call("/library?tab=prayers");
-  assert.ok(!prayers.body.includes("prayer-golden.jpg"));
+  assert.ok(prayers.body.includes("prayer-golden.jpg"), "restored by Samadhi");
   const { readFileSync } = await import("node:fs");
   const list = readFileSync(new URL("../public/images/replacements/LIST.md", import.meta.url), "utf8");
-  assert.match(list, /mystery-school symbols, masters, angels and star beings are welcome/);
+  assert.match(list, /Mystery-school symbols, masters, angels and star beings are welcome/);
+  assert.ok(!/skin|totem|disputed/i.test(list), "no rules on skin tones, masks or disputed sites");
   assert.ok(!/holy names used as decoration/.test(list));
   const guide = readFileSync(new URL("../WRITING-GUIDE.md", import.meta.url), "utf8");
   assert.match(guide.split("\n").slice(0, 4).join(" "), /Every page is written for seekers who are ready and questioning/);
@@ -576,7 +577,7 @@ test("only the Prayers tab overlays Samadhi's quote on its existing angels pictu
   ]) assert.ok(tab.body.includes(`<span>${line}</span>`), line);
   assert.match(tab.body, /<p class="prayer-image-signature">— Samadhi-Love<\/p>/);
   assert.doesNotMatch(tab.body, /<strong>Did God ever ask for that\?<\/strong>/);
-  assert.match(tab.body, /<\/figcaption><img src="\/images\/prayer-mountain\.jpg"/, "the picture stays separate from the live text (prayer-golden retired Nov 2026)");
+  assert.match(tab.body, /<\/figcaption><img src="\/images\/prayer-golden\.jpg"/, "the unchanged picture stays separate from the live text");
   const css = (await call("/site.css")).body;
   assert.match(css, /\.prayer-image-caption \{[^}]*text-align: left;/, "quote and signature stay in the top-left corner");
   assert.match(css, /\.prayer-image-caption \{[^}]*position: absolute;[^}]*width: 32%;/, "the live text overlays the actual picture rather than a separate side panel");
@@ -1153,9 +1154,9 @@ test("Part E: closing words on every teaching, care on pages about death, health
   assert.ok(!/religions carry dogma|religion is wrong/i.test(all));
 });
 
-test("Respect fixes: no shrine photo as a background, statement paragraph, no fear in The Sacred Seed", async () => {
+test("Respect fixes: morning pictures restored, statement paragraph, The Sacred Seed", async () => {
   const { placeForPage } = await import("../lib/pictures.js");
-  assert.ok(!Object.values(placeForPage).includes("jerusalem"));
+  assert.equal(placeForPage.teachings, "jerusalem", "restored by Samadhi");
   const about = await call("/about");
   assert.match(about.body, /I represent no sect or group, and this site is not one\./);
   assert.ok(about.body.indexOf("I seek to heal, not to hurt") < about.body.indexOf("What I offer is simple"));

@@ -2,7 +2,7 @@
 
 Put a picture named with its number (for example `01.jpg`, `01.png` or `01.webp`) in this folder and it replaces that place automatically. Until then, the page keeps what it shows now. Numbers never change (09 and 10 were withdrawn: those pictures stay as they are).
 
-Rules for every picture: no nudity; nothing dark or frightening; no pictures of God; no images of the Prophet Muhammad; no skin colour tied to "light" or "dark"; groups shown with many skin tones; no masks, totems or costumes as decoration; no single disputed holy site as the face of the teachings; mystery-school symbols, masters, angels and star beings are welcome; free or properly licensed only, with credits.
+Every slot is OPTIONAL: nothing is switched off waiting for a replacement. Mystery-school symbols, masters, angels and star beings are welcome. Pictures must be free or properly licensed, with credits on the Picture credits page.
 
 | Number | Where it shows (tab and page) | What it replaces | What the new picture should show | Shape | Minimum size in pixels |
 |---|---|---|---|---|---|
@@ -13,5 +13,5 @@ Rules for every picture: no nudity; nothing dark or frightening; no pictures of 
 | 05 | Star Family tab, page "Orions of Light" (/teachings/orions-of-light) | OPTIONAL. The current Orions of Light portrait (it stays unless a new picture is added) | Optional: a new portrait of the Orions of Light as beings of light, if Samadhi wishes to change it | tall | 896 × 1200 |
 | 06 | Star Family tab, page "Pleiadians" (/teachings/pleiadians) | OPTIONAL. The current Pleiadians portrait (it stays unless a new picture is added) | Optional: a new portrait of the Pleiadians as beings of light, if Samadhi wishes to change it | tall | 896 × 1200 |
 | 07 | Star Family tab, page "Sirians" (/teachings/sirians) | OPTIONAL. The current Sirians portrait (it stays unless a new picture is added) | Optional: a new portrait of the Sirians as beings of light, if Samadhi wishes to change it | tall | 896 × 1200 |
-| 08 | Prayers tab, the wide picture under Samadhi's quote (/library?tab=prayers) | prayer-golden.jpg (retired); prayer-mountain.jpg stands in for now | Peoples of the world in prayer beneath beings of light of MANY skin tones; sacred symbols welcome; no masks, totems or costumes as decoration; calm open sky in the top-left corner for the quote | wide | 1600 × 900 |
-| 11 | Star Family tab, page "The Galactic Federation of Light" (/teachings/galactic-federation-of-light) | galactic-federation.jpg (still shown until the new one arrives) | A council of star beings of MANY skin tones and kinds around a round table with a glowing galaxy; no one group shown as "the light" | wide | 960 × 536 |
+| 08 | Prayers tab, the wide picture under Samadhi's quote (/library?tab=prayers) | OPTIONAL. prayer-golden.jpg (it stays unless a new picture is added) | Optional: a new picture of the peoples of the world in prayer beneath beings of light, with calm open sky in the top-left corner for the quote | wide | 1600 × 900 |
+| 11 | Star Family tab, page "The Galactic Federation of Light" (/teachings/galactic-federation-of-light) | OPTIONAL. galactic-federation.jpg (it stays unless a new picture is added) | Optional: a new picture of a council of star beings around a round table with a glowing galaxy | wide | 960 × 536 |
