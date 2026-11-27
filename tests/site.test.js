@@ -1118,3 +1118,32 @@ test("The Heart and the Ego: one course of 13 lessons gathered from four tabs, a
   assert.match(hate.body, /Mashallah/);
   assert.match(hate.body, /Samadhi&#39;s view|Samadhi's view/);
 });
+
+test("The Names of God: beside Teachings, ten equal traditions, the Holy Name never pronounced, names never at the foot of a page", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const { TRADITIONS } = await import("../lib/names.js");
+  const tabs = libraryFamilies.find((f) => f.id === "spiritual").tabs;
+  assert.equal(tabs[tabs.indexOf("teachings") + 1], "names-of-god");
+  const tab = categories.find((c) => c.id === "names-of-god");
+  assert.equal(tab.items.length, 11);
+  const over = await call("/teachings/the-names-of-god");
+  assert.match(over.body, /The order of traditions is not a ranking\. Each is honored equally\./);
+  assert.equal((over.body.match(/class="nm-door"/g) || []).length, 10);
+  const labels = TRADITIONS.map((t) => t.label);
+  assert.deepEqual(labels, [...labels].sort((a, b) => a.replace(/^The /, "").localeCompare(b.replace(/^The /, ""))), "alphabetical, not a ranking");
+  const jud = await call("/teachings/the-names-of-god-in-judaism");
+  assert.match(jud.body, /יהוה/);
+  assert.match(jud.body, /This Name is never spoken aloud\. In prayer it is read as Adonai, and in daily speech as HaShem\./);
+  for (const t of TRADITIONS) {
+    const page = await call(`/teachings/${t.slug}`);
+    assert.equal(page.status, 200, t.slug);
+    assert.ok(!/Yahweh|Jehovah|Yahveh/i.test(page.body), `${t.slug}: no pronunciation of the Holy Name`);
+    assert.ok(!/<img /.test(page.body.split('<article class="article">')[1] || ""), `${t.slug}: no pictures in the teaching`);
+    // The foot of the page (from "Explore the connection" on) carries no sacred script.
+    const foot = page.body.slice(page.body.lastIndexOf("Explore the connection"));
+    assert.ok(!/[֐-׿؀-ۿऀ-ॿ਀-੿一-鿿]/.test(foot), `${t.slug}: no sacred script at the foot`);
+  }
+  const islam = await call("/teachings/the-names-of-god-in-islam");
+  assert.match(islam.body, /Subhanahu wa Ta&#39;ala \(Glorified and Exalted is He\)|Subhanahu wa Ta'ala \(Glorified and Exalted is He\)/);
+  assert.match(islam.body, /peace be upon him/);
+});
