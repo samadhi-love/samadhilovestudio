@@ -47,6 +47,7 @@ const files = {
   "/images/sacred-books.jpg": ["public/images/sacred-books.jpg", "image/jpeg"],
   "/images/holy-land-map.jpg": ["public/images/holy-land-map.jpg", "image/jpeg"],
   "/images/tree-of-life-gold.jpg": ["public/images/tree-of-life-gold.jpg", "image/jpeg"],
+  "/images/scroll-of-light.jpg": ["public/images/scroll-of-light.jpg", "image/jpeg"],
   "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/wakan-tanka.jpg": ["public/images/wakan-tanka.jpg", "image/jpeg"],
   "/images/sun-cross.jpg": ["public/images/sun-cross.jpg", "image/jpeg"],
