@@ -1034,3 +1034,13 @@ test("The Heart and the Ego: three linked teachings in the Teachings tab, source
   const mirror = await call("/teachings/the-mirror-seeing-god-in-every-face");
   for (const t of ["The believer is the mirror of his brother", "that ye may know one another", "What you hate, you experience", "You are me. You are God"]) assert.ok(mirror.body.includes(t) || mirror.body.includes(t.replace("God's", "God&#39;s")), t);
 });
+
+test("Soul contracts (Teachings) and The Grandfather's Letter (Start Here): sourced, careful, with Samadhi's view", async () => {
+  assert.ok(categories.find((c) => c.id === "teachings").items.some((i) => i.slug === "soul-contracts-and-soul-families"));
+  assert.ok(categories.find((c) => c.id === "start").items.some((i) => i.slug === "the-grandfathers-letter"));
+  const soul = await call("/teachings/soul-contracts-and-soul-families");
+  for (const t of ["Am I not your Lord?", "conscripted soldiers", "Before I formed thee in the belly", "gilgul", "synchronicity", "Holding these ideas wisely", "Never use it to blame"]) assert.ok(soul.body.includes(t), t);
+  const letter = await call("/teachings/the-grandfathers-letter");
+  for (const t of ["Who carried the letter?", "isnad", "Prove all things", "Do other witnesses agree?", "write it in their hearts"]) assert.ok(letter.body.includes(t), t);
+  for (const page of [soul, letter]) { assert.match(page.body, /<h2[^>]*>Sources<\/h2>/); assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/); }
+});
