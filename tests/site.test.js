@@ -1000,7 +1000,7 @@ test("The Heart and the Ego: three linked teachings in the Teachings tab, source
     assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/);
     for (const other of slugs) assert.ok(page.body.includes(`href="/teachings/${other}"`), `${slug} links ${other}`);
   }
-  for (const slug of slugs) assert.match((await call(`/teachings/${slug}`)).body, /id="he-t"/, `${slug} has the golden heart`);
+  for (const slug of slugs) assert.ok((await call(`/teachings/${slug}`)).body.includes('src="/images/rose-heart.jpg"'), `${slug} has Samadhi's rose and heart picture`);
   const mary = await call("/teachings/prayer-to-mother-mary");
   assert.match(mary.body, /\/images\/sacred-hearts\.jpg/);
   assert.match(mary.body, /An artistic vision of the Immaculate Heart of Mary/);
@@ -1233,4 +1233,17 @@ test("The I AM Teachings open with Samadhi's picture of the Chart of the I AM Pr
   assert.ok(page.body.includes('src="/images/i-am-chart.jpg"'));
   assert.ok(!/id="ms-ch-t"/.test(page.body), "the drawing is gone");
   assert.equal((await call("/images/i-am-chart.jpg")).status, 200);
+});
+
+test("Samadhi's rose, heart and cross pictures replace the drawings", async () => {
+  for (const slug of ["the-mystery-schools", "the-sufi-path", "greed-wanting-more-than-we-need", "grace-surrender-and-humility", "dreams-the-language-of-the-soul", "the-divine-feminine"]) {
+    const page = await call(`/teachings/${slug}`);
+    assert.ok(page.body.includes('src="/images/rose-heart.jpg"'), slug);
+  }
+  const rc = await call("/teachings/the-rosicrucian-path");
+  assert.ok(rc.body.includes('src="/images/rose-cross.jpg"'));
+  const cross = categories.flatMap((c) => c.items).find((i) => i.body && i.body.includes("{{cross-gallery}}"));
+  const page = await call(`/teachings/${cross.slug}`);
+  assert.ok(page.body.includes('src="/images/world-soul-cross.jpg"') && page.body.includes('src="/images/rose-cross.jpg"'));
+  for (const f of ["rose-heart", "rose-cross", "world-soul-cross"]) assert.equal((await call(`/images/${f}.jpg`)).status, 200, f);
 });

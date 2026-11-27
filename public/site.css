@@ -828,3 +828,7 @@ body.tk-open { overflow: hidden; }
 .samadhi-saying { margin: 34px auto 6px; max-width: 640px; text-align: center; padding: 16px 20px; border-radius: 16px; border: 1px dashed rgba(242,196,109,.45); background: rgba(242,196,109,.06); }
 .samadhi-saying blockquote { margin: 0; font-family: Georgia, serif; font-size: 21px; color: #fff3c4; }
 .samadhi-saying figcaption { margin-top: 6px; color: #f2c46d; font-size: 14px; letter-spacing: .06em; }
+
+.sl-photo-square .sl-photo-frame { max-width: 560px; margin: 0 auto; }
+
+.cross-card-photo img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 18px; }
