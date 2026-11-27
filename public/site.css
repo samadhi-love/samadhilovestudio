@@ -816,7 +816,7 @@ body.tk-open { overflow: hidden; }
 .cl-hope { font-family: Georgia, serif; font-size: 17px; color: #f2c46d; }
 .cl-care { font-size: 14px; color: #d9d4f5; }
 .sl-figure svg { width: 100%; height: auto; display: block; max-width: 680px; margin: 0 auto; }
-.sl-dove { animation: sj-glow 7s ease-in-out infinite; }
+.sl-dove { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .sl-dove { animation: none; } }
 
 /* Samadhi's promise and sayings: small, calm, clearly his own */
