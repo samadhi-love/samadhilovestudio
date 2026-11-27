@@ -40,6 +40,7 @@ const files = {
   "/images/veil-tunnel.jpg": ["public/images/veil-tunnel.jpg", "image/jpeg"],
   "/images/veil-eye.jpg": ["public/images/veil-eye.jpg", "image/jpeg"],
   "/images/veil-language.jpg": ["public/images/veil-language.jpg", "image/jpeg"],
+  "/images/violet-flame.jpg": ["public/images/violet-flame.jpg", "image/jpeg"],
   "/images/sacred-hearts.jpg": ["public/images/sacred-hearts.jpg", "image/jpeg"],
   "/images/galactic-federation.jpg": ["public/images/galactic-federation.jpg", "image/jpeg"],
   "/images/council-for-earth.jpg": ["public/images/council-for-earth.jpg", "image/jpeg"],
