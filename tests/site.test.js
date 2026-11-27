@@ -1017,7 +1017,7 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
 
 test("The Heart and the Ego: three linked teachings in the Teachings tab, sourced, with Samadhi's view and no political names", async () => {
   const items = categories.find((c) => c.id === "teachings").items.map((i) => i.slug);
-  const slugs = ["give-your-soul-only-to-god", "the-idols-of-today", "charity-sharing-our-blessings"];
+  const slugs = ["give-your-soul-only-to-god", "the-idols-of-today", "charity-sharing-our-blessings", "the-mirror-seeing-god-in-every-face"];
   for (const slug of slugs) {
     assert.ok(items.includes(slug), `${slug} is in Teachings`);
     const page = await call(`/teachings/${slug}`);
@@ -1031,4 +1031,6 @@ test("The Heart and the Ego: three linked teachings in the Teachings tab, source
   for (const t of ["tzedakah", "zakat", "Maimonides", "lendeth unto the LORD"]) assert.ok(charity.body.includes(t), t);
   const idols = await call("/teachings/the-idols-of-today");
   assert.match(idols.body, /Wealth and children are an ornament/);
+  const mirror = await call("/teachings/the-mirror-seeing-god-in-every-face");
+  for (const t of ["The believer is the mirror of his brother", "that ye may know one another", "What you hate, you experience", "You are me. You are God"]) assert.ok(mirror.body.includes(t) || mirror.body.includes(t.replace("God's", "God&#39;s")), t);
 });
