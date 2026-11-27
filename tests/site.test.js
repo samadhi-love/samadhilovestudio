@@ -684,7 +684,7 @@ test("Homer tab and the eight new teachers render with their pictures", async ()
   for (const s of ["adi-shankara", "patanjali", "hafiz"]) assert.ok(myst.body.includes(`href="/teachings/${s}"`), s);
 });
 
-test("Blessing & Gratitude tab: four pages, placed before Prayers, with the dawn drawing", async () => {
+test("Blessing & Gratitude tab: four pages, placed before Prayers, with Samadhi's sunrise picture", async () => {
   const ids = categories.map((c) => c.id);
   assert.equal(ids.indexOf("blessing"), ids.indexOf("prayers") - 1);
   const tab = await call("/library?tab=blessing");
@@ -695,7 +695,7 @@ test("Blessing & Gratitude tab: four pages, placed before Prayers, with the dawn
     assert.doesNotMatch(page.body, /\{\{/, s);
   }
   const bless = await call("/teachings/blessing-god");
-  assert.match(bless.body, /<svg viewBox="0 0 600 330"/);
+  assert.ok(bless.body.includes('src="/images/sunrise-praise.jpg"'));
   assert.match(bless.body, /Modeh ani lefanecha/);
 });
 
