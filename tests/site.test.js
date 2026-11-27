@@ -1049,3 +1049,12 @@ test("Soul contracts (Teachings) and The Grandfather's Letter (Start Here): sour
   for (const t of ["Who carried the letter?", "isnad", "Prove all things", "Do other witnesses agree?", "write it in their hearts"]) assert.ok(letter.body.includes(t), t);
   for (const page of [soul, letter]) { assert.match(page.body, /<h2[^>]*>Sources<\/h2>/); assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/); }
 });
+
+test("One Source, One Message: in Prophets & Teachers after the overview, honest about the hard stories, Samadhi's view labelled", async () => {
+  const items = categories.find((c) => c.id === "prophets").items.map((i) => i.slug);
+  assert.deepEqual(items.slice(0, 2), ["prophets-and-teachers", "one-source-one-message"]);
+  const page = await call("/teachings/one-source-one-message");
+  for (const t of ["We make no distinction between any of them", "Truth is one", "The hard stories", "Badr", "Origen", "Eduyot", "There is no hell, only the lives we create"]) assert.ok(page.body.includes(t), t);
+  assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/);
+  assert.match(page.body, /<h2[^>]*>Sources<\/h2>/);
+});
