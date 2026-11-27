@@ -1145,6 +1145,8 @@ test("Part E: closing words on every teaching, care on pages about death, health
   assert.ok(flood.body.indexOf("Noah") < flood.body.indexOf("One memory, many peoples"));
   const jer = await call("/teachings/jerusalem-city-of-peace");
   assert.match(jer.body, /Jerusalem, holy city to Jews, Christians and Muslims\./);
+  assert.ok(jer.body.includes('src="/images/jerusalem-olives.jpg"'), "Samadhi's olive-tree picture");
+  assert.equal((await call("/images/jerusalem-olives.jpg")).status, 200);
   for (const p of ["/privacy", "/terms"]) { const r = await call(p); assert.equal(r.status, 200, p); }
   const all = categories.flatMap((c) => c.items).map((i) => i.body).join(" ");
   assert.ok(!/Jehovah|Yahweh/.test(all), "the Holy Name is not spelled out anywhere");
