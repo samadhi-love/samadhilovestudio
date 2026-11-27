@@ -2,7 +2,7 @@
   --bg: #080705;
   --ink: #eee4cf;
   --ink-strong: #fff6e2;
-  --ink-soft: #c9bb98;
+  --ink-soft: #ddd0b2;
   --gold: #f2c46d;
   --teal: #e9c46a;
   --rose: #e8b27a;
@@ -1036,10 +1036,32 @@ footer a, .footer a { font-family: var(--display); letter-spacing: .05em; }
 
 /* Section headings everywhere (Library tab headings, page sections): gold, key line, soft gold line under */
 h2.section-title { font-family: var(--display); color: #f6e2b0; display: inline-block; padding-bottom: 14px; background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2012%22%3E%3Cpath%20d%3D%22M0%2011.5H20V.5H4V8.5H12V4.5M20%2011.5H24%22%20fill%3D%22none%22%20stroke%3D%22%23c9a24d%22%20stroke-width%3D%221.2%22/%3E%3C/svg%3E") left bottom / 20px 10px repeat-x; text-shadow: 0 0 16px rgba(242, 196, 109, .3); }
-.section-intro { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #eadfc4; }
+.section-intro { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #f3ead6; }
 .teachings-heading p { font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #eadfc4; }
 /* Library: Samadhi's candlelit desk where the planet used to be */
 .banner-desk { position: absolute; top: 0; right: 0; bottom: 0; width: min(62%, 900px); z-index: 0; }
 .banner-desk img { width: 100%; height: 100%; object-fit: cover; object-position: 60% 55%; display: block; }
 .banner-desk::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, var(--bg) 0%, rgba(8, 7, 5, .55) 22%, rgba(8, 7, 5, 0) 50%), linear-gradient(0deg, var(--bg) 0%, rgba(8, 7, 5, 0) 30%); }
 @media (max-width: 760px) { .banner-desk { width: 100%; opacity: .45; } }
+
+/* Review, Nov 2026: easier reading, more breathing room, a quieter band of truths */
+/* 1. The softer lines a little brighter, and paragraphs a little more open */
+.fine { font-size: 13px; opacity: 1; color: #d8ccb0; }
+.banner .lead, .gold-banner .lead, .teachings-heading p { color: #f3ead6; }
+figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
+.article p, .article li, main article p, main article li { line-height: 1.8; color: #f1e8d4; }
+.card p { color: #e9dfc8; }
+/* 2. More room to breathe */
+.lib-frame .tabs-families { gap: 34px 40px; }
+.lib-frame .tab-family-pills { gap: 12px; }
+.lib-frame .tab-family-title { margin-bottom: 16px; }
+.grid { gap: 28px; }
+.card { padding: 34px; }
+.master { padding-bottom: 32px; }
+.master > :not(.portrait) { margin-left: 32px; margin-right: 32px; }
+.stone-card .family-tabs { gap: 10px; }
+/* 3. The band of truths: smaller and softer, so it never competes with the page */
+.ticker-item { padding-top: 7px; padding-bottom: 7px; font-size: 13px; color: #d9cba8; gap: 16px; }
+.ticker .sg { width: 18px; height: 18px; opacity: .8; }
+.ticker { opacity: .92; }
+.ticker-toggle { min-height: 26px; padding: 0 10px; font-size: 11px; }

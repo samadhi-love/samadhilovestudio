@@ -182,12 +182,15 @@ scenes(w, h) {
 }
 const sky = new SkyPainter();
 // Pause / play button for the moving truths.
+// The visitor's choice is remembered on this device, so the words stay still on every page once paused.
+const showTicker = (still) => document.querySelectorAll('[data-ticker-toggle]').forEach((b) => { b.setAttribute('aria-pressed', still ? 'true' : 'false'); b.textContent = still ? 'Play' : 'Pause'; });
+try { if (localStorage.getItem('sl-ticker') === 'still') { document.documentElement.classList.add('still'); showTicker(true); } } catch (e) { /* storage may be blocked */ }
 document.addEventListener('click', (ev) => {
   const btn = ev.target.closest && ev.target.closest('[data-ticker-toggle]');
   if (!btn) return;
   const still = document.documentElement.classList.toggle('still');
-  btn.setAttribute('aria-pressed', still ? 'true' : 'false');
-  btn.textContent = still ? 'Play' : 'Pause';
+  showTicker(still);
+  try { localStorage.setItem('sl-ticker', still ? 'still' : 'moving'); } catch (e) { /* storage may be blocked */ }
 });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => sky.start());
 else sky.start();
