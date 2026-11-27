@@ -1015,10 +1015,11 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
 });
 
 test("The Heart and the Ego: three linked teachings in the Teachings tab, sourced, with Samadhi's view and no political names", async () => {
-  const items = categories.find((c) => c.id === "teachings").items.map((i) => i.slug);
+  // Since Nov 2026 these live in their own tab, The Heart and the Ego (same addresses).
+  const items = categories.find((c) => c.id === "heart-and-ego").items.map((i) => i.slug);
   const slugs = ["give-your-soul-only-to-god", "the-idols-of-today", "charity-sharing-our-blessings", "the-mirror-seeing-god-in-every-face"];
   for (const slug of slugs) {
-    assert.ok(items.includes(slug), `${slug} is in Teachings`);
+    assert.ok(items.includes(slug), `${slug} is in The Heart and the Ego`);
     const page = await call(`/teachings/${slug}`);
     assert.equal(page.status, 200, slug);
     assert.match(page.body, /<h2[^>]*>Sources<\/h2>/);
@@ -1076,7 +1077,7 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   assert.match(board.body, /shown as lights rather than faces/);
   // Every teaching in a Path tab carries the Path of Study sign; the wheel links all twelve stages.
   const page = await call("/teachings/love-and-marriage");
-  assert.match(page.body, /class="path-strip"[\s\S]*Stage 10 of 12: Spirit in Daily Life[\s\S]*Next stage: Beyond the Veil/);
+  assert.match(page.body, /class="path-strip"[\s\S]*Stage 10 of 12: The Heart and Daily Life[\s\S]*Next stage: Beyond the Veil/);
   const path = await call("/teachings/the-path-of-study");
   assert.equal((path.body.match(/class="pw-node"/g) || []).length, 12);
   assert.equal((path.body.match(/class="pw-stage"/g) || []).length, 12);
@@ -1091,12 +1092,29 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   assert.ok(!/\d+\s?(g|grams|kcal|calories)\b/i.test(fast.body.replace(/<[^>]+>/g, " ")), "no measurements on the fasting page");
 });
 
-test("The Power of Words: in Spirit in Daily Life, Bava Metzia 58b, no swear words, labelled as spiritual teaching", async () => {
-  const dl = categories.find((c) => c.id === "daily-life");
-  assert.equal(dl.items[1].slug, "the-power-of-words");
+test("The Power of Words: in The Heart and the Ego, Bava Metzia 58b, no swear words, labelled as spiritual teaching", async () => {
+  const heart = categories.find((c) => c.id === "heart-and-ego");
+  assert.ok(heart.items.some((i) => i.slug === "the-power-of-words"));
   const page = await call("/teachings/the-power-of-words");
   assert.equal(page.status, 200);
   const low = page.body.toLowerCase();
   for (const t of ["Bava Metzia 58b", "Proverbs 18:21", "James 3:9", "Ephesians 4:29", "Sahih al-Bukhari 6018", "Right Speech", "17:15", "lashon hara", "ona", "not as proven science", "the-mirror-seeing-god-in-every-face", "the-golden-rule", "the-power-of-affirmations", "blessing-god"]) assert.ok(low.includes(t.toLowerCase()), t);
-  assert.match(page.body, /Stage 10 of 12: Spirit in Daily Life/);
+  assert.match(page.body, /Stage 10 of 12: The Heart and Daily Life/);
+});
+
+test("The Heart and the Ego: one course of 13 lessons gathered from four tabs, addresses unchanged", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const heart = categories.find((c) => c.id === "heart-and-ego");
+  assert.deepEqual(heart.items.map((i) => i.slug), ["fear-ego-and-grief", "give-your-soul-only-to-god", "the-idols-of-today", "greed-wanting-more-than-we-need", "envy-and-jealousy", "competition-and-rivalry", "hate-and-bad-wishes", "black-magic-and-the-law-of-return", "the-power-of-words", "the-mirror-seeing-god-in-every-face", "the-golden-rule", "the-power-of-forgiveness", "charity-sharing-our-blessings"]);
+  assert.ok(libraryFamilies.find((f) => f.id === "spiritual").tabs.includes("heart-and-ego"));
+  const all = categories.flatMap((c) => c.items.map((i) => i.slug));
+  for (const s of heart.items.map((i) => i.slug)) assert.equal(all.filter((x) => x === s).length, 1, `${s} appears once`);
+  for (const s of ["greed-wanting-more-than-we-need", "envy-and-jealousy", "competition-and-rivalry", "hate-and-bad-wishes", "the-golden-rule", "the-power-of-forgiveness"]) {
+    const page = await call(`/teachings/${s}`);
+    assert.equal(page.status, 200, s);
+    assert.match(page.body, /The Heart and the Ego/);
+  }
+  const hate = await call("/teachings/hate-and-bad-wishes");
+  assert.match(hate.body, /Mashallah/);
+  assert.match(hate.body, /Samadhi&#39;s view|Samadhi's view/);
 });
