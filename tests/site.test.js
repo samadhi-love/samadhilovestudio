@@ -1211,3 +1211,11 @@ test("Samadhi's promise on every page, his sayings at the end of each tab, and o
     last = m[1];
   }
 });
+
+test("Spirit in Daily Life opens every lesson with Samadhi's lamp picture", async () => {
+  for (const i of categories.find((c) => c.id === "daily-life").items) {
+    const page = await call(`/teachings/${i.slug}`);
+    assert.ok(page.body.includes('src="/images/daily-lamp.jpg"'), i.slug);
+  }
+  assert.equal((await call("/images/daily-lamp.jpg")).status, 200);
+});
