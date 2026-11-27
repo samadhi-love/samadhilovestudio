@@ -891,6 +891,7 @@ test("Prophets & Teachers tab: overview with filters, golden rule strip and nine
   for (const f of ["all", "abr", "dha", "per", "sik"]) assert.match(ov.body, new RegExp(`id="pf-${f}"`), f);
   assert.equal((ov.body.match(/class="pf-gold-card"/g) || []).length, 8, "golden rule strip");
   assert.match(ov.body, /do not teach reincarnation/);
+  assert.match(ov.body, /gilgul/);
   const slugs = ["enoch", "abraham", "moses", "zarathushtra", "the-buddha", "isaiah-jeremiah-ezekiel", "jesus-of-nazareth", "muhammad", "krishna-and-rama", "guru-nanak"];
   for (const slug of slugs) {
     const page = await call(`/teachings/${slug}`);
@@ -1012,4 +1013,22 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
   assert.doesNotMatch(leb.body, /id="sl-cedar-t"/, "only the real cedar picture, no drawn cedar");
   const img = await call("/images/cedars-of-lebanon.jpg");
   assert.equal(img.status, 200);
+});
+
+test("The Heart and the Ego: three linked teachings in the Teachings tab, sourced, with Samadhi's view and no political names", async () => {
+  const items = categories.find((c) => c.id === "teachings").items.map((i) => i.slug);
+  const slugs = ["give-your-soul-only-to-god", "the-idols-of-today", "charity-sharing-our-blessings"];
+  for (const slug of slugs) {
+    assert.ok(items.includes(slug), `${slug} is in Teachings`);
+    const page = await call(`/teachings/${slug}`);
+    assert.equal(page.status, 200, slug);
+    assert.match(page.body, /<h2[^>]*>Sources<\/h2>/);
+    assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/);
+    for (const other of slugs) assert.ok(page.body.includes(`href="/teachings/${other}"`), `${slug} links ${other}`);
+  }
+  const charity = await call("/teachings/charity-sharing-our-blessings");
+  assert.match(charity.body, /A word of care/);
+  for (const t of ["tzedakah", "zakat", "Maimonides", "lendeth unto the LORD"]) assert.ok(charity.body.includes(t), t);
+  const idols = await call("/teachings/the-idols-of-today");
+  assert.match(idols.body, /Wealth and children are an ornament/);
 });
