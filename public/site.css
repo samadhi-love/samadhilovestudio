@@ -850,3 +850,29 @@ body.tk-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .he-photo-beat { animation: none; } }
 
 .nm-nature-photo { border-radius: 12px; max-width: 420px; margin-bottom: 10px; }
+
+/* The golden Tree of Life over Samadhi's tree (The Ten Sefirot) */
+.tl-gold-figure { max-width: 640px; margin-left: auto; margin-right: auto; }
+.tl-gold-figure svg { width: 100%; height: auto; display: block; border-radius: 18px; border: 1px solid rgba(242, 196, 109, .3); }
+.tl-gold-figure .tl-node { cursor: pointer; }
+.tl-gold-figure .tl-node:focus-visible .tl-orb { stroke: #fff; stroke-width: 6; }
+.tl-gold-figure .tl-halo { opacity: 0; }
+.tl-gold-figure .tl-node.is-chosen .tl-halo { opacity: .9; }
+.tl-gold-figure .tl-flow { stroke-dasharray: .22 1.03; stroke-dashoffset: .22; animation: tl-flow 14s linear infinite; }
+.tl-gold-figure .tl-pulse .tl-halo { animation: tl-pulse 14s ease-in-out infinite; animation-delay: inherit; }
+.tl-gold-figure .tl-all { animation: tl-all 14s ease-in-out infinite; }
+@keyframes tl-flow { 0% { stroke-dashoffset: .22; opacity: 1; } 7% { stroke-dashoffset: -1.03; opacity: 1; } 7.1%, 100% { stroke-dashoffset: -1.03; opacity: 0; } }
+@keyframes tl-pulse { 0% { opacity: 0; } 3% { opacity: .95; } 9% { opacity: .15; } 100% { opacity: 0; } }
+@keyframes tl-all { 0%, 66% { filter: none; } 76%, 86% { filter: drop-shadow(0 0 14px rgba(255, 227, 154, .85)); } 96%, 100% { filter: none; } }
+.tl-notes { max-width: 640px; margin: 10px auto 0; }
+.tl-note { display: none; padding: 12px 16px; border-radius: 14px; background: rgba(242, 196, 109, .08); border: 1px solid rgba(242, 196, 109, .25); }
+.tl-note h3 { margin: 0 0 4px; }
+.tl-note p { margin: 4px 0 0; }
+.tl-note.is-open, .tl-note:target { display: block; }
+.tl-notes:has(.tl-note:target) .tl-hint { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tl-gold-figure .tl-flow, .tl-gold-figure .tl-pulse .tl-halo, .tl-gold-figure .tl-all { animation: none; }
+  .tl-gold-figure .tl-flow { opacity: 0; }
+  .tl-gold-figure .tl-pulse .tl-halo { opacity: .35; }
+}
+.tl-gold-figure .tl-node.is-chosen .tl-orb { stroke: #fff; stroke-width: 6; }

@@ -278,3 +278,17 @@ for (const box of document.querySelectorAll(".star-map-scroll[data-focus]")) {
   centre();
   window.addEventListener("load", centre, { once: true });
 }
+
+// The golden Tree of Life: tapping a sphere shows its meaning below, without jumping the page.
+for (const fig of document.querySelectorAll(".tl-gold-figure")) {
+  const notes = fig.querySelectorAll(".tl-note");
+  fig.addEventListener("click", (ev) => {
+    const a = ev.target.closest("a[data-tl]");
+    if (!a) return;
+    ev.preventDefault();
+    const note = fig.querySelector(`#tln-${a.dataset.tl}`);
+    notes.forEach((n) => n.classList.toggle("is-open", n === note));
+    fig.querySelectorAll(".tl-node").forEach((n) => n.classList.toggle("is-chosen", n === a));
+    if (note) note.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+}

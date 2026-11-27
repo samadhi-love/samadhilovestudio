@@ -974,7 +974,7 @@ test("Sacred Lands: four peaceful pages in History & Origins, a map with no mode
     assert.match(page.body, /Samadhi&#39;s view|Samadhi's view/, `${slug} labels Samadhi's view`);
   }
   const map = await call("/teachings/the-holy-land-and-lebanon");
-  assert.match(map.body, /id="sl-map-t"/);
+  assert.match(map.body, /id="hl-t"/);
   assert.match(map.body, /No modern borders are drawn/);
   assert.match(map.body, /blessed for \(all\) peoples/);
   const peace = await call("/teachings/peace-in-the-land-of-god");
@@ -1277,4 +1277,21 @@ test("every star map renders the real sky, and every label on it gives a distanc
   // Twinkle respects visitors who prefer less motion.
   const css = (await import("node:fs")).readFileSync(new URL("../public/site.css", import.meta.url), "utf8");
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.star-map \.sm-tw \{ animation: none/);
+});
+
+test("The Ten Sefirot: Samadhi's golden tree with the animated Tree of Life on top, and the old drawing kept below", async () => {
+  const page = await call("/teachings/the-ten-sefirot");
+  assert.equal(page.status, 200);
+  const top = page.body.indexOf("tl-gold-figure"), old = page.body.indexOf('class="cross-hero tolx"');
+  assert.ok(top > 0 && old > top, "golden tree first, the current drawing still below it");
+  const fig = page.body.slice(top, page.body.indexOf("</figure>", top));
+  assert.match(fig, /\/images\/tree-of-life-gold\.jpg/);
+  assert.equal((fig.match(/class="tl-node/g) || []).length, 11, "ten Sefirot and Da'at");
+  assert.equal((fig.match(/class="tl-flow"/g) || []).length, 22, "the 22 paths");
+  for (const he of ["כתר", "חכמה", "בינה", "דעת", "חסד", "גבורה", "תפארת", "נצח", "הוד", "יסוד", "מלכות"]) assert.ok(fig.includes(he), he);
+  for (const t of ["SEVERITY", "BALANCE", "MERCY"]) assert.ok(fig.includes(`>${t}</text>`), t);
+  assert.match(fig, /tl-daat/);
+  assert.equal((fig.match(/class="tl-note" id="tln-/g) || []).length, 11, "a note for every sphere");
+  const css = (await import("node:fs")).readFileSync(new URL("../public/site.css", import.meta.url), "utf8");
+  assert.match(css, /prefers-reduced-motion: reduce\) \{\n  \.tl-gold-figure \.tl-flow/);
 });
