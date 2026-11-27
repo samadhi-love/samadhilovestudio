@@ -807,3 +807,14 @@ body.tk-open { overflow: hidden; }
 .nm-tr { font-family: Georgia, serif; color: #f1ebff; margin: 6px 0 2px; }
 .nm-say { font-size: 13px; color: #bdb3d9; margin: 0 0 6px; }
 .nm-mean { font-size: 15px; color: #d9d4f5; margin: 6px 0 0; }
+
+/* Closing words on every teaching (Part E) and the Jerusalem drawing */
+.closing { margin: 30px 0 6px; padding: 16px 18px; border-top: 1px solid rgba(242,196,109,.3); text-align: center; }
+.closing p { margin: 6px 0; }
+.cl-take { font-family: Georgia, serif; font-size: 18px; color: #fff3c4; }
+.cl-humble, .cl-health { font-size: 14px; color: #bdb3d9; }
+.cl-hope { font-family: Georgia, serif; font-size: 17px; color: #f2c46d; }
+.cl-care { font-size: 14px; color: #d9d4f5; }
+.sl-figure svg { width: 100%; height: auto; display: block; max-width: 680px; margin: 0 auto; }
+.sl-dove { animation: sj-glow 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sl-dove { animation: none; } }

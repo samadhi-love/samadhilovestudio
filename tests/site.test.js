@@ -634,7 +634,7 @@ test("Knowledge & Insight tab: food, compassion, processed food and the sacred s
   for (const t of ["Food Is Energy", "Compassion on the Plate", "Processed Foods and Meats", "The Sacred Seed"]) assert.ok(lib.body.includes(t), t);
   const pages = { "food-is-energy": ["SMILES", "Sattvic", "not medical advice"],
     "compassion-on-the-plate": ["Govinda", "Go Mata", "tza&#39;ar ba&#39;alei chayim|tza'ar ba'alei chayim", "Temple Grandin"],
-    "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "18%"],
+    "processed-foods-and-meats": ["NOVA", "carcinogenic to humans", "the higher the risk"],
     "the-sacred-seed": ["Niddah 13a", "Even HaEzer 23:1", "sons do not walk behind his coffin", "dhatu kshaya", "Never despair", "Genesis 38:9", "Tikkun HaKlali", "Lilith", "brahmacharya", "What medicine says", "No shame"] };
   for (const [slug, words] of Object.entries(pages)) {
     const page = await call(`/teachings/${slug}`);
@@ -980,7 +980,7 @@ test("Navigation: six top items, Library panel in five families, every tab reach
   const order = libraryFamilies[0].tabs.filter((id) => categories.some((c) => c.id === id)).map((id) => lib.body.indexOf(`class="tab" href="/library?tab=${id}"`));
   assert.deepEqual([...order].sort((a, b) => a - b), order, "tabs in family order");
   const foot = home.body.match(/<nav aria-label="Footer">([\s\S]*?)<\/nav>/)[1];
-  assert.deepEqual([...foot.matchAll(/>([^<]+)<\/a>/g)].map((m) => m[1]), ["Library of Light", "Masters &amp; Angels", "Music", "Versual Studio", "About", "My Vision", "Contact", "Picture credits"]);
+  assert.deepEqual([...foot.matchAll(/>([^<]+)<\/a>/g)].map((m) => m[1]), ["Library of Light", "Masters &amp; Angels", "Music", "Versual Studio", "About", "My Vision", "Contact", "Picture credits", "Privacy", "Terms"]);
   // "New teachings" on the home page shows the newest series (updated Nov 2026).
   for (const slug of ["death-is-a-doorway", "the-mystery-schools", "love-and-marriage"]) assert.ok(home.body.includes(`href="/teachings/${slug}"`), slug);
   assert.ok(home.body.includes('href="/teachings/the-path-of-study"'), "Path of Study on the home page");
@@ -1146,4 +1146,34 @@ test("The Names of God: beside Teachings, ten equal traditions, the Holy Name ne
   const islam = await call("/teachings/the-names-of-god-in-islam");
   assert.match(islam.body, /Subhanahu wa Ta&#39;ala \(Glorified and Exalted is He\)|Subhanahu wa Ta'ala \(Glorified and Exalted is He\)/);
   assert.match(islam.body, /peace be upon him/);
+});
+
+test("Part E: closing words on every teaching, care on pages about death, health reminder, hope in the Ages, Privacy and Terms", async () => {
+  const any = await call("/teachings/the-names-of-god");
+  assert.match(any.body, /Take what resonates with your heart; leave the rest\./);
+  assert.match(any.body, /If you notice an error, please <a href="\/contact">contact us<\/a>/);
+  const death = await call("/teachings/death-is-a-doorway");
+  assert.match(death.body, /If you are struggling, please reach out\. In the US, call or text 988\. You are loved, and you are not alone\./);
+  const shakespeare = await call("/teachings/shakespeare-the-man");
+  assert.ok(!/call or text 988\. You are loved/.test(shakespeare.body), "no care line where death is only history");
+  const food = await call("/teachings/food-is-energy");
+  assert.match(food.body, /Spiritual guidance, not a replacement for your doctor\./);
+  const age = categories.find((c) => c.id === "ages-of-the-world").items[0];
+  const agePage = await call(`/teachings/${age.slug}`);
+  assert.match(agePage.body, /The cycle always turns\. The Golden Age returns/);
+  const plate = await call("/teachings/compassion-on-the-plate");
+  assert.match(plate.body, /All life is sacred\. When an animal is raised with love/);
+  assert.ok(!/Eat less meat/.test(plate.body));
+  const karma = await call("/teachings/reincarnation-and-karma");
+  assert.match(karma.body, /Karma is the soul&#39;s school, not a punishment|Karma is the soul's school, not a punishment/);
+  const iam = await call("/teachings/the-i-am-teachings");
+  assert.match(iam.body, /The drop is ocean, yet the drop is not the whole ocean\./);
+  const flood = await call("/teachings/the-great-flood");
+  assert.ok(flood.body.indexOf("Noah") < flood.body.indexOf("One memory, many peoples"));
+  const jer = await call("/teachings/jerusalem-city-of-peace");
+  assert.match(jer.body, /Jerusalem, holy city to Jews, Christians and Muslims\./);
+  for (const p of ["/privacy", "/terms"]) { const r = await call(p); assert.equal(r.status, 200, p); }
+  const all = categories.flatMap((c) => c.items).map((i) => i.body).join(" ");
+  assert.ok(!/Jehovah|Yahweh/.test(all), "the Holy Name is not spelled out anywhere");
+  assert.ok(!/religions carry dogma|religion is wrong/i.test(all));
 });
