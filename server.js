@@ -51,6 +51,7 @@ const files = {
   "/images/abraham-tent.jpg": ["public/images/abraham-tent.jpg", "image/jpeg"],
   "/images/sacred-fire.jpg": ["public/images/sacred-fire.jpg", "image/jpeg"],
   "/images/burning-bush.jpg": ["public/images/burning-bush.jpg", "image/jpeg"],
+  "/images/seven-heavens.jpg": ["public/images/seven-heavens.jpg", "image/jpeg"],
   "/images/star-federation.jpg": ["public/images/star-federation.jpg", "image/jpeg"],
   "/images/star-hathors.jpg": ["public/images/star-hathors.jpg", "image/jpeg"],
   "/images/star-hathors-2.jpg": ["public/images/star-hathors-2.jpg", "image/jpeg"],
