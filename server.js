@@ -166,6 +166,7 @@ const files = {
   "/images/plant-medicine/brain.jpg": ["public/images/plant-medicine/brain.jpg", "image/jpeg"],
   "/images/plant-medicine/integration.jpg": ["public/images/plant-medicine/integration.jpg", "image/jpeg"],
   "/images/plant-medicine/safety.jpg": ["public/images/plant-medicine/safety.jpg", "image/jpeg"],
+  "/images/plant-medicine/samadhi-vision.jpg": ["public/images/plant-medicine/samadhi-vision.jpg", "image/jpeg"],
   "/images/hermes.jpg": ["public/images/hermes.jpg", "image/jpeg"],
   "/images/zoroaster.jpg": ["public/images/zoroaster.jpg", "image/jpeg"],
   "/images/orpheus.jpg": ["public/images/orpheus.jpg", "image/jpeg"],

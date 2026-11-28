@@ -1433,6 +1433,8 @@ test("Psychedelics and Plant Medicine: nine pages in Sacred Sciences, safety box
   assert.match(aya.body, /class="about-scroll judge-scroll pm-view"/, "on an ancient scroll");
   assert.match(aya.body, /not medical advice\. Every person and every soul is unique and different\./);
   assert.ok(aya.body.indexOf("pm-safety") < aya.body.indexOf("pm-view"), "the safety box comes first");
+  assert.ok(aya.body.indexOf("samadhi-vision.jpg") < aya.body.indexOf("pm-view"), "the vision picture sits above the scroll");
+  assert.equal((await call("/images/plant-medicine/samadhi-vision.jpg")).status, 200);
   const safety = await call("/teachings/plant-medicine-safety");
   for (const w of [/SSRIs and SNRIs/, /serotonin syndrome/, /lithium/i, /psychosis or schizophrenia/, /Schedule I/, /hypertensive crisis/]) assert.match(safety.body, w);
   for (const t of ["Entheogen", "Ayahuasca", "MAOI", "Set and Setting", "Default Mode Network", "Integration"]) assert.ok(GLOSSARY.some((g) => g[0] === t), `glossary: ${t}`);
