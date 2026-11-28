@@ -125,6 +125,8 @@ const files = {
   "/images/sign-flame.png": ["public/images/sign-flame.png", "image/png"],
   "/images/om-coin.png": ["public/images/om-coin.png", "image/png"],
   "/images/library-column.png": ["public/images/library-column.png", "image/png"],
+  "/images/wisdom-doorway.jpg": ["public/images/wisdom-doorway.jpg", "image/jpeg"],
+  "/images/wisdom-doorway-phone.jpg": ["public/images/wisdom-doorway-phone.jpg", "image/jpeg"],
   "/images/wisdom-of-the-ages.jpg": ["public/images/wisdom-of-the-ages.jpg", "image/jpeg"],
   "/images/hero-scroll.jpg": ["public/images/hero-scroll.jpg", "image/jpeg"],
   "/images/library-desk.jpg": ["public/images/library-desk.jpg", "image/jpeg"],
