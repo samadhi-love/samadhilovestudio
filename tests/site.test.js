@@ -799,6 +799,7 @@ test("Tree of Life explorer and chakra lotuses: animated drawings driven by CSS 
   const counts = { "chakra-root": 4, "chakra-sacral": 6, "chakra-solar-plexus": 10, "chakra-heart": 12, "chakra-throat": 16 };
   for (const [slug, n] of Object.entries(counts)) {
     const page = await call(`/teachings/${slug}`);
+    if (page.body.includes('class="cross-hero lx lx-photo"')) { assert.match(page.body, /<image href="\/images\/chakra-/); assert.match(page.body, /class="lx-spin"/); continue; }
     const fig = page.body.split('<figure class="cross-hero lx">')[1].split("</svg>")[0];
     const fill = fig.split('class="lx-fill"')[1].split("</g>")[0];
     assert.equal((fill.match(/<path /g) || []).length, n, `${slug} has ${n} petals`);
@@ -824,7 +825,7 @@ test("Animated Tree of Life and chakra lotuses render with CSS-only buttons", as
     const page = await call(`/teachings/${slug}`);
     assert.match(page.body, new RegExp(`id="lx-c${n}-c" class="lx-col"`), slug);
     assert.doesNotMatch(page.body, /\{\{lotus-/, slug);
-    if (petals[n]) {
+    if (petals[n] && !page.body.includes('class="cross-hero lx lx-photo"')) {
       const fill = page.body.split('<g class="lx-fill"')[1].split("</g>")[0];
       assert.equal((fill.match(/<path /g) || []).length, petals[n], `${slug} has ${petals[n]} petals`);
     }

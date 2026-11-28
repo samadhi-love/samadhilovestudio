@@ -51,6 +51,8 @@ const files = {
   "/images/abraham-tent.jpg": ["public/images/abraham-tent.jpg", "image/jpeg"],
   "/images/sacred-fire.jpg": ["public/images/sacred-fire.jpg", "image/jpeg"],
   "/images/burning-bush.jpg": ["public/images/burning-bush.jpg", "image/jpeg"],
+  "/images/chakras-meditator.jpg": ["public/images/chakras-meditator.jpg", "image/jpeg"],
+  "/images/chakra-1-root.jpg": ["public/images/chakra-1-root.jpg", "image/jpeg"],
   "/images/bodhi-tree.jpg": ["public/images/bodhi-tree.jpg", "image/jpeg"],
   "/images/new-heart.jpg": ["public/images/new-heart.jpg", "image/jpeg"],
   "/images/dove-lamb.jpg": ["public/images/dove-lamb.jpg", "image/jpeg"],

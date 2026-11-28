@@ -1099,3 +1099,18 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .judge-practice .jp-main { font-family: var(--display); font-size: 21px; color: #f6e2b0; text-shadow: 0 0 12px rgba(242, 196, 109, .3); margin: 6px 0 12px; }
 .judge-practice li { color: #f1e8d4; }
 @media (max-width: 600px) { .as-poem { font-size: 4.6cqw; } }
+
+/* Chakras on Samadhi's own pictures: the buttons move light over the photos */
+.lx.lx-photo > svg { max-width: 760px; width: 100%; border-radius: 18px; }
+.lx.lx-all.lx-photo > svg { max-width: 1100px; }
+.lx-col:checked ~ svg .lx-photo-fill { opacity: .5 !important; }
+.lx.lx-photo .lx-s, .lx.lx-photo .lx-b { transform-box: view-box; }
+.lx.lx-photo:not(.lx-all) .lx-s, .lx.lx-photo:not(.lx-all) .lx-b { transform-origin: 200px 200px; }
+.lx.lx-all.lx-photo .lx-node .lx-s, .lx.lx-all.lx-photo .lx-node .lx-b { transform-box: fill-box; transform-origin: center; }
+.lx-photo .lx-br:checked ~ svg .lx-halo { animation: lx-halo 7s ease-in-out infinite; }
+@keyframes lx-photo-breathe { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1.04); } }
+.lx-photo:not(.lx-all) .lx-br:checked ~ svg .lx-b { animation: lx-photo-breathe 7s ease-in-out infinite; }
+.lx-photo .lx-photo-halo { opacity: .55; }
+.lx-photo .lx-br:checked ~ svg .lx-photo-halo { animation: lx-photo-halo 7s ease-in-out infinite; }
+@keyframes lx-photo-halo { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
+@media (max-width: 640px) { .lx-all.lx-photo .lxp-label { display: none; } }
