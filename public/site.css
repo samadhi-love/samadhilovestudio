@@ -1246,3 +1246,4 @@ button.wt-more { cursor: pointer; }
 .pm-safety li strong { color: #f6e2b0; }
 .pm-safety-more { margin: 10px 0 0; font-size: 14.5px; color: #d9cfb8; }
 .pm-safety a { color: #f6e2b0; }
+.cover-small:has(img[src^="/images/plant-medicine/"]) { margin-left: auto; margin-right: auto; }

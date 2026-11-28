@@ -1424,6 +1424,10 @@ test("Psychedelics and Plant Medicine: nine pages in Sacred Sciences, safety box
     assert.ok(!/\b\d+(\.\d+)?\s?(mg|µg|mcg|micrograms?|milligrams?|grams?|ml)\b/i.test(it.body), `no amounts on ${it.slug}`);
     for (const [, href] of it.body.matchAll(/\]\((\/teachings\/[a-z0-9-]+)\)/g)) assert.equal((await call(href)).status, 200, `${it.slug} links to ${href}`);
   }
+  for (const it of tab.items) {
+    assert.ok(it.image && it.image.src.startsWith("/images/plant-medicine/"), `picture on ${it.slug}`);
+    assert.equal((await call(it.image.src)).status, 200, it.image.src);
+  }
   const aya = await call("/teachings/ayahuasca");
   assert.match(aya.body, /Samadhi&#39;s view|Samadhi's view/, "labelled as Samadhi's view");
   assert.match(aya.body, /class="about-scroll judge-scroll pm-view"/, "on an ancient scroll");
