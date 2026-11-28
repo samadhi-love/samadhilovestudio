@@ -1373,3 +1373,11 @@ section.quote.home-sec { padding: 14px 0 18px; }
 .quote-tableau-one { max-width: none; margin: 0; }
 .quote-tableau-one img { border-radius: 4px; }
 @media (max-width: 700px) { .quote-tableau-one { margin: 0 -10px; } }
+/* Small gold circles of the seed of life turning slowly above the two candles of the tableau. */
+.quote-tableau-one { position: relative; }
+.qt-orb { position: absolute; top: 47%; width: 4.4%; aspect-ratio: 1; transform: translate(-50%, -50%); color: #e6bf6a; pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(255, 200, 110, .55)); opacity: .9; }
+.qt-orb-l { left: 3.05%; } .qt-orb-r { left: 96.85%; }
+.qt-orb .gs { width: 100%; height: 100%; display: block; }
+.qt-orb .gs-turn { animation-duration: 40s; }
+.qt-orb .gs-turn.gs-rev { animation-duration: 40s; }
