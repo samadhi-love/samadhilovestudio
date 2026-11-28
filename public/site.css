@@ -1359,3 +1359,9 @@ section.quote.home-sec { padding: 26px 0 30px; }
   .fam-middle > .fam-path { grid-column: 1 / -1; order: 99; }
 }
 @media (min-width: 700px) and (max-width: 1099px) { .fam-middle > .wisdom-tablet.wt-doorway { max-width: 760px; width: 100%; justify-self: center; } }
+
+/* The Buddha's words on Samadhi's engraved bronze plaque, raised close to the families (Nov 28). */
+section.quote.home-sec { padding: 14px 0 18px; }
+.quote-plaque { margin: 0 auto; max-width: 880px; }
+.quote-plaque img { display: block; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 14px 34px rgba(0, 0, 0, .7), 0 0 26px rgba(242, 196, 109, .08); }
+@media (max-width: 700px) { section.quote.home-sec { padding: 8px 0 12px; } .quote-plaque { margin: 0 -8px; } }
