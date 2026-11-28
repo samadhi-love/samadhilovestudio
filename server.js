@@ -51,6 +51,7 @@ const files = {
   "/images/abraham-tent.jpg": ["public/images/abraham-tent.jpg", "image/jpeg"],
   "/images/sacred-fire.jpg": ["public/images/sacred-fire.jpg", "image/jpeg"],
   "/images/burning-bush.jpg": ["public/images/burning-bush.jpg", "image/jpeg"],
+  "/images/xp-river-fire.jpg": ["public/images/xp-river-fire.jpg", "image/jpeg"],
   "/images/xp-stonehenge.jpg": ["public/images/xp-stonehenge.jpg", "image/jpeg"],
   "/images/xp-delphi.jpg": ["public/images/xp-delphi.jpg", "image/jpeg"],
   "/images/xp-machu-picchu.jpg": ["public/images/xp-machu-picchu.jpg", "image/jpeg"],
