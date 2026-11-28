@@ -1114,3 +1114,4 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .lx-photo .lx-br:checked ~ svg .lx-photo-halo { animation: lx-photo-halo 7s ease-in-out infinite; }
 @keyframes lx-photo-halo { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
 @media (max-width: 640px) { .lx-all.lx-photo .lxp-label { display: none; } }
+.num-photo > svg { width: 100%; max-width: 1100px; }
