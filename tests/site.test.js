@@ -280,7 +280,7 @@ test("each star family page has its original artwork, and the Federation page te
     // Samadhi turned the seven portraits back on (Nov 2026).
     if (["sirians", "andromedans", "arcturians", "orions-of-light", "pleiadians", "lyrans", "humans"].includes(slug)) assert.match(page.body, new RegExp(`<figure class="star-art star-portrait tall"><img src="/images/star-families/${slug}\\.jpg"`), slug);
     else if (slug === "galactic-federation-of-light") assert.match(page.body, /<figure class="star-art star-portrait"><img src="\/images\/galactic-federation\.jpg"/, slug);
-    else assert.match(page.body, /<figure class="star-art"><svg/, slug);
+    else assert.match(page.body, /<figure class="star-art"><svg|<figure class="star-art sl-photo"><div class="sl-photo-frame"><img src="\/images\/star-/, slug);
     assert.doesNotMatch(page.body, /\{\{[a-z0-9-]+\}\}/, slug);
   }
   const gfl = await call("/teachings/galactic-federation-of-light");
@@ -356,7 +356,7 @@ test("Samadhi's star family pictures are served, and nothing outside that folder
   assert.equal((await call("/images/star-families/no-such-family.jpg")).status, 404);
   assert.notEqual((await call("/images/star-families/..%2F..%2Fserver.jpg")).status, 200);
   const hathors = await call("/teachings/hathors");
-  assert.match(hathors.body, /<figure class="star-art"><svg/);
+  assert.match(hathors.body, /<img src="\/images\/star-hathors\.jpg"/);
 });
 
 test("the Humans page tells the story of the fall and the return, with its sources and an honest note", async () => {
