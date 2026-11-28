@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test tests/*.test.js",
+    "check:pages": "node scripts/check-pages.mjs",
     "backup:pictures": "node scripts/backup-pictures.mjs",
     "restore:pictures": "node scripts/restore-pictures.mjs"
   },

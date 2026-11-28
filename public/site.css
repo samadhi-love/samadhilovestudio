@@ -1236,3 +1236,13 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 button.wt-more { cursor: pointer; }
 .tab-flank-text .wisdom-tablet, .teachings-heading .wisdom-tablet, .banner .wisdom-tablet { margin: 26px auto 8px; max-width: 760px; min-height: 380px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .wt-words, .wt-words.is-flipping, .wt-words.is-landing { transition: none; animation: none; transform: none; opacity: 1; } }
+
+/* Psychedelics and Plant Medicine: the calm safety box at the top of every page of the tab. */
+.pm-safety { margin: 8px 0 28px; padding: 18px 22px 14px; border: 1px solid rgba(242, 196, 109, .55); border-radius: 8px;
+  background: linear-gradient(180deg, rgba(48, 38, 20, .92), rgba(20, 16, 10, .95)); box-shadow: 0 0 24px rgba(242, 196, 109, .12), inset 0 0 0 1px rgba(0, 0, 0, .4); }
+.pm-safety-title { font-family: var(--display); letter-spacing: .14em; text-transform: uppercase; font-size: 14px; color: #f2c46d; margin: 0 0 10px; }
+.pm-safety ul { margin: 0; padding-left: 20px; }
+.pm-safety li { margin: 0 0 8px; color: #efe6d2; font-size: 15.5px; line-height: 1.55; }
+.pm-safety li strong { color: #f6e2b0; }
+.pm-safety-more { margin: 10px 0 0; font-size: 14.5px; color: #d9cfb8; }
+.pm-safety a { color: #f6e2b0; }

@@ -1310,7 +1310,7 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   assert.equal(before.slugs.length, 275);
   const now = categories.flatMap((c) => c.items.map((i) => i.slug));
   // Pages added after the reorganization (on purpose) may join; none of the 275 may ever be lost.
-  const ADDED_SINCE = ["sacred-days-across-the-faiths", "prayer-beads-across-the-faiths", "pilgrimage", "sufi-whirling-and-sacred-dance", "pythagoras", "heraclitus", "hypatia-of-alexandria", "avicenna-ibn-sina", "al-ghazali", "averroes-ibn-rushd", "maimonides", "ralph-waldo-emerson", "the-baal-shem-tov", "sri-ramakrishna", "swami-vivekananda", "anandamayi-ma", "sri-aurobindo", "the-desert-fathers-and-mothers", "kahlil-gibran", "the-gnostics-and-the-lost-gospels", "the-essenes-and-the-dead-sea-scrolls", "the-egyptian-mysteries", "spiritual-alchemy", "the-tibetan-book-of-the-dead", "sacred-sites-of-the-world", "the-pyramids-of-giza", "baalbek", "stonehenge", "petra", "delphi", "angkor-wat", "machu-picchu", "forty-two-the-answer-and-the-question", "story-the-flame-and-the-wind", "story-the-two-wells", "story-the-stone-in-the-shoe", "story-the-night-the-river-spoke", "story-the-merchants-scale", "story-the-mirror-in-the-market", "story-the-elephant-in-the-dark", "story-kisa-gotami-and-the-mustard-seed", "story-the-prodigal-son", "story-rabbi-zusyas-question", "story-nachiketa-and-death", "story-a-cup-of-tea", "those-who-carried-the-word", "noah", "isaac", "jacob", "joseph", "solomon", "elijah", "mary", "john-the-baptist", "the-temple-in-jerusalem", "working-with-the-mind", "the-teaching-in-ordinary-life", "living-with-others", "what-awakening-feels-like", "why-the-body-matters", "death-and-continuity", "questions-people-ask", "the-final-revelation", "on-judgment"];
+  const ADDED_SINCE = ["sacred-days-across-the-faiths", "prayer-beads-across-the-faiths", "pilgrimage", "sufi-whirling-and-sacred-dance", "pythagoras", "heraclitus", "hypatia-of-alexandria", "avicenna-ibn-sina", "al-ghazali", "averroes-ibn-rushd", "maimonides", "ralph-waldo-emerson", "the-baal-shem-tov", "sri-ramakrishna", "swami-vivekananda", "anandamayi-ma", "sri-aurobindo", "the-desert-fathers-and-mothers", "kahlil-gibran", "the-gnostics-and-the-lost-gospels", "the-essenes-and-the-dead-sea-scrolls", "the-egyptian-mysteries", "spiritual-alchemy", "the-tibetan-book-of-the-dead", "sacred-sites-of-the-world", "the-pyramids-of-giza", "baalbek", "stonehenge", "petra", "delphi", "angkor-wat", "machu-picchu", "forty-two-the-answer-and-the-question", "story-the-flame-and-the-wind", "story-the-two-wells", "story-the-stone-in-the-shoe", "story-the-night-the-river-spoke", "story-the-merchants-scale", "story-the-mirror-in-the-market", "story-the-elephant-in-the-dark", "story-kisa-gotami-and-the-mustard-seed", "story-the-prodigal-son", "story-rabbi-zusyas-question", "story-nachiketa-and-death", "story-a-cup-of-tea", "those-who-carried-the-word", "noah", "isaac", "jacob", "joseph", "solomon", "elijah", "mary", "john-the-baptist", "the-temple-in-jerusalem", "working-with-the-mind", "the-teaching-in-ordinary-life", "living-with-others", "what-awakening-feels-like", "why-the-body-matters", "death-and-continuity", "questions-people-ask", "the-final-revelation", "on-judgment", "plant-medicine-overview", "ayahuasca", "psilocybin-sacred-mushrooms", "dmt-and-5-meo-dmt", "mescaline-peyote-and-san-pedro", "lsd-hofmanns-discovery", "psychedelics-and-the-brain", "set-setting-and-integration", "plant-medicine-safety"];
   assert.equal(now.length, 275 + ADDED_SINCE.length, "the 275 teachings plus the pages added since");
   assert.deepEqual([...now].filter((s) => !ADDED_SINCE.includes(s)).sort(), before.slugs, "the very same 275 teachings, none lost");
   // Every teaching shows up in a tab of the Library, and every page still opens at its old address.
@@ -1401,4 +1401,39 @@ test("security: wrong preview passwords are limited, and the safety headers are 
   assert.doesNotMatch(s.body, /<script>alert/);
   // Tricks to reach the site's own files fail.
   for (const p of ["/images/../server.js", "/media/../../server.js", "/candidates/../../server.js", "/teachings/%E0%A4%A"]) assert.equal((await call(p)).status, 404, p);
+});
+
+test("Psychedelics and Plant Medicine: nine pages in Sacred Sciences, safety box on each, no amounts, glossary words", async () => {
+  const { libraryFamilies } = await import("../lib/content.js");
+  const { STAGES } = await import("../lib/path.js");
+  const { GLOSSARY } = await import("../lib/start.js");
+  const tab = categories.find((c) => c.id === "plant-medicine");
+  assert.ok(tab, "the tab exists");
+  assert.equal(tab.items.length, 9);
+  assert.ok(libraryFamilies.find((f) => f.id === "sciences").tabs.includes("plant-medicine"), "in the Sacred Sciences family");
+  assert.ok(STAGES.find((s) => s.n === 8).tabs.includes("plant-medicine"), "in stage 8 of the Path of Study");
+  const list = await call("/library?tab=plant-medicine");
+  assert.equal(list.status, 200);
+  for (const it of tab.items) {
+    assert.ok(list.body.includes(`href="/teachings/${it.slug}"`), it.slug);
+    const r = await call(`/teachings/${it.slug}`);
+    assert.equal(r.status, 200, it.slug);
+    assert.match(r.body, /class="pm-safety"/, `safety box on ${it.slug}`);
+    assert.match(r.body, /call or text 988/);
+    assert.match(r.body, /Spiritual guidance, not a replacement for your doctor\./);
+    assert.ok(!/\b\d+(\.\d+)?\s?(mg|µg|mcg|micrograms?|milligrams?|grams?|ml)\b/i.test(it.body), `no amounts on ${it.slug}`);
+    for (const [, href] of it.body.matchAll(/\]\((\/teachings\/[a-z0-9-]+)\)/g)) assert.equal((await call(href)).status, 200, `${it.slug} links to ${href}`);
+  }
+  const aya = await call("/teachings/ayahuasca");
+  assert.match(aya.body, /Samadhi&#39;s view|Samadhi's view/, "labelled as Samadhi's view");
+  assert.match(aya.body, /class="about-scroll judge-scroll pm-view"/, "on an ancient scroll");
+  assert.match(aya.body, /not medical advice\. Every person and every soul is unique and different\./);
+  assert.ok(aya.body.indexOf("pm-safety") < aya.body.indexOf("pm-view"), "the safety box comes first");
+  const safety = await call("/teachings/plant-medicine-safety");
+  for (const w of [/SSRIs and SNRIs/, /serotonin syndrome/, /lithium/i, /psychosis or schizophrenia/, /Schedule I/, /hypertensive crisis/]) assert.match(safety.body, w);
+  for (const t of ["Entheogen", "Ayahuasca", "MAOI", "Set and Setting", "Default Mode Network", "Integration"]) assert.ok(GLOSSARY.some((g) => g[0] === t), `glossary: ${t}`);
+  const gl = await call("/teachings/glossary");
+  assert.match(gl.body, /href="\/teachings\/ayahuasca"/);
+  const search = await call("/search?q=ayahuasca");
+  assert.match(search.body, /href="\/teachings\/ayahuasca"/, "found by search");
 });
