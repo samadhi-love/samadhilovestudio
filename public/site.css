@@ -1198,5 +1198,20 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .search-sum { color: #e6dcc6; font-size: 15px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* Home: the seven families in an even layout, History & Origins sitting under Wisdom & Philosophy */
-@media (min-width: 1100px) { .family-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .family-grid > :nth-child(7) { grid-column: 5; } }
-@media (min-width: 700px) and (max-width: 1099px) { .family-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .family-grid > :nth-child(7) { grid-column: 2; } }
+@media (min-width: 1100px) { .family-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .family-grid > .wisdom-tablet { grid-column: 2 / span 3; } .family-grid > :last-child { grid-column: 5; } }
+@media (min-width: 700px) and (max-width: 1099px) { .family-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .family-grid > .wisdom-tablet { grid-column: 1 / -1; } .family-grid > :last-child { grid-column: 2; } }
+
+/* The wisdom tablet: an engraved Flower of Life behind one saying at a time */
+.wisdom-tablet { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; min-height: 340px; padding: 48px 56px; }
+.wt-flower { position: absolute; width: min(92%, 420px); height: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: .2; animation: wt-turn 180s linear infinite; pointer-events: none; }
+@keyframes wt-turn { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+.wt-words { position: relative; display: grid; width: 100%; max-width: 560px; }
+.wt-item { grid-area: 1 / 1; margin: 0; opacity: 0; transition: opacity 1.6s ease; display: flex; flex-direction: column; justify-content: center; }
+.wt-item.is-on { opacity: 1; }
+.wt-item blockquote { margin: 0; font-family: var(--display); font-size: clamp(21px, 2.3vw, 30px); line-height: 1.4; color: #f6e2b0; text-shadow: 0 0 16px rgba(242, 196, 109, .35); }
+.wt-item figcaption { margin-top: 14px; font-family: Georgia, "Times New Roman", serif; font-style: italic; color: #d9cba8; font-size: 14px; letter-spacing: .04em; }
+.wt-item figcaption::before { content: "— "; }
+.wt-more { position: relative; margin-top: 24px; font-family: var(--display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: #f2c46d; border: 1px solid rgba(201, 162, 77, .55); padding: 7px 14px; border-radius: 3px; text-decoration: none; background: rgba(15, 13, 10, .6); }
+.wt-more:hover { color: #fff3c4; box-shadow: 0 0 12px rgba(255, 200, 90, .5); }
+@media (max-width: 699px) { .wisdom-tablet { min-height: 300px; padding: 40px 26px; } }
+@media (prefers-reduced-motion: reduce) { .wt-flower { animation: none; } .wt-item { transition: none; } }

@@ -248,3 +248,19 @@ for (const fig of document.querySelectorAll(".tl-gold-figure")) {
     if (note) note.scrollIntoView({ block: "nearest", behavior: "smooth" });
   });
 }
+
+// The wisdom tablet on the home page: one saying at a time, changing every 12 seconds.
+for (const box of document.querySelectorAll("[data-wisdom-tablet]")) {
+  const items = [...box.querySelectorAll(".wt-item")];
+  if (items.length < 2) continue;
+  let i = 0, hold = false;
+  const tablet = box.closest(".wisdom-tablet");
+  tablet.addEventListener("mouseenter", () => { hold = true; });
+  tablet.addEventListener("mouseleave", () => { hold = false; });
+  setInterval(() => {
+    if (hold || document.hidden) return;
+    items[i].classList.remove("is-on"); items[i].setAttribute("aria-hidden", "true");
+    i = (i + 1) % items.length;
+    items[i].classList.add("is-on"); items[i].removeAttribute("aria-hidden");
+  }, 12000);
+}
