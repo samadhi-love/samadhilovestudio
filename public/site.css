@@ -1247,3 +1247,10 @@ button.wt-more { cursor: pointer; }
 .pm-safety-more { margin: 10px 0 0; font-size: 14.5px; color: #d9cfb8; }
 .pm-safety a { color: #f6e2b0; }
 .cover-small:has(img[src^="/images/plant-medicine/"]) { margin-left: auto; margin-right: auto; }
+/* Wisdom tablet: Samadhi's "Wisdom of the Ages" stone banner on top, the turning Flower of Life behind the saying,
+   and the button below the saying (Nov 28, 2026). */
+.wt-banner { position: relative; display: block; width: min(78%, 440px); height: auto; margin: 0 auto 22px; border-radius: 4px; box-shadow: 0 6px 22px rgba(0, 0, 0, .65), 0 0 0 1px rgba(201, 162, 77, .35); }
+.wt-center { position: relative; width: 100%; display: flex; justify-content: center; align-items: center; min-height: 220px; }
+.wt-center .wt-flower { width: min(100%, 360px); }
+.wisdom-tablet { padding-top: 32px; padding-bottom: 32px; }
+@media (max-width: 699px) { .wt-banner { width: 92%; margin-bottom: 16px; } .wt-center { min-height: 200px; } }

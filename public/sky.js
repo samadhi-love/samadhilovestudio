@@ -249,7 +249,7 @@ for (const fig of document.querySelectorAll(".tl-gold-figure")) {
   });
 }
 
-// The wisdom tablet: one saying at a time. "Next saying" flips it over to the next one on the same page;
+// The wisdom tablet: one saying at a time. "Another word of wisdom" flips it over to the next one on the same page;
 // on the home page it also turns by itself every 12 seconds (not while someone points at it).
 for (const box of document.querySelectorAll("[data-wisdom-tablet]")) {
   const items = [...box.querySelectorAll(".wt-item")];
