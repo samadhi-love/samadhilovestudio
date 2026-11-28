@@ -866,7 +866,7 @@ test("Prophets & Teachers tab: overview with filters, golden rule strip and nine
   const home = await call("/");
   assert.match(home.body, /href="\/library\?tab=prophets"/);
   const ov = await call("/teachings/prophets-and-teachers");
-  assert.equal((ov.body.match(/class="pf-card /g) || []).length, 10, "ten cards, Enoch included");
+  assert.equal((ov.body.match(/class="pf-card /g) || []).length, 18, "eighteen cards: the ten, plus Noah, Isaac, Jacob, Joseph, Solomon, Elijah, Mary and John (Nov 2026)");
   for (const f of ["all", "abr", "dha", "per", "sik"]) assert.match(ov.body, new RegExp(`id="pf-${f}"`), f);
   assert.equal((ov.body.match(/class="pf-gold-card"/g) || []).length, 8, "golden rule strip");
   assert.match(ov.body, /do not teach reincarnation/);
@@ -1310,7 +1310,7 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   assert.equal(before.slugs.length, 275);
   const now = categories.flatMap((c) => c.items.map((i) => i.slug));
   // Pages added after the reorganization (on purpose) may join; none of the 275 may ever be lost.
-  const ADDED_SINCE = ["working-with-the-mind", "the-teaching-in-ordinary-life", "living-with-others", "what-awakening-feels-like", "why-the-body-matters", "death-and-continuity", "questions-people-ask", "the-final-revelation", "on-judgment"];
+  const ADDED_SINCE = ["those-who-carried-the-word", "noah", "isaac", "jacob", "joseph", "solomon", "elijah", "mary", "john-the-baptist", "the-temple-in-jerusalem", "working-with-the-mind", "the-teaching-in-ordinary-life", "living-with-others", "what-awakening-feels-like", "why-the-body-matters", "death-and-continuity", "questions-people-ask", "the-final-revelation", "on-judgment"];
   assert.equal(now.length, 275 + ADDED_SINCE.length, "the 275 teachings plus the pages added since");
   assert.deepEqual([...now].filter((s) => !ADDED_SINCE.includes(s)).sort(), before.slugs, "the very same 275 teachings, none lost");
   // Every teaching shows up in a tab of the Library, and every page still opens at its old address.
