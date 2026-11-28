@@ -40,6 +40,8 @@ const files = {
   "/images/bucket-and-well.jpg": ["public/images/bucket-and-well.jpg", "image/jpeg"],
   "/images/evil-live-plaque.jpg": ["public/images/evil-live-plaque.jpg", "image/jpeg"],
   "/images/gods-love-plaque.jpg": ["public/images/gods-love-plaque.jpg", "image/jpeg"],
+  "/images/veils-plaque.jpg": ["public/images/veils-plaque.jpg", "image/jpeg"],
+  "/images/eternal-plaque.jpg": ["public/images/eternal-plaque.jpg", "image/jpeg"],
   "/images/silver-cord.jpg": ["public/images/silver-cord.jpg", "image/jpeg"],
   "/images/veil-tunnel.jpg": ["public/images/veil-tunnel.jpg", "image/jpeg"],
   "/images/veil-eye.jpg": ["public/images/veil-eye.jpg", "image/jpeg"],
