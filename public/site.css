@@ -1373,3 +1373,6 @@ section.quote.home-sec { padding: 14px 0 18px; }
 .quote-tableau-one { max-width: none; margin: 0; }
 .quote-tableau-one img { border-radius: 4px; }
 @media (max-width: 700px) { .quote-tableau-one { margin: 0 -10px; } }
+/* Tighter space after the tableau (Samadhi, Nov 28). */
+section.quote.home-sec { padding-bottom: 6px; }
+section.quote.home-sec + section.home-sec { padding-top: 16px; padding-bottom: 30px; }
