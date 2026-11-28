@@ -1184,3 +1184,16 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 @media (max-width: 600px) { .story-scroll .st-carry br { display: none; } }
 .story-shelf-item .st-name.st-long { font-size: clamp(10px, 4cqw, 16px); letter-spacing: .02em; }
 .story-scroll .st-name.st-long { font-size: clamp(12px, 3.3cqw, 20px); letter-spacing: .03em; }
+
+/* Site search */
+.nav-search { display: inline-flex; align-items: center; padding: 6px; }
+.search-form { display: flex; gap: 8px; margin: 6px 0 14px; }
+.search-form input { flex: 1; min-width: 0; padding: 10px 14px; border-radius: 4px; border: 1px solid rgba(242, 196, 109, .45); background: rgba(10, 8, 5, .8); color: #f6ecd2; font-size: 16px; }
+.search-form input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.search-form-big input { font-size: 18px; padding: 14px 16px; }
+.search-hits { list-style: none; padding: 0; margin: 10px 0 24px; display: grid; gap: 12px; }
+.search-hit a { display: block; padding: 14px 18px; border: 1px solid rgba(242, 196, 109, .25); border-radius: 6px; background: rgba(20, 15, 8, .6); text-decoration: none; }
+.search-hit a:hover, .search-hit a:focus-visible { border-color: rgba(242, 196, 109, .6); }
+.search-hit strong { display: block; font-family: var(--display); font-size: 19px; color: #f6e2b0; margin: 4px 0; }
+.search-sum { color: #e6dcc6; font-size: 15px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
