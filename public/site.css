@@ -1088,3 +1088,14 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
   .wrap .about-scroll { margin-left: -20px; margin-right: -20px; }
 }
 @media (prefers-reduced-motion: reduce) { .as-unroll, .as-text { animation: none; } }
+
+/* On Judgment: poem scrolls and the practice tablet */
+.judge-scroll { max-width: 520px; margin: 18px auto 34px; }
+.as-poem { text-align: center; font-style: italic; font-size: 3.6cqw; padding-left: 22cqw; padding-right: 22cqw; }
+.as-poem p { margin: 0 0 .25em; }
+.as-poem .as-gap { height: .7em; margin: 0; }
+.as-poem p:first-child::first-letter { font-size: inherit; float: none; margin: 0; font-family: inherit; color: inherit; }
+.judge-practice { margin: 18px 0 30px; }
+.judge-practice .jp-main { font-family: var(--display); font-size: 21px; color: #f6e2b0; text-shadow: 0 0 12px rgba(242, 196, 109, .3); margin: 6px 0 12px; }
+.judge-practice li { color: #f1e8d4; }
+@media (max-width: 600px) { .as-poem { font-size: 4.6cqw; } }

@@ -1081,10 +1081,10 @@ test("The Power of Words: in The Heart and the Ego, Bava Metzia 58b, no swear wo
   assert.match(page.body, /Stage 10 of 12: The Heart and Daily Life/);
 });
 
-test("The Heart and the Ego: one course of 13 lessons gathered from four tabs, addresses unchanged", async () => {
+test("The Heart and the Ego: one course of 14 lessons gathered from four tabs, addresses unchanged", async () => {
   const { libraryFamilies } = await import("../lib/content.js");
   const heart = categories.find((c) => c.id === "heart-and-ego");
-  assert.deepEqual(heart.items.map((i) => i.slug), ["fear-ego-and-grief", "give-your-soul-only-to-god", "the-idols-of-today", "greed-wanting-more-than-we-need", "envy-and-jealousy", "competition-and-rivalry", "hate-and-bad-wishes", "black-magic-and-the-law-of-return", "the-power-of-words", "the-mirror-seeing-god-in-every-face", "the-golden-rule", "the-power-of-forgiveness", "charity-sharing-our-blessings"]);
+  assert.deepEqual(heart.items.map((i) => i.slug), ["fear-ego-and-grief", "give-your-soul-only-to-god", "the-idols-of-today", "greed-wanting-more-than-we-need", "envy-and-jealousy", "competition-and-rivalry", "hate-and-bad-wishes", "black-magic-and-the-law-of-return", "the-power-of-words", "on-judgment", "the-mirror-seeing-god-in-every-face", "the-golden-rule", "the-power-of-forgiveness", "charity-sharing-our-blessings"]);
   assert.ok(libraryFamilies.find((f) => f.id === "spiritual").tabs.includes("heart-and-ego"));
   const all = categories.flatMap((c) => c.items.map((i) => i.slug));
   for (const s of heart.items.map((i) => i.slug)) assert.equal(all.filter((x) => x === s).length, 1, `${s} appears once`);
@@ -1308,8 +1308,10 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   const before = JSON.parse(fs.readFileSync(new URL("./fixtures/library-before-reorg.json", import.meta.url), "utf8"));
   assert.equal(before.slugs.length, 275);
   const now = categories.flatMap((c) => c.items.map((i) => i.slug));
-  assert.equal(now.length, 275, "still 275 teachings");
-  assert.deepEqual([...now].sort(), before.slugs, "the very same teachings, none lost or added");
+  // Pages added after the reorganization (on purpose) may join; none of the 275 may ever be lost.
+  const ADDED_SINCE = ["on-judgment"];
+  assert.equal(now.length, 275 + ADDED_SINCE.length, "the 275 teachings plus the pages added since");
+  assert.deepEqual([...now].filter((s) => !ADDED_SINCE.includes(s)).sort(), before.slugs, "the very same 275 teachings, none lost");
   // Every teaching shows up in a tab of the Library, and every page still opens at its old address.
   const listed = new Set();
   for (const c of categories) {
