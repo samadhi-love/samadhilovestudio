@@ -966,7 +966,7 @@ body.tk-open { overflow: hidden; }
   .hero-scroll img { aspect-ratio: 4 / 3; object-fit: cover; object-position: 35% 50%; }
   .hero-scroll-text { left: 6%; right: 11%; top: 24%; bottom: 22%; }
   .hero .hero-scroll h1 { font-size: 8.4cqw; }
-  .hero .hero-scroll .lead { font-size: 3.35cqw; margin-top: 1.6cqw; line-height: 1.3; }
+  .hero .hero-scroll .lead { font-size: max(12.5px, 3.6cqw); margin-top: 1.6cqw; line-height: 1.3; }
   .hero-scroll-text::before { display: none; }
 }
 

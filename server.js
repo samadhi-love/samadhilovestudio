@@ -177,6 +177,8 @@ const security = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "DENY",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+  "Cross-Origin-Opener-Policy": "same-origin",
   "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; frame-src https://www.youtube-nocookie.com; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
 };
 
@@ -185,15 +187,33 @@ function samePassword(given, expected) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// Wrong preview passwords: after 20 wrong tries from one place within 15 minutes, that place must wait.
+const PREVIEW_TRIES = 20, PREVIEW_WINDOW = 15 * 60 * 1000;
+const previewFails = new Map();
+const clientOf = (req) => String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "?").split(",")[0].trim().slice(0, 64);
+function tooManyPreviewTries(req) {
+  const now = Date.now();
+  if (previewFails.size > 5000) for (const [k, v] of previewFails) if (now - v.first > PREVIEW_WINDOW) previewFails.delete(k);
+  const t = previewFails.get(clientOf(req));
+  return Boolean(t && now - t.first < PREVIEW_WINDOW && t.count >= PREVIEW_TRIES);
+}
+function previewFailed(req) {
+  const id = clientOf(req), now = Date.now(), t = previewFails.get(id);
+  previewFails.set(id, t && now - t.first < PREVIEW_WINDOW ? { first: t.first, count: t.count + 1 } : { first: now, count: 1 });
+}
+
 function allowed(req) {
   if (isPublic) return "open";
   const password = process.env.PREVIEW_PASSWORD;
   if (!password) return "no-password";
   const header = req.headers.authorization || "";
   if (!header.startsWith("Basic ")) return "ask";
+  if (tooManyPreviewTries(req)) return "wait";
   const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
   const given = decoded.slice(decoded.indexOf(":") + 1);
-  return samePassword(given, password) ? "open" : "ask";
+  if (samePassword(given, password)) { previewFails.delete(clientOf(req)); return "open"; }
+  previewFailed(req);
+  return "ask";
 }
 
 // Text (pages, styles, scripts, sitemap) is sent compressed when the browser accepts it: about 5 times smaller.
@@ -241,6 +261,7 @@ export async function handle(req, res) {
 
   const gate = allowed(req);
   if (gate === "no-password") return send(res, 503, pages.locked(), undefined, { "Cache-Control": "no-store" });
+  if (gate === "wait") return send(res, 429, "Too many wrong passwords. Please wait 15 minutes and try again.", "text/plain; charset=utf-8", { "Retry-After": "900", "Cache-Control": "no-store" });
   if (gate === "ask") return send(res, 401, pages.askPassword(), undefined, { "WWW-Authenticate": 'Basic realm="SAMADHI LOVE private preview", charset="UTF-8"', "Cache-Control": "no-store" });
 
   if (pathname === "/studio" || pathname.startsWith("/studio/")) {
@@ -296,10 +317,15 @@ export async function handle(req, res) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  // Anything unexpected is written to the server log only, and the site keeps running.
+  process.on("unhandledRejection", (err) => console.error("Unhandled:", err));
   http.createServer((req, res) => {
     handle(req, res).catch((err) => {
       console.error(err);
       if (!res.headersSent) send(res, 500, "Something went wrong.", "text/plain; charset=utf-8");
     });
-  }).listen(port, "0.0.0.0", () => console.log(`SAMADHI LOVE website on port ${port} (${isPublic ? "public" : "private preview"})`));
+  })
+    // A broken or half-sent request gets a plain "bad request", never a crash.
+    .on("clientError", (err, socket) => { if (socket.writable) socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n"); else socket.destroy(); })
+    .listen(port, "0.0.0.0", () => console.log(`SAMADHI LOVE website on port ${port} (${isPublic ? "public" : "private preview"})`));
 }

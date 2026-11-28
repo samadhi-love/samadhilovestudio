@@ -1378,3 +1378,27 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   for (const [n, id] of [[9, "yoga-kriya"], [8, "hermetic-wisdom"], [6, "wisdom-stories"]]) assert.ok(STAGES.find((s) => s.n === n).tabs.includes(id), id);
   for (const c of categories) assert.ok(staged.includes(c.id), `${c.id} is in a Path of Study stage`);
 });
+
+test("the list of optional picture slots matches its source", async () => {
+  const { listMarkdown } = await import("../lib/replacements.js");
+  const fs = await import("node:fs");
+  assert.equal(fs.readFileSync(new URL("../public/images/replacements/LIST.md", import.meta.url), "utf8"), listMarkdown());
+});
+
+test("security: wrong preview passwords are limited, and the safety headers are sent", async () => {
+  const bad = { authorization: "Basic " + Buffer.from("x:wrong").toString("base64"), "x-forwarded-for": "203.0.113.77" };
+  for (let i = 0; i < 20; i++) assert.equal((await call("/", { auth: false, headers: bad })).status, 401);
+  const blocked = await call("/", { auth: false, headers: bad });
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.headers["Retry-After"], "900");
+  // Someone else is not affected, and the right password from elsewhere still works.
+  assert.equal((await call("/", { headers: { "x-forwarded-for": "203.0.113.78" } })).status, 200);
+  const page = await call("/");
+  for (const h of ["Content-Security-Policy", "Strict-Transport-Security", "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy", "Cross-Origin-Opener-Policy"]) assert.ok(page.headers[h], h);
+  // Harmful text in a search is shown as text, never run.
+  const s = await call("/search?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E");
+  assert.equal(s.status, 200);
+  assert.doesNotMatch(s.body, /<script>alert/);
+  // Tricks to reach the site's own files fail.
+  for (const p of ["/images/../server.js", "/media/../../server.js", "/candidates/../../server.js", "/teachings/%E0%A4%A"]) assert.equal((await call(p)).status, 404, p);
+});

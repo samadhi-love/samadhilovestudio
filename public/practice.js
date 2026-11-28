@@ -11,12 +11,14 @@
     if (!ctx) {
       const C = window.AudioContext || window.webkitAudioContext;
       if (!C) return null;
-      ctx = new C();
-      master = ctx.createGain();
-      master.gain.value = 0;
-      master.connect(ctx.destination);
+      try {
+        ctx = new C();
+        master = ctx.createGain();
+        master.gain.value = 0;
+        master.connect(ctx.destination);
+      } catch (e) { ctx = null; master = null; return null; } // sound not allowed: the practice still works silently
     }
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     return ctx;
   }
   const level = () => 0.35 * volume;
