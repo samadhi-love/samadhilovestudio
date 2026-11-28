@@ -1226,3 +1226,13 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .wt-item blockquote, .wt-item figcaption { position: relative; }
 .wt-words::before { content: ""; position: absolute; inset: -18px -26px; background: radial-gradient(ellipse at center, rgba(10, 8, 5, .75) 0%, rgba(10, 8, 5, 0) 72%); pointer-events: none; }
 @media (max-width: 699px) { .wt-col { display: none; } .wisdom-tablet { padding-left: 26px; padding-right: 26px; } }
+
+/* The wisdom tablet flips like a turning page */
+.wt-words { transform-origin: 50% 50%; perspective: 900px; transition: transform .38s ease-in, opacity .38s ease-in; }
+.wt-words.is-flipping { transform: rotateX(90deg); opacity: 0; }
+.wt-words.is-landing { animation: wt-land .38s ease-out; }
+@keyframes wt-land { from { transform: rotateX(-90deg); opacity: 0; } to { transform: rotateX(0); opacity: 1; } }
+.wt-item { transition: none; }
+button.wt-more { cursor: pointer; }
+.tab-flank-text .wisdom-tablet, .teachings-heading .wisdom-tablet, .banner .wisdom-tablet { margin: 26px auto 8px; max-width: 760px; min-height: 380px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .wt-words, .wt-words.is-flipping, .wt-words.is-landing { transition: none; animation: none; transform: none; opacity: 1; } }

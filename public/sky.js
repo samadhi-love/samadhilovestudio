@@ -249,18 +249,30 @@ for (const fig of document.querySelectorAll(".tl-gold-figure")) {
   });
 }
 
-// The wisdom tablet on the home page: one saying at a time, changing every 12 seconds.
+// The wisdom tablet: one saying at a time. "Next saying" flips it over to the next one on the same page;
+// on the home page it also turns by itself every 12 seconds (not while someone points at it).
 for (const box of document.querySelectorAll("[data-wisdom-tablet]")) {
   const items = [...box.querySelectorAll(".wt-item")];
-  if (items.length < 2) continue;
-  let i = 0, hold = false;
   const tablet = box.closest(".wisdom-tablet");
+  if (items.length < 2 || !tablet) continue;
+  const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let i = 0, hold = false, busy = false;
+  const show = () => {
+    if (busy) return;
+    const swap = () => {
+      items[i].classList.remove("is-on"); items[i].setAttribute("aria-hidden", "true");
+      i = (i + 1) % items.length;
+      items[i].classList.add("is-on"); items[i].removeAttribute("aria-hidden");
+    };
+    if (calm) { swap(); return; }
+    busy = true;
+    box.classList.add("is-flipping");
+    setTimeout(() => { swap(); box.classList.remove("is-flipping"); box.classList.add("is-landing");
+      setTimeout(() => { box.classList.remove("is-landing"); busy = false; }, 380); }, 380);
+  };
+  const next = tablet.querySelector("[data-wt-next]");
+  if (next) next.addEventListener("click", () => show());
   tablet.addEventListener("mouseenter", () => { hold = true; });
   tablet.addEventListener("mouseleave", () => { hold = false; });
-  setInterval(() => {
-    if (hold || document.hidden) return;
-    items[i].classList.remove("is-on"); items[i].setAttribute("aria-hidden", "true");
-    i = (i + 1) % items.length;
-    items[i].classList.add("is-on"); items[i].removeAttribute("aria-hidden");
-  }, 12000);
+  if (!tablet.closest(".tab-flank-text, .teachings-heading, .banner")) setInterval(() => { if (!hold && !document.hidden) show(); }, 12000);
 }
