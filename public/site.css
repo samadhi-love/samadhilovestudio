@@ -1275,3 +1275,67 @@ button.wt-more { cursor: pointer; }
   .wt-doorway .wt-more { font-size: 2.9cqw; padding: 1.4cqw 2.6cqw; bottom: 3%; }
 }
 @media (prefers-reduced-motion: reduce) { .wt-glow { animation: none; } }
+
+/* Home page tightening (Samadhi, Nov 28): less empty space between sections, nothing removed. */
+header.hero { padding-bottom: 64px; }
+header.hero .hero-triptych { margin-top: 30px; }
+header.hero .stone-actions { margin-top: 18px; }
+section.home-sec { padding: 40px 0; }
+section.home-first { padding-top: 26px; }
+section.quote.home-sec { padding: 26px 0 30px; }
+.home-band.band { min-height: 360px; }
+.home-first .path-band { margin-top: 22px; }
+@media (max-width: 700px) { section.home-sec { padding: 30px 0; } section.home-first { padding-top: 18px; } header.hero .hero-triptych { margin-top: 22px; } }
+
+/* The gold thread down the left of each family card, with small engraved signs turning slowly. */
+.glyph-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.fam-body { display: flex; gap: 12px; flex: 1; min-height: 0; }
+.fam-rail { position: relative; flex: 0 0 20px; display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 4px 0; color: #c9a24d; }
+.fam-rail::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; transform: translateX(-.5px);
+  background: linear-gradient(180deg, rgba(201, 162, 77, 0), rgba(201, 162, 77, .55) 12%, rgba(201, 162, 77, .55) 88%, rgba(201, 162, 77, 0)); }
+.fam-rail .gs { position: relative; width: 18px; height: 18px; background: #14110c; border-radius: 50%; box-shadow: 0 0 6px rgba(0, 0, 0, .9); opacity: .9; }
+.fam-body .family-tabs { flex: 1; min-width: 0; align-content: flex-start; margin: 0; padding: 0; }
+.stone-card .fam-body .family-tabs { margin: 0; }
+.family-tabs .fam-fill { flex-basis: 100%; display: flex; justify-content: center; align-items: center; padding: 10px 0 0; color: #c9a24d; }
+.gs-big { width: min(130px, 100%); height: auto; aspect-ratio: 1; opacity: .55; filter: drop-shadow(0 0 6px rgba(242, 196, 109, .25)); }
+.family-card .fam-fill { flex-grow: 1; }
+
+/* The Path of Study band: text on the left, the twelve-point wheel on the right. */
+.path-band.has-wheel { display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 26px; align-items: center; }
+.path-wheel { width: 170px; height: 170px; color: #d7b061; opacity: .75; filter: drop-shadow(0 0 8px rgba(242, 196, 109, .3)); }
+@media (max-width: 700px) { .path-band.has-wheel { grid-template-columns: minmax(0, 1fr) 84px; gap: 12px; align-items: start; } .path-wheel { width: 84px; height: 84px; } }
+
+/* Very slow turning; paused off screen (sky.js adds .geo-on) and still for visitors who prefer less motion. */
+@keyframes gs-spin { to { transform: rotate(360deg); } }
+.gs-turn { transform-box: fill-box; transform-origin: center; animation: gs-spin 60s linear infinite; animation-play-state: paused; }
+.gs-turn.gs-rev { animation-direction: reverse; animation-duration: 75s; }
+.gs-big.gs-turn { animation-duration: 120s; }
+.path-wheel.gs-turn { animation-duration: 180s; }
+.geo-on .gs-turn { animation-play-state: running; }
+@media (prefers-reduced-motion: reduce) { .gs-turn { animation: none; } }
+.fam-rail .gs { width: 20px; height: 20px; color: #d7b061; opacity: 1; }
+
+/* About on the home page: a framed stone box with the words in an old hand (Samadhi, Nov 28). */
+.about-box { padding: 30px 36px 28px; text-align: center; border-radius: 6px; }
+.about-box .section-title { margin-bottom: 14px; }
+.about-hand { font-family: "IM Fell English", Georgia, "Times New Roman", serif; font-style: italic; font-size: 21px; line-height: 1.65; color: #efe2c4; max-width: 640px; margin: 0 auto; }
+.about-hand-sign { font-family: "Pinyon Script", "IM Fell English", Georgia, serif; font-size: 34px; color: #f2c46d; margin: 8px 0 14px; text-align: right; max-width: 640px; margin-left: auto; margin-right: auto; }
+.about-box .stone-btn { display: inline-flex; }
+@media (max-width: 700px) { .about-box { padding: 26px 20px 22px; } .about-hand { font-size: 19px; } .about-hand-sign { font-size: 30px; } }
+
+/* Samadhi's promise at the foot of the pages: an old hand inside a thin gold frame. */
+.promise { font-family: "IM Fell English", Georgia, "Times New Roman", serif; font-style: italic; font-size: 16.5px; line-height: 1.7; color: #eadfc6;
+  max-width: 700px; padding: 18px 26px 16px; border: 1px solid rgba(201, 162, 77, .4); border-radius: 4px;
+  background: linear-gradient(180deg, rgba(40, 33, 22, .55), rgba(16, 13, 9, .55)); box-shadow: inset 0 0 0 4px rgba(10, 9, 7, .6), inset 0 0 0 5px rgba(201, 162, 77, .18); }
+.promise a { color: #f6e2b0; }
+.promise-sign { display: block; text-align: right; font-family: "Pinyon Script", "IM Fell English", Georgia, serif; font-style: normal; font-size: 26px; color: #f2c46d; margin-top: 4px; white-space: nowrap; }
+@media (max-width: 699px) { .family-tabs .fam-fill { display: none; } }
+@media (max-width: 699px) {
+  .path-band.has-wheel { display: block; }
+  .path-band.has-wheel .path-wheel { display: none; }
+  .promise { font-size: 15px; line-height: 1.55; padding: 12px 14px 10px; }
+  .promise-sign { font-size: 22px; margin-top: 0; }
+  .about-box { padding: 20px 16px 16px; }
+  .about-hand { font-size: 18px; line-height: 1.55; }
+  .about-hand-sign { font-size: 28px; margin: 4px 0 8px; }
+}

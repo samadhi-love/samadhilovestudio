@@ -276,3 +276,12 @@ for (const box of document.querySelectorAll("[data-wisdom-tablet]")) {
   tablet.addEventListener("mouseleave", () => { hold = false; });
   if (!tablet.closest(".tab-flank-text, .teachings-heading, .banner")) setInterval(() => { if (!hold && !document.hidden) show(); }, 12000);
 }
+
+// Home page signs (Nov 2026): the small gold geometric signs turn only while their section is on screen.
+(function () {
+  const boxes = document.querySelectorAll("[data-geo-live]");
+  if (!boxes.length) return;
+  if (!("IntersectionObserver" in window)) { boxes.forEach((b) => b.classList.add("geo-on")); return; }
+  const io = new IntersectionObserver((list) => list.forEach((en) => en.target.classList.toggle("geo-on", en.isIntersecting)), { rootMargin: "100px 0px" });
+  boxes.forEach((b) => io.observe(b));
+})();
