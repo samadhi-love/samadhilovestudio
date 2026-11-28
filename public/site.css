@@ -1136,3 +1136,7 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .faq-answer p { margin: 0 0 10px; color: #f1e8d4; }
 .faq-more { font-size: 15px; color: #ddd0b2; }
 @media (max-width: 600px) { .faq-item summary { font-size: 18px; } }
+
+/* Companion teachings: the "Carry this with you" scroll */
+.carry-label { text-align: center; margin: 34px 0 0; color: var(--gold); }
+.carry-scroll { margin-top: 8px; }

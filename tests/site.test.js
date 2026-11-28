@@ -1043,7 +1043,7 @@ test("Gap-filling teachings: Soul's Journey, Mystery Schools, Spirit in Daily Li
   const { libraryFamilies } = await import("../lib/content.js");
   const ids = categories.map((c) => c.id);
   for (const id of ["souls-journey", "mystery-schools", "daily-life"]) assert.ok(ids.includes(id), id);
-  assert.equal(categories.find((c) => c.id === "souls-journey").items.length, 7);
+  assert.equal(categories.find((c) => c.id === "souls-journey").items.length, 8); // 7, plus Death and Continuity (Nov 2026)
   const fam = Object.fromEntries(libraryFamilies.map((f) => [f.id, f.tabs]));
   assert.ok(fam.spiritual.includes("souls-journey") && fam.practice.includes("daily-life") && fam.sciences.includes("mystery-schools"));
   const added = { practices: ["sacred-sound-mantra-and-frequency", "the-power-of-silence", "fasting-across-the-traditions"], "beyond-the-veil": ["dreams-the-language-of-the-soul"], teachings: ["the-divine-feminine", "grace-surrender-and-humility"], "sacred-geometry": ["numerology-the-meaning-of-numbers"], start: ["the-path-of-study"] };
@@ -1310,7 +1310,7 @@ test("Library reorganization: all 275 teachings still in a tab, every old tab li
   assert.equal(before.slugs.length, 275);
   const now = categories.flatMap((c) => c.items.map((i) => i.slug));
   // Pages added after the reorganization (on purpose) may join; none of the 275 may ever be lost.
-  const ADDED_SINCE = ["questions-people-ask", "the-final-revelation", "on-judgment"];
+  const ADDED_SINCE = ["working-with-the-mind", "the-teaching-in-ordinary-life", "living-with-others", "what-awakening-feels-like", "why-the-body-matters", "death-and-continuity", "questions-people-ask", "the-final-revelation", "on-judgment"];
   assert.equal(now.length, 275 + ADDED_SINCE.length, "the 275 teachings plus the pages added since");
   assert.deepEqual([...now].filter((s) => !ADDED_SINCE.includes(s)).sort(), before.slugs, "the very same 275 teachings, none lost");
   // Every teaching shows up in a tab of the Library, and every page still opens at its old address.
