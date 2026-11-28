@@ -1369,3 +1369,7 @@ section.quote.home-sec { padding: 14px 0 18px; }
 .quote-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; }
 .quote-pair .quote-plaque { max-width: none; margin: 0; }
 @media (max-width: 760px) { .quote-pair { grid-template-columns: 1fr; gap: 14px; } .quote-pair .quote-plaque { margin: 0 -8px; } }
+/* One matching tableau: the Buddha and Samadhi, trimmed to the stone and run the full width of the families. */
+.quote-tableau-one { max-width: none; margin: 0; }
+.quote-tableau-one img { border-radius: 4px; }
+@media (max-width: 700px) { .quote-tableau-one { margin: 0 -10px; } }

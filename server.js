@@ -165,6 +165,7 @@ const files = {
   "/images/homer.jpg": ["public/images/homer.jpg", "image/jpeg"],
   "/images/buddha-plaque.jpg": ["public/images/buddha-plaque.jpg", "image/jpeg"],
   "/images/samadhi-plaque-love.jpg": ["public/images/samadhi-plaque-love.jpg", "image/jpeg"],
+  "/images/love-tableau.jpg": ["public/images/love-tableau.jpg", "image/jpeg"],
   "/images/plant-medicine/overview.jpg": ["public/images/plant-medicine/overview.jpg", "image/jpeg"],
   "/images/plant-medicine/ayahuasca.jpg": ["public/images/plant-medicine/ayahuasca.jpg", "image/jpeg"],
   "/images/plant-medicine/psilocybin.jpg": ["public/images/plant-medicine/psilocybin.jpg", "image/jpeg"],
