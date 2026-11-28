@@ -1122,3 +1122,17 @@ figcaption, .saying figcaption, .choose figcaption { color: #ddd0b2; }
 .final-words div:last-child { border-bottom: 0; }
 .final-words dt { font-family: var(--display); color: #f6e2b0; font-size: 19px; }
 .final-words dd { margin: 4px 0 0; color: #f1e8d4; }
+
+/* Questions People Ask: gold questions that open into short answers */
+.faq-group { margin: 30px 0 10px; }
+.faq-item { border: 1px solid rgba(242, 196, 109, .28); border-radius: 6px; margin: 10px 0; background: rgba(20, 15, 8, .55); }
+.faq-item summary { cursor: pointer; list-style: none; padding: 14px 44px 14px 18px; font-family: var(--display); font-size: 20px; color: #f6e2b0; position: relative; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 22px; }
+.faq-item[open] summary::after { content: "\2013"; }
+.faq-item[open] { border-color: rgba(242, 196, 109, .55); box-shadow: 0 0 18px rgba(242, 196, 109, .12); }
+.faq-item summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.faq-answer { padding: 0 18px 14px; }
+.faq-answer p { margin: 0 0 10px; color: #f1e8d4; }
+.faq-more { font-size: 15px; color: #ddd0b2; }
+@media (max-width: 600px) { .faq-item summary { font-size: 18px; } }
